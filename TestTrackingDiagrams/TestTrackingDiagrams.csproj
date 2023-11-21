@@ -1,15 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Title>Tesst Tracking Diagrams</Title>
+    <Title>Test Tracking Diagrams</Title>
     <Description>A mechanism for tracking your request-responses in your tests and converting them into diagrams.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <LangVersion>preview</LangVersion>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +29,7 @@
 	<ItemGroup>
 		<PackageReference Include="Humanizer.Core" Version="2.14.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="7.0.8" />
+		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.25" />
 	</ItemGroup>
 
 </Project>
