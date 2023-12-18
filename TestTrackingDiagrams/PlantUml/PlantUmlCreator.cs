@@ -8,12 +8,12 @@ public class PlantUmlCreator
 {
     private static readonly string[] ExcludedHeaders = { "Cache-Control", "Pragma" };
 
-    public static Dictionary<string, string[]> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png")
+    public static Dictionary<string, string[]> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
     {
         var plantUmlPerTestName = requestResponses?.Select(requestResponseLog =>
             {
                 var testName = requestResponseLog.TestInfo.ToString();
-                var plantUmlImageTag = CreatePlantUmlImageTag(requestResponseLog, plantUmlServerRendererUrl);
+                var plantUmlImageTag = CreatePlantUmlImageTag(requestResponseLog, plantUmlServerRendererUrl, processor);
                 return (testName, plantUmlImageTag);
             }).GroupBy(x => x.testName)
             .ToDictionary(x => x.Key, x => x.Select(y => y.plantUmlImageTag).Distinct().ToArray());
@@ -21,7 +21,7 @@ public class PlantUmlCreator
         return plantUmlPerTestName ?? new Dictionary<string, string[]>();
     }
 
-    private static string CreatePlantUml(RequestResponseLog requestResponse)
+    private static string CreatePlantUml(RequestResponseLog requestResponse, Func<string, string>? processor = null)
     {
         var (httpMethod, requestContent, uri, valueTuples, serviceFullName) = requestResponse.Request;
         var (httpStatusCode, responseContent, headers) = requestResponse.Response;
@@ -30,6 +30,12 @@ public class PlantUmlCreator
             (valueTuples, requestContent, ExcludedHeaders);
         var responsePlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
             (headers, responseContent, ExcludedHeaders);
+
+        if (processor is not null)
+        {
+            requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
+            responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
+        }
 
         var plantUml =
             $"@startuml{Environment.NewLine}" +
@@ -67,9 +73,9 @@ public class PlantUmlCreator
         return $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{encodedPlantUml}\">";
     }
 
-    private static string CreatePlantUmlImageTag(RequestResponseLog requestResponseLog, string plantUmlServerRendererUrl)
+    private static string CreatePlantUmlImageTag(RequestResponseLog requestResponseLog, string plantUmlServerRendererUrl, Func<string, string>? processor = null)
     {
-        var plantUml = CreatePlantUml(requestResponseLog);
+        var plantUml = CreatePlantUml(requestResponseLog, processor);
         var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml); ;
         var plantUmlImageTag = CreatePlantUmlImageTag(encodedPlantUml, plantUmlServerRendererUrl);
         return plantUmlImageTag;
