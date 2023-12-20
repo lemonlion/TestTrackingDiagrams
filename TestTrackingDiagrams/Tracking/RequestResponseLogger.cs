@@ -4,8 +4,8 @@ namespace TestTrackingDiagrams.Tracking;
 
 public static class RequestResponseLogger
 {
-    private static readonly ConcurrentBag<RequestResponseLog> RequestsAndResponses = new();
+    private static readonly ConcurrentQueue<RequestResponseLog> RequestsAndResponses = new();
 
-    public static void Log(RequestResponseLog log) => RequestsAndResponses.Add(log);
+    public static void Log(RequestResponseLog log) => RequestsAndResponses.Enqueue(log);
     public static RequestResponseLog[] RequestAndResponseLogs => RequestsAndResponses.ToArray();
 }
