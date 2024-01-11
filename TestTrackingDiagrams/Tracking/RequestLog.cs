@@ -5,4 +5,5 @@ public record RequestLog(
     string? Content,
     Uri Uri,
     (string Key, string? Value)[] Headers,
-    string ServiceName);
+    string ServiceName,
+    string CallerName);

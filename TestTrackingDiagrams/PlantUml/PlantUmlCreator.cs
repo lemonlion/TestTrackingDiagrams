@@ -8,53 +8,84 @@ public class PlantUmlCreator
 {
     private static readonly string[] ExcludedHeaders = { "Cache-Control", "Pragma" };
 
-    public static Dictionary<string, string[]> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
+    public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
     {
-        var plantUmlPerTestName = requestResponses?.Select(requestResponseLog =>
+        var requestsResponseByTraceIdAndTest = requestResponses.GroupBy(x => x.TestId);
+        
+        var plantUmlPerTestName = requestsResponseByTraceIdAndTest?.Select(testTraces =>
             {
-                var testName = requestResponseLog.TestInfo.ToString();
-                var plantUmlImageTag = CreatePlantUmlImageTag(requestResponseLog, plantUmlServerRendererUrl, processor);
-                return (testName, plantUmlImageTag);
-            }).GroupBy(x => x.testName)
-            .ToDictionary(x => x.Key, x => x.Select(y => y.plantUmlImageTag).Distinct().ToArray());
+                var traces = testTraces.ToList();
+                var testName = testTraces.First().TestName;
+                var result = CreatePlantUml(traces, processor);
+                var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
+                return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
+            }).DistinctBy(x => x.TestName);
 
-        return plantUmlPerTestName ?? new Dictionary<string, string[]>();
+        return plantUmlPerTestName ?? Enumerable.Empty<PlantUmlForTest>();
     }
-
-    private static string CreatePlantUml(RequestResponseLog requestResponse, Func<string, string>? processor = null)
+    
+    private static PlantUmlResult CreatePlantUml(List<RequestResponseLog> tracesForTest, Func<string, string>? processor = null)
     {
-        var (httpMethod, requestContent, uri, valueTuples, serviceFullName) = requestResponse.Request;
-        var (httpStatusCode, responseContent, headers) = requestResponse.Response;
-        var serviceShortName = serviceFullName.Camelize();
-        var requestPlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-            (valueTuples, requestContent, ExcludedHeaders);
-        var responsePlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-            (headers, responseContent, ExcludedHeaders);
-
-        if (processor is not null)
-        {
-            requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
-            responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
-        }
-
         var plantUml =
             $"@startuml{Environment.NewLine}" +
             $"!function $my_code($fgcolor){Environment.NewLine}" +
             $"!return \"<color:\"+$fgcolor+\">\"{Environment.NewLine}" +
-            $"!endfunction{Environment.NewLine}" +
-            $"actor \"Caller\" as caller{Environment.NewLine}" +
-            $"entity \"{serviceFullName}\" as {serviceShortName}{Environment.NewLine}" +
-            $"caller -> {serviceShortName}: {httpMethod}: {uri.PathAndQuery}{Environment.NewLine}" +
-            $"note left{Environment.NewLine}" +
-            $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
-            $"end note{Environment.NewLine}" +
-            $"{serviceShortName} --> caller: {httpStatusCode.ToString().Titleize()}{Environment.NewLine}" +
-            $"note right{Environment.NewLine}" +
-            $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
-            $"end note{Environment.NewLine}" +
-            $"@enduml{Environment.NewLine}";
+            $"!endfunction{Environment.NewLine}";
 
-        return plantUml;
+        var actorDefined = false;
+        var currentPlayers = new List<string>();
+
+        foreach (var trace in tracesForTest)
+        {
+            var serviceShortName = trace.ServiceName.Camelize();
+            var callerShortName = trace.CallerName.Camelize();
+
+            if (!currentPlayers.Contains(callerShortName))
+            {
+                plantUml += $"{(actorDefined ? "entity" : "actor")} \"{trace.CallerName}\" as {callerShortName}{Environment.NewLine}";
+                currentPlayers.Add(callerShortName);
+            }
+
+            if (!currentPlayers.Contains(serviceShortName))
+            {
+                plantUml += $"entity \"{trace.ServiceName}\" as {serviceShortName}{Environment.NewLine}";
+                currentPlayers.Add(serviceShortName);
+            }
+
+            if (trace.Type == RequestResponseType.Request)
+            {
+                var requestPlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
+                    (trace.Headers, trace.Content, ExcludedHeaders);
+
+                requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
+
+                plantUml +=
+                    $"{callerShortName} -> {serviceShortName}: {trace.Method}: {trace.Uri.PathAndQuery}{Environment.NewLine}" +
+                    $"note left{Environment.NewLine}" +
+                    $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
+                    $"end note{Environment.NewLine}";
+            }
+
+            if (trace.Type == RequestResponseType.Response)
+            {
+                var responsePlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
+                    (trace.Headers, trace.Content, ExcludedHeaders);
+
+                responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
+
+                plantUml +=
+                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode.ToString().Titleize()}{Environment.NewLine}" +
+                    $"note right{Environment.NewLine}" +
+                    $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
+                    $"end note{Environment.NewLine}";
+            }
+        }
+
+        plantUml += $"@enduml{Environment.NewLine}";
+
+        var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml); ;
+
+        return new PlantUmlResult(plantUml, encodedPlantUml);
     }
 
     private static string GetPlantUmlForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders)
@@ -68,16 +99,10 @@ public class PlantUmlCreator
                     : content?.Replace("&", Environment.NewLine))}".Trim()).Trim();
     }
 
-    private static string CreatePlantUmlImageTag(string encodedPlantUml, string plantUmlServerRendererUrl)
+    public record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
     {
-        return $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{encodedPlantUml}\">";
-    }
+        public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
+    };
 
-    private static string CreatePlantUmlImageTag(RequestResponseLog requestResponseLog, string plantUmlServerRendererUrl, Func<string, string>? processor = null)
-    {
-        var plantUml = CreatePlantUml(requestResponseLog, processor);
-        var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml); ;
-        var plantUmlImageTag = CreatePlantUmlImageTag(encodedPlantUml, plantUmlServerRendererUrl);
-        return plantUmlImageTag;
-    }
+    public record PlantUmlForTest(Guid TestId, string TestName, string PlantUml, string PlantUmlEncoded, IEnumerable<RequestResponseLog> Traces, string ImageTag);
 }
