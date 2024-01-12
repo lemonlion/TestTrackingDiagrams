@@ -7,6 +7,7 @@ namespace TestTrackingDiagrams.PlantUml;
 public class PlantUmlCreator
 {
     private static readonly string[] ExcludedHeaders = { "Cache-Control", "Pragma" };
+    private const int MaxLineWidth = 150;
 
     public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
     {
@@ -28,6 +29,8 @@ public class PlantUmlCreator
     {
         var plantUml =
             $"@startuml{Environment.NewLine}" +
+            $"skinparam maxMessageSize {MaxLineWidth}{Environment.NewLine}" +
+            $"skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}" +
             $"!function $my_code($fgcolor){Environment.NewLine}" +
             $"!return \"<color:\"+$fgcolor+\">\"{Environment.NewLine}" +
             $"!endfunction{Environment.NewLine}";
