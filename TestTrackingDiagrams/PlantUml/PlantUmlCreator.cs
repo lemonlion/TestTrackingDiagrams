@@ -1,5 +1,5 @@
 ﻿using Humanizer;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.PlantUml;
@@ -12,19 +12,19 @@ public class PlantUmlCreator
     public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
     {
         var requestsResponseByTraceIdAndTest = requestResponses.GroupBy(x => x.TestId);
-        
+
         var plantUmlPerTestName = requestsResponseByTraceIdAndTest?.Select(testTraces =>
-            {
-                var traces = testTraces.ToList();
-                var testName = testTraces.First().TestName;
-                var result = CreatePlantUml(traces, processor);
-                var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
-                return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
-            }).DistinctBy(x => x.TestName);
+        {
+            var traces = testTraces.ToList();
+            var testName = testTraces.First().TestName;
+            var result = CreatePlantUml(traces, processor);
+            var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
+            return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
+        });
 
         return plantUmlPerTestName ?? Enumerable.Empty<PlantUmlForTest>();
     }
-    
+
     private static PlantUmlResult CreatePlantUml(List<RequestResponseLog> tracesForTest, Func<string, string>? processor = null)
     {
         var plantUml =
@@ -96,8 +96,8 @@ public class PlantUmlCreator
             .Where(y => !excludedHeaders.Contains(y.Key))
             .Select(y => $"$my_code(gray)[{y.Key}={y.Value}]"))}" + Environment.NewLine).TrimStart() +
                 Environment.NewLine +
-                $"{(content?.StartsWith("{") ?? false
-                    ? JToken.Parse(content).ToString()
+                $"{(content?.StartsWith("{") ?? false 
+                    ? JsonNode.Parse(content).ToString() 
                     : content?.Replace("&", Environment.NewLine))}".Trim()).Trim();
     }
 
