@@ -62,10 +62,15 @@ public class PlantUmlCreator
                 requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
 
                 plantUml +=
-                    $"{callerShortName} -> {serviceShortName}: {trace.Method}: {trace.Uri.PathAndQuery}{Environment.NewLine}" +
-                    $"note left{Environment.NewLine}" +
-                    $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
-                    $"end note{Environment.NewLine}";
+                    $"{callerShortName} -> {serviceShortName}: {trace.Method}: {trace.Uri.PathAndQuery}{Environment.NewLine}";
+
+                if (!string.IsNullOrEmpty(requestPlantUmlNoteContent))
+                {
+                    plantUml +=
+                        $"note left{Environment.NewLine}" +
+                        $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
+                        $"end note{Environment.NewLine}";
+                }
             }
 
             if (trace.Type == RequestResponseType.Response)
@@ -76,10 +81,15 @@ public class PlantUmlCreator
                 responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
 
                 plantUml +=
-                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode.ToString().Titleize()}{Environment.NewLine}" +
-                    $"note right{Environment.NewLine}" +
-                    $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
-                    $"end note{Environment.NewLine}";
+                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode.ToString().Titleize()}{Environment.NewLine}";
+
+                if (!string.IsNullOrEmpty(responsePlantUmlNoteContent))
+                {
+                    plantUml +=
+                        $"note right{Environment.NewLine}" +
+                        $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
+                        $"end note{Environment.NewLine}";
+                }
             }
         }
 

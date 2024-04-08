@@ -349,3 +349,6 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 /src/NewDay.Platform.Identity.Provider/keys
+
+# JetBrains Rider
+.idea/
