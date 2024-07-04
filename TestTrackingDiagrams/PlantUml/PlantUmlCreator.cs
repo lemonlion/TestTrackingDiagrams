@@ -1,4 +1,5 @@
 ﻿using Humanizer;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Tracking;
 
@@ -102,13 +103,28 @@ public class PlantUmlCreator
 
     private static string GetPlantUmlForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders)
     {
+        var parsedContent = string.Empty;
+        var isContentJson = false;
+        if (content?.StartsWith("{") ?? false)
+        {
+            try
+            {
+                parsedContent = JsonNode.Parse(content).ToString();
+                isContentJson = true;
+            }
+            catch (JsonException) { }
+        }
+
+        if (!isContentJson)
+        {
+            parsedContent = content?.Replace("&", Environment.NewLine);
+        }
+
         return (($"{string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
             .Select(y => $"$my_code(gray)[{y.Key}={y.Value}]"))}" + Environment.NewLine).TrimStart() +
                 Environment.NewLine +
-                $"{(content?.StartsWith("{") ?? false 
-                    ? JsonNode.Parse(content).ToString() 
-                    : content?.Replace("&", Environment.NewLine))}".Trim()).Trim();
+                $"{parsedContent}".Trim()).Trim();
     }
 
     public record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
