@@ -5,28 +5,38 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.PlantUml;
 
-public class PlantUmlCreator
+public static class PlantUmlCreator
 {
-    private static readonly string[] ExcludedHeaders = { "Cache-Control", "Pragma" };
     private const int MaxLineWidth = 600;
 
-    public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(IEnumerable<RequestResponseLog>? requestResponses, string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png", Func<string, string>? processor = null)
+    public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
+
+    public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(
+        IEnumerable<RequestResponseLog>? requestResponses,
+        string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png",
+        Func<string, string>? processor = null,
+        string[]? excludedHeaders = null)
     {
-        var requestsResponseByTraceIdAndTest = requestResponses.GroupBy(x => x.TestId);
+        excludedHeaders ??= DefaultExcludedHeaders;
+
+        var requestsResponseByTraceIdAndTest = requestResponses?.GroupBy(x => x.TestId);
 
         var plantUmlPerTestName = requestsResponseByTraceIdAndTest?.Select(testTraces =>
         {
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
-            var result = CreatePlantUml(traces, processor);
+            var result = CreatePlantUml(traces, processor, excludedHeaders);
             var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
             return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
         });
 
-        return plantUmlPerTestName ?? Enumerable.Empty<PlantUmlForTest>();
+        return plantUmlPerTestName ?? [];
     }
 
-    private static PlantUmlResult CreatePlantUml(List<RequestResponseLog> tracesForTest, Func<string, string>? processor = null)
+    private static PlantUmlResult CreatePlantUml(
+        List<RequestResponseLog> tracesForTest,
+        Func<string, string>? processor,
+        string[] excludedHeaders)
     {
         var plantUml =
             $"@startuml{Environment.NewLine}" +
@@ -58,9 +68,10 @@ public class PlantUmlCreator
             if (trace.Type == RequestResponseType.Request)
             {
                 var requestPlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-                    (trace.Headers, trace.Content, ExcludedHeaders);
+                    (trace.Headers, trace.Content, excludedHeaders);
 
-                requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
+                if (processor != null)
+                    requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
 
                 plantUml +=
                     $"{callerShortName} -> {serviceShortName}: {trace.Method}: {trace.Uri.PathAndQuery}{Environment.NewLine}";
@@ -77,9 +88,10 @@ public class PlantUmlCreator
             if (trace.Type == RequestResponseType.Response)
             {
                 var responsePlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-                    (trace.Headers, trace.Content, ExcludedHeaders);
+                    (trace.Headers, trace.Content, excludedHeaders);
 
-                responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
+                if (processor != null)
+                    responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
 
                 plantUml +=
                     $"{serviceShortName} --> {callerShortName}: {trace.StatusCode.ToString().Titleize()}{Environment.NewLine}";
@@ -127,7 +139,7 @@ public class PlantUmlCreator
                 $"{parsedContent}".Trim()).Trim();
     }
 
-    public record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
+    private record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
     {
         public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     };
