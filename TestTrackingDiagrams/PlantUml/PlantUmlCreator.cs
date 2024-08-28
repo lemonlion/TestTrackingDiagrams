@@ -38,18 +38,29 @@ public static class PlantUmlCreator
         Func<string, string>? processor,
         string[] excludedHeaders)
     {
-        var plantUml =
-            $"@startuml{Environment.NewLine}" +
-            $"skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}" +
-            $"!function $my_code($fgcolor){Environment.NewLine}" +
-            $"!return \"<color:\"+$fgcolor+\">\"{Environment.NewLine}" +
-            $"!endfunction{Environment.NewLine}";
+        const string eventNoteClass = "eventNote";
+
+        var plantUml = $@"
+@startuml{Environment.NewLine}
+<style>
+ .{eventNoteClass} {{
+     BackgroundColor #cfecf7
+     FontSize 11
+     RoundCorner 10
+ }}
+</style>
+skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
+!function $my_code($fgcolor){Environment.NewLine}
+!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
+!endfunction{Environment.NewLine}".TrimStart();
 
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
         foreach (var trace in tracesForTest)
         {
+            string GetNoteClass() => trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
+
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
 
@@ -74,12 +85,12 @@ public static class PlantUmlCreator
                     requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
 
                 plantUml +=
-                    $"{callerShortName} -> {serviceShortName}: {trace.Method}: {trace.Uri.PathAndQuery}{Environment.NewLine}";
+                    $"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {trace.Uri.PathAndQuery}{Environment.NewLine}";
 
                 if (!string.IsNullOrEmpty(requestPlantUmlNoteContent))
                 {
                     plantUml +=
-                        $"note left{Environment.NewLine}" +
+                        $"note{GetNoteClass()} left{Environment.NewLine}" +
                         $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
                         $"end note{Environment.NewLine}";
                 }
@@ -94,12 +105,12 @@ public static class PlantUmlCreator
                     responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
 
                 plantUml +=
-                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode.ToString().Titleize()}{Environment.NewLine}";
+                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode?.Value?.ToString().Titleize()}{Environment.NewLine}";
 
                 if (!string.IsNullOrEmpty(responsePlantUmlNoteContent))
                 {
                     plantUml +=
-                        $"note right{Environment.NewLine}" +
+                        $"note{GetNoteClass()} right{Environment.NewLine}" +
                         $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
                         $"end note{Environment.NewLine}";
                 }

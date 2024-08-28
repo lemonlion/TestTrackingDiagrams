@@ -5,7 +5,7 @@ namespace TestTrackingDiagrams.Tracking;
 public record RequestResponseLog(
     string TestName,
     Guid TestId,
-    HttpMethod Method,
+    OneOf<HttpMethod, string> Method,
     string? Content,
     Uri Uri,
     (string Key, string? Value)[] Headers,
@@ -15,10 +15,17 @@ public record RequestResponseLog(
     Guid TraceId,
     Guid RequestResponseId,
     bool TrackingIgnore,
-    HttpStatusCode? StatusCode = null);
+    OneOf<HttpStatusCode, string>? StatusCode = null,
+    RequestResponseMetaType MetaType = default);
 
 public enum RequestResponseType
 {
     Request,
     Response
+}
+
+public enum RequestResponseMetaType
+{
+    Default,
+    Event
 }
