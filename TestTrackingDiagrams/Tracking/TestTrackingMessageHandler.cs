@@ -61,7 +61,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher().Id.ToString() });
 
         if (!hasCallerNameHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { "Caller" });
+            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName });
 
         var currentTestInfo = currentTestInfoFetcher();
 
