@@ -1,13 +1,14 @@
 ﻿using Humanizer;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.PlantUml;
 
 public static class PlantUmlCreator
 {
-    private const int MaxLineWidth = 600;
+    private const int MaxLineWidth = 400;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
@@ -15,7 +16,8 @@ public static class PlantUmlCreator
         IEnumerable<RequestResponseLog>? requestResponses,
         string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png",
         Func<string, string>? processor = null,
-        string[]? excludedHeaders = null)
+        string[]? excludedHeaders = null,
+        int maxUrlLength = 100)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -25,7 +27,7 @@ public static class PlantUmlCreator
         {
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
-            var result = CreatePlantUml(traces, processor, excludedHeaders);
+            var result = CreatePlantUml(traces, processor, excludedHeaders, maxUrlLength);
             var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
             return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
         });
@@ -36,23 +38,27 @@ public static class PlantUmlCreator
     private static PlantUmlResult CreatePlantUml(
         List<RequestResponseLog> tracesForTest,
         Func<string, string>? processor,
-        string[] excludedHeaders)
+        string[] excludedHeaders,
+        int maxUrlLength)
     {
         const string eventNoteClass = "eventNote";
 
         var plantUml = $@"
 @startuml{Environment.NewLine}
+{AddStyling()}
+skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
+!function $my_code($fgcolor){Environment.NewLine}
+!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
+!endfunction{Environment.NewLine}".TrimStart();
+
+        string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event) ? $@"
 <style>
  .{eventNoteClass} {{
      BackgroundColor #cfecf7
      FontSize 11
      RoundCorner 10
  }}
-</style>
-skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
-!function $my_code($fgcolor){Environment.NewLine}
-!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
-!endfunction{Environment.NewLine}".TrimStart();
+</style>".TrimStart() : "";
 
         var actorDefined = false;
         var currentPlayers = new List<string>();
@@ -84,8 +90,12 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
                 if (processor != null)
                     requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
 
+                var pathAndQuery = trace.Uri.PathAndQuery;
+                if (pathAndQuery.Length > maxUrlLength)
+                    pathAndQuery = string.Join("\\n        ", pathAndQuery.SplitBy(maxUrlLength));
+
                 plantUml +=
-                    $"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {trace.Uri.PathAndQuery}{Environment.NewLine}";
+                    $"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {pathAndQuery}{Environment.NewLine}";
 
                 if (!string.IsNullOrEmpty(requestPlantUmlNoteContent))
                 {
