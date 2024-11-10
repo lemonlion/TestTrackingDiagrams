@@ -8,11 +8,11 @@ namespace TestTrackingDiagrams.PlantUml;
 
 public static class PlantUmlCreator
 {
-    private const int MaxLineWidth = 400;
+    private const int MaxLineWidth = 800;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
-    public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestName(
+    public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestId(
         IEnumerable<RequestResponseLog>? requestResponses,
         string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png",
         Func<string, string>? processor = null,
@@ -27,60 +27,32 @@ public static class PlantUmlCreator
         {
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
-            var result = CreatePlantUml(traces, processor, excludedHeaders, maxUrlLength);
-            var imageTag = result.GetPlantUmlImageTag(plantUmlServerRendererUrl);
-            return new PlantUmlForTest(testTraces.Key, testName, result.PlantUml, result.PlantUmlEncoded, testTraces.ToList(), imageTag);
+            var results = CreatePlantUml(traces, processor, excludedHeaders, maxUrlLength);
+            var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
+            return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
 
         return plantUmlPerTestName ?? [];
     }
 
-    private static PlantUmlResult CreatePlantUml(
+    private static PlantUmlResult[] CreatePlantUml(
         List<RequestResponseLog> tracesForTest,
         Func<string, string>? processor,
         string[] excludedHeaders,
         int maxUrlLength)
     {
         const string eventNoteClass = "eventNote";
+        List<PlantUmlResult> plantUmls = [];
 
-        var plantUml = $@"
-@startuml{Environment.NewLine}
-{AddStyling()}
-skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
-!function $my_code($fgcolor){Environment.NewLine}
-!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
-!endfunction{Environment.NewLine}".TrimStart();
-
-        string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event) ? $@"
-<style>
- .{eventNoteClass} {{
-     BackgroundColor #cfecf7
-     FontSize 11
-     RoundCorner 10
- }}
-</style>".TrimStart() : "";
-
-        var actorDefined = false;
-        var currentPlayers = new List<string>();
+        var plantUml = CreatePlantUmlPrefix();
 
         foreach (var trace in tracesForTest)
         {
-            string GetNoteClass() => trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
+            string GetNoteClass() =>
+                trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
 
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
-
-            if (!currentPlayers.Contains(callerShortName))
-            {
-                plantUml += $"{(actorDefined ? "entity" : "actor")} \"{trace.CallerName}\" as {callerShortName}{Environment.NewLine}";
-                currentPlayers.Add(callerShortName);
-            }
-
-            if (!currentPlayers.Contains(serviceShortName))
-            {
-                plantUml += $"entity \"{trace.ServiceName}\" as {serviceShortName}{Environment.NewLine}";
-                currentPlayers.Add(serviceShortName);
-            }
 
             if (trace.Type == RequestResponseType.Request)
             {
@@ -92,7 +64,7 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
 
                 var pathAndQuery = trace.Uri.PathAndQuery;
                 if (pathAndQuery.Length > maxUrlLength)
-                    pathAndQuery = string.Join("\\n        ", pathAndQuery.SplitBy(maxUrlLength));
+                    pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
 
                 plantUml +=
                     $"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {pathAndQuery}{Environment.NewLine}";
@@ -125,13 +97,75 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
                         $"end note{Environment.NewLine}";
                 }
             }
+
+            var currentEncodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+            if (currentEncodedPlantUml.Length > 2000 && trace != tracesForTest.Last())
+            {
+                CreatePlantUmlResponse();
+            }
+        }
+        CreatePlantUmlResponse();
+
+        return plantUmls.ToArray();
+
+        string CreatePlantUmlPrefix()
+        {
+            var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
+            return $@"
+@startuml{Environment.NewLine}
+{AddStyling()}
+skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
+!function $color($fgcolor){Environment.NewLine}
+!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
+!endfunction{Environment.NewLine}{Environment.NewLine}{entitiesPlantUml}{Environment.NewLine}".TrimStart();
+
+            string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
+                ? $@"
+<style>
+ .{eventNoteClass} {{
+     BackgroundColor #cfecf7
+     FontSize 11
+     RoundCorner 10
+ }}
+</style>".TrimStart()
+                : "";
         }
 
-        plantUml += $"@enduml{Environment.NewLine}";
+        void CreatePlantUmlResponse()
+        {
+            plantUml += $"@enduml{Environment.NewLine}";
+            var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+            plantUmls.Add(new(plantUml, encodedPlantUml));
+            plantUml = CreatePlantUmlPrefix();
+        }
+    }
 
-        var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml); ;
+    private static string CreateEntitiesPlantUml(List<RequestResponseLog> tracesForTest)
+    {
+        var entitiesPlantUml = "";
+        var actorDefined = false;
+        var currentPlayers = new List<string>();
 
-        return new PlantUmlResult(plantUml, encodedPlantUml);
+        foreach (var trace in tracesForTest)
+        {
+            var serviceShortName = trace.ServiceName.Camelize();
+            var callerShortName = trace.CallerName.Camelize();
+
+            if (!currentPlayers.Contains(callerShortName))
+            {
+                entitiesPlantUml +=
+                    $"{(actorDefined ? "entity" : "actor")} \"{trace.CallerName}\" as {callerShortName}{Environment.NewLine}";
+                currentPlayers.Add(callerShortName);
+            }
+
+            if (!currentPlayers.Contains(serviceShortName))
+            {
+                entitiesPlantUml += $"entity \"{trace.ServiceName}\" as {serviceShortName}{Environment.NewLine}";
+                currentPlayers.Add(serviceShortName);
+            }
+        }
+
+        return entitiesPlantUml;
     }
 
     private static string GetPlantUmlForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders)
@@ -142,7 +176,7 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
         {
             try
             {
-                parsedContent = JsonNode.Parse(content).ToString();
+                parsedContent = JsonNode.Parse(content)!.ToString();
                 isContentJson = true;
             }
             catch (JsonException) { }
@@ -150,14 +184,25 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
 
         if (!isContentJson)
         {
-            parsedContent = content?.Replace("&", Environment.NewLine);
+            var formUrlEncodedDivider = "<font color=\"lightgray\">&</font>";
+            parsedContent = content?
+                .Replace("&", formUrlEncodedDivider + Environment.NewLine)
+                .Split(Environment.NewLine)
+                .SelectMany(x => x.ChunksUpTo(100))
+                .StringJoin(Environment.NewLine);
         }
 
         return (($"{string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
-            .Select(y => $"$my_code(gray)[{y.Key}={y.Value}]"))}" + Environment.NewLine).TrimStart() +
+            .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]")) 
+        )}" + Environment.NewLine).TrimStart() +
                 Environment.NewLine +
                 $"{parsedContent}".Trim()).Trim();
+
+        IEnumerable<string> BatchGray(string value)
+        {
+            return value.ChunksUpTo(100).Select(x => $"$color(gray){x}");
+        }
     }
 
     private record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
@@ -165,5 +210,5 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
         public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     };
 
-    public record PlantUmlForTest(Guid TestId, string TestName, string PlantUml, string PlantUmlEncoded, IEnumerable<RequestResponseLog> Traces, string ImageTag);
+    public record PlantUmlForTest(Guid TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<RequestResponseLog> Traces, string[] ImageTags);
 }
