@@ -25,7 +25,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var requestResponseId = Guid.NewGuid();
 
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
-        var requestHeaders = request.Headers.Select(x => (x.Key, x.Value.First())).ToArray();
+        var requestHeaders = request.Headers.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToArray();
 
         StringValues currentTestNameHeaders = new();
         var hasCurrentTestNameHeader = false;
@@ -66,7 +66,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var currentTestInfo = currentTestInfoFetcher();
 
         var serviceName = _getServiceNameFromPortTranslator(request.RequestUri.Port);
-        
+
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
@@ -85,8 +85,8 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var responseContentString = await response.Content.ReadAsStringAsync(cancellationToken);
-        var responseHeaders = response.Headers.Select(x => (x.Key, x.Value.First())).ToArray();
-        
+        var responseHeaders = response.Headers.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToArray();
+
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
@@ -94,7 +94,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             responseContentString,
             request.RequestUri!,
             responseHeaders,
-            serviceName, 
+            serviceName,
             _callingServiceName,
             RequestResponseType.Response,
             traceId,
