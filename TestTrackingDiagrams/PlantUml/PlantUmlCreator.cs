@@ -194,7 +194,8 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
 
         return (($"{string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
-            .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]")) 
+            .OrderBy(y => y.Key)
+            .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]"))
         )}" + Environment.NewLine).TrimStart() +
                 Environment.NewLine +
                 $"{parsedContent}".Trim()).Trim();
