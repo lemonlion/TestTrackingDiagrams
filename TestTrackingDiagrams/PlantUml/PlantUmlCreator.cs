@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TestTrackingDiagrams.PlantUml;
 
@@ -184,12 +185,19 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
 
         if (!isContentJson)
         {
-            var formUrlEncodedDivider = "<font color=\"lightgray\">&</font>";
+            var formUrlEncodedDivider = "<font color=\"lightgray\">&";
             parsedContent = content?
-                .Replace("&", formUrlEncodedDivider + Environment.NewLine)
-                .Split(Environment.NewLine)
-                .SelectMany(x => x.ChunksUpTo(100))
-                .StringJoin(Environment.NewLine);
+                .Split("&")
+                .SelectMany(x =>
+                {
+                    var chunks = x.ChunksUpTo(100).ToArray();
+                    if (chunks.Length == 0)
+                        return chunks;
+                    chunks[^1] += formUrlEncodedDivider;
+                    return chunks;
+                })
+                .StringJoin(Environment.NewLine)
+                .TrimEnd(formUrlEncodedDivider);
         }
 
         return (($"{string.Join(Environment.NewLine, headers

@@ -8,4 +8,9 @@ public static class StringExtensions
     }
 
     public static string StringJoin(this IEnumerable<string> value, string separator) => string.Join(separator, value);
+    
+    public static string TrimEnd(this string stringToTrimFrom, string trimValue)
+    {
+        return stringToTrimFrom.EndsWith(trimValue) ? stringToTrimFrom.Remove(stringToTrimFrom.Length - trimValue.Length) : stringToTrimFrom;
+    }
 }
