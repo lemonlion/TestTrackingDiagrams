@@ -57,8 +57,8 @@ public static class PlantUmlCreator
 
             if (trace.Type == RequestResponseType.Request)
             {
-                var requestPlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-                    (trace.Headers, trace.Content, excludedHeaders);
+                var requestPlantUmlNoteContent = FormatContentForRequestOrResponseNote
+                    (trace.Headers, trace.Content, excludedHeaders, RequestResponseType.Request);
 
                 if (processor != null)
                     requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
@@ -81,31 +81,64 @@ public static class PlantUmlCreator
 
             if (trace.Type == RequestResponseType.Response)
             {
-                var responsePlantUmlNoteContent = GetPlantUmlForRequestOrResponseNote
-                    (trace.Headers, trace.Content, excludedHeaders);
+                var responsePlantUmlNoteContent = FormatContentForRequestOrResponseNote
+                    (trace.Headers, trace.Content, excludedHeaders, RequestResponseType.Response);
 
-                if (processor != null)
+                if (processor is not null)
                     responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
 
-                plantUml +=
-                    $"{serviceShortName} --> {callerShortName}: {trace.StatusCode?.Value?.ToString().Titleize()}{Environment.NewLine}";
+                CreateResponseNote(responsePlantUmlNoteContent);
 
-                if (!string.IsNullOrEmpty(responsePlantUmlNoteContent))
+                void CreateResponseNote(string noteContent)
                 {
-                    plantUml +=
-                        $"note{GetNoteClass()} right{Environment.NewLine}" +
-                        $"{responsePlantUmlNoteContent}{Environment.NewLine}" +
-                        $"end note{Environment.NewLine}";
+                    var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
+                    var suffix = Environment.NewLine + "..Continued On Next Diagram..";
+                    var maxChunkLength = 15_000;
+                    var maxResponseLength = maxChunkLength + suffix.Length + prefix.Length;
+                    if (noteContent.Length > maxResponseLength)
+                    {
+                        var chunks = noteContent.ChunksUpTo(maxChunkLength).ToArray();
+                        for (var i = 0; i < chunks.Length; i++)
+                        {
+                            var noteContentChunk = chunks[i];
+                            var isFirstChunk = i == 0;
+                            var isLastChunk = i == chunks.Length - 1;
+
+                            if (!isFirstChunk)
+                                noteContentChunk = prefix + noteContentChunk;
+
+                            if (!isLastChunk)
+                                noteContentChunk += suffix;
+
+                            CreateResponseNote(noteContentChunk);
+
+                            if (!isLastChunk)
+                                FinishPlantUmlDiagramAndStartNewOne();
+                        }
+                    }
+                    else
+                    {
+                        plantUml +=
+                            $"{serviceShortName} --> {callerShortName}: {trace.StatusCode?.Value?.ToString().Titleize()}{Environment.NewLine}";
+
+                        if (!string.IsNullOrEmpty(noteContent))
+                        {
+                            plantUml +=
+                                $"note{GetNoteClass()} right{Environment.NewLine}" +
+                                $"{noteContent}{Environment.NewLine}" +
+                                $"end note{Environment.NewLine}";
+                        }
+                    }
                 }
             }
 
             var currentEncodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
             if (currentEncodedPlantUml.Length > 2000 && trace != tracesForTest.Last())
             {
-                CreatePlantUmlResponse();
+                FinishPlantUmlDiagramAndStartNewOne();
             }
         }
-        CreatePlantUmlResponse();
+        FinishPlantUmlDiagramAndStartNewOne();
 
         return plantUmls.ToArray();
 
@@ -113,11 +146,11 @@ public static class PlantUmlCreator
         {
             var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
             return $@"
-@startuml{Environment.NewLine}
+@startuml
 {AddStyling()}
-skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
-!function $color($fgcolor){Environment.NewLine}
-!return ""<color:""+$fgcolor+"" >""{Environment.NewLine}
+skinparam wrapWidth {MaxLineWidth}
+!function $color($value)
+!return ""<color:""+$value+"" >""
 !endfunction{Environment.NewLine}{Environment.NewLine}{entitiesPlantUml}{Environment.NewLine}".TrimStart();
 
             string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
@@ -132,7 +165,7 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
                 : "";
         }
 
-        void CreatePlantUmlResponse()
+        void FinishPlantUmlDiagramAndStartNewOne()
         {
             plantUml += $"@enduml{Environment.NewLine}";
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
@@ -169,7 +202,7 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
         return entitiesPlantUml;
     }
 
-    private static string GetPlantUmlForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders)
+    private static string FormatContentForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders, RequestResponseType type)
     {
         var parsedContent = string.Empty;
         var isContentJson = false;
@@ -185,28 +218,33 @@ skinparam wrapWidth {MaxLineWidth}{Environment.NewLine}
 
         if (!isContentJson)
         {
-            var formUrlEncodedDivider = "<font color=\"lightgray\">&";
-            parsedContent = content?
-                .Split("&")
-                .SelectMany(x =>
-                {
-                    var chunks = x.ChunksUpTo(100).ToArray();
-                    if (chunks.Length == 0)
+            if (type is RequestResponseType.Response)
+                parsedContent = content ?? string.Empty;
+            else
+            {
+                var formUrlEncodedDivider = "<font color=\"lightgray\">&";
+                parsedContent = content?
+                    .Split("&")
+                    .SelectMany(x =>
+                    {
+                        var chunks = x.ChunksUpTo(100).ToArray();
+                        if (chunks.Length == 0)
+                            return chunks;
+                        chunks[^1] += formUrlEncodedDivider;
                         return chunks;
-                    chunks[^1] += formUrlEncodedDivider;
-                    return chunks;
-                })
-                .StringJoin(Environment.NewLine)
-                .TrimEnd(formUrlEncodedDivider);
+                    })
+                    .StringJoin(Environment.NewLine)
+                    .TrimEnd(formUrlEncodedDivider) ?? string.Empty;
+            }
         }
 
-        return (($"{string.Join(Environment.NewLine, headers
+        var headersOnTop = $"{string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
             .OrderBy(y => y.Key)
             .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]"))
-        )}" + Environment.NewLine).TrimStart() +
-                Environment.NewLine +
-                $"{parsedContent}".Trim()).Trim();
+        )}";
+
+        return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + parsedContent.Trim()).TrimEnd();
 
         IEnumerable<string> BatchGray(string value)
         {
