@@ -1,4 +1,5 @@
-﻿using Humanizer;
+﻿using System.Net;
+using Humanizer;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
@@ -119,8 +120,12 @@ public static class PlantUmlCreator
                     }
                     else
                     {
+                        var status = trace.StatusCode?.Value?.ToString().Titleize();
+                        if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
+                            status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
+
                         plantUml +=
-                            $"{serviceShortName} --> {callerShortName}: {trace.StatusCode?.Value?.ToString().Titleize()}{Environment.NewLine}";
+                            $"{serviceShortName} --> {callerShortName}: {status}{Environment.NewLine}";
 
                         if (!string.IsNullOrEmpty(noteContent))
                         {
