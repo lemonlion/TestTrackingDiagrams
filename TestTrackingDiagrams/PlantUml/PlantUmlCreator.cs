@@ -45,6 +45,7 @@ public static class PlantUmlCreator
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
 
+        var stepNumber = 1;
         var plantUml = CreatePlantUmlPrefix();
 
         foreach (var trace in tracesForTest)
@@ -133,10 +134,11 @@ public static class PlantUmlCreator
             }
 
             var currentEncodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+
+            stepNumber++;
+
             if (currentEncodedPlantUml.Length > 2000 && trace != tracesForTest.Last())
-            {
                 FinishPlantUmlDiagramAndStartNewOne();
-            }
         }
         FinishPlantUmlDiagramAndStartNewOne();
 
@@ -151,7 +153,11 @@ public static class PlantUmlCreator
 skinparam wrapWidth {MaxLineWidth}
 !function $color($value)
 !return ""<color:""+$value+"" >""
-!endfunction{Environment.NewLine}{Environment.NewLine}{entitiesPlantUml}{Environment.NewLine}".TrimStart();
+!endfunction
+autonumber {stepNumber}
+
+{entitiesPlantUml}
+".TrimStart();
 
             string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
                 ? $@"
