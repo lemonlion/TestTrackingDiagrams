@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace TestTrackingDiagrams.PlantUml;
 
@@ -17,7 +16,10 @@ public static class PlantUmlCreator
     public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestId(
         IEnumerable<RequestResponseLog>? requestResponses,
         string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png",
-        Func<string, string>? processor = null,
+        Func<string, string>? requestPreFormattingProcessor = null,
+        Func<string, string>? requestPostFormattingProcessor = null,
+        Func<string, string>? responsePreFormattingProcessor = null,
+        Func<string, string>? responsePostFormattingProcessor = null,
         string[]? excludedHeaders = null,
         int maxUrlLength = 100)
     {
@@ -29,7 +31,14 @@ public static class PlantUmlCreator
         {
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
-            var results = CreatePlantUml(traces, processor, excludedHeaders, maxUrlLength);
+            var results = CreatePlantUml(
+                traces, 
+                requestPreFormattingProcessor,
+                requestPostFormattingProcessor,
+                responsePreFormattingProcessor,
+                responsePostFormattingProcessor,
+                excludedHeaders, 
+                maxUrlLength);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -39,7 +48,10 @@ public static class PlantUmlCreator
 
     private static PlantUmlResult[] CreatePlantUml(
         List<RequestResponseLog> tracesForTest,
-        Func<string, string>? processor,
+        Func<string, string>? requestPreFormattingProcessor,
+        Func<string, string>? requestPostFormattingProcessor,
+        Func<string, string>? responsePreFormattingProcessor,
+        Func<string, string>? responsePostFormattingProcessor,
         string[] excludedHeaders,
         int maxUrlLength)
     {
@@ -57,13 +69,17 @@ public static class PlantUmlCreator
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
 
+            var content = trace.Content ?? string.Empty;
             if (trace.Type == RequestResponseType.Request)
             {
-                var requestPlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, trace.Content, excludedHeaders, RequestResponseType.Request);
+                if (requestPreFormattingProcessor is not null)
+                    content = requestPreFormattingProcessor(content);
 
-                if (processor != null)
-                    requestPlantUmlNoteContent = processor.Invoke(requestPlantUmlNoteContent);
+                var requestPlantUmlNoteContent = FormatContentForRequestOrResponseNote
+                    (trace.Headers, content, excludedHeaders, RequestResponseType.Request);
+
+                if (requestPostFormattingProcessor is not null)
+                    requestPlantUmlNoteContent = requestPostFormattingProcessor(requestPlantUmlNoteContent);
 
                 var pathAndQuery = trace.Uri.PathAndQuery;
                 if (pathAndQuery.Length > maxUrlLength)
@@ -83,11 +99,14 @@ public static class PlantUmlCreator
 
             if (trace.Type == RequestResponseType.Response)
             {
-                var responsePlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, trace.Content, excludedHeaders, RequestResponseType.Response);
+                if (responsePreFormattingProcessor is not null)
+                    content = responsePreFormattingProcessor(content);
 
-                if (processor is not null)
-                    responsePlantUmlNoteContent = processor.Invoke(responsePlantUmlNoteContent);
+                var responsePlantUmlNoteContent = FormatContentForRequestOrResponseNote
+                    (trace.Headers, content, excludedHeaders, RequestResponseType.Response);
+
+                if (responsePostFormattingProcessor is not null)
+                    responsePlantUmlNoteContent = responsePostFormattingProcessor(responsePlantUmlNoteContent);
 
                 CreateResponseNote(responsePlantUmlNoteContent);
 
@@ -152,27 +171,31 @@ public static class PlantUmlCreator
         string CreatePlantUmlPrefix()
         {
             var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
-            return $@"
-@startuml
-{AddStyling()}
-skinparam wrapWidth {MaxLineWidth}
-!function $color($value)
-!return ""<color:""+$value+"" >""
-!endfunction
-autonumber {stepNumber}
+            return $"""
 
-{entitiesPlantUml}
-".TrimStart();
+                    @startuml
+                    {AddStyling()}
+                    skinparam wrapWidth {MaxLineWidth}
+                    !function $color($value)
+                    !return "<color:"+$value+" >"
+                    !endfunction
+                    autonumber {stepNumber}
+
+                    {entitiesPlantUml}
+
+                    """.TrimStart();
 
             string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
-                ? $@"
-<style>
- .{eventNoteClass} {{
-     BackgroundColor #cfecf7
-     FontSize 11
-     RoundCorner 10
- }}
-</style>".TrimStart()
+                ? $$"""
+
+                    <style>
+                     .{{eventNoteClass}} {
+                         BackgroundColor #cfecf7
+                         FontSize 11
+                         RoundCorner 10
+                     }
+                    </style>
+                    """.TrimStart()
                 : "";
         }
 
@@ -268,5 +291,5 @@ autonumber {stepNumber}
         public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     };
 
-    public record PlantUmlForTest(Guid TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<RequestResponseLog> Traces, string[] ImageTags);
+    public record PlantUmlForTest(string TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<RequestResponseLog> Traces, string[] ImageTags);
 }

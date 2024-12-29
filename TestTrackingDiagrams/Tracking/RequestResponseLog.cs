@@ -4,7 +4,7 @@ namespace TestTrackingDiagrams.Tracking;
 
 public record RequestResponseLog(
     string TestName,
-    Guid TestId,
+    string TestId,
     OneOf<HttpMethod, string> Method,
     string? Content,
     Uri Uri,

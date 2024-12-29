@@ -8,10 +8,10 @@ public class TestTrackingMessageHandler : DelegatingHandler
 {
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly string? _callingServiceName;
-    private readonly Func<(string Name, Guid Id)> _currentTestInfoFetcher;
+    private readonly Func<(string Name, string Id)> _currentTestInfoFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
 
-    public TestTrackingMessageHandler(Func<int, string> getServiceNameFromPortTranslator, Func<(string Name, Guid Id)> currentTestInfoFetcher, string? callingServiceName = "Caller", IHttpContextAccessor? httpContextAccessor = null)
+    public TestTrackingMessageHandler(Func<int, string> getServiceNameFromPortTranslator, Func<(string Name, string Id)> currentTestInfoFetcher, string? callingServiceName = "Caller", IHttpContextAccessor? httpContextAccessor = null)
     {
         _getServiceNameFromPortTranslator = getServiceNameFromPortTranslator;
         _currentTestInfoFetcher = currentTestInfoFetcher;
@@ -47,7 +47,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             hasCallerNameHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CallerNameHeader, out callerNameHeaders);
         }
 
-        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First(), Guid.Parse(currentTestIdHeaders.First())) : _currentTestInfoFetcher;
+        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First(), currentTestIdHeaders.First()) : _currentTestInfoFetcher;
 
         var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()) : Guid.NewGuid();
 
