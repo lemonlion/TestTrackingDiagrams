@@ -8,20 +8,34 @@ public class TestTrackingMessageHandler : DelegatingHandler
 {
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly string? _callingServiceName;
-    private readonly Func<(string Name, string Id)> _currentTestInfoFetcher;
+    private readonly Func<(string Name, string Id)>? _currentTestInfoFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly IEnumerable<string> _headersToForward;
 
-    public TestTrackingMessageHandler(Func<int, string> getServiceNameFromPortTranslator, Func<(string Name, string Id)> currentTestInfoFetcher, string? callingServiceName = "Caller", IHttpContextAccessor? httpContextAccessor = null)
+    public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
-        _getServiceNameFromPortTranslator = getServiceNameFromPortTranslator;
-        _currentTestInfoFetcher = currentTestInfoFetcher;
-        _callingServiceName = callingServiceName;
+        _getServiceNameFromPortTranslator = options.FixedNameForReceivingService is not null ? _ => options.FixedNameForReceivingService : GetPortTranslator(options.PortsToServiceNames);
+        _currentTestInfoFetcher = options.CurrentTestInfoFetcher;
+        _callingServiceName = options.CallingServiceName;
         _httpContextAccessor = httpContextAccessor;
+        _headersToForward = options.HeadersToForward;
         InnerHandler ??= new HttpClientHandler();
+    }
+
+    private static Func<int, string> GetPortTranslator(Dictionary<int, string> serviceNamesForEachPort)
+    {
+        return port => serviceNamesForEachPort.TryGetValue(port, out var serviceName) ? serviceName : $"localhost:{port}";
+    }
+
+    protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return SendAsync(request, cancellationToken).GetAwaiter().GetResult();
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        ForwardHeaders(request);
+
         var requestResponseId = Guid.NewGuid();
 
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
@@ -104,5 +118,21 @@ public class TestTrackingMessageHandler : DelegatingHandler
             ));
 
         return response;
+    }
+
+    private void ForwardHeaders(HttpRequestMessage request)
+    {
+        if(!_headersToForward.Any())
+            return;
+
+        var contextHeaders = _httpContextAccessor?.HttpContext?.Request.Headers;
+        if (contextHeaders is null)
+            return;
+
+        foreach (var header in _headersToForward)
+        {
+            if (contextHeaders.TryGetValue(header, out var value))
+                request.Headers.Add(header, (IEnumerable<string?>)value);
+        }
     }
 }

@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams", "TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{83A2F310-B1DA-4721-9305-2659298CA3A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams", "TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{83A2F310-B1DA-4721-9305-2659298CA3A0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightBDD.XUnit", "TestTrackingDiagrams.LightBDD.XUnit\TestTrackingDiagrams.LightBDD.XUnit.csproj", "{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit", "TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit.csproj", "{57117522-8940-40E0-A9E6-EAFD9E54A076}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.XUnit", "TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +21,18 @@ Global
 		{83A2F310-B1DA-4721-9305-2659298CA3A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83A2F310-B1DA-4721-9305-2659298CA3A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83A2F310-B1DA-4721-9305-2659298CA3A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57117522-8940-40E0-A9E6-EAFD9E54A076}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57117522-8940-40E0-A9E6-EAFD9E54A076}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57117522-8940-40E0-A9E6-EAFD9E54A076}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57117522-8940-40E0-A9E6-EAFD9E54A076}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B355E54-9734-46D6-AC37-E16F8F6F2C55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B355E54-9734-46D6-AC37-E16F8F6F2C55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B355E54-9734-46D6-AC37-E16F8F6F2C55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B355E54-9734-46D6-AC37-E16F8F6F2C55}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

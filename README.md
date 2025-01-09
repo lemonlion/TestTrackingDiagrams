@@ -1,2 +1,2 @@
 # Test Tracking Diagrams
-A mechanism for tracking your request-responses in your tests and converting them into diagrams.
+Extensions for tracking your request-responses in your tests and automatically converting them into plantuml diagrams on test run.
