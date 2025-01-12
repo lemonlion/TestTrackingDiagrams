@@ -61,8 +61,25 @@ public static class PlantUmlCreator
         var stepNumber = 1;
         var plantUml = CreatePlantUmlPrefix();
 
+        var currentlyOverriding = false;
+
         foreach (var trace in tracesForTest)
         {
+            if (currentlyOverriding)
+            {
+                if (trace.IsOverrideEnding)
+                    currentlyOverriding = false;
+                
+                continue;
+            }
+
+            if (trace.IsOverrideSummary)
+            {
+                currentlyOverriding = true;
+                plantUml += trace.PlantUml;
+                continue;
+            }
+
             string GetNoteClass() =>
                 trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
 
@@ -214,7 +231,7 @@ public static class PlantUmlCreator
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
-        foreach (var trace in tracesForTest)
+        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideSummary: false, IsOverrideEnding: false }))
         {
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();

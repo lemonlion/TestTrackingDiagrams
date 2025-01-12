@@ -16,7 +16,12 @@ public record RequestResponseLog(
     Guid RequestResponseId,
     bool TrackingIgnore,
     OneOf<HttpStatusCode, string>? StatusCode = null,
-    RequestResponseMetaType MetaType = default);
+    RequestResponseMetaType MetaType = default)
+{
+    public bool IsOverrideSummary { get; set; }
+    public bool IsOverrideEnding { get; set; }
+    public string? PlantUml { get; set; }
+};
 
 public enum RequestResponseType
 {
