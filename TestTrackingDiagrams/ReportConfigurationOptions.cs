@@ -10,4 +10,5 @@ public record ReportConfigurationOptions
     public string? HtmlSpecificationsCustomStyleSheet { get; set; }
     public string YamlSpecificationsFileName { get; set; } = "ComponentSpecifications";
     public string ReportsFolderPath { get; set; } = "Reports";
+    public string[] ExcludedHeaders { get; set; } = [];
 }

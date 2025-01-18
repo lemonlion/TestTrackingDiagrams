@@ -3,12 +3,14 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
 
-public static class DiagramsFetcher
+public static class DefaultDiagramsFetcher 
 {
     private static DiagramAsCode[]? _diagrams;
 
-    public static Func<DiagramAsCode[]> GetDiagramsFetcher(string plantUmlServerBaseUrl, Func<string, string>? processor = null)
+    public static Func<DiagramAsCode[]> GetDiagramsFetcher(DiagramsFetcherOptions? options = null)
     {
+        options ??= new DiagramsFetcherOptions();
+
         if (_diagrams is not null)
             return () => _diagrams;
 
@@ -16,12 +18,15 @@ public static class DiagramsFetcher
         {
             var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-                requestPostFormattingProcessor: processor,
-                responsePostFormattingProcessor: processor).ToArray();
+                requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
+                responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
+                requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
+                responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
+                excludedHeaders: options.ExcludedHeaders.ToArray()).ToArray();
             return _diagrams = perTestId
                 .SelectMany(test => test.PlantUmls.Select(plantUml =>
                     new DiagramAsCode(test.TestId,
-                        $"{plantUmlServerBaseUrl}/png/{plantUml.PlantUmlEncoded}",
+                        $"{options.PlantUmlServerBaseUrl}/png/{plantUml.PlantUmlEncoded}",
                         plantUml.PlainText)))
                 .ToArray();
         };

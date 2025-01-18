@@ -9,7 +9,14 @@ namespace TestTrackingDiagrams.LightBDD.XUnit
     {
         public static ReportWritersConfiguration CreateStandardReportsWithDiagrams(this ReportWritersConfiguration configuration, Assembly testAssembly, ReportConfigurationOptions options)
         {
-            var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(options.PlantUmlServerBaseUrl!, options.RequestResponsePostProcessor);
+            var fetcherOptions = new DiagramsFetcherOptions
+            {
+                PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
+                RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
+                ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+                ExcludedHeaders = options.ExcludedHeaders
+            };
+            var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(fetcherOptions);
             var reportsFilePath = options.ReportsFolderPath.Trim().TrimEnd('/');
 
             return configuration

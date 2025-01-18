@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.NUnit;
 

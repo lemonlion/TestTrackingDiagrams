@@ -1,20 +1,26 @@
 ﻿using System.Text;
-using TestTrackingDiagrams.Reports;
 
-namespace TestTrackingDiagrams;
+namespace TestTrackingDiagrams.Reports;
 
 public static class ReportGenerator
 {
     public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
     {
-        var diagrams = DiagramsFetcher.GetDiagramsFetcher(options.PlantUmlServerBaseUrl, options.RequestResponsePostProcessor)();
+        var fetcherOptions = new DiagramsFetcherOptions
+        {
+            PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
+            RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
+            ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+            ExcludedHeaders = options.ExcludedHeaders
+        };
+        var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
         GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
         GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
         GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true);
     }
 
-    public static string GenerateHtmlReport(DiagramsFetcher.DiagramAsCode[] diagrams,
+    public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
         Feature[] features,
         DateTime startRunTime,
         DateTime endRunTime,
@@ -261,7 +267,7 @@ public static class ReportGenerator
         return WriteFile(html, fileName);
     }
 
-    public static string GenerateYamlSpecs(DiagramsFetcher.DiagramAsCode[] diagrams,
+    public static string GenerateYamlSpecs(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
         Feature[] features,
         string fileName,
         string title,

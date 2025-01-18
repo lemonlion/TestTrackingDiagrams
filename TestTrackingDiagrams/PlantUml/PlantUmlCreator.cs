@@ -65,11 +65,9 @@ public static class PlantUmlCreator
 
         foreach (var trace in tracesForTest)
         {
-            if (currentlyOverriding)
+            if (trace.IsOverrideEnding)
             {
-                if (trace.IsOverrideEnding)
-                    currentlyOverriding = false;
-                
+                currentlyOverriding = false;
                 continue;
             }
 
@@ -79,6 +77,9 @@ public static class PlantUmlCreator
                 plantUml += trace.PlantUml;
                 continue;
             }
+
+            if (currentlyOverriding)
+                continue;
 
             string GetNoteClass() =>
                 trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";

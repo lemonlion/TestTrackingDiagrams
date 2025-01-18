@@ -4,9 +4,9 @@ namespace TestTrackingDiagrams.LightBDD.XUnit;
 
 public static class LightBddDiagramsFetcher
 {
-    public static Func<DiagramAsCode[]> GetDiagramsFetcher(string plantUmlServerBaseUrl, Func<string, string>? processor = null)
+    public static Func<DiagramAsCode[]> GetDiagramsFetcher(DiagramsFetcherOptions? options = null)
     {
-        return () => DiagramsFetcher.GetDiagramsFetcher(plantUmlServerBaseUrl, processor)()
+        return () => DefaultDiagramsFetcher.GetDiagramsFetcher(options)()
             .Select(x => new DiagramAsCode(Guid.Parse(x.TestRuntimeId), x.ImgSrc, x.CodeBehind)).ToArray();
     }
 }

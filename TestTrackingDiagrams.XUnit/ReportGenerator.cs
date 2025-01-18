@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using TestTrackingDiagrams.Reports;
+using Xunit;
 
 namespace TestTrackingDiagrams.XUnit;
 
