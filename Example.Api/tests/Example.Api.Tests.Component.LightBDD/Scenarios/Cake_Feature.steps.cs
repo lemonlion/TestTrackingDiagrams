@@ -12,7 +12,6 @@ using LightBDD.Framework;
 using LightBDD.Framework.Parameters;
 using LightBDD.Framework.Scenarios;
 using TestTrackingDiagrams.LightBDD.XUnit;
-using TestTrackingDiagrams.Tracking;
 
 namespace Example.Api.Tests.Component.LightBDD.XUnit.Scenarios;
 
@@ -154,7 +153,6 @@ public partial class Cake_Feature : BaseFixture
     private async Task The_response_http_status_and_error_message_should_be_matching(VerifiableDataTable<CakeErrorResult> expectedOutputs)
     {
         var results = await _cakeResponseMessages.SelectAsync(async x => await  x.Content.ReadFromJsonAsync<ErrorResponse>(new JsonSerializerOptions{ PropertyNameCaseInsensitive = true }));
-        var bl = RequestResponseLogger.RequestAndResponseLogs;
         
         var cakeErrorResults = results.Select((x, i) => new CakeErrorResult
         {

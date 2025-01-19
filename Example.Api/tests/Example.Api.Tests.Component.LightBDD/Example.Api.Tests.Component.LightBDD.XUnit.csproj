@@ -30,7 +30,7 @@
 	  <PackageReference Include="LightBDD.Contrib.ProgressNotifierEnhancements" Version="0.2.0" />
 	  <PackageReference Include="LightBDD.TabularAttributes" Version="1.1.0" />
 	  <PackageReference Include="LightBDD.XUnit2" Version="3.10.0" />
-	  <PackageReference Include="TestTrackingDiagrams.LightBDD.XUnit" Version="1.18.0" />
+	  <PackageReference Include="TestTrackingDiagrams.LightBDD.XUnit" Version="1.18.1" />
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
 	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
 	  <PackageReference Include="xunit" Version="2.9.3" />

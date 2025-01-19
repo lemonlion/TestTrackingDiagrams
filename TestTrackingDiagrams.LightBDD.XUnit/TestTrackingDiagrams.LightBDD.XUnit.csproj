@@ -12,7 +12,7 @@
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
 	  <LangVersion>preview</LangVersion>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-	  <Version>1.18.0</Version>
+	  <Version>1.18.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LightBDD.Contrib.ReportingEnhancements" Version="1.4.1" />
+    <PackageReference Include="LightBDD.Contrib.ReportingEnhancements" Version="1.5.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
   </ItemGroup>
 
