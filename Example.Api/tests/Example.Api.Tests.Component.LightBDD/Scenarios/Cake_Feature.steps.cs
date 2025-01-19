@@ -116,15 +116,9 @@ public partial class Cake_Feature : BaseFixture
     {
         for (var i = 0; i < _cakeRequests.Count; i++)
         {
-            AddTestDelimiter(i + 1);
+            TrackingDiagramOverride.InsertTestDelimiter($"{i + 1}");
             _cakeResponseMessages.Add(await Client.PostAsJsonAsync("cake", _cakeRequests[i]));
         }
-    }
-
-    private void AddTestDelimiter(int testNumber)
-    {
-        TrackingDiagramOverride.StartOverrideSummary($"hnote across #black:<color:white>Test {testNumber}");
-        TrackingDiagramOverride.EndOverrideSummary();
     }
 
     #endregion

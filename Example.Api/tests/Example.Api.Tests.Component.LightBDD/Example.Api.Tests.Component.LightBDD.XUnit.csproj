@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <PackageReference Include="coverlet.collector" Version="6.0.2">
+	  <PackageReference Include="coverlet.collector" Version="6.0.3">
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		  <PrivateAssets>all</PrivateAssets>
 	  </PackageReference>
@@ -29,12 +29,12 @@
 	  </PackageReference>
 	  <PackageReference Include="LightBDD.Contrib.ProgressNotifierEnhancements" Version="0.2.0" />
 	  <PackageReference Include="LightBDD.TabularAttributes" Version="1.1.0" />
-	  <PackageReference Include="LightBDD.XUnit2" Version="3.9.0" />
-	  <PackageReference Include="TestTrackingDiagrams.LightBDD.XUnit" Version="1.17.0" />
-	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+	  <PackageReference Include="LightBDD.XUnit2" Version="3.10.0" />
+	  <PackageReference Include="TestTrackingDiagrams.LightBDD.XUnit" Version="1.18.0" />
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
 	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-	  <PackageReference Include="xunit" Version="2.9.2" />
-	  <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+	  <PackageReference Include="xunit" Version="2.9.3" />
+	  <PackageReference Include="xunit.runner.visualstudio" Version="3.0.1">
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		  <PrivateAssets>all</PrivateAssets>
 	  </PackageReference>
