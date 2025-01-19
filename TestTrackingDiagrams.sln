@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit", "TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit.csproj", "{57117522-8940-40E0-A9E6-EAFD9E54A076}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.XUnit", "TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.XUnit", "TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,6 @@
-﻿using LightBDD.Core.ExecutionContext;
+﻿using NUnit.Framework;
 
-namespace TestTrackingDiagrams.LightBDD.XUnit;
+namespace TestTrackingDiagrams.NUnit;
 
 public static class TrackingDiagramOverride
 {
@@ -24,5 +24,5 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.InsertTestDelimiter(GetTestId(), testIdentifier);
     }
 
-    private static string GetTestId() => ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString();
+    private static string GetTestId() => TestContext.CurrentContext.Test.ID;
 }
