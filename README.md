@@ -18,7 +18,7 @@ Compatible with LightBDD, XUnit and NUnit.
 - Pull down the repository.
 - Open the [Example.Api](https://github.com/lemonlion/TestTrackingDiagrams/tree/main/Example.Api) solution.
 - Run the tests in each of test projects.
-- For each test project go the the `\bin\Debug\net8.0\Reports` reports folder and note the three files that have been created.
+- For each test project go the the `\bin\Debug\net8.0\Reports` folder and note the three files that have been created.
 
 ### ComponentSpecifications.yml
 The specifications document in YAML format.
