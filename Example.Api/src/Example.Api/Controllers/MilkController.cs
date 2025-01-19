@@ -15,5 +15,5 @@ public class MilkController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<MilkResponse> GetMilk() => (await _client.GetFromJsonAsync<MilkResponse>("http://localhost:5031/milk"))!;
+    public Task<MilkResponse> GetMilk() => _client.GetFromJsonAsync<MilkResponse>("http://localhost:5031/milk")!;
 }
