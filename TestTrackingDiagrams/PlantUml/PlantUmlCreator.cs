@@ -32,12 +32,12 @@ public static class PlantUmlCreator
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
             var results = CreatePlantUml(
-                traces, 
+                traces,
                 requestPreFormattingProcessor,
                 requestPostFormattingProcessor,
                 responsePreFormattingProcessor,
                 responsePostFormattingProcessor,
-                excludedHeaders, 
+                excludedHeaders,
                 maxUrlLength);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
@@ -61,24 +61,25 @@ public static class PlantUmlCreator
         var stepNumber = 1;
         var plantUml = CreatePlantUmlPrefix();
 
-        var currentlyOverriding = false;
+        var currentOverrideLevel = 0;
 
         foreach (var trace in tracesForTest)
         {
             if (trace.IsOverrideEnding)
             {
-                currentlyOverriding = false;
+                if (currentOverrideLevel > 0)
+                    --currentOverrideLevel;
                 continue;
             }
 
             if (trace.IsOverrideSummary)
             {
-                currentlyOverriding = true;
+                ++currentOverrideLevel;
                 plantUml += trace.PlantUml;
                 continue;
             }
 
-            if (currentlyOverriding)
+            if (currentOverrideLevel != 0)
                 continue;
 
             string GetNoteClass() =>
