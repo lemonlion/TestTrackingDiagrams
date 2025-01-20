@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using Humanizer;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -65,16 +66,23 @@ public static class PlantUmlCreator
 
         foreach (var trace in tracesForTest)
         {
-            if (trace.IsOverrideEnding)
+            if (trace.IsOverrideStart && currentlyOverriding)
             {
-                currentlyOverriding = false;
+                Debug.Write("Ignoring an override as you're already overriding");
                 continue;
             }
 
-            if (trace.IsOverrideSummary)
+            if (trace.IsOverrideEnd)
+            {
+                currentlyOverriding = false;
+                plantUml += trace.PlantUml ?? "";
+                continue;
+            }
+
+            if (trace.IsOverrideStart)
             {
                 currentlyOverriding = true;
-                plantUml += trace.PlantUml;
+                plantUml += trace.PlantUml ?? "";
                 continue;
             }
 
@@ -82,7 +90,7 @@ public static class PlantUmlCreator
                 continue;
 
             string GetNoteClass() =>
-                trace.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
+                trace!.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
 
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
@@ -232,7 +240,7 @@ public static class PlantUmlCreator
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideSummary: false, IsOverrideEnding: false }))
+        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false }))
         {
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();

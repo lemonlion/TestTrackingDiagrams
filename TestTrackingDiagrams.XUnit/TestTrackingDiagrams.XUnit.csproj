@@ -7,12 +7,12 @@
 		<Title>Test Tracking Diagrams For XUnit</Title>
 		<Description>XUnit extensions for tracking the request-responses in your tests and converting them into diagrams.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams.XUnit</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<LangVersion>preview</LangVersion>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>1.18.1</Version>
+		<Version>1.19.0</Version>
 		<OutputType>Library</OutputType>
 		<IsPackable>true</IsPackable>
 	</PropertyGroup>

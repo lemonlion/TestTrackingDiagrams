@@ -3,7 +3,7 @@
 namespace TestTrackingDiagrams;
 public static class DefaultTrackingDiagramOverride
 {
-    public static void StartOverrideSummary(string testId, string plantUml)
+    public static void StartOverride(string testId, string? plantUml = null)
     {
         var log = new RequestResponseLog(
             testId,
@@ -19,18 +19,13 @@ public static class DefaultTrackingDiagramOverride
             Guid.NewGuid(),
             false)
         {
-            IsOverrideSummary = true,
-            PlantUml = $"""
-                        
-                        {plantUml}
-                        
-                        
-                        """
+            IsOverrideStart = true,
+            PlantUml = ToBufferedPlantUml(plantUml)
         };
         RequestResponseLogger.Log(log);
     }
 
-    public static void EndOverrideSummary(string testId)
+    public static void EndOverride(string testId, string? plantUml = null)
     {
         var log = new RequestResponseLog(
             testId,
@@ -46,20 +41,30 @@ public static class DefaultTrackingDiagramOverride
             Guid.NewGuid(),
             false)
         {
-            IsOverrideEnding = true,
+            IsOverrideEnd = true,
+            PlantUml = ToBufferedPlantUml(plantUml)
         };
         RequestResponseLogger.Log(log);
     }
+
+    private static string? ToBufferedPlantUml(string? plantUml) => plantUml is null
+        ? null
+        : $"""
+
+           {plantUml}
+
+
+           """;
 
     public static void InsertPlantUml(string testId, string plantUml)
     {
-        StartOverrideSummary(testId, plantUml);
-        EndOverrideSummary(testId);
+        StartOverride(testId, plantUml);
+        EndOverride(testId);
     }
 
     public static void InsertTestDelimiter(string testRuntimeId, string testIdentifier)
     {
-        StartOverrideSummary(testRuntimeId, $"hnote across #black:<color:white>Test {testIdentifier}");
-        EndOverrideSummary(testRuntimeId);
+        StartOverride(testRuntimeId, $"hnote across #black:<color:white>Test {testIdentifier}");
+        EndOverride(testRuntimeId);
     }
 }

@@ -18,8 +18,8 @@ public record RequestResponseLog(
     OneOf<HttpStatusCode, string>? StatusCode = null,
     RequestResponseMetaType MetaType = default)
 {
-    public bool IsOverrideSummary { get; set; }
-    public bool IsOverrideEnding { get; set; }
+    public bool IsOverrideStart { get; set; }
+    public bool IsOverrideEnd { get; set; }
     public string? PlantUml { get; set; }
 };
 

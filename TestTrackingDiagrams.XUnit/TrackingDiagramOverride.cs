@@ -4,14 +4,14 @@ namespace TestTrackingDiagrams.XUnit;
 
 public static class TrackingDiagramOverride
 {
-    public static void StartOverrideSummary(string plantUml)
+    public static void StartOverride(string? plantUml = null)
     {
-        DefaultTrackingDiagramOverride.StartOverrideSummary(GetTestId(), plantUml);
+        DefaultTrackingDiagramOverride.StartOverride(GetTestId(), plantUml);
     }
 
-    public static void EndOverrideSummary()
+    public static void EndOverride(string? plantUml = null)
     {
-        DefaultTrackingDiagramOverride.EndOverrideSummary(GetTestId());
+        DefaultTrackingDiagramOverride.EndOverride(GetTestId(), plantUml);
     }
 
     public static void InsertTestDelimiter(string testIdentifier)
