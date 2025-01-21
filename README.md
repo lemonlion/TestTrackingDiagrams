@@ -1,5 +1,5 @@
 # Test Tracking Diagrams
-Effortlessly autogenerate sequence diagrams from your component/acceptance tests every time you run them.  Tracks the HTTP requests between your test caller, your Service Under Test (SUT), and your SUT dependencies and converts them into a PlantUML diagrams that are autoloaded into a report/specifications html file.
+Effortlessly autogenerate sequence diagrams from your component/acceptance tests every time you run them.  Tracks the HTTP requests between your test caller, your Service Under Test (SUT), and your SUT dependencies, and then converts them into a PlantUML diagrams that are autoloaded into a report/specifications html file.
 
 ## Example Diagram Output
 
