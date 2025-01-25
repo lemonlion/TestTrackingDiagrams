@@ -266,7 +266,7 @@ public static class PlantUmlCreator
     {
         var parsedContent = string.Empty;
         var isContentJson = false;
-        if (content?.StartsWith("{") ?? false)
+        if ((content?.StartsWith("{") ?? false) || (content?.StartsWith("[") ?? false))
         {
             try
             {

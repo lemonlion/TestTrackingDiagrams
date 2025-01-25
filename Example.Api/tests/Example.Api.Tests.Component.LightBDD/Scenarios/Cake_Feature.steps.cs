@@ -152,15 +152,18 @@ public partial class Cake_Feature : BaseFixture
 
     private async Task The_response_http_status_and_error_message_should_be_matching(VerifiableDataTable<CakeErrorResult> expectedOutputs)
     {
-        var results = await _cakeResponseMessages.SelectAsync(async x => await  x.Content.ReadFromJsonAsync<ErrorResponse>(new JsonSerializerOptions{ PropertyNameCaseInsensitive = true }));
-        
-        var cakeErrorResults = results.Select((x, i) => new CakeErrorResult
-        {
-            ErrorMessage = x?.Errors.FirstOrDefault().Value?.FirstOrDefault() ?? default, 
-            ResponseStatus = _cakeResponseMessages[i].StatusCode.ToString()
-        });
+        var results = await _cakeResponseMessages.SelectAsync(async x => await x.Content.ReadFromJsonAsync<ErrorResponse>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }));
+
+        var cakeErrorResults = results.Select((x, i) => new CakeErrorResult(
+            _cakeResponseMessages[i].StatusCode.ToString(),
+            x?.Errors.FirstOrDefault().Value?.FirstOrDefault() ?? default
+        ));
         expectedOutputs.SetActual(cakeErrorResults);
     }
 
     #endregion
+
+
+    public record CakeErrorResult(string? ResponseStatus, string? ErrorMessage);
+    public record MissingIngredientFromCakeRequest(string? Ingredient);
 }
