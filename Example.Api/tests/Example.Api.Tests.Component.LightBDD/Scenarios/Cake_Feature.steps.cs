@@ -34,6 +34,7 @@ public partial class Cake_Feature : BaseFixture
 
     private async Task<CompositeStep> A_valid_post_request_for_the_Cake_endpoint()
     {
+        TrackingDiagramOverride.StartSetup();
         return CompositeStep.DefineNew().AddAsyncSteps(
                 _ => A_valid_request_body())
             .Build();
@@ -108,11 +109,13 @@ public partial class Cake_Feature : BaseFixture
     #region When
     private async Task The_request_is_sent_to_the_cake_post_endpoint()
     {
+        TrackingDiagramOverride.EndSetup();
         _cakeResponseMessage = await Client.PostAsJsonAsync("cake", _cakeRequest);
     }
 
     private async Task The_requests_are_sent_to_the_cake_post_endpoint()
     {
+        TrackingDiagramOverride.EndSetup();
         for (var i = 0; i < _cakeRequests.Count; i++)
         {
             TrackingDiagramOverride.InsertTestDelimiter($"{i + 1}");

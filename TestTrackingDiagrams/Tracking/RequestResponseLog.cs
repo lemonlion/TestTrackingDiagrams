@@ -16,17 +16,17 @@ public record RequestResponseLog(
     Guid RequestResponseId,
     bool TrackingIgnore,
     OneOf<HttpStatusCode, string>? StatusCode = null,
-    RequestResponseMetaType MetaType = default)
-{
-    public bool IsOverrideStart { get; set; }
-    public bool IsOverrideEnd { get; set; }
-    public string? PlantUml { get; set; }
-};
+    RequestResponseMetaType MetaType = default,
+    string? plantUml = null);
 
 public enum RequestResponseType
 {
     Request,
-    Response
+    Response,
+    OverrideStart,
+    OverrideEnd,
+    ActionStart,
+    ActionEnd
 }
 
 public enum RequestResponseMetaType

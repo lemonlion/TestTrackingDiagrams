@@ -5,12 +5,59 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace TestTrackingDiagrams.PlantUml;
 
 public static class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
+    private const string GroupStylingPlaceholder = "!$$GROUP STYLING PLACEHOLDER$$!";
+    private const string GroupSetupStartPlaceholder = "!$$GROUP SETUP START PLACEHOLDER$$!";
+    private const string GroupSetupStartWhileInActionPlaceholder = "!$$GROUP SETUP START WHILE IN ACTION PLACEHOLDER$$!";
+    private const string GroupStyling = """
+                                        <style>
+                                            sequenceDiagram {
+                                              group {
+                                                LineThickness 0
+                                                LineColor #E2E2F0
+                                                Padding 200
+                                                BackgroundColor #E2E2F0
+                                              }
+                                              groupHeader {
+                                                FontStyle Bold
+                                                FontColor Black
+                                                Padding 10
+                                                BackgroundColor White
+                                                LineColor #8B8B8B
+                                              }
+                                            }
+                                        </style>
+                                        """;
+    private const string GroupSetupStart = """
+                                        
+                                            group Setup
+                                            |||
+
+                                        
+                                            """;
+    private const string GroupSetupStartWhileInAction = """
+                                        
+                                            group Setup
+                                            |||
+
+                                        
+                                            """;
+    private const string GroupSetupEnd = """                                            
+                                            |||
+                                            end group
+                                            """;
+
+    private const string GroupActionStart = """
+                                            |||
+                                            group#white #white Action
+                                            |||
+                                            """;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
@@ -59,30 +106,54 @@ public static class PlantUmlCreator
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
 
+        var currentlyOverriding = false;
+        var currentlyInAction = false;
+        var useSetupActionSeparation = false;
         var stepNumber = 1;
         var plantUml = CreatePlantUmlPrefix();
 
-        var currentlyOverriding = false;
-
         foreach (var trace in tracesForTest)
         {
-            if (trace.IsOverrideStart && currentlyOverriding)
+            if (trace.Type == RequestResponseType.ActionStart && currentlyInAction)
+            {
+                Debug.Write("Ignoring the group as you're already in a group");
+                continue;
+            }
+
+            if (trace.Type == RequestResponseType.ActionEnd)
+            {
+                currentlyInAction = false;
+                plantUml += $"""                            
+                            |||
+                            end group
+                            """;
+                continue;
+            }
+
+            if (trace.Type == RequestResponseType.ActionStart)
+            {
+                useSetupActionSeparation = currentlyInAction = true;
+                plantUml += GroupActionStart;
+                continue;
+            }
+
+            if (trace.Type == RequestResponseType.OverrideStart && currentlyOverriding)
             {
                 Debug.Write("Ignoring an override as you're already overriding");
                 continue;
             }
 
-            if (trace.IsOverrideEnd)
+            if (trace.Type == RequestResponseType.OverrideEnd)
             {
                 currentlyOverriding = false;
-                plantUml += trace.PlantUml ?? "";
+                plantUml += trace.plantUml ?? "";
                 continue;
             }
 
-            if (trace.IsOverrideStart)
+            if (trace.Type == RequestResponseType.OverrideStart)
             {
                 currentlyOverriding = true;
-                plantUml += trace.PlantUml ?? "";
+                plantUml += trace.plantUml ?? "";
                 continue;
             }
 
@@ -166,7 +237,7 @@ public static class PlantUmlCreator
                     else
                     {
                         var status = trace.StatusCode?.Value?.ToString().Titleize();
-                        if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
+                        if (trace?.StatusCode?.Value as HttpStatusCode? == HttpStatusCode.Found)
                             status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
 
                         plantUml +=
@@ -206,9 +277,10 @@ public static class PlantUmlCreator
                     !return "<color:"+$value+" >"
                     !endfunction
                     autonumber {stepNumber}
-
+                    {GroupStylingPlaceholder}
                     {entitiesPlantUml}
-
+                    {GroupSetupStartPlaceholder}                    
+                    {(currentlyInAction ? GroupActionStart : "")}
                     """.TrimStart();
 
             string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
@@ -227,6 +299,21 @@ public static class PlantUmlCreator
 
         void FinishPlantUmlDiagramAndStartNewOne()
         {
+            if (currentlyInAction) // Then close off the action group
+                plantUml += """                            
+                            |||
+                            end group
+                            """;
+
+            if (useSetupActionSeparation) // Then close off the setup group
+                plantUml += """                            
+                            |||
+                            end group
+                            """;
+
+            plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling : "");
+            plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
+
             plantUml += $"@enduml{Environment.NewLine}";
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
             plantUmls.Add(new(plantUml, encodedPlantUml));
@@ -240,7 +327,7 @@ public static class PlantUmlCreator
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false }))
+        foreach (var trace in tracesForTest.Where(x => x.Type == RequestResponseType.Request || x.Type == RequestResponseType.Response))
         {
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
