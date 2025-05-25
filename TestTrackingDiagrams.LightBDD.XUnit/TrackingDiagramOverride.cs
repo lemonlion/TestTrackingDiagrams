@@ -4,12 +4,12 @@ namespace TestTrackingDiagrams.LightBDD.XUnit;
 
 public static class TrackingDiagrams
 {
-    public static void StartSetup()
+    public static void StartAction()
     {
         DefaultTrackingDiagrams.StartAction(GetTestId());
     }
 
-    public static void EndSetup()
+    public static void EndAction()
     {
         DefaultTrackingDiagrams.EndAction(GetTestId());
     }

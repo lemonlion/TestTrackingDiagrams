@@ -14,20 +14,17 @@ public static class PlantUmlCreator
     private const int MaxLineWidth = 800;
     private const string GroupStylingPlaceholder = "!$$GROUP STYLING PLACEHOLDER$$!";
     private const string GroupSetupStartPlaceholder = "!$$GROUP SETUP START PLACEHOLDER$$!";
-    private const string GroupSetupStartWhileInActionPlaceholder = "!$$GROUP SETUP START WHILE IN ACTION PLACEHOLDER$$!";
     private const string GroupStyling = """
                                         <style>
                                             sequenceDiagram {
                                               group {
-                                                LineThickness 0
-                                                LineColor #E2E2F0
-                                                Padding 200
+                                                LineThickness 1
+                                                LineColor #8B8B8B
                                                 BackgroundColor #E2E2F0
                                               }
                                               groupHeader {
                                                 FontStyle Bold
                                                 FontColor Black
-                                                Padding 10
                                                 BackgroundColor White
                                                 LineColor #8B8B8B
                                               }
@@ -41,22 +38,17 @@ public static class PlantUmlCreator
 
                                         
                                             """;
-    private const string GroupSetupStartWhileInAction = """
-                                        
-                                            group Setup
-                                            |||
-
-                                        
-                                            """;
     private const string GroupSetupEnd = """                                            
                                             |||
                                             end group
+                                            
                                             """;
 
     private const string GroupActionStart = """
                                             |||
                                             group#white #white Action
                                             |||
+                                            
                                             """;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
@@ -69,7 +61,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePreFormattingProcessor = null,
         Func<string, string>? responsePostFormattingProcessor = null,
         string[]? excludedHeaders = null,
-        int maxUrlLength = 100)
+        int maxUrlLength = 100,
+        SetupActionSeparationOptions? setupActionSeparation = null)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -86,7 +79,8 @@ public static class PlantUmlCreator
                 responsePreFormattingProcessor,
                 responsePostFormattingProcessor,
                 excludedHeaders, 
-                maxUrlLength);
+                maxUrlLength,
+                setupActionSeparation);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -101,39 +95,59 @@ public static class PlantUmlCreator
         Func<string, string>? responsePreFormattingProcessor,
         Func<string, string>? responsePostFormattingProcessor,
         string[] excludedHeaders,
-        int maxUrlLength)
+        int maxUrlLength,
+        SetupActionSeparationOptions? setupActionSeparation = null)
     {
+        setupActionSeparation ??= new();
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
 
         var currentlyOverriding = false;
         var currentlyInAction = false;
-        var useSetupActionSeparation = false;
+        var aboutToStartNewActionDiagram = false;
+        var useSetupActionSeparation = setupActionSeparation.SetupActionSeparationType != SetupActionSeparation.None && tracesForTest.Any(HasActionStart);
         var stepNumber = 1;
         var plantUml = CreatePlantUmlPrefix();
 
+        bool HasActionStart(RequestResponseLog trace) => trace.Type == RequestResponseType.ActionStart || ActionDetected(trace);
+        bool ActionDetected(RequestResponseLog trace) => setupActionSeparation.DetectActionFromStepNameIfAvailable 
+                                                         && new[] { trace.StepName, trace.ParentStepName} // Checks parent as well to deal with composite steps
+                                                             .Any(stepName => stepName?.ToLower().StartsWith("when ") == true);
+
         foreach (var trace in tracesForTest)
         {
-            if (trace.Type == RequestResponseType.ActionStart && currentlyInAction)
+            var isActionStart = HasActionStart(trace);
+
+            switch (isActionStart)
             {
-                Debug.Write("Ignoring the group as you're already in a group");
-                continue;
+                case true when currentlyInAction:
+                {
+                    Debug.Write("Ignoring the group as you're already in a group");
+                    if (trace.Type == RequestResponseType.ActionStart)
+                        continue;
+                    break;
+                }
+                case true:
+                {
+                    if (setupActionSeparation.SetupActionSeparationType == SetupActionSeparation.SeparateByDiagramSplit)
+                    {
+                        aboutToStartNewActionDiagram = true;
+                        FinishPlantUmlDiagramAndStartNewOne();
+                        aboutToStartNewActionDiagram = false;
+                    }
+
+                    useSetupActionSeparation = currentlyInAction = true;
+                    plantUml += GroupActionStart;
+                    if (trace.Type == RequestResponseType.ActionStart)
+                        continue;
+                    break;
+                }
             }
 
             if (trace.Type == RequestResponseType.ActionEnd)
             {
                 currentlyInAction = false;
-                plantUml += $"""                            
-                            |||
-                            end group
-                            """;
-                continue;
-            }
-
-            if (trace.Type == RequestResponseType.ActionStart)
-            {
-                useSetupActionSeparation = currentlyInAction = true;
-                plantUml += GroupActionStart;
+                plantUml += GroupSetupEnd;
                 continue;
             }
 
@@ -146,14 +160,14 @@ public static class PlantUmlCreator
             if (trace.Type == RequestResponseType.OverrideEnd)
             {
                 currentlyOverriding = false;
-                plantUml += trace.plantUml ?? "";
+                plantUml += trace.PlantUml ?? "";
                 continue;
             }
 
             if (trace.Type == RequestResponseType.OverrideStart)
             {
                 currentlyOverriding = true;
-                plantUml += trace.plantUml ?? "";
+                plantUml += trace.PlantUml ?? "";
                 continue;
             }
 
@@ -279,9 +293,11 @@ public static class PlantUmlCreator
                     autonumber {stepNumber}
                     {GroupStylingPlaceholder}
                     {entitiesPlantUml}
-                    {GroupSetupStartPlaceholder}                    
+                    {(AboutToStartNewActionDiagram() ? "" : GroupSetupStartPlaceholder)}                    
                     {(currentlyInAction ? GroupActionStart : "")}
                     """.TrimStart();
+
+            bool AboutToStartNewActionDiagram() => setupActionSeparation.SetupActionSeparationType == SetupActionSeparation.SeparateByDiagramSplit && aboutToStartNewActionDiagram;
 
             string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
                 ? $$"""
@@ -299,26 +315,74 @@ public static class PlantUmlCreator
 
         void FinishPlantUmlDiagramAndStartNewOne()
         {
-            if (currentlyInAction) // Then close off the action group
-                plantUml += """                            
-                            |||
-                            end group
-                            """;
+            if (setupActionSeparation.SetupActionSeparationType != SetupActionSeparation.None)
+            {
+                if (currentlyInAction && 
+                    setupActionSeparation.SetupActionSeparationType != SetupActionSeparation.SeparateByDiagramSplit) // Then close off the action group
+                    plantUml += GroupSetupEnd;
 
-            if (useSetupActionSeparation) // Then close off the setup group
-                plantUml += """                            
-                            |||
-                            end group
-                            """;
+                if (useSetupActionSeparation) // Then close off the setup group
+                    plantUml += GroupSetupEnd;
+            }
 
-            plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling : "");
-            plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
+            plantUml = plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling : "");
+            plantUml = plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
 
-            plantUml += $"@enduml{Environment.NewLine}";
-            var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
-            plantUmls.Add(new(plantUml, encodedPlantUml));
+            var plantUmlEnding = $"@enduml{Environment.NewLine}";
+            plantUml += plantUmlEnding;
+            string encodedPlantUml;
+
+            switch (setupActionSeparation.SetupActionSeparationType)
+            {
+                case SetupActionSeparation.None:
+                {
+                    encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+                    plantUmls.Add(new(plantUml, encodedPlantUml));
+                    break;
+                }
+
+                case SetupActionSeparation.SeparateByGroup:
+                {
+                    if (HasEmptySetupWithAction(plantUml))
+                        plantUml = RemoveEmptySetup(plantUml);
+
+                    encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+                    plantUmls.Add(new(plantUml, encodedPlantUml));
+                    break;
+                }
+
+                case SetupActionSeparation.SeparateByDiagramSplit:
+                {
+                    encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
+                    if (!HasEmptySetup(plantUml))
+                        plantUmls.Add(new(plantUml, encodedPlantUml));
+                    break;
+                }
+            }
+
             plantUml = CreatePlantUmlPrefix();
         }
+    }
+
+    private static bool HasEmptySetupWithAction(string plantUml)
+    {
+        return plantUml.Contains(GroupSetupStart) && plantUml.Split(GroupSetupStart)[1].TrimStart().StartsWith(GroupActionStart);
+    }
+
+    private static bool HasEmptySetup(string plantUml)
+    {
+        return plantUml.Contains(GroupSetupStart) && plantUml.Split(GroupSetupStart)[1].TrimStart().StartsWith(GroupSetupEnd.TrimEnd());
+    }
+
+    private static string RemoveEmptySetup(string plantUml)
+    {
+        if(!HasEmptySetupWithAction(plantUml))
+            return plantUml;
+
+        var ending = $"{GroupSetupEnd}{GroupSetupEnd}@enduml";
+        var replacementEnding = $"{GroupSetupEnd}@enduml";
+
+        return plantUml.Replace(GroupSetupStart, "").Replace(ending, replacementEnding);
     }
 
     private static string CreateEntitiesPlantUml(List<RequestResponseLog> tracesForTest)

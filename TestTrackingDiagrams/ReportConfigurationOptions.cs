@@ -11,4 +11,19 @@ public record ReportConfigurationOptions
     public string YamlSpecificationsFileName { get; set; } = "ComponentSpecifications";
     public string ReportsFolderPath { get; set; } = "Reports";
     public string[] ExcludedHeaders { get; set; } = [];
+    public SetupActionSeparationOptions SetupActionSeparation { get; set; } = new();
+}
+
+public record SetupActionSeparationOptions
+{
+    public SetupActionSeparation SetupActionSeparationType { get; set; } = SetupActionSeparation.SeparateByDiagramSplit;
+    public bool DetectActionFromStepNameIfAvailable { get; set; } = true;
+    public bool MinimiseSetupDiagramOnLoad { get; set; } = false;
+}
+
+public enum SetupActionSeparation
+{
+    None,
+    SeparateByGroup,
+    SeparateByDiagramSplit
 }

@@ -17,7 +17,9 @@ public record RequestResponseLog(
     bool TrackingIgnore,
     OneOf<HttpStatusCode, string>? StatusCode = null,
     RequestResponseMetaType MetaType = default,
-    string? plantUml = null);
+    string? PlantUml = null,
+    string? StepName = null,
+    string? ParentStepName = null);
 
 public enum RequestResponseType
 {
