@@ -13,29 +13,41 @@ public static class PlantUmlCreator
     private const int MaxLineWidth = 800;
     private const string GroupStylingPlaceholder = "!$$GROUP STYLING PLACEHOLDER$$!";
     private const string GroupSetupStartPlaceholder = "!$$GROUP SETUP START PLACEHOLDER$$!";
-    private static string GroupStyling(SetupActionSeparationOptions? setupActionSeparation) => $$"""
-                                        <style>
-                                            sequenceDiagram {
-                                              group {
-                                                LineThickness {{(setupActionSeparation?.SetupActionSeparationType == SetupActionSeparation.SeparateByGroup ? "0" : "1")}}
-                                                LineColor {{(setupActionSeparation?.SetupActionSeparationType == SetupActionSeparation.SeparateByGroup ? "#E2E2F0" : "#8B8B8B")}}
-                                                BackgroundColor #E2E2F0
-                                              }
-                                              groupHeader {
-                                                FontStyle Bold
-                                                FontColor Black
-                                                BackgroundColor White
-                                                LineColor #8B8B8B
-                                              }
-                                            }
-                                        </style>
-                                        """;
+
+    public record DiagramStylingOptions
+    {
+        public string SetupBackgroundColour { get; init; } = "#E2E2F0";
+        public string ActionBackgroundColour { get; init; } = "White";
+    }
+
+    private static string GroupStyling(DiagramStylingOptions? options = null)
+    {
+        options ??= new DiagramStylingOptions();
+        return $$"""
+                 <style>
+                     sequenceDiagram {
+                       group {
+                         LineThickness 1
+                         LineColor #8B8B8B
+                         BackgroundColor {{options.SetupBackgroundColour}}
+                       }
+                       groupHeader {
+                         FontStyle Bold
+                         FontColor Black
+                         BackgroundColor {{options.ActionBackgroundColour}}
+                         LineColor #8B8B8B
+                       }
+                     }
+                 </style>
+                 """;
+    }
+
     private const string GroupSetupStart = """
 
-                                            group Setup
-                                            |||
+                                           group Setup
+                                           |||
 
-                                            """;
+                                           """;
 
     private const string GroupSetupEnd = GroupEnd;
 
@@ -65,7 +77,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePostFormattingProcessor = null,
         string[]? excludedHeaders = null,
         int maxUrlLength = 100,
-        SetupActionSeparationOptions? setupActionSeparation = null)
+        SetupActionSeparationOptions? setupActionSeparation = null,
+        DiagramStylingOptions? stylingOptions = null)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -83,7 +96,8 @@ public static class PlantUmlCreator
                 responsePostFormattingProcessor,
                 excludedHeaders, 
                 maxUrlLength,
-                setupActionSeparation);
+                setupActionSeparation,
+                stylingOptions);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -99,9 +113,11 @@ public static class PlantUmlCreator
         Func<string, string>? responsePostFormattingProcessor,
         string[] excludedHeaders,
         int maxUrlLength,
-        SetupActionSeparationOptions? setupActionSeparation = null)
+        SetupActionSeparationOptions? setupActionSeparation = null,
+        DiagramStylingOptions? stylingOptions = null)
     {
         setupActionSeparation ??= new();
+
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
 
@@ -116,12 +132,11 @@ public static class PlantUmlCreator
         bool ActionDetected(TestTrackingLog trace) => setupActionSeparation.DetectActionFromStepNameIfAvailable 
                                                          && new[] { trace.StepName, trace.ParentStepName} // Checks parent as well to deal with composite steps
                                                              .Any(stepName => stepName?.ToLower().StartsWith("when ") == true);
-
         foreach (var trace in tracesForTest)
         {
             var isActionStart = HasActionStart(trace);
 
-            switch (isActionStart)
+            switch(isActionStart)
             {
                 case true when currentlyInAction:
                 {
@@ -135,12 +150,13 @@ public static class PlantUmlCreator
                     if (setupActionSeparation.SetupActionSeparationType == SetupActionSeparation.SeparateByDiagramSplit)
                     {
                         aboutToStartNewActionDiagram = true;
-                        FinishPlantUmlDiagramAndStartNewOne(setupActionSeparation);
+                        FinishPlantUmlDiagramAndStartNewOne();
                         aboutToStartNewActionDiagram = false;
                     }
 
                     useSetupActionSeparation = currentlyInAction = true;
                     plantUml += GroupActionStart;
+
                     if (trace.Type == TestTrackingLogType.ActionStart)
                         continue;
                     break;
@@ -248,7 +264,7 @@ public static class PlantUmlCreator
                             CreateResponseNote(noteContentChunk);
 
                             if (!isLastChunk)
-                                FinishPlantUmlDiagramAndStartNewOne(setupActionSeparation);
+                                FinishPlantUmlDiagramAndStartNewOne();
                         }
                     }
                     else
@@ -276,9 +292,9 @@ public static class PlantUmlCreator
             stepNumber++;
 
             if (currentEncodedPlantUml.Length > 2000 && trace != tracesForTest.Last())
-                FinishPlantUmlDiagramAndStartNewOne(setupActionSeparation);
+                FinishPlantUmlDiagramAndStartNewOne();
         }
-        FinishPlantUmlDiagramAndStartNewOne(setupActionSeparation);
+        FinishPlantUmlDiagramAndStartNewOne();
 
         return plantUmls.ToArray();
 
@@ -316,19 +332,19 @@ public static class PlantUmlCreator
                 : "";
         }
 
-        void FinishPlantUmlDiagramAndStartNewOne(SetupActionSeparationOptions? setupActionSeparation)
+        void FinishPlantUmlDiagramAndStartNewOne()
         {
             if (setupActionSeparation.SetupActionSeparationType != SetupActionSeparation.None)
             {
                 if (currentlyInAction && 
                     setupActionSeparation.SetupActionSeparationType != SetupActionSeparation.SeparateByDiagramSplit) // Then close off the action group
-                    plantUml += GroupSetupEnd;
+                    plantUml += GroupActionEnd;
 
                 if (useSetupActionSeparation) // Then close off the setup group
                     plantUml += GroupSetupEnd;
             }
 
-            plantUml = plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling(setupActionSeparation) : "");
+            plantUml = plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling(stylingOptions) : "");
             plantUml = plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
 
             var plantUmlEnding = $"@enduml{Environment.NewLine}";
@@ -382,8 +398,8 @@ public static class PlantUmlCreator
         if(!HasEmptySetupWithAction(plantUml))
             return plantUml;
 
-        var ending = $"{GroupSetupEnd}{GroupSetupEnd}@enduml";
-        var replacementEnding = $"{GroupSetupEnd}@enduml";
+        var ending = $"{GroupActionEnd}{GroupSetupEnd}@enduml";
+        var replacementEnding = $"{GroupActionEnd}@enduml";
 
         return plantUml.Replace(GroupSetupStart, "").Replace(ending, replacementEnding);
     }

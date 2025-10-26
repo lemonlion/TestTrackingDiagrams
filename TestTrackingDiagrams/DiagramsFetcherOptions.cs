@@ -1,4 +1,6 @@
-﻿namespace TestTrackingDiagrams;
+﻿using static TestTrackingDiagrams.PlantUml.PlantUmlCreator;
+
+namespace TestTrackingDiagrams;
 
 public record DiagramsFetcherOptions
 {
@@ -9,4 +11,5 @@ public record DiagramsFetcherOptions
     public Func<string, string>? ResponsePreFormattingProcessor { get; set; }
     public IEnumerable<string> ExcludedHeaders { get; set; } = [];
     public SetupActionSeparationOptions SetupActionSeparation { get; set; } = new();
+    public DiagramStylingOptions StylingOptions { get; set; } = new();
 }
