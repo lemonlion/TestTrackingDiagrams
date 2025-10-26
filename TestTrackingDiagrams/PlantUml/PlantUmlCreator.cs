@@ -19,13 +19,11 @@ public static class PlantUmlCreator
                                               group {
                                                 LineThickness 0
                                                 LineColor #E2E2F0
-                                                Padding 200
                                                 BackgroundColor #E2E2F0
                                               }
                                               groupHeader {
                                                 FontStyle Bold
                                                 FontColor Black
-                                                Padding 10
                                                 BackgroundColor White
                                                 LineColor #8B8B8B
                                               }
@@ -33,10 +31,10 @@ public static class PlantUmlCreator
                                         </style>
                                         """;
     private const string GroupSetupStart = """
-                                        
+
                                             group Setup
                                             |||
-                                        
+
                                             """;
 
     private const string GroupSetupEnd = GroupEnd;
