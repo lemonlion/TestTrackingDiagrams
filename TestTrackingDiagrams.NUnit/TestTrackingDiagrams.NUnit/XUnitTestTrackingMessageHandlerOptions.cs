@@ -7,6 +7,6 @@ public record NUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandle
 {
     public NUnitTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = () => (TestContext.CurrentContext.Test!.DisplayName!, TestContext.CurrentContext.Test.ID);
+        CurrentTestInfoFetcher = () => (TestContext.CurrentContext.Test!.DisplayName!, TestContext.CurrentContext.Test.ID, null, null);
     }
 }

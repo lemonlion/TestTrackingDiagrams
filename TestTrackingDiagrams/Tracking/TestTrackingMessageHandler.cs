@@ -8,7 +8,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
 {
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly string? _callingServiceName;
-    private readonly Func<(string Name, string Id)>? _currentTestInfoFetcher;
+    private readonly Func<(string Name, string Id, string? StepName, string? ParentStepName)>? _currentTestInfoFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly IEnumerable<string> _headersToForward;
 
@@ -61,7 +61,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             hasCallerNameHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CallerNameHeader, out callerNameHeaders);
         }
 
-        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First(), currentTestIdHeaders.First()) : _currentTestInfoFetcher;
+        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First(), currentTestIdHeaders.First(), null, null) : _currentTestInfoFetcher;
 
         var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()) : Guid.NewGuid();
 
@@ -72,7 +72,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             request.Headers.Add(TestTrackingHttpHeaders.CurrentTestNameHeader, new[] { currentTestInfoFetcher().Name });
 
         if (!hasCurrentTestIdHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher().Id.ToString() });
+            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher().Id });
 
         if (!hasCallerNameHeader)
             request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName });
@@ -93,7 +93,9 @@ public class TestTrackingMessageHandler : DelegatingHandler
             TestTrackingLogType.Request,
             traceId,
             requestResponseId,
-            requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
+            requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore),
+            StepName: currentTestInfo.StepName,
+            ParentStepName: currentTestInfo.ParentStepName
         ));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);

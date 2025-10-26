@@ -6,5 +6,5 @@ public record TestTrackingMessageHandlerOptions
     public string? FixedNameForReceivingService { get; set; }
     public string CallingServiceName { get; set; } = "Caller";
     public IEnumerable<string> HeadersToForward { get; set; } = [];
-    public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; } = null;
+    public Func<(string Name, string Id, string? StepName, string? ParentStepName)>? CurrentTestInfoFetcher { get; set; } = null;
 }

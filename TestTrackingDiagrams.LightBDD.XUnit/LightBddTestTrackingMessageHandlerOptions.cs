@@ -7,6 +7,13 @@ public record LightBddTestTrackingMessageHandlerOptions : TestTrackingMessageHan
 {
     public LightBddTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = () => (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(), ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString());
+        CurrentTestInfoFetcher = () =>
+        {
+            var x = ScenarioExecutionContext.CurrentStep;
+            return (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(),
+                ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString(),
+                ScenarioExecutionContext.CurrentStep.Info.Name.ToString(),
+                ScenarioExecutionContext.CurrentStep.Info.Parent.Name.ToString());
+        };
     }
 }

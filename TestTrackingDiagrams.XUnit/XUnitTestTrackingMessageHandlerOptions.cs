@@ -7,6 +7,6 @@ public record XUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandle
 {
     public XUnitTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = () => (TestContext.Current.Test!.TestDisplayName, TestContext.Current.Test.UniqueID);
+        CurrentTestInfoFetcher = () => (TestContext.Current.Test!.TestDisplayName, TestContext.Current.Test.UniqueID, null, null);
     }
 }

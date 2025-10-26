@@ -41,7 +41,7 @@ public static class DefaultTrackingDiagrams
             Guid.NewGuid(),
             Guid.NewGuid(),
             false,
-            plantUml: ToBufferedPlantUml(plantUml));
+            PlantUml: ToBufferedPlantUml(plantUml));
         TestTracker.Log(log);
     }
 

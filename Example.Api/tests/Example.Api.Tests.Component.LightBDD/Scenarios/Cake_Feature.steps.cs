@@ -108,7 +108,6 @@ public partial class Cake_Feature : BaseFixture
     #region When
     private async Task The_request_is_sent_to_the_cake_post_endpoint()
     {
-        TrackingDiagrams.StartAction();
         _cakeResponseMessage = await Client.PostAsJsonAsync("cake", _cakeRequest);
     }
 

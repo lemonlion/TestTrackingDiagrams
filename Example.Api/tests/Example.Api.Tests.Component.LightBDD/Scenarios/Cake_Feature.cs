@@ -1,5 +1,4 @@
-﻿using Example.Api.Tests.Component.LightBDD.XUnit.Models;
-using LightBDD.Contrib.ReportingEnhancements.Reports;
+﻿using LightBDD.Contrib.ReportingEnhancements.Reports;
 using LightBDD.Framework;
 using LightBDD.Framework.Scenarios;
 using LightBDD.TabularAttributes;
