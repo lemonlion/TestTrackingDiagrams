@@ -16,7 +16,7 @@ public record ReportConfigurationOptions
 
 public record SetupActionSeparationOptions
 {
-    public SetupActionSeparation SetupActionSeparationType { get; set; } = SetupActionSeparation.SeparateByDiagramSplit;
+    public SetupActionSeparation SetupActionSeparationType { get; set; } = SetupActionSeparation.SeparateByGroup;
     public bool DetectActionFromStepNameIfAvailable { get; set; } = true;
     public bool MinimiseSetupDiagramOnLoad { get; set; } = false;
 }
