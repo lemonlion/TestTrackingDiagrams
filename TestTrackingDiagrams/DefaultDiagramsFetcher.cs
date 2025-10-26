@@ -17,7 +17,7 @@ public static class DefaultDiagramsFetcher
         return () =>
         {
             var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
-                RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
+                TestTracker.TestTrackerLogs.Where(x => !(x?.TrackingIgnore ?? true)),
                 requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
                 responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
                 requestPreFormattingProcessor: options.RequestPreFormattingProcessor,

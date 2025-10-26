@@ -15,7 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <PackageReference Include="TestTrackingDiagrams.NUnit" Version="1.18.1" />
 	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
 	  <PackageReference Include="NUnit" Version="4.3.2" />
 	  <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
@@ -30,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit.csproj" />
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
   </ItemGroup>
 

@@ -81,7 +81,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
 
         var serviceName = _getServiceNameFromPortTranslator(request.RequestUri.Port);
 
-        RequestResponseLogger.Log(new RequestResponseLog(
+        TestTracker.Log(new TestTrackingLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
             request.Method,
@@ -90,7 +90,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             requestHeaders,
             serviceName,
             _callingServiceName,
-            RequestResponseType.Request,
+            TestTrackingLogType.Request,
             traceId,
             requestResponseId,
             requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
@@ -101,7 +101,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var responseContentString = await response.Content.ReadAsStringAsync(cancellationToken);
         var responseHeaders = response.Headers.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToArray();
 
-        RequestResponseLogger.Log(new RequestResponseLog(
+        TestTracker.Log(new TestTrackingLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
             request.Method,
@@ -110,7 +110,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             responseHeaders,
             serviceName,
             _callingServiceName,
-            RequestResponseType.Response,
+            TestTrackingLogType.Response,
             traceId,
             requestResponseId,
             requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore),

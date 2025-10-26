@@ -4,6 +4,16 @@ namespace TestTrackingDiagrams.XUnit;
 
 public static class TrackingDiagrams
 {
+    public static void StartAction()
+    {
+        DefaultTrackingDiagrams.StartAction(GetTestId());
+    }
+
+    public static void EndAction()
+    {
+        DefaultTrackingDiagrams.EndAction(GetTestId());
+    }
+
     public static void StartOverride(string? plantUml = null)
     {
         DefaultTrackingDiagrams.StartOverride(GetTestId(), plantUml);
@@ -14,14 +24,14 @@ public static class TrackingDiagrams
         DefaultTrackingDiagrams.EndOverride(GetTestId(), plantUml);
     }
 
-    public static void InsertTestDelimiter(string testIdentifier)
-    {
-        DefaultTrackingDiagrams.InsertTestDelimiter(GetTestId(), testIdentifier);
-    }
-
     public static void InsertPlantUml(string plantUml)
     {
         DefaultTrackingDiagrams.InsertPlantUml(GetTestId(), plantUml);
+    }
+
+    public static void InsertTestDelimiter(string testIdentifier)
+    {
+        DefaultTrackingDiagrams.InsertTestDelimiter(GetTestId(), testIdentifier);
     }
 
     private static string GetTestId() => TestContext.Current.Test!.UniqueID;

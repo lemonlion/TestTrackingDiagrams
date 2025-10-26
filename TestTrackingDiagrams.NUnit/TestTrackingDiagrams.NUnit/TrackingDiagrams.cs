@@ -1,15 +1,15 @@
-﻿using LightBDD.Core.ExecutionContext;
+﻿using NUnit.Framework;
 
-namespace TestTrackingDiagrams.LightBDD.XUnit;
+namespace TestTrackingDiagrams.NUnit;
 
 public static class TrackingDiagrams
 {
-    public static void StartSetup()
+    public static void StartAction()
     {
         DefaultTrackingDiagrams.StartAction(GetTestId());
     }
 
-    public static void EndSetup()
+    public static void EndAction()
     {
         DefaultTrackingDiagrams.EndAction(GetTestId());
     }
@@ -34,5 +34,5 @@ public static class TrackingDiagrams
         DefaultTrackingDiagrams.InsertTestDelimiter(GetTestId(), testIdentifier);
     }
 
-    private static string GetTestId() => ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString();
+    private static string GetTestId() => TestContext.CurrentContext.Test.ID;
 }

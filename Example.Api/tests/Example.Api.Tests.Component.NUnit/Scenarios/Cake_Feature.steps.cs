@@ -5,6 +5,7 @@ using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.NUnit.Infrastructure;
 using FluentAssertions;
+using TestTrackingDiagrams.NUnit;
 
 namespace Example.Api.Tests.Component.NUnit.Scenarios;
 
@@ -82,6 +83,7 @@ public partial class Cake_Feature : BaseFixture
     #region When
     private async Task When_the_request_is_sent_to_the_cake_post_endpoint()
     {
+        TrackingDiagrams.StartAction();
         _cakeResponseMessage = await Client.PostAsJsonAsync("cake", _cakeRequest);
     }
     #endregion

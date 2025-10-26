@@ -2,7 +2,7 @@
 
 namespace TestTrackingDiagrams.Tracking;
 
-public record RequestResponseLog(
+public record TestTrackingLog(
     string TestName,
     string TestId,
     OneOf<HttpMethod, string> Method,
@@ -11,7 +11,7 @@ public record RequestResponseLog(
     (string Key, string? Value)[] Headers,
     string ServiceName,
     string CallerName,
-    RequestResponseType Type,
+    TestTrackingLogType Type,
     Guid TraceId,
     Guid RequestResponseId,
     bool TrackingIgnore,
@@ -19,7 +19,7 @@ public record RequestResponseLog(
     RequestResponseMetaType MetaType = default,
     string? plantUml = null);
 
-public enum RequestResponseType
+public enum TestTrackingLogType
 {
     Request,
     Response,

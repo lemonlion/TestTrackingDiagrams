@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace TestTrackingDiagrams.PlantUml;
 
@@ -14,7 +13,6 @@ public static class PlantUmlCreator
     private const int MaxLineWidth = 800;
     private const string GroupStylingPlaceholder = "!$$GROUP STYLING PLACEHOLDER$$!";
     private const string GroupSetupStartPlaceholder = "!$$GROUP SETUP START PLACEHOLDER$$!";
-    private const string GroupSetupStartWhileInActionPlaceholder = "!$$GROUP SETUP START WHILE IN ACTION PLACEHOLDER$$!";
     private const string GroupStyling = """
                                         <style>
                                             sequenceDiagram {
@@ -38,31 +36,30 @@ public static class PlantUmlCreator
                                         
                                             group Setup
                                             |||
+                                        
+                                            """;
 
-                                        
-                                            """;
-    private const string GroupSetupStartWhileInAction = """
-                                        
-                                            group Setup
-                                            |||
-
-                                        
-                                            """;
-    private const string GroupSetupEnd = """                                            
-                                            |||
-                                            end group
-                                            """;
+    private const string GroupSetupEnd = GroupEnd;
 
     private const string GroupActionStart = """
                                             |||
                                             group#white #white Action
                                             |||
+
+                                            """;
+
+    private const string GroupActionEnd = GroupEnd;
+
+    private const string GroupEnd =        """                                            
+                                            |||
+                                            end group
+
                                             """;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
     public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestId(
-        IEnumerable<RequestResponseLog>? requestResponses,
+        IEnumerable<TestTrackingLog>? requestResponses,
         string plantUmlServerRendererUrl = "https://www.plantuml.com/plantuml/png",
         Func<string, string>? requestPreFormattingProcessor = null,
         Func<string, string>? requestPostFormattingProcessor = null,
@@ -95,7 +92,7 @@ public static class PlantUmlCreator
     }
 
     private static PlantUmlResult[] CreatePlantUml(
-        List<RequestResponseLog> tracesForTest,
+        List<TestTrackingLog> tracesForTest,
         Func<string, string>? requestPreFormattingProcessor,
         Func<string, string>? requestPostFormattingProcessor,
         Func<string, string>? responsePreFormattingProcessor,
@@ -114,43 +111,43 @@ public static class PlantUmlCreator
 
         foreach (var trace in tracesForTest)
         {
-            if (trace.Type == RequestResponseType.ActionStart && currentlyInAction)
+            if (trace.Type == TestTrackingLogType.ActionStart && currentlyInAction)
             {
                 Debug.Write("Ignoring the group as you're already in a group");
                 continue;
             }
 
-            if (trace.Type == RequestResponseType.ActionEnd)
+            if (trace.Type == TestTrackingLogType.ActionEnd)
             {
+                if (!currentlyInAction)
+                    throw new TestTrackingDiagramsException("You are attempting to end an Action that was never started. You must always call 'StartAction' before calling 'End Action'");
+
                 currentlyInAction = false;
-                plantUml += $"""                            
-                            |||
-                            end group
-                            """;
+                plantUml += GroupEnd;
                 continue;
             }
 
-            if (trace.Type == RequestResponseType.ActionStart)
+            if (trace.Type == TestTrackingLogType.ActionStart)
             {
                 useSetupActionSeparation = currentlyInAction = true;
                 plantUml += GroupActionStart;
                 continue;
             }
 
-            if (trace.Type == RequestResponseType.OverrideStart && currentlyOverriding)
+            if (trace.Type == TestTrackingLogType.OverrideStart && currentlyOverriding)
             {
                 Debug.Write("Ignoring an override as you're already overriding");
                 continue;
             }
 
-            if (trace.Type == RequestResponseType.OverrideEnd)
+            if (trace.Type == TestTrackingLogType.OverrideEnd)
             {
                 currentlyOverriding = false;
                 plantUml += trace.plantUml ?? "";
                 continue;
             }
 
-            if (trace.Type == RequestResponseType.OverrideStart)
+            if (trace.Type == TestTrackingLogType.OverrideStart)
             {
                 currentlyOverriding = true;
                 plantUml += trace.plantUml ?? "";
@@ -167,13 +164,13 @@ public static class PlantUmlCreator
             var callerShortName = trace.CallerName.Camelize();
 
             var content = trace.Content ?? string.Empty;
-            if (trace.Type == RequestResponseType.Request)
+            if (trace.Type == TestTrackingLogType.Request)
             {
                 if (requestPreFormattingProcessor is not null)
                     content = requestPreFormattingProcessor(content);
 
                 var requestPlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, content, excludedHeaders, RequestResponseType.Request);
+                    (trace.Headers, content, excludedHeaders, TestTrackingLogType.Request);
 
                 if (requestPostFormattingProcessor is not null)
                     requestPlantUmlNoteContent = requestPostFormattingProcessor(requestPlantUmlNoteContent);
@@ -194,13 +191,13 @@ public static class PlantUmlCreator
                 }
             }
 
-            if (trace.Type == RequestResponseType.Response)
+            if (trace.Type == TestTrackingLogType.Response)
             {
                 if (responsePreFormattingProcessor is not null)
                     content = responsePreFormattingProcessor(content);
 
                 var responsePlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, content, excludedHeaders, RequestResponseType.Response);
+                    (trace.Headers, content, excludedHeaders, TestTrackingLogType.Response);
 
                 if (responsePostFormattingProcessor is not null)
                     responsePlantUmlNoteContent = responsePostFormattingProcessor(responsePlantUmlNoteContent);
@@ -299,20 +296,14 @@ public static class PlantUmlCreator
 
         void FinishPlantUmlDiagramAndStartNewOne()
         {
-            if (currentlyInAction) // Then close off the action group
-                plantUml += """                            
-                            |||
-                            end group
-                            """;
+            if (currentlyInAction)
+                plantUml += GroupActionEnd;
 
-            if (useSetupActionSeparation) // Then close off the setup group
-                plantUml += """                            
-                            |||
-                            end group
-                            """;
+            if (useSetupActionSeparation)
+                plantUml += GroupSetupEnd;
 
-            plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling : "");
-            plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
+            plantUml = plantUml.Replace(GroupStylingPlaceholder, useSetupActionSeparation ? GroupStyling : "");
+            plantUml = plantUml.Replace(GroupSetupStartPlaceholder, useSetupActionSeparation ? GroupSetupStart : "");
 
             plantUml += $"@enduml{Environment.NewLine}";
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
@@ -321,13 +312,13 @@ public static class PlantUmlCreator
         }
     }
 
-    private static string CreateEntitiesPlantUml(List<RequestResponseLog> tracesForTest)
+    private static string CreateEntitiesPlantUml(List<TestTrackingLog> tracesForTest)
     {
         var entitiesPlantUml = "";
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x.Type == RequestResponseType.Request || x.Type == RequestResponseType.Response))
+        foreach (var trace in tracesForTest.Where(x => x.Type == TestTrackingLogType.Request || x.Type == TestTrackingLogType.Response))
         {
             var serviceShortName = trace.ServiceName.Camelize();
             var callerShortName = trace.CallerName.Camelize();
@@ -349,7 +340,7 @@ public static class PlantUmlCreator
         return entitiesPlantUml;
     }
 
-    private static string FormatContentForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders, RequestResponseType type)
+    private static string FormatContentForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders, TestTrackingLogType type)
     {
         var parsedContent = string.Empty;
         var isContentJson = false;
@@ -365,7 +356,7 @@ public static class PlantUmlCreator
 
         if (!isContentJson)
         {
-            if (type is RequestResponseType.Response)
+            if (type is TestTrackingLogType.Response)
                 parsedContent = content ?? string.Empty;
             else
             {
@@ -404,5 +395,5 @@ public static class PlantUmlCreator
         public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     };
 
-    public record PlantUmlForTest(string TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<RequestResponseLog> Traces, string[] ImageTags);
+    public record PlantUmlForTest(string TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<TestTrackingLog> Traces, string[] ImageTags);
 }

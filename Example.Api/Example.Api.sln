@@ -19,6 +19,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams", "..\TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{2C0D459F-7D14-423A-91DC-8C6471A9A5DD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.XUnit", "..\TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj", "{852EA919-73AA-4FF3-BEFF-F51F80A3D276}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit", "..\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit\TestTrackingDiagrams.NUnit.csproj", "{8091F443-6EA6-45F8-9D7D-F339657D19C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{2C0D459F-7D14-423A-91DC-8C6471A9A5DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C0D459F-7D14-423A-91DC-8C6471A9A5DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C0D459F-7D14-423A-91DC-8C6471A9A5DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{852EA919-73AA-4FF3-BEFF-F51F80A3D276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{852EA919-73AA-4FF3-BEFF-F51F80A3D276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{852EA919-73AA-4FF3-BEFF-F51F80A3D276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{852EA919-73AA-4FF3-BEFF-F51F80A3D276}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8091F443-6EA6-45F8-9D7D-F339657D19C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8091F443-6EA6-45F8-9D7D-F339657D19C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8091F443-6EA6-45F8-9D7D-F339657D19C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8091F443-6EA6-45F8-9D7D-F339657D19C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

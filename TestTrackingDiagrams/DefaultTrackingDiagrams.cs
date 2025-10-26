@@ -4,10 +4,10 @@ namespace TestTrackingDiagrams;
 public static class DefaultTrackingDiagrams
 {
     public static void StartOverride(string testId, string? plantUml = null)
-        => Override(testId, RequestResponseType.OverrideStart, plantUml);
+        => Override(testId, TestTrackingLogType.OverrideStart, plantUml);
 
     public static void EndOverride(string testId, string? plantUml = null)
-        => Override(testId, RequestResponseType.OverrideEnd, plantUml);
+        => Override(testId, TestTrackingLogType.OverrideEnd, plantUml);
 
     public static void InsertPlantUml(string testId, string plantUml)
     {
@@ -21,14 +21,14 @@ public static class DefaultTrackingDiagrams
     }
 
     public static void StartAction(string testId)
-        => Override(testId, RequestResponseType.ActionStart);
+        => Override(testId, TestTrackingLogType.ActionStart);
 
     public static void EndAction(string testId)
-        => Override(testId, RequestResponseType.ActionEnd);
+        => Override(testId, TestTrackingLogType.ActionEnd);
 
-    private static void Override(string testId, RequestResponseType type, string? plantUml = null)
+    private static void Override(string testId, TestTrackingLogType type, string? plantUml = null)
     {
-        var log = new RequestResponseLog(
+        var log = new TestTrackingLog(
             testId,
             testId,
             "",
@@ -42,7 +42,7 @@ public static class DefaultTrackingDiagrams
             Guid.NewGuid(),
             false,
             plantUml: ToBufferedPlantUml(plantUml));
-        RequestResponseLogger.Log(log);
+        TestTracker.Log(log);
     }
 
     private static string? ToBufferedPlantUml(string? plantUml) => plantUml is null
