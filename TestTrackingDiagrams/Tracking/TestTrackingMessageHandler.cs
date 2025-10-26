@@ -53,7 +53,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         StringValues traceIdHeaders = new();
         var hasTraceIdHeader = false;
 
-        if (_httpContextAccessor is not null)
+        if (_httpContextAccessor is not null && _httpContextAccessor.HttpContext is not null)
         {
             hasTraceIdHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.TraceIdHeader, out traceIdHeaders);
             hasCurrentTestNameHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CurrentTestNameHeader, out currentTestNameHeaders);
