@@ -11,7 +11,7 @@ public class ReqNRollTestRunHooks
         ReqNRollScenarioCollector.StartRunTime = DateTime.UtcNow;
     }
 
-    [AfterTestRun(Order = int.MaxValue)]
+    [AfterTestRun(Order = int.MinValue)]
     public static void AfterTestRun()
     {
         ReqNRollScenarioCollector.EndRunTime = DateTime.UtcNow;

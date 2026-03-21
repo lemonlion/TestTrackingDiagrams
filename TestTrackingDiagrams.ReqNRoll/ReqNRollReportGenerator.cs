@@ -9,7 +9,9 @@ public static class ReqNRollReportGenerator
     public static void CreateStandardReportsWithDiagrams(ReportConfigurationOptions options)
     {
         var scenarios = ReqNRollScenarioCollector.GetAll();
-        CreateStandardReportsWithDiagrams(scenarios, ReqNRollScenarioCollector.StartRunTime, ReqNRollScenarioCollector.EndRunTime, options);
+        var startRunTime = ReqNRollScenarioCollector.StartRunTime == default ? DateTime.UtcNow : ReqNRollScenarioCollector.StartRunTime;
+        var endRunTime = ReqNRollScenarioCollector.EndRunTime == default ? DateTime.UtcNow : ReqNRollScenarioCollector.EndRunTime;
+        CreateStandardReportsWithDiagrams(scenarios, startRunTime, endRunTime, options);
     }
 
     public static void CreateStandardReportsWithDiagrams(IEnumerable<ReqNRollScenarioInfo> scenarios, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
@@ -28,7 +30,7 @@ public static class ReqNRollReportGenerator
 
         GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
         GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
-        ReportGenerator.GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true);
+        GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true);
     }
 
     private static void GenerateGherkinHtmlReport(
@@ -196,9 +198,9 @@ public static class ReqNRollReportGenerator
                             <tr><td colspan="2" class="column-header">Execution</td><td colspan="2" class="column-header">Content</td></tr>
                             <tr><td>Overall status:</td><td>{overallStatus}</td><td>Features: </td><td>{numberOfFeatures}</td></tr>
                             <tr><td>Start Date:</td><td>{startRunTime.ToShortDateString()} (UTC)</td><td>Scenarios: </td><td>{scenarios.Length}</td></tr>
-                            <tr><td>Start Time:</td><td>{startRunTime.ToShortTimeString()}</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
-                            <tr><td>End Time:</td><td>{endRunTime.ToShortTimeString()}</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
-                            <tr><td>Duration:</td><td>{(endRunTime - startRunTime):g}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
+                            <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss}</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
+                            <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss}</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
+                            <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
                         </table>
                     </div>
 
@@ -300,6 +302,65 @@ public static class ReqNRollReportGenerator
                 """;
 
         WriteFile(html, fileName);
+    }
+
+    private static void GenerateGherkinYamlSpecs(
+        Feature[] features,
+        ReqNRollScenarioInfo[] allScenarios,
+        string fileName,
+        string title,
+        bool generateBlankOnFailedTests = false)
+    {
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
+        {
+            WriteFile(string.Empty, fileName);
+            return;
+        }
+
+        var scenarioLookup = allScenarios.ToDictionary(x => x.ScenarioId);
+        var yml = new StringBuilder();
+        yml.Append("Title: " + title + "\n");
+        yml.Append("Features:\n");
+
+        foreach (var feature in features.OrderBy(x => x.DisplayName))
+        {
+            yml.Append("  - Feature: " + feature.DisplayName.SanitiseForYml() + "\n");
+
+            if (feature.Endpoint is not null)
+                yml.Append("    Endpoint: " + feature.Endpoint + "\n");
+
+            yml.Append("    Scenarios:\n");
+
+            var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
+            foreach (var scenario in orderedScenarios)
+            {
+                yml.Append("      - Scenario: " + scenario.DisplayName.SanitiseForYml() + "\n");
+                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
+
+                if (scenarioLookup.TryGetValue(scenario.Id, out var scenarioInfo) && scenarioInfo.Steps.Count > 0)
+                {
+                    yml.Append("        Steps:\n");
+                    foreach (var step in scenarioInfo.Steps)
+                    {
+                        yml.Append("          - " + step.Keyword + " " + step.Text.SanitiseForYml() + "\n");
+                    }
+                }
+
+                yml.Append("\n");
+            }
+        }
+
+        WriteFile(yml.ToString(), fileName);
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        var total = duration.Duration();
+        if (total.TotalSeconds < 1)
+            return $"{total.Milliseconds}ms";
+        if (total.TotalMinutes < 1)
+            return $"{total.Seconds}s";
+        return $"{(int)total.TotalMinutes}m {total.Seconds}s";
     }
 
     private static void WriteFile(string text, string fileName)
