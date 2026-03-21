@@ -176,9 +176,9 @@ public static class ReportGenerator
                             <tr><td colspan="2" class="column-header">Execution</td><td colspan="2" class="column-header">Content</td></tr>
                             <tr><td>Overall status:</td><td>{overallStatus}</td><td>Features: </td><td>{numberOfFeatures}</td></tr>
                             <tr><td>Start Date:</td><td>{startRunTime.ToShortDateString()} (UTC)</td><td>Scenarios: </td><td>{scenarios.Length}</td></tr>
-                            <tr><td>Start Time:</td><td>{startRunTime.ToShortTimeString()}</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
-                            <tr><td>End Time:</td><td>{endRunTime.ToShortTimeString()}</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
-                            <tr><td>Duration:</td><td>{(endRunTime - startRunTime):g}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
+                            <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss}</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
+                            <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss}</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
+                            <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
                         </table>
                     </div>
                     
@@ -299,6 +299,16 @@ public static class ReportGenerator
         }
 
         return WriteFile(yml.ToString(), fileName);
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        var total = duration.Duration();
+        if (total.TotalSeconds < 1)
+            return $"{total.Milliseconds}ms";
+        if (total.TotalMinutes < 1)
+            return $"{total.Seconds}s";
+        return $"{(int)total.TotalMinutes}m {total.Seconds}s";
     }
 
     private static string WriteFile(string text, string fileName)
