@@ -17,11 +17,15 @@ Project("{1ABC0F8E-8078-4FB9-8950-2D6CA1383AED}") = "Example.Api.HttpFakes.CowSe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Api.Tests.Component.ReqNRoll", "tests\Example.Api.Tests.Component.ReqNRoll\Example.Api.Tests.Component.ReqNRoll.csproj", "{9E6EABC0-0713-4FC0-8622-3DE2F9704EF3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Api.Tests.Component.ReqNRoll.xUnit3", "tests\Example.Api.Tests.Component.ReqNRoll.xUnit3\Example.Api.Tests.Component.ReqNRoll.xUnit3.csproj", "{9E6EABC0-0713-4FC0-8622-3DE2F9704EF3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll", "..\TestTrackingDiagrams.ReqNRoll\TestTrackingDiagrams.ReqNRoll.csproj", "{59344CC4-723C-4F67-8CA5-1BCBF2C14028}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit3", "..\TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj", "{59344CC4-723C-4F67-8CA5-1BCBF2C14028}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams", "..\TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{43AB6A66-331F-4BCF-90EB-12A0B2D9329A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Api.Tests.Component.ReqNRoll.xUnit2", "tests\Example.Api.Tests.Component.ReqNRoll.xUnit2\Example.Api.Tests.Component.ReqNRoll.xUnit2.csproj", "{D4F704DB-89F9-4A49-90F9-477A8193E70A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit2", "..\TestTrackingDiagrams.ReqNRoll.xUnit2\TestTrackingDiagrams.ReqNRoll.xUnit2.csproj", "{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -141,12 +145,37 @@ Global
 		{43AB6A66-331F-4BCF-90EB-12A0B2D9329A}.Release|x64.Build.0 = Release|Any CPU
 		{43AB6A66-331F-4BCF-90EB-12A0B2D9329A}.Release|x86.ActiveCfg = Release|Any CPU
 		{43AB6A66-331F-4BCF-90EB-12A0B2D9329A}.Release|x86.Build.0 = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|x64.Build.0 = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Debug|x86.Build.0 = Debug|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|x64.ActiveCfg = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|x64.Build.0 = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|x86.ActiveCfg = Release|Any CPU
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A}.Release|x86.Build.0 = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|x64.Build.0 = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Debug|x86.Build.0 = Debug|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|x64.ActiveCfg = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|x64.Build.0 = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|x86.ActiveCfg = Release|Any CPU
+		{6AE641B7-6868-43FB-81EB-CDEBEB93CB99}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9E6EABC0-0713-4FC0-8622-3DE2F9704EF3} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{D4F704DB-89F9-4A49-90F9-477A8193E70A} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4A2CB93A-F7C2-46F7-B64F-8849E34F7556}

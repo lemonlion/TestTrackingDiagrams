@@ -13,7 +13,8 @@ Compatible with LightBDD, XUnit, NUnit and ReqNRoll.
 - [TestTrackingDiagrams.LightBDD.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.XUnit)
 - [TestTrackingDiagrams.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit)
 - [TestTrackingDiagrams.NUnit](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit)
-- [TestTrackingDiagrams.ReqNRoll](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll)
+- [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2)
+- [TestTrackingDiagrams.ReqNRoll.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3)
 
 ## Getting Started
 - Pull down the repository.
