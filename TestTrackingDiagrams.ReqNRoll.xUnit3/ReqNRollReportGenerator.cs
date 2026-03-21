@@ -1,11 +1,24 @@
-﻿using System.Text;
+using System.Net;
+using System.Text;
+using TestTrackingDiagrams.Reports;
 
-namespace TestTrackingDiagrams.Reports;
+namespace TestTrackingDiagrams.ReqNRoll.xUnit3;
 
-public static class ReportGenerator
+public static class ReqNRollReportGenerator
 {
-    public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
+    public static void CreateStandardReportsWithDiagrams(ReportConfigurationOptions options)
     {
+        var scenarios = ReqNRollScenarioCollector.GetAll();
+        var startRunTime = ReqNRollScenarioCollector.StartRunTime == default ? DateTime.UtcNow : ReqNRollScenarioCollector.StartRunTime;
+        var endRunTime = ReqNRollScenarioCollector.EndRunTime == default ? DateTime.UtcNow : ReqNRollScenarioCollector.EndRunTime;
+        CreateStandardReportsWithDiagrams(scenarios, startRunTime, endRunTime, options);
+    }
+
+    public static void CreateStandardReportsWithDiagrams(IEnumerable<ReqNRollScenarioInfo> scenarios, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
+    {
+        var scenarioArray = scenarios.ToArray();
+        var features = scenarioArray.ToFeatures();
+
         var fetcherOptions = new DiagramsFetcherOptions
         {
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
@@ -15,13 +28,15 @@ public static class ReportGenerator
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
-        GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true);
+        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
+        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
+        GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true);
     }
 
-    public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
+    private static void GenerateGherkinHtmlReport(
+        DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
         Feature[] features,
+        ReqNRollScenarioInfo[] allScenarios,
         DateTime startRunTime,
         DateTime endRunTime,
         string? stylesheet,
@@ -31,7 +46,40 @@ public static class ReportGenerator
         bool generateBlankOnFailedTests = false)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
-            return WriteFile(string.Empty, fileName);
+        {
+            WriteFile(string.Empty, fileName);
+            return;
+        }
+
+        var scenarioLookup = allScenarios.ToDictionary(x => x.ScenarioId);
+
+        var gherkinStyles = """
+                             .gherkin-steps {
+                                 margin: 0.5em 0 1em 1em;
+                                 padding: 0;
+                                 list-style: none;
+                             }
+                             .gherkin-steps li {
+                                 padding: 0.15em 0;
+                                 font-family: monospace;
+                                 font-size: 0.95em;
+                             }
+                             .gherkin-steps .keyword {
+                                 font-weight: bold;
+                                 color: #4070a0;
+                             }
+                             .feature-description {
+                                 color: #666;
+                                 font-style: italic;
+                                 margin: 0.25em 0 0.5em 1em;
+                             }
+                             """;
+
+        var combinedStylesheet = $"""
+                                 {Stylesheets.HtmlReportStyleSheet}
+                                 {gherkinStyles}
+                                 {stylesheet}
+                                 """;
 
         var toggleHappyPathsFunction = """
                                        function toggleHappyPaths(showOnlyHappyPaths)
@@ -51,25 +99,21 @@ public static class ReportGenerator
                                            }
                                        }
                                        """;
+
         var searchFunction = """
                              var feature;
                              var scenario;
                              var searchTimeoutId;
                              
                              function search_scenarios() {
-
                                  if (!feature)
                                     feature = document.getElementsByClassName('feature');
-                                    
                                  if (!scenario)
                                     scenario = document.getElementsByClassName('scenario');
-                                 
                                  for (i = 0; i < feature.length; i++)
                                     feature[i].style.opacity = '0.5';
-                             
                                  if (searchTimeoutId)
                                      clearTimeout(searchTimeoutId);
-                             
                                  searchTimeoutId = setTimeout(function () {
                                      run_search_scenarios();
                                  }, 1000);
@@ -78,15 +122,9 @@ public static class ReportGenerator
                              function run_search_scenarios() {
                                  let input = document.getElementById('searchbar').value;
                                  input = input.toLowerCase().trim();
-                             
                                  let searchTokens = parseSearchTokensIncludingQuotes(input);
-                                 console.log("tokens: " + searchTokens);
-                                 for (j = 0; j < searchTokens.length; j++)
-                                     console.log("searchTokens[" + j + "]: " + searchTokens[j]);
-                             
                                  let feature = document.getElementsByClassName('feature');
                                  let scenario = document.getElementsByClassName('scenario');
-                             
                                  for (i = 0; i < feature.length; i++) {
                                      let tokenMiss = false;
                                      for (j = 0; j < searchTokens.length; j++) {
@@ -95,10 +133,8 @@ public static class ReportGenerator
                                              break;
                                          }
                                      }
-                             
                                      feature[i].style.display = tokenMiss ? "none" : "";
                                  }
-                             
                                  for (i = 0; i < scenario.length; i++) {
                                      let tokenMiss = false;
                                      for (j = 0; j < searchTokens.length; j++) {
@@ -107,42 +143,28 @@ public static class ReportGenerator
                                              break;
                                          }
                                      }
-                             
                                      scenario[i].style.display = tokenMiss ? "none" : "";
                                  }
-                             
                                  for (i = 0; i < feature.length; i++) { feature[i].style.opacity = ''; }
                              }
                              
                              function parseSearchTokensIncludingQuotes(str) {
                                  let quoteTokens = str.match(/"(.*?)"/);
                                  quoteTokens = quoteTokens?.slice(1, quoteTokens.length) ?? [];
-                                 console.log("Number of quoteTokens: " + quoteTokens.length);
-                             
-                                 if (quoteTokens == null)
-                                     quoteTokens = [];
-                             
+                                 if (quoteTokens == null) quoteTokens = [];
                                  for (i = 0; i < quoteTokens.length; i++)
-                                     str = str.replace('\"' + quoteTokens[i] + '\"', '');
-                             
+                                     str = str.replace('"' + quoteTokens[i] + '"', '');
                                  let simpleTokens = [];
                                  let rawWords = str.trim().split(" ");
                                  for (i = 0; i < rawWords.length; i++) {
                                      let token = rawWords[i].trim();
                                      simpleTokens.push(token);
                                  }
-                             
                                  tokens = quoteTokens.concat(simpleTokens);
                                  tokens = tokens.filter(x => x !== "");
-                             
                                  return tokens;
                              }
                              """;
-
-        var combinedStylesheet = $"""
-                                 {Stylesheets.HtmlReportStyleSheet}
-                                 {stylesheet}
-                                 """;
 
         var html = $$"""
                     <html>
@@ -158,7 +180,7 @@ public static class ReportGenerator
                         <body>
                     """;
 
-        var body = $"<h1>{title}</h1>";
+        var body = $"<h1>{WebUtility.HtmlEncode(title)}</h1>";
 
         if (includeTestRunData)
         {
@@ -181,7 +203,7 @@ public static class ReportGenerator
                             <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
                         </table>
                     </div>
-                    
+
                     <h2>Features Summary</h2>
                     """;
         }
@@ -196,10 +218,17 @@ public static class ReportGenerator
 
         foreach (var feature in features)
         {
+            var featureDescription = allScenarios.FirstOrDefault(s => s.FeatureTitle == feature.DisplayName)?.FeatureDescription;
+
             body += $"""
                      <details class="feature">
-                        <summary class="h2">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
+                        <summary class="h2">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
                      """;
+
+            if (!string.IsNullOrWhiteSpace(featureDescription))
+            {
+                body += $"""<div class="feature-description">{WebUtility.HtmlEncode(featureDescription)}</div>""";
+            }
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
 
@@ -208,8 +237,19 @@ public static class ReportGenerator
                 var failed = scenario.Result == ScenarioResult.Failed;
                 body += $"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}">
-                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
+                            <summary class="h3{(failed ? " failed" : "")}">{WebUtility.HtmlEncode(scenario.DisplayName)}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
                          """;
+
+                // Gherkin steps
+                if (scenarioLookup.TryGetValue(scenario.Id, out var scenarioInfo) && scenarioInfo.Steps.Count > 0)
+                {
+                    body += """<ul class="gherkin-steps">""";
+                    foreach (var step in scenarioInfo.Steps)
+                    {
+                        body += $"""<li><span class="keyword">{WebUtility.HtmlEncode(step.Keyword)}</span> {WebUtility.HtmlEncode(step.Text)}</li>""";
+                    }
+                    body += "</ul>";
+                }
 
                 if (failed)
                 {
@@ -217,16 +257,15 @@ public static class ReportGenerator
                               <details class="failure-result" open>
                                  <summary class="h4">Failure Result</summary>
                                  <pre>
-                              Failure Cause: {scenario.ErrorMessage}
-                              
-                              {scenario.ErrorStackTrace}
+                              Failure Cause: {WebUtility.HtmlEncode(scenario.ErrorMessage)}
+
+                              {WebUtility.HtmlEncode(scenario.ErrorStackTrace)}
                                  </pre>
                               </details>
                               """;
                 }
 
                 var diagramsForTest = diagrams.Where(x => x.TestRuntimeId == scenario.Id).ToArray();
-
 
                 if (diagramsForTest.Length > 0)
                 {
@@ -244,13 +283,12 @@ public static class ReportGenerator
                                     </summary>
                                     <div class="raw-plantuml">
                                         <h4>Raw Plant UML</h4>
-                                        <pre>{diagram.CodeBehind}</pre>
+                                        <pre>{WebUtility.HtmlEncode(diagram.CodeBehind)}</pre>
                                      </div>
                                  </details>
                                  """;
                     }
                     body += "</details>";
-
                 }
                 body += "</details>";
             }
@@ -261,21 +299,25 @@ public static class ReportGenerator
         html += """
                     </body>
                 </html>
-                """
-        ;
+                """;
 
-        return WriteFile(html, fileName);
+        WriteFile(html, fileName);
     }
 
-    public static string GenerateYamlSpecs(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
+    private static void GenerateGherkinYamlSpecs(
         Feature[] features,
+        ReqNRollScenarioInfo[] allScenarios,
         string fileName,
         string title,
         bool generateBlankOnFailedTests = false)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
-            return WriteFile(string.Empty, fileName);
+        {
+            WriteFile(string.Empty, fileName);
+            return;
+        }
 
+        var scenarioLookup = allScenarios.ToDictionary(x => x.ScenarioId);
         var yml = new StringBuilder();
         yml.Append("Title: " + title + "\n");
         yml.Append("Features:\n");
@@ -293,12 +335,22 @@ public static class ReportGenerator
             foreach (var scenario in orderedScenarios)
             {
                 yml.Append("      - Scenario: " + scenario.DisplayName.SanitiseForYml() + "\n");
-                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower());
-                yml.Append("\n\n");
+                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
+
+                if (scenarioLookup.TryGetValue(scenario.Id, out var scenarioInfo) && scenarioInfo.Steps.Count > 0)
+                {
+                    yml.Append("        Steps:\n");
+                    foreach (var step in scenarioInfo.Steps)
+                    {
+                        yml.Append("          - " + step.Keyword + " " + step.Text.SanitiseForYml() + "\n");
+                    }
+                }
+
+                yml.Append("\n");
             }
         }
 
-        return WriteFile(yml.ToString(), fileName);
+        WriteFile(yml.ToString(), fileName);
     }
 
     private static string FormatDuration(TimeSpan duration)
@@ -311,12 +363,11 @@ public static class ReportGenerator
         return $"{(int)total.TotalMinutes}m {total.Seconds}s";
     }
 
-    private static string WriteFile(string text, string fileName)
+    private static void WriteFile(string text, string fileName)
     {
         var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
         Directory.CreateDirectory(directory);
         var filePath = Path.Combine(directory, fileName);
         File.WriteAllText(filePath, text);
-        return filePath;
     }
 }
