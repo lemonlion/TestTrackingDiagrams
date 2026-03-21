@@ -16,6 +16,16 @@ Compatible with LightBDD, XUnit, NUnit and ReqNRoll.
 - [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2)
 - [TestTrackingDiagrams.ReqNRoll.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3)
 
+## Integration Guides
+
+Step-by-step guides for integrating TestTrackingDiagrams with each supported framework:
+
+- [**ReqNRoll + xUnit v3**](docs/integration-reqnroll-xunit3.md) — BDD with Gherkin feature files, xUnit v3 runner
+- [**ReqNRoll + xUnit v2**](docs/integration-reqnroll-xunit2.md) — BDD with Gherkin feature files, xUnit v2 runner
+- [**LightBDD + xUnit**](docs/integration-lightbdd-xunit.md) — BDD with LightBDD's C# scenario runner
+- [**xUnit**](docs/integration-xunit.md) — Plain xUnit tests (no BDD framework)
+- [**NUnit**](docs/integration-nunit.md) — Plain NUnit tests
+
 ## Getting Started
 - Pull down the repository.
 - Open the [Example.Api](https://github.com/lemonlion/TestTrackingDiagrams/tree/main/Example.Api) solution.
