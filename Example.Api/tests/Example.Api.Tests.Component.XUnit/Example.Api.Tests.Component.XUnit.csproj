@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <PackageReference Include="TestTrackingDiagrams.XUnit" Version="1.18.1" />
 	  <PackageReference Include="coverlet.collector" Version="6.0.4">
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		  <PrivateAssets>all</PrivateAssets>
@@ -40,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
+    <ProjectReference Include="..\..\..\TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
