@@ -10,9 +10,9 @@ Compatible with LightBDD, XUnit, NUnit, ReqNRoll and BDDfy.
 
 ## Nuget Packages
 - [TestTrackingDiagrams](https://www.nuget.org/packages/TestTrackingDiagrams)
-- [TestTrackingDiagrams.LightBDD.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.XUnit)
+- [TestTrackingDiagrams.LightBDD.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) _(replaces TestTrackingDiagrams.LightBDD.XUnit)_
 - [TestTrackingDiagrams.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit)
-- [TestTrackingDiagrams.NUnit](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit)
+- [TestTrackingDiagrams.NUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit3) _(replaces TestTrackingDiagrams.NUnit)_
 - [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2)
 - [TestTrackingDiagrams.ReqNRoll.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3)
 - [TestTrackingDiagrams.BDDfy.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3)
@@ -24,9 +24,9 @@ Step-by-step guides for integrating TestTrackingDiagrams with each supported fra
 - [**BDDfy + xUnit v3**](docs/integration-bddfy-xunit3.md) — BDD with BDDfy's fluent API, xUnit v3 runner
 - [**ReqNRoll + xUnit v3**](docs/integration-reqnroll-xunit3.md) — BDD with Gherkin feature files, xUnit v3 runner
 - [**ReqNRoll + xUnit v2**](docs/integration-reqnroll-xunit2.md) — BDD with Gherkin feature files, xUnit v2 runner
-- [**LightBDD + xUnit**](docs/integration-lightbdd-xunit.md) — BDD with LightBDD's C# scenario runner
+- [**LightBDD + xUnit 2**](docs/integration-lightbdd-xunit2.md) — BDD with LightBDD's C# scenario runner
 - [**xUnit**](docs/integration-xunit.md) — Plain xUnit tests (no BDD framework)
-- [**NUnit**](docs/integration-nunit.md) — Plain NUnit tests
+- [**NUnit 3/4**](docs/integration-nunit3.md) — Plain NUnit tests
 
 ## Getting Started
 - Pull down the repository.
