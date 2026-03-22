@@ -17,20 +17,20 @@ public abstract class BaseFixture : FeatureFixture, IDisposable
 
     static BaseFixture()
     {
+        Settings = new ConfigurationBuilder().GetComponentTestConfiguration().Get<ComponentTestSettings>()!;
+
         SFactory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("CowServiceBaseUrl", Settings.CowServiceBaseUrl);
             builder.ConfigureTestServices(services =>
             {
-                var settings = new ConfigurationBuilder().GetComponentTestConfiguration().Get<ComponentTestSettings>()!;
                 services.TrackDependenciesForDiagrams(new LightBddTestTrackingMessageHandlerOptions
                 {
                     CallingServiceName = ServiceUnderTestName,
-                    PortsToServiceNames = { { new Uri(settings.CowServiceBaseUrl!).Port, "Cow Service" } }
+                    PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
             });
         });
-
-        Settings = new ConfigurationBuilder().GetComponentTestConfiguration().Get<ComponentTestSettings>()!;
     }
 
     protected BaseFixture()

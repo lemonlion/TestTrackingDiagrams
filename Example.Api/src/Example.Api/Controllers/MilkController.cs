@@ -8,12 +8,14 @@ namespace Example.Api.Controllers;
 public class MilkController : ControllerBase
 {
     private readonly HttpClient _client;
+    private readonly string _cowServiceBaseUrl;
 
-    public MilkController(HttpClient client)
+    public MilkController(HttpClient client, IConfiguration configuration)
     {
         _client = client;
+        _cowServiceBaseUrl = configuration["CowServiceBaseUrl"]!;
     }
 
     [HttpGet]
-    public Task<MilkResponse> GetMilk() => _client.GetFromJsonAsync<MilkResponse>("http://localhost:5031/milk")!;
+    public Task<MilkResponse> GetMilk() => _client.GetFromJsonAsync<MilkResponse>($"{_cowServiceBaseUrl}/milk")!;
 }
