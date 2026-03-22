@@ -3,10 +3,10 @@ using System.Net.Http.Json;
 using Example.Api.Requests;
 using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
-using Example.Api.Tests.Component.NUnit3.Infrastructure;
+using Example.Api.Tests.Component.NUnit4.Infrastructure;
 using FluentAssertions;
 
-namespace Example.Api.Tests.Component.NUnit3.Scenarios;
+namespace Example.Api.Tests.Component.NUnit4.Scenarios;
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 

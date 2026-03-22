@@ -1,6 +1,6 @@
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
-namespace Example.Api.Tests.Component.NUnit3.Scenarios;
+namespace Example.Api.Tests.Component.NUnit4.Scenarios;
 
 [Endpoint("/cake")]
 public partial class Cake_Feature

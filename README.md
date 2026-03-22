@@ -73,7 +73,7 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 | Framework | Package | Test Runner |
 |---|---|---|
 | **xUnit** | `TestTrackingDiagrams.XUnit` | xUnit v3 |
-| **NUnit** | `TestTrackingDiagrams.NUnit3` | NUnit v3/v4 |
+| **NUnit** | `TestTrackingDiagrams.NUnit4` | NUnit v4 |
 | **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 |
 | **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 |
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 |
@@ -89,7 +89,7 @@ All packages target **.NET 8.0**.
 |---|---|
 | Core library | [TestTrackingDiagrams](https://www.nuget.org/packages/TestTrackingDiagrams) |
 | xUnit | [TestTrackingDiagrams.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
-| NUnit | [TestTrackingDiagrams.NUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit3) |
+| NUnit | [TestTrackingDiagrams.NUnit4](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
 | BDDfy + xUnit v3 | [TestTrackingDiagrams.BDDfy.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
 | LightBDD + xUnit v2 | [TestTrackingDiagrams.LightBDD.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
 | ReqNRoll + xUnit v2 | [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
@@ -272,7 +272,7 @@ The simplest integration path. Uses xUnit v3 collection fixtures to manage the t
 
 ### <a name="integration-nunit"></a>NUnit [↑](#top)
 
-**Full guide:** [docs/integration-nunit3.md](docs/integration-nunit3.md)
+**Full guide:** [docs/integration-nunit4.md](docs/integration-nunit4.md)
 
 Uses NUnit 4's `[SetUpFixture]` for test lifecycle management.
 
@@ -707,7 +707,7 @@ The [`Example.Api`](https://github.com/lemonlion/TestTrackingDiagrams/tree/main/
   - `Example.Api.Tests.Component.ReqNRoll.xUnit2` — ReqNRoll + xUnit v2
   - `Example.Api.Tests.Component.ReqNRoll.xUnit3` — ReqNRoll + xUnit v3
   - `Example.Api.Tests.Component.LightBDD.xUnit2` — LightBDD + xUnit v2
-  - `Example.Api.Tests.Component.NUnit3` — NUnit
+  - `Example.Api.Tests.Component.NUnit4` — NUnit
 
 **To run the examples:**
 

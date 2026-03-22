@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using TestTrackingDiagrams.Tracking;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 public static class WebApplicationFactoryExtensions
 {

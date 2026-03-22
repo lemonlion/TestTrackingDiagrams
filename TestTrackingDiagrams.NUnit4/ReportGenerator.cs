@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using TestTrackingDiagrams.Reports;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 public static class NUnitReportGenerator
 {

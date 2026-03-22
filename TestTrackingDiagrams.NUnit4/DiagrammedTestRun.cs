@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using NUnit.Framework;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 public class DiagrammedTestRun
 {

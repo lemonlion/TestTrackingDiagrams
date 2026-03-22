@@ -2,9 +2,9 @@ using Example.Api.Tests.Component.Shared;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
-namespace Example.Api.Tests.Component.NUnit3.Infrastructure;
+namespace Example.Api.Tests.Component.NUnit4.Infrastructure;
 
 public abstract class BaseFixture : DiagrammedComponentTest, IDisposable
 {

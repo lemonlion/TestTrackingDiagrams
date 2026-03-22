@@ -4,8 +4,8 @@
 	  <TargetFramework>net8.0</TargetFramework>
 	  <ImplicitUsings>enable</ImplicitUsings>
 	  <Nullable>enable</Nullable>
-	  <Title>Test Tracking Diagrams For NUnit 3</Title>
-	  <Description>NUnit 3/4 extensions for tracking the request-responses in your tests and converting them into diagrams. This is the renamed successor to TestTrackingDiagrams.NUnit.</Description>
+	  <Title>Test Tracking Diagrams For NUnit 4</Title>
+	  <Description>NUnit 4 extensions for tracking the request-responses in your tests and converting them into diagrams. This is the renamed successor to TestTrackingDiagrams.NUnit3.</Description>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
 	  <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
