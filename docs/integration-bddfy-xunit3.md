@@ -118,6 +118,7 @@ public class BDDfyTestSetup : IAsyncLifetime
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames =
                     {
+                        { 80, ServiceUnderTestName },
                         { 5001, "Downstream Service A" },
                         { 5002, "Downstream Service B" }
                     }

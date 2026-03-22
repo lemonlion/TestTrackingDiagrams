@@ -23,7 +23,7 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
   - [xUnit](#integration-xunit)
   - [NUnit](#integration-nunit)
   - [BDDfy + xUnit v3](#integration-bddfy)
-  - [LightBDD + xUnit](#integration-lightbdd)
+  - [LightBDD + xUnit v2](#integration-lightbdd)
   - [ReqNRoll + xUnit v2](#integration-reqnroll-xunit2)
   - [ReqNRoll + xUnit v3](#integration-reqnroll-xunit3)
 - [HTTP Tracking Setup](#http-tracking)
@@ -72,10 +72,10 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 
 | Framework | Package | Test Runner |
 |---|---|---|
-| **xUnit** (plain) | `TestTrackingDiagrams.XUnit` | xUnit v3 |
-| **NUnit** | `TestTrackingDiagrams.NUnit` | NUnit 4 |
+| **xUnit** | `TestTrackingDiagrams.XUnit` | xUnit v3 |
+| **NUnit** | `TestTrackingDiagrams.NUnit3` | NUnit v3/v4 |
 | **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 |
-| **LightBDD** | `TestTrackingDiagrams.LightBDD.XUnit` | xUnit (via LightBDD) |
+| **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 |
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 |
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 |
 
@@ -89,9 +89,9 @@ All packages target **.NET 8.0**.
 |---|---|
 | Core library | [TestTrackingDiagrams](https://www.nuget.org/packages/TestTrackingDiagrams) |
 | xUnit | [TestTrackingDiagrams.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
-| NUnit | [TestTrackingDiagrams.NUnit](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit) |
+| NUnit | [TestTrackingDiagrams.NUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit3) |
 | BDDfy + xUnit v3 | [TestTrackingDiagrams.BDDfy.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
-| LightBDD + xUnit | [TestTrackingDiagrams.LightBDD.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.XUnit) |
+| LightBDD + xUnit v2 | [TestTrackingDiagrams.LightBDD.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
 | ReqNRoll + xUnit v2 | [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
 | ReqNRoll + xUnit v3 | [TestTrackingDiagrams.ReqNRoll.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 
@@ -200,7 +200,11 @@ public class BaseFixture : DiagrammedComponentTest
                         new XUnitTestTrackingMessageHandlerOptions
                         {
                             CallingServiceName = "My API",
-                            PortsToServiceNames = { { 5001, "Downstream Service" } }
+                            PortsToServiceNames =
+                            {
+                                { 80, "My API" },
+                                { 5001, "Downstream Service" }
+                            }
                         });
                 });
             });
@@ -268,7 +272,7 @@ The simplest integration path. Uses xUnit v3 collection fixtures to manage the t
 
 ### <a name="integration-nunit"></a>NUnit [↑](#top)
 
-**Full guide:** [docs/integration-nunit.md](docs/integration-nunit.md)
+**Full guide:** [docs/integration-nunit3.md](docs/integration-nunit3.md)
 
 Uses NUnit 4's `[SetUpFixture]` for test lifecycle management.
 
@@ -298,11 +302,11 @@ BDD with BDDfy's fluent API (`this.Given(...).When(...).Then(...).BDDfy()`). Dia
 
 ---
 
-### <a name="integration-lightbdd"></a>LightBDD + xUnit [↑](#top)
+### <a name="integration-lightbdd"></a>LightBDD + xUnit v2 [↑](#top)
 
-**Full guide:** [docs/integration-lightbdd-xunit.md](docs/integration-lightbdd-xunit.md)
+**Full guide:** [docs/integration-lightbdd-xunit2.md](docs/integration-lightbdd-xunit2.md)
 
-BDD with LightBDD's C# scenario runner (`Runner.RunScenarioAsync(given => ..., when => ..., then => ...)`).
+BDD with LightBDD's C# scenario runner (`Runner.RunScenarioAsync(given => ..., when => ..., then => ...)`). Uses xUnit v2.
 
 **Key components:**
 - `ReportWritersConfiguration.CreateStandardReportsWithDiagrams()` — Fluent extension for LightBDD's report writer pipeline
@@ -368,6 +372,7 @@ builder.ConfigureServices(services =>
             CallingServiceName = "My API",
             PortsToServiceNames =
             {
+                { 80, "My API" },
                 { 5001, "Auth Service" },
                 { 5002, "Payment Service" }
             }
@@ -527,6 +532,8 @@ TrackingDiagramOverride.InsertTestDelimiter("Verify After Update");
 
 This renders as a black horizontal note across all participants with white text showing `Test {identifier}`.
 
+> **LightBDD tip:** This is particularly useful when using LightBDD's [Tabular Parameters](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters) or [TabularAttributes](https://github.com/lemonlion/LightBdd.TabularAttributes), where a single scenario runs multiple iterations. Insert a delimiter between each iteration to clearly separate them in the diagram.
+
 ---
 
 ## <a name="content-formatting"></a>Content Formatting [↑](#top)
@@ -599,7 +606,7 @@ Mark a scenario as a "happy path" to support filtering in the HTML reports.
 | **xUnit** | `[HappyPath]` attribute on the test method |
 | **NUnit** | `[HappyPath]` attribute on the test method |
 | **BDDfy** | `.WithTags("happy-path")` |
-| **LightBDD** | Configured via LightBDD's category system |
+| **LightBDD** | `[HappyPath]` attribute on the scenario method (from [LightBDD.Contrib.ReportingEnhancements](https://github.com/AdaskoTheBeAsT/LightBDD.Contrib.ReportingEnhancements)) |
 | **ReqNRoll** | `@happy-path` tag on the Gherkin scenario |
 
 In the HTML reports, use the **"Show only happy paths"** toggle to filter the view.
@@ -699,8 +706,8 @@ The [`Example.Api`](https://github.com/lemonlion/TestTrackingDiagrams/tree/main/
   - `Example.Api.Tests.Component.BDDfy.xUnit3` — BDDfy + xUnit v3
   - `Example.Api.Tests.Component.ReqNRoll.xUnit2` — ReqNRoll + xUnit v2
   - `Example.Api.Tests.Component.ReqNRoll.xUnit3` — ReqNRoll + xUnit v3
-  - `Example.Api.Tests.Component.LightBDD.xUnit` — LightBDD + xUnit
-  - `Example.Api.Tests.Component.NUnit` — NUnit
+  - `Example.Api.Tests.Component.LightBDD.xUnit2` — LightBDD + xUnit v2
+  - `Example.Api.Tests.Component.NUnit3` — NUnit
 
 **To run the examples:**
 
@@ -710,6 +717,8 @@ dotnet test
 ```
 
 Then browse to `tests\<project>\bin\Debug\net8.0\Reports\` to view the generated reports.
+
+> **Note:** For the BDDfy integration, diagrams are also injected into the standard BDDfy-produced HTML report (`BDDfy.html`), in addition to the TestTrackingDiagrams reports.
 
 ---
 
