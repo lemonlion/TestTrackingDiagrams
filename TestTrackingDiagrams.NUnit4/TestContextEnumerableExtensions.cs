@@ -1,7 +1,7 @@
 using TestTrackingDiagrams.Reports;
 using NUnit.Framework;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 internal static class TestContextEnumerableExtensions
 {

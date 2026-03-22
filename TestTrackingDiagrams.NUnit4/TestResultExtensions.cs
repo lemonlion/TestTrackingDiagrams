@@ -1,7 +1,7 @@
 using TestTrackingDiagrams.Reports;
 using NUnit.Framework.Interfaces;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 public static class TestStatusExtensions
 {

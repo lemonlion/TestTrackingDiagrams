@@ -149,6 +149,7 @@ public abstract class BaseFixture : DiagrammedComponentTest
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames =
                     {
+                        { 80, ServiceUnderTestName },
                         { 5001, "Downstream Service A" }
                     }
                 });

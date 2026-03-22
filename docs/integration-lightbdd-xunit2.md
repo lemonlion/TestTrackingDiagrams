@@ -142,6 +142,7 @@ public abstract class BaseFixture : FeatureFixture, IDisposable
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames =
                     {
+                        { 80, ServiceUnderTestName },
                         { 5001, "Downstream Service A" }
                     }
                 });
@@ -288,6 +289,8 @@ TrackingDiagramOverride.InsertPlantUml("note over MyApi : Custom note");
 TrackingDiagramOverride.StartOverride();
 TrackingDiagramOverride.EndOverride();
 ```
+
+> **Tip:** `InsertTestDelimiter` is particularly useful when using LightBDD's [Tabular Parameters](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters) or [TabularAttributes](https://github.com/lemonlion/LightBdd.TabularAttributes), where a single scenario runs multiple iterations. Insert a delimiter between each iteration to clearly separate them in the diagram.
 
 ---
 

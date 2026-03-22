@@ -1,6 +1,6 @@
-# Integration Guide: NUnit 3/4
+# Integration Guide: NUnit 4
 
-> **Example project:** A complete working example is available at [`Example.Api/tests/Example.Api.Tests.Component.NUnit3/`](../Example.Api/tests/Example.Api.Tests.Component.NUnit3/). You can reference it alongside this guide for a fully working implementation.
+> **Example project:** A complete working example is available at [`Example.Api/tests/Example.Api.Tests.Component.NUnit4/`](../Example.Api/tests/Example.Api.Tests.Component.NUnit4/). You can reference it alongside this guide for a fully working implementation.
 
 ---
 
@@ -35,7 +35,7 @@ dotnet new nunit -n MyApi.Tests.Component
 ## Step 2: Install NuGet Packages
 
 ```bash
-dotnet add package TestTrackingDiagrams.NUnit3
+dotnet add package TestTrackingDiagrams.NUnit4
 dotnet add package Microsoft.AspNetCore.Mvc.Testing
 dotnet add package Microsoft.NET.Test.Sdk
 dotnet add package NUnit
@@ -46,7 +46,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.NUnit3" Version="1.20.0" />
+    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.20.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
@@ -82,7 +82,7 @@ Create a `Infrastructure/TestRun.cs`:
 
 ```csharp
 using TestTrackingDiagrams;
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 
@@ -130,7 +130,7 @@ Create `Infrastructure/BaseFixture.cs`:
 ```csharp
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
 namespace MyApi.Tests.Component.Infrastructure;
 
@@ -152,6 +152,7 @@ public abstract class BaseFixture : DiagrammedComponentTest, IDisposable
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames =
                     {
+                        { 80, ServiceUnderTestName },
                         { 5001, "Downstream Service A" }
                     }
                 });
@@ -185,7 +186,7 @@ Tests are written as regular NUnit `[Test]` methods. Use the `[Endpoint]` and `[
 ### `Scenarios/Cake_Feature.cs`:
 
 ```csharp
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
 namespace MyApi.Tests.Component.Scenarios;
 
@@ -307,7 +308,7 @@ After the tests complete, check the `bin/Debug/net8.0/Reports/` folder:
 You can customise diagrams within a test using `TrackingDiagramOverride`:
 
 ```csharp
-using TestTrackingDiagrams.NUnit3;
+using TestTrackingDiagrams.NUnit4;
 
 // Insert a delimiter between multiple requests in the diagram
 TrackingDiagramOverride.InsertTestDelimiter("Step 1");

@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace TestTrackingDiagrams.NUnit3;
+namespace TestTrackingDiagrams.NUnit4;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class HappyPathAttribute() : PropertyAttribute(HappyPathPropertyKey, HappyPathPropertyKey)

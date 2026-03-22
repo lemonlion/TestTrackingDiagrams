@@ -138,6 +138,7 @@ public class TestSetupHooks
                     // Map ports to friendly service names for diagram labels
                     PortsToServiceNames =
                     {
+                        { 80, ServiceUnderTestName },
                         { 5001, "Downstream Service A" },
                         { 5002, "Downstream Service B" }
                     }
