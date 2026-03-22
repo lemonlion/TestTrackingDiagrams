@@ -34,6 +34,7 @@ public class BDDfyTestSetup : IAsyncLifetime
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("CowServiceBaseUrl", _settings.CowServiceBaseUrl);
             builder.ConfigureTestServices(services =>
             {
                 services.TrackDependenciesForDiagrams(new BDDfyTestTrackingMessageHandlerOptions

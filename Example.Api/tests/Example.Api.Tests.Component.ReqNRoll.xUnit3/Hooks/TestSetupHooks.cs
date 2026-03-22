@@ -29,6 +29,7 @@ public class TestSetupHooks
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("CowServiceBaseUrl", _settings.CowServiceBaseUrl);
             builder.ConfigureTestServices(services =>
             {
                 services.TrackDependenciesForDiagrams(new ReqNRollTestTrackingMessageHandlerOptions
