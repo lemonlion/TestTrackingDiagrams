@@ -389,7 +389,7 @@ This registers:
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `PortsToServiceNames` | `Dictionary<int, string>` | `{}` | Maps port numbers to human-readable service names for the diagram. When the SUT makes an HTTP call to `localhost:5001`, the diagram will show the target as the mapped name. |
+| `PortsToServiceNames` | `Dictionary<int, string>` | `{}` | Maps port numbers to human-readable service names for the diagram. When the SUT makes an HTTP call to `localhost:5001`, the diagram will show the target as the mapped name. Unmapped ports will appear as `localhost_80`, `localhost_5001`, etc. |
 | `FixedNameForReceivingService` | `string?` | `null` | If set, all requests handled by this handler are labelled with this fixed name (useful for the test-to-SUT client). |
 | `CallingServiceName` | `string` | `"Caller"` | The name shown in the diagram for the service making the call. |
 | `HeadersToForward` | `IEnumerable<string>` | `[]` | Additional HTTP headers to forward from incoming requests to outgoing requests (propagated through the call chain). |
