@@ -110,9 +110,9 @@ public class PlantUmlCreatorTests
         };
     }
 
-    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs, bool separateSetup = false)
+    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs, bool separateSetup = false, bool highlightSetup = true)
     {
-        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: separateSetup).ToList();
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: separateSetup, highlightSetup: highlightSetup).ToList();
         return results.Single().PlantUmls.First().PlainText;
     }
 
@@ -1351,6 +1351,39 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs, separateSetup: true);
 
         Assert.Matches("partition #[a-fA-F0-9]+ Setup", plantUml);
+    }
+
+    [Fact]
+    public void Setup_partition_has_no_background_color_when_highlightSetup_is_false()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true, highlightSetup: false);
+
+        Assert.Contains("partition Setup", plantUml);
+        Assert.DoesNotMatch("partition #[a-fA-F0-9]+ Setup", plantUml);
+    }
+
+    [Fact]
+    public void HighlightSetup_has_no_effect_when_separateSetup_is_false()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: false, highlightSetup: true);
+
+        Assert.DoesNotContain("partition", plantUml);
     }
 
     [Fact]

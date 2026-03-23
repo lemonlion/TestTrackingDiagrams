@@ -12,4 +12,5 @@ public record ReportConfigurationOptions
     public string ReportsFolderPath { get; set; } = "Reports";
     public string[] ExcludedHeaders { get; set; } = [];
     public bool SeparateSetup { get; set; }
+    public bool HighlightSetup { get; set; } = true;
 }

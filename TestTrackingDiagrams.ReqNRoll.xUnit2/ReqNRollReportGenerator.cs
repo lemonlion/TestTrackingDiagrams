@@ -25,7 +25,8 @@ public static class ReqNRollReportGenerator
             RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
             ExcludedHeaders = options.ExcludedHeaders,
-            SeparateSetup = options.SeparateSetup
+            SeparateSetup = options.SeparateSetup,
+            HighlightSetup = options.HighlightSetup
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

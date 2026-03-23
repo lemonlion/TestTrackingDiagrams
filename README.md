@@ -42,6 +42,8 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
   - [StartOverride / EndOverride](#override-start-end)
   - [InsertPlantUml](#override-insert)
   - [InsertTestDelimiter](#override-delimiter)
+  - [StartAction](#override-start-action)
+  - [Setup Separation](#setup-separation)
 - [Content Formatting](#content-formatting)
   - [DiagramsFetcherOptions](#fetcher-options)
   - [Pre- and Post-Formatting Processors](#formatting-processors)
@@ -463,7 +465,9 @@ new ReportConfigurationOptions
     ReportsFolderPath = "Reports",
     ExcludedHeaders = ["Authorization", "X-Api-Key"],
     HtmlSpecificationsCustomStyleSheet = "body { font-family: sans-serif; }",
-    RequestResponsePostProcessor = content => content.Replace("secret", "***")
+    RequestResponsePostProcessor = content => content.Replace("secret", "***"),
+    SeparateSetup = true,
+    HighlightSetup = true
 }
 ```
 
@@ -478,6 +482,8 @@ new ReportConfigurationOptions
 | `ReportsFolderPath` | `string` | `"Reports"` | Folder path (relative to `AppDomain.CurrentDomain.BaseDirectory`) where reports are written. |
 | `ExcludedHeaders` | `string[]` | `[]` | HTTP headers to exclude from diagram notes. Combined with `PlantUmlCreator.DefaultExcludedHeaders` (`Cache-Control`, `Pragma`). |
 | `RequestResponsePostProcessor` | `Func<string, string>?` | `null` | Post-processing function applied to both request and response content before rendering in diagrams. Useful for redacting sensitive data. |
+| `SeparateSetup` | `bool` | `false` | When `true`, HTTP calls made before `StartAction()` (or before the first non-GIVEN BDD step) are wrapped in a visual "Setup" partition in the diagram. See [Setup Separation](#setup-separation). |
+| `HighlightSetup` | `bool` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour. When `false`, the partition has no background colour. Has no effect when `SeparateSetup` is `false`. |
 
 ---
 
@@ -494,6 +500,7 @@ TrackingDiagramOverride.StartOverride(plantUml?);
 TrackingDiagramOverride.EndOverride(plantUml?);
 TrackingDiagramOverride.InsertPlantUml(plantUml);
 TrackingDiagramOverride.InsertTestDelimiter(testIdentifier);
+TrackingDiagramOverride.StartAction();
 ```
 
 ### <a name="override-start-end"></a>StartOverride / EndOverride [↑](#top)
@@ -534,6 +541,48 @@ This renders as a black horizontal note across all participants with white text 
 
 > **LightBDD tip:** This is particularly useful when using LightBDD's [Tabular Parameters](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters) or [TabularAttributes](https://github.com/lemonlion/LightBdd.TabularAttributes), where a single scenario runs multiple iterations. Insert a delimiter between each iteration to clearly separate them in the diagram.
 
+### <a name="override-start-action"></a>StartAction [↑](#top)
+
+Explicitly mark the boundary between setup and action phases of a test. When `SeparateSetup` is enabled, all HTTP calls before `StartAction()` are rendered inside a "Setup" partition in the diagram:
+
+```csharp
+// Setup phase — these calls appear inside the partition
+await client.PostAsync("/api/seed-data", content);
+await client.PostAsync("/api/configure", settings);
+
+TrackingDiagramOverride.StartAction();
+
+// Action phase — these calls appear after the partition
+var response = await client.GetAsync("/api/cake");
+```
+
+> **BDD frameworks (LightBDD, ReqNRoll):** `StartAction()` is called automatically when the test transitions from a GIVEN step to a WHEN or THEN step. You only need to call it explicitly if you want to override the automatic detection or are using a non-BDD framework.
+
+### <a name="setup-separation"></a>Setup Separation [↑](#top)
+
+Setup separation visually distinguishes the "arrange" phase of a test from the "act" phase in the generated sequence diagrams by wrapping setup HTTP calls in a PlantUML partition block.
+
+To enable it, set `SeparateSetup = true` on `ReportConfigurationOptions`:
+
+```csharp
+new ReportConfigurationOptions
+{
+    SeparateSetup = true,
+    HighlightSetup = true // default — adds a background colour to the partition
+}
+```
+
+| Property | Effect |
+|---|---|
+| `SeparateSetup = false` | No partition — all calls rendered sequentially (default) |
+| `SeparateSetup = true, HighlightSetup = true` | Setup calls wrapped in a coloured partition |
+| `SeparateSetup = true, HighlightSetup = false` | Setup calls wrapped in a plain partition (no background colour) |
+
+The boundary between setup and action is determined by:
+
+1. **Explicit** — Call `TrackingDiagramOverride.StartAction()` in your test code
+2. **Implicit (BDD frameworks)** — Automatically detected when the test transitions from a GIVEN step to a WHEN or THEN step (supported in LightBDD and ReqNRoll)
+
 ---
 
 ## <a name="content-formatting"></a>Content Formatting [↑](#top)
@@ -562,6 +611,8 @@ var options = new DiagramsFetcherOptions
 | `ResponsePreFormattingProcessor` | `Func<string, string>?` | `null` | Transform raw response body **before** the library formats it into the PlantUML note. |
 | `ResponsePostFormattingProcessor` | `Func<string, string>?` | `null` | Transform the formatted response note **after** the library has formatted it. |
 | `ExcludedHeaders` | `IEnumerable<string>` | `[]` | HTTP headers to exclude from diagram notes. |
+| `SeparateSetup` | `bool` | `false` | When `true`, HTTP calls made before `StartAction()` are wrapped in a visual "Setup" partition in the diagram. See [Setup Separation](#setup-separation). |
+| `HighlightSetup` | `bool` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour. When `false`, the partition has no background colour. |
 
 ### <a name="formatting-processors"></a>Pre- and Post-Formatting Processors [↑](#top)
 
@@ -728,11 +779,11 @@ Then browse to `tests\<project>\bin\Debug\net8.0\Reports\` to view the generated
 
 | Class / Record | Description |
 |---|---|
-| `ReportConfigurationOptions` | Configuration for report file names, titles, PlantUML server, excluded headers, and custom stylesheets. |
-| `DiagramsFetcherOptions` | Configuration for diagram content formatting processors and header exclusions. |
+| `ReportConfigurationOptions` | Configuration for report file names, titles, PlantUML server, excluded headers, setup separation, and custom stylesheets. |
+| `DiagramsFetcherOptions` | Configuration for diagram content formatting processors, header exclusions, and setup separation. |
 | `DefaultDiagramsFetcher` | Static class; `GetDiagramsFetcher(options?)` returns a `Func<DiagramAsCode[]>` that fetches all generated diagrams. |
 | `DefaultDiagramsFetcher.DiagramAsCode` | Record containing `TestRuntimeId`, `ImgSrc` (rendered PNG URL), and `CodeBehind` (raw PlantUML). |
-| `DefaultTrackingDiagramOverride` | Static class for manual diagram control: `StartOverride`, `EndOverride`, `InsertPlantUml`, `InsertTestDelimiter`. |
+| `DefaultTrackingDiagramOverride` | Static class for manual diagram control: `StartOverride`, `EndOverride`, `InsertPlantUml`, `InsertTestDelimiter`, `StartAction`. |
 | `TestTrackingMessageHandlerOptions` | Base configuration for the HTTP tracking handler (service names, port mappings, headers to forward). |
 | `TestTrackingMessageHandler` | `DelegatingHandler` that intercepts and logs HTTP requests/responses with tracking headers. |
 | `TestTrackingHttpClientFactory` | `IHttpClientFactory` implementation that creates `HttpClient` instances with the tracking handler. |

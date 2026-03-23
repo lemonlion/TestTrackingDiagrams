@@ -24,7 +24,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePostFormattingProcessor = null,
         string[]? excludedHeaders = null,
         int maxUrlLength = 100,
-        bool separateSetup = false)
+        bool separateSetup = false,
+        bool highlightSetup = true)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -42,7 +43,8 @@ public static class PlantUmlCreator
                 responsePostFormattingProcessor,
                 excludedHeaders, 
                 maxUrlLength,
-                separateSetup);
+                separateSetup,
+                highlightSetup);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -58,7 +60,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePostFormattingProcessor,
         string[] excludedHeaders,
         int maxUrlLength,
-        bool separateSetup)
+        bool separateSetup,
+        bool highlightSetup)
     {
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
@@ -117,7 +120,9 @@ public static class PlantUmlCreator
 
             if (hasSetupTraces && !setupPartitionOpen && !setupPartitionClosed)
             {
-                plantUml += $"partition #E2E2F0 Setup{Environment.NewLine}";
+                plantUml += highlightSetup
+                    ? $"partition #E2E2F0 Setup{Environment.NewLine}"
+                    : $"partition Setup{Environment.NewLine}";
                 setupPartitionOpen = true;
             }
 
