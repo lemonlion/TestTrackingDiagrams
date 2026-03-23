@@ -26,13 +26,13 @@ public class TestTrackingMessageHandlerTests : IDisposable
     }
 
     private readonly StubInnerHandler _innerHandler = new();
-
-    /// <summary>Snapshot of log count before this test, so we only inspect logs we generated.</summary>
-    private readonly int _logCountBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+    private readonly string _testId = Guid.NewGuid().ToString();
 
     private RequestResponseLog[] GetLogsFromThisTest()
     {
-        return RequestResponseLogger.RequestAndResponseLogs.Skip(_logCountBefore).ToArray();
+        return RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == _testId)
+            .ToArray();
     }
 
     private HttpMessageInvoker CreateInvoker(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
@@ -44,13 +44,13 @@ public class TestTrackingMessageHandlerTests : IDisposable
         return new HttpMessageInvoker(handler);
     }
 
-    private static TestTrackingMessageHandlerOptions DefaultOptions(
+    private TestTrackingMessageHandlerOptions DefaultOptions(
         string callerName = "TestCaller",
         string? fixedServiceName = "TargetService") => new()
     {
         CallingServiceName = callerName,
         FixedNameForReceivingService = fixedServiceName,
-        CurrentTestInfoFetcher = () => ("My Test", "test-id-1"),
+        CurrentTestInfoFetcher = () => ("My Test", _testId),
     };
 
     private static HttpRequestMessage MakeGetRequest(string url = "http://target-service:5000/api/items")
@@ -172,7 +172,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             FixedNameForReceivingService = "Svc",
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Fetched Test Name", "fetched-test-id"),
+            CurrentTestInfoFetcher = () => ("Fetched Test Name", _testId),
         };
         using var invoker = CreateInvoker(options);
 
@@ -180,7 +180,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Equal("Fetched Test Name", requestLog.TestName);
-        Assert.Equal("fetched-test-id", requestLog.TestId);
+        Assert.Equal(_testId, requestLog.TestId);
     }
 
     // ─── Service name resolution ────────────────────────────────
@@ -204,7 +204,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             PortsToServiceNames = new Dictionary<int, string> { { 5000, "MappedService" } },
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Test", "id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options);
 
@@ -221,7 +221,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             PortsToServiceNames = new Dictionary<int, string> { { 9999, "Other" } },
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Test", "id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options);
 
@@ -398,7 +398,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     {
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Context Test Name"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "context-test-id"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         var options = DefaultOptions();
         using var invoker = CreateInvoker(options, accessor);
 
@@ -406,7 +406,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Equal("Context Test Name", requestLog.TestName);
-        Assert.Equal("context-test-id", requestLog.TestId);
+        Assert.Equal(_testId, requestLog.TestId);
     }
 
     [Fact]
@@ -416,7 +416,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.TraceIdHeader, traceGuid.ToString()),
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "id-1"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(DefaultOptions(), accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -432,7 +432,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.TraceIdHeader, traceGuid.ToString()),
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "id-1"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(DefaultOptions(), accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -453,7 +453,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CallerNameHeader, "UpstreamCaller"),
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "id-1"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(DefaultOptions(), accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -474,7 +474,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             FixedNameForReceivingService = "Svc",
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Fetcher Test", "fetcher-id"),
+            CurrentTestInfoFetcher = () => ("Fetcher Test", _testId),
         };
         using var invoker = CreateInvoker(options, httpContextAccessor: null);
 
@@ -482,7 +482,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Equal("Fetcher Test", requestLog.TestName);
-        Assert.Equal("fetcher-id", requestLog.TestId);
+        Assert.Equal(_testId, requestLog.TestId);
         Assert.NotEqual(Guid.Empty, requestLog.TraceId);
     }
 
@@ -609,7 +609,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     {
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Existing Name"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "existing-id"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(DefaultOptions(), accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -629,7 +629,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     {
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "existing-id-from-context"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(DefaultOptions(), accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -639,7 +639,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         // But the log still uses the value from context
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
-        Assert.Equal("existing-id-from-context", requestLog.TestId);
+        Assert.Equal(_testId, requestLog.TestId);
     }
 
     // ─── Port-based service name with multiple mappings ─────────
@@ -655,7 +655,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
                 { 5002, "ServiceB" },
             },
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Test", "id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
         };
 
         using var invoker = CreateInvoker(options);
@@ -734,7 +734,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             FixedNameForReceivingService = "Svc",
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Test", "id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
             HeadersToForward = ["X-Something"],
         };
         using var invoker = CreateInvoker(options, accessor);
@@ -893,7 +893,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     {
         CallingServiceName = "Caller",
         FixedNameForReceivingService = "Svc",
-        CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+        CurrentTestInfoFetcher = () => ("Test", _testId),
         CurrentStepTypeFetcher = stepTypeFetcher,
     };
 
@@ -1144,7 +1144,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
 
         var marker = GetLogsFromThisTest().Single(l => l.IsActionStart);
-        Assert.Equal("test-id-1", marker.TestId);
+        Assert.Equal(_testId, marker.TestId);
     }
 
     [Fact]
@@ -1155,7 +1155,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             CallingServiceName = "Caller",
             FixedNameForReceivingService = "Svc",
-            CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
             CurrentStepTypeFetcher = () =>
             {
                 stepFetcherCalled = true;
@@ -1164,7 +1164,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         };
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Server Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "server-id"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(options, accessor);
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
@@ -1180,12 +1180,12 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             CallingServiceName = "Caller",
             FixedNameForReceivingService = "Svc",
-            CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+            CurrentTestInfoFetcher = () => ("Test", _testId),
             CurrentStepTypeFetcher = () => throw new InvalidOperationException("Not in scenario context"),
         };
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Server Test"),
-            (TestTrackingHttpHeaders.CurrentTestIdHeader, "server-id"));
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
         using var invoker = CreateInvoker(options, accessor);
 
         // Should NOT throw — the fetcher is never called on the server side

@@ -1,12 +1,16 @@
+using Example.Api.Events;
 using Example.Api.Tests.Component.Shared;
+using Example.Api.Tests.Component.Shared.Fakes;
 using Example.Api.Tests.Component.Shared.HttpFakes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Reqnroll;
 using Reqnroll.BoDi;
 using TestTrackingDiagrams;
 using TestTrackingDiagrams.ReqNRoll.xUnit2;
+using TestTrackingDiagrams.Tracking;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 namespace Example.Api.Tests.Component.ReqNRoll.xUnit2.Hooks;
@@ -37,6 +41,8 @@ public class TestSetupHooks
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(_settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
+                services.TrackMessagesForDiagrams(ServiceUnderTestName);
+                services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });
     }

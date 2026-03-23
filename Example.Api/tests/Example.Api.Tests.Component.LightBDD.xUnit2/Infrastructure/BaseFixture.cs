@@ -1,9 +1,13 @@
+using Example.Api.Events;
 using Example.Api.Tests.Component.Shared;
+using Example.Api.Tests.Component.Shared.Fakes;
 using LightBDD.XUnit2;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams.LightBDD.xUnit2;
+using TestTrackingDiagrams.Tracking;
 
 namespace Example.Api.Tests.Component.LightBDD.xUnit2.Infrastructure;
 
@@ -29,6 +33,8 @@ public abstract class BaseFixture : FeatureFixture, IDisposable
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
+                services.TrackMessagesForDiagrams(ServiceUnderTestName);
+                services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });
     }

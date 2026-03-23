@@ -1,10 +1,14 @@
+using Example.Api.Events;
 using Example.Api.Tests.Component.Shared;
+using Example.Api.Tests.Component.Shared.Fakes;
 using Example.Api.Tests.Component.Shared.HttpFakes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams;
 using TestTrackingDiagrams.BDDfy.xUnit3;
+using TestTrackingDiagrams.Tracking;
 using Xunit;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
@@ -42,6 +46,8 @@ public class BDDfyTestSetup : IAsyncLifetime
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(_settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
+                services.TrackMessagesForDiagrams(ServiceUnderTestName);
+                services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });
 

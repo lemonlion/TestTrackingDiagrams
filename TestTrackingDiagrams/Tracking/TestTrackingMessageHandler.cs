@@ -44,7 +44,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var requestResponseId = Guid.NewGuid();
 
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
-        var requestHeaders = request.Headers.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToArray();
+        var requestHeaders = request.Headers.SelectMany(x => x.Value.Select(value => (x.Key, (string?)value))).ToArray();
 
         StringValues currentTestNameHeaders = new();
         var hasCurrentTestNameHeader = false;
@@ -66,25 +66,25 @@ public class TestTrackingMessageHandler : DelegatingHandler
             hasCallerNameHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CallerNameHeader, out callerNameHeaders);
         }
 
-        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First(), currentTestIdHeaders.First()) : _currentTestInfoFetcher;
+        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First()!, currentTestIdHeaders.First()!) : _currentTestInfoFetcher;
 
-        var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()) : Guid.NewGuid();
+        var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()!) : Guid.NewGuid();
 
         if (!hasTraceIdHeader)
             request.Headers.Add(TestTrackingHttpHeaders.TraceIdHeader, new[] { traceId.ToString() });
 
         if (!hasCurrentTestNameHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestNameHeader, new[] { currentTestInfoFetcher().Name });
+            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestNameHeader, new[] { currentTestInfoFetcher!().Name });
 
         if (!hasCurrentTestIdHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher().Id.ToString() });
+            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher!().Id.ToString() });
 
         if (!hasCallerNameHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName });
+            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName! });
 
-        var currentTestInfo = currentTestInfoFetcher();
+        var currentTestInfo = currentTestInfoFetcher!();
 
-        var serviceName = _getServiceNameFromPortTranslator(request.RequestUri.Port);
+        var serviceName = _getServiceNameFromPortTranslator(request.RequestUri!.Port);
 
         if (!hasCurrentTestNameHeader)
             InjectImplicitActionStartIfNeeded(currentTestInfo);
@@ -97,7 +97,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             request.RequestUri!,
             requestHeaders,
             serviceName,
-            _callingServiceName,
+            _callingServiceName!,
             RequestResponseType.Request,
             traceId,
             requestResponseId,
@@ -107,7 +107,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var responseContentString = await response.Content.ReadAsStringAsync(cancellationToken);
-        var responseHeaders = response.Headers.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToArray();
+        var responseHeaders = response.Headers.SelectMany(x => x.Value.Select(value => (x.Key, (string?)value))).ToArray();
 
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
@@ -117,7 +117,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
             request.RequestUri!,
             responseHeaders,
             serviceName,
-            _callingServiceName,
+            _callingServiceName!,
             RequestResponseType.Response,
             traceId,
             requestResponseId,
