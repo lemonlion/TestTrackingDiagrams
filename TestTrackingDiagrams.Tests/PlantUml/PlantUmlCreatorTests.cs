@@ -1667,4 +1667,179 @@ public class PlantUmlCreatorTests
         var noteCloses = plantUml.Split('\n').Count(l => l.Trim() == "end note");
         Assert.Equal(noteOpens, noteCloses);
     }
+
+    // ─── String method (non-HTTP) on arrow ──────────────────────
+
+    private static RequestResponseLog MakeStringMethodRequest(
+        string protocol = "Send (Event Protocol)",
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "Event broker",
+        string callerName = "MyApi",
+        string uri = "event://event-broker/cake_events",
+        string? content = null,
+        (string Key, string? Value)[]? headers = null,
+        RequestResponseMetaType metaType = RequestResponseMetaType.Event)
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: protocol,
+            Content: content,
+            Uri: new Uri(uri),
+            Headers: headers ?? [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Request,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            MetaType: metaType);
+    }
+
+    private static RequestResponseLog MakeStringMethodResponse(
+        string protocol = "Send (Event Protocol)",
+        string statusCode = "Responded",
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "Event broker",
+        string callerName = "MyApi",
+        string uri = "event://event-broker/cake_events",
+        string? content = null,
+        (string Key, string? Value)[]? headers = null,
+        RequestResponseMetaType metaType = RequestResponseMetaType.Event)
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: protocol,
+            Content: content,
+            Uri: new Uri(uri),
+            Headers: headers ?? [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Response,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            StatusCode: statusCode,
+            MetaType: metaType);
+    }
+
+    [Fact]
+    public void String_method_renders_on_request_arrow()
+    {
+        var logs = new[] { MakeStringMethodRequest(protocol: "Send (Event Protocol)", uri: "event://event-broker/cake_events") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("myApi -> eventBroker: Send (Event Protocol): /cake_events", plantUml);
+    }
+
+    [Fact]
+    public void Event_response_with_string_status_code_renders_on_return_arrow()
+    {
+        var logs = new[]
+        {
+            MakeStringMethodRequest(),
+            MakeStringMethodResponse(statusCode: "Responded"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("eventBroker --> myApi: Responded", plantUml);
+    }
+
+    // ─── Complete event round-trip (MessageTracker shape) ────────
+
+    [Fact]
+    public void Complete_event_round_trip_produces_valid_sequence_diagram()
+    {
+        var logs = new[]
+        {
+            MakeStringMethodRequest(
+                protocol: "Send (Event Protocol)",
+                callerName: "Cake Api",
+                serviceName: "Event broker",
+                uri: "event://event-broker/cake_events",
+                content: """{"batchId":"abc-123","ingredients":["flour","sugar"]}"""),
+            MakeStringMethodResponse(
+                protocol: "Send (Event Protocol)",
+                statusCode: "Responded",
+                callerName: "Cake Api",
+                serviceName: "Event broker",
+                uri: "event://event-broker/cake_events",
+                content: ""),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("@startuml", plantUml);
+        Assert.Contains("\"Cake Api\" as cakeApi", plantUml);
+        Assert.Contains("\"Event broker\" as eventBroker", plantUml);
+        Assert.Contains("cakeApi -> eventBroker: Send (Event Protocol): /cake_events", plantUml);
+        Assert.Contains("eventBroker --> cakeApi: Responded", plantUml);
+        Assert.Contains("<<eventNote>>", plantUml);
+        Assert.Contains(".eventNote", plantUml);
+        Assert.Contains("\"batchId\": \"abc-123\"", plantUml);
+        Assert.Contains("@enduml", plantUml);
+    }
+
+    // ─── Mixed Event and Default traces ─────────────────────────
+
+    [Fact]
+    public void Mixed_event_and_default_traces_add_style_block_but_only_event_notes_get_class()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "Client", serviceName: "Api", content: "http body"),
+            MakeResponse(callerName: "Client", serviceName: "Api", content: """{"ok":true}"""),
+            MakeStringMethodRequest(callerName: "Api", serviceName: "Event broker", content: """{"event":true}"""),
+            MakeStringMethodResponse(callerName: "Api", serviceName: "Event broker"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        // Style block should be present because at least one event trace exists
+        Assert.Contains(".eventNote", plantUml);
+
+        // Count <<eventNote>> occurrences — should be exactly 2 (event request + event response notes)
+        // but event response has no content/headers so no note → only 1
+        var eventNoteCount = plantUml.Split("<<eventNote>>").Length - 1;
+        Assert.Equal(1, eventNoteCount);
+
+        // Default-typed notes should NOT have the class
+        // The "http body" request note should be a plain "note left" without <<eventNote>>
+        var lines = plantUml.Split(Nl);
+        var httpNoteIndex = Array.FindIndex(lines, l => l.Contains("http body"));
+        Assert.True(httpNoteIndex > 0);
+        // The "note left" line immediately before should not have <<eventNote>>
+        var noteLeftLine = lines.Take(httpNoteIndex).Last(l => l.TrimStart().StartsWith("note"));
+        Assert.DoesNotContain("<<eventNote>>", noteLeftLine);
+    }
+
+    // ─── Headers-only notes (no content) ────────────────────────
+
+    [Fact]
+    public void Request_with_headers_but_empty_content_still_produces_note()
+    {
+        var logs = new[]
+        {
+            MakeRequest(content: null, headers: [("Authorization", "Bearer abc123")]),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note left", plantUml);
+        Assert.Contains("[Authorization=Bearer abc123]", plantUml);
+    }
+
+    [Fact]
+    public void Response_with_headers_but_empty_content_still_produces_note()
+    {
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: null, headers: [("X-Request-Id", "req-42")]),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note right", plantUml);
+        Assert.Contains("[X-Request-Id=req-42]", plantUml);
+    }
 }
