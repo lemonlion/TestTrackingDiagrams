@@ -54,7 +54,8 @@ public class BDDfyTestSetup : IAsyncLifetime
 
         BDDfyReportGenerator.CreateStandardReportsWithDiagrams(new ReportConfigurationOptions
         {
-            SpecificationsTitle = "Dessert Provider Specifications"
+            SpecificationsTitle = "Dessert Provider Specifications",
+            SeparateSetup = true,
         });
 
         DisposeHttpFakes();

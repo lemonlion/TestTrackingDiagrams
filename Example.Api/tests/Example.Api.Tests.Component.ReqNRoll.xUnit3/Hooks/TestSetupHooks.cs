@@ -61,7 +61,8 @@ public class TestSetupHooks
     {
         ReqNRollReportGenerator.CreateStandardReportsWithDiagrams(new ReportConfigurationOptions
         {
-            SpecificationsTitle = "Dessert Provider Specifications"
+            SpecificationsTitle = "Dessert Provider Specifications",
+            SeparateSetup = true,
         });
 
         DisposeHttpFakes();

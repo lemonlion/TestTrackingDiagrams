@@ -24,5 +24,10 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.InsertPlantUml(GetTestId(), plantUml);
     }
 
+    public static void StartAction()
+    {
+        DefaultTrackingDiagramOverride.StartAction(GetTestId());
+    }
+
     private static string GetTestId() => TestContext.Current.Test!.UniqueID;
 }

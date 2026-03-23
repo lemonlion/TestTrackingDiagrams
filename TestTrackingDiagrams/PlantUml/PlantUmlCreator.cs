@@ -23,7 +23,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePreFormattingProcessor = null,
         Func<string, string>? responsePostFormattingProcessor = null,
         string[]? excludedHeaders = null,
-        int maxUrlLength = 100)
+        int maxUrlLength = 100,
+        bool separateSetup = false)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -40,7 +41,8 @@ public static class PlantUmlCreator
                 responsePreFormattingProcessor,
                 responsePostFormattingProcessor,
                 excludedHeaders, 
-                maxUrlLength);
+                maxUrlLength,
+                separateSetup);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -55,7 +57,8 @@ public static class PlantUmlCreator
         Func<string, string>? responsePreFormattingProcessor,
         Func<string, string>? responsePostFormattingProcessor,
         string[] excludedHeaders,
-        int maxUrlLength)
+        int maxUrlLength,
+        bool separateSetup)
     {
         const string eventNoteClass = "eventNote";
         List<PlantUmlResult> plantUmls = [];
@@ -64,9 +67,26 @@ public static class PlantUmlCreator
         var plantUml = CreatePlantUmlPrefix();
 
         var currentlyOverriding = false;
+        var hasActionStart = separateSetup && tracesForTest.Any(t => t.IsActionStart);
+        var actionStartIndex = tracesForTest.FindIndex(t => t.IsActionStart);
+        var hasSetupTraces = hasActionStart && tracesForTest
+            .Take(actionStartIndex)
+            .Any(t => !t.IsOverrideStart && !t.IsOverrideEnd && !t.IsActionStart);
+        var setupPartitionOpen = false;
+        var setupPartitionClosed = false;
 
         foreach (var trace in tracesForTest)
         {
+            if (trace.IsActionStart)
+            {
+                if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
+                {
+                    plantUml += $"end{Environment.NewLine}";
+                    setupPartitionClosed = true;
+                }
+                continue;
+            }
+
             if (trace.IsOverrideStart && currentlyOverriding)
             {
                 Debug.Write("Ignoring an override as you're already overriding");
@@ -82,6 +102,11 @@ public static class PlantUmlCreator
 
             if (trace.IsOverrideStart)
             {
+                if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
+                {
+                    plantUml += $"end{Environment.NewLine}";
+                    setupPartitionClosed = true;
+                }
                 currentlyOverriding = true;
                 plantUml += trace.PlantUml ?? "";
                 continue;
@@ -89,6 +114,12 @@ public static class PlantUmlCreator
 
             if (currentlyOverriding)
                 continue;
+
+            if (hasSetupTraces && !setupPartitionOpen && !setupPartitionClosed)
+            {
+                plantUml += $"partition #E2E2F0 Setup{Environment.NewLine}";
+                setupPartitionOpen = true;
+            }
 
             string GetNoteClass() =>
                 trace!.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
@@ -201,6 +232,7 @@ public static class PlantUmlCreator
             return $"""
 
                     @startuml
+                    !pragma teoz true
                     {AddStyling()}
                     skinparam wrapWidth {MaxLineWidth}
                     !function $color($value)
@@ -241,7 +273,7 @@ public static class PlantUmlCreator
         var actorDefined = false;
         var currentPlayers = new List<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false }))
+        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false }))
         {
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);

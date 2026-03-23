@@ -20,6 +20,7 @@ public record RequestResponseLog(
 {
     public bool IsOverrideStart { get; set; }
     public bool IsOverrideEnd { get; set; }
+    public bool IsActionStart { get; set; }
     public string? PlantUml { get; set; }
 };
 

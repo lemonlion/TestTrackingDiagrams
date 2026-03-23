@@ -26,6 +26,7 @@ public class TestRun : DiagrammedTestRun, IDisposable
             new ReportConfigurationOptions
             {
                 SpecificationsTitle = "Dessert Provider Specifications",
+                SeparateSetup = true,
             });
 
     }

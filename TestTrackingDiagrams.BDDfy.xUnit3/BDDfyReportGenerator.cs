@@ -24,7 +24,8 @@ public static class BDDfyReportGenerator
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
             RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
-            ExcludedHeaders = options.ExcludedHeaders
+            ExcludedHeaders = options.ExcludedHeaders,
+            SeparateSetup = options.SeparateSetup
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

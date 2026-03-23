@@ -22,5 +22,10 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.InsertTestDelimiter(GetTestId(), testIdentifier);
     }
 
+    public static void StartAction()
+    {
+        DefaultTrackingDiagramOverride.StartAction(GetTestId());
+    }
+
     private static string GetTestId() => Xunit.TestContext.Current.Test!.UniqueID;
 }

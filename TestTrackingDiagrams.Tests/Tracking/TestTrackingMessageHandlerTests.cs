@@ -886,4 +886,312 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var logs = GetLogsFromThisTest().Where(l => l.Type == RequestResponseType.Request).ToList();
         Assert.All(logs, l => Assert.Equal("AlwaysThisService", l.ServiceName));
     }
+
+    // ─── Implicit setup step detection ──────────────────────────
+
+    private TestTrackingMessageHandlerOptions OptionsWithStepFetcher(Func<string?> stepTypeFetcher) => new()
+    {
+        CallingServiceName = "Caller",
+        FixedNameForReceivingService = "Svc",
+        CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+        CurrentStepTypeFetcher = stepTypeFetcher,
+    };
+
+    [Fact]
+    public async Task Injects_IsActionStart_marker_when_step_transitions_from_GIVEN_to_WHEN()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Contains(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task No_IsActionStart_marker_when_no_step_type_fetcher()
+    {
+        var options = DefaultOptions();
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task No_IsActionStart_marker_when_all_steps_are_GIVEN()
+    {
+        var options = OptionsWithStepFetcher(() => "GIVEN");
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task IsActionStart_marker_injected_before_first_WHEN_request()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        var markerIndex = Array.FindIndex(logs, l => l.IsActionStart);
+        var whenRequestIndex = Array.FindIndex(logs, markerIndex + 1, l => l.Type == RequestResponseType.Request && !l.IsActionStart);
+        Assert.True(markerIndex < whenRequestIndex, "IsActionStart marker should appear before the WHEN request");
+    }
+
+    [Fact]
+    public async Task Only_one_IsActionStart_marker_injected_across_multiple_WHEN_requests()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Single(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task AND_steps_after_GIVEN_do_not_trigger_IsActionStart()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "AND";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task WHEN_after_AND_given_triggers_IsActionStart()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "AND";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Contains(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task Step_type_detection_is_case_insensitive()
+    {
+        var currentStep = "given";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "when";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Contains(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task No_IsActionStart_when_first_step_is_WHEN_without_prior_GIVEN()
+    {
+        var options = OptionsWithStepFetcher(() => "WHEN");
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task THEN_after_GIVEN_triggers_IsActionStart()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "THEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Contains(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task BUT_steps_after_GIVEN_do_not_trigger_IsActionStart()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "BUT";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task Null_step_type_does_not_trigger_IsActionStart()
+    {
+        string? currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = null;
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.DoesNotContain(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task Multiple_GIVEN_requests_before_WHEN_produces_single_marker()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Single(logs, l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task Full_GIVEN_AND_WHEN_THEN_flow_injects_marker_before_WHEN()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "AND";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "THEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        // 4 requests + 4 responses + 1 action start marker = 9
+        Assert.Equal(9, logs.Length);
+        Assert.Single(logs, l => l.IsActionStart);
+        var markerIndex = Array.FindIndex(logs, l => l.IsActionStart);
+        // GIVEN request(0) + response(1) + AND request(2) + response(3) + marker(4) + WHEN request(5) ...
+        Assert.Equal(4, markerIndex);
+    }
+
+    [Fact]
+    public async Task IsActionStart_marker_has_correct_test_id()
+    {
+        var currentStep = "GIVEN";
+        var options = OptionsWithStepFetcher(() => currentStep);
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        currentStep = "WHEN";
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var marker = GetLogsFromThisTest().Single(l => l.IsActionStart);
+        Assert.Equal("test-id-1", marker.TestId);
+    }
+
+    [Fact]
+    public async Task No_implicit_detection_on_server_side_when_http_context_has_test_headers()
+    {
+        var stepFetcherCalled = false;
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            CallingServiceName = "Caller",
+            FixedNameForReceivingService = "Svc",
+            CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+            CurrentStepTypeFetcher = () =>
+            {
+                stepFetcherCalled = true;
+                return "WHEN";
+            },
+        };
+        var accessor = CreateHttpContextAccessor(
+            (TestTrackingHttpHeaders.CurrentTestNameHeader, "Server Test"),
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, "server-id"));
+        using var invoker = CreateInvoker(options, accessor);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        Assert.False(stepFetcherCalled, "CurrentStepTypeFetcher should not be called on the server side");
+        Assert.DoesNotContain(GetLogsFromThisTest(), l => l.IsActionStart);
+    }
+
+    [Fact]
+    public async Task Step_fetcher_that_throws_does_not_crash_when_server_side_headers_present()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            CallingServiceName = "Caller",
+            FixedNameForReceivingService = "Svc",
+            CurrentTestInfoFetcher = () => ("Test", "test-id-1"),
+            CurrentStepTypeFetcher = () => throw new InvalidOperationException("Not in scenario context"),
+        };
+        var accessor = CreateHttpContextAccessor(
+            (TestTrackingHttpHeaders.CurrentTestNameHeader, "Server Test"),
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, "server-id"));
+        using var invoker = CreateInvoker(options, accessor);
+
+        // Should NOT throw — the fetcher is never called on the server side
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length); // request + response, no crash
+    }
 }
