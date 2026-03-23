@@ -100,7 +100,7 @@ Create a `reqnroll.json` file in your test project root. **This step is mandator
 
 **Why is this needed?** ReqNRoll only auto-discovers `[Binding]` classes in the test project's own assembly. The library's hooks (`ReqNRollTrackingHooks`, `ReqNRollTestRunHooks`) live in the `TestTrackingDiagrams.ReqNRoll.xUnit2` assembly, so you must explicitly register it.
 
-The `formatters.html` section enables ReqNRoll's native HTML report. When enabled, the library automatically enhances the report with sequence diagram images attached to each scenario. See [ReqNRoll Report Enhancement](#reqnroll-report-enhancement) below.
+The `formatters.html` section enables ReqNRoll's native HTML report. When enabled, the library additionally enhances the report with sequence diagram images attached to each scenario — on top of the standard custom reports that are always generated in the Reports directory. See [ReqNRoll Report Enhancement](#reqnroll-report-enhancement) below.
 
 ---
 
@@ -347,12 +347,12 @@ Pass these when calling `TrackDependenciesForDiagrams` and `CreateTestTrackingCl
 
 ## <a name="reqnroll-report-enhancement"></a>ReqNRoll Report Enhancement
 
-When ReqNRoll's built-in HTML formatter is enabled (via the `formatters.html` section in `reqnroll.json`), the library automatically enhances the generated report with sequence diagram images. Each scenario in the ReqNRoll HTML report receives:
+The standard custom reports (HTML specifications, HTML test run report, YAML specs) are always generated in the Reports directory regardless of this setting. When ReqNRoll's built-in HTML formatter is additionally enabled (via the `formatters.html` section in `reqnroll.json`), the library also enhances the generated native ReqNRoll report with sequence diagram images. Each scenario in that report receives:
 
 - A **Sequence Diagram** image attachment (rendered by the PlantUML server)
 - A **PlantUML Code** text attachment with the raw diagram source
 
-This works by injecting Cucumber Message `attachment` records into the report's embedded data after the formatter has written the file. The `ReqNRollReportEnhancer` is registered automatically when you call `ReqNRollReportGenerator.CreateStandardReportsWithDiagrams()` — no additional setup is needed beyond enabling the formatter.
+This works by injecting Cucumber Message `attachment` records into the report's embedded `window.CUCUMBER_MESSAGES` JSON array after the formatter has written the file. Each attachment is linked to the last scenario step (the final Given/When/Then step) so that Cucumber React's rendering pipeline can find and display them. The `ReqNRollReportEnhancer` is registered automatically when you call `ReqNRollReportGenerator.CreateStandardReportsWithDiagrams()` — no additional setup is needed beyond enabling the formatter.
 
 ### How to enable
 

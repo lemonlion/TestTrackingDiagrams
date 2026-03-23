@@ -328,7 +328,7 @@ Gherkin-based BDD with `.feature` files and `[Binding]` step definitions.
 **Key components:**
 - `ReqNRollTrackingHooks` — Auto-registered via `reqnroll.json` binding assembly; captures scenario IDs, steps, and results
 - `ReqNRollReportGenerator.CreateStandardReportsWithDiagrams()` — Generates reports with Gherkin step details
-- `ReqNRollReportEnhancer` — Automatically enhances ReqNRoll's native HTML report with sequence diagram attachments (when the `html` formatter is enabled in `reqnroll.json`)
+- `ReqNRollReportEnhancer` — Additionally enhances ReqNRoll's native HTML report with sequence diagram attachments (when the `html` formatter is enabled in `reqnroll.json`). The standard custom reports are still generated as before
 - Tags: `@happy-path`, `@endpoint:/path` in feature files
 
 > **Critical:** Add to `reqnroll.json`:
@@ -356,7 +356,7 @@ Identical to the xUnit v2 variant, but targets the xUnit v3 out-of-process runne
 - Requires `<OutputType>Exe</OutputType>` in the test project's csproj
 - `reqnroll.json` references `TestTrackingDiagrams.ReqNRoll.xUnit3`
 
-> **ReqNRoll HTML report:** Both ReqNRoll packages automatically enhance the native ReqNRoll HTML report with sequence diagrams when the `html` formatter is enabled in `reqnroll.json`. See the [ReqNRoll xUnit2 integration guide](docs/integration-reqnroll-xunit2.md) for details.
+> **ReqNRoll HTML report:** Both ReqNRoll packages additionally enhance ReqNRoll's native HTML report with sequence diagrams when the `html` formatter is enabled in `reqnroll.json`. This is in addition to the standard custom reports that are always generated in the Reports directory. See the [ReqNRoll xUnit2 integration guide](docs/integration-reqnroll-xunit2.md) for details.
 
 ---
 
@@ -832,7 +832,7 @@ Each integration package provides the same set of framework-specific types:
 | `ReqNRollScenarioCollector` | Thread-safe collector for ReqNRoll scenario metadata. |
 | `ReqNRollScenarioInfo` / `ReqNRollStepInfo` | Records for Gherkin scenario and step metadata. |
 | `ReqNRollConstants` | Constants for context keys and tag conventions. |
-| `ReqNRollReportEnhancer` | Post-processes ReqNRoll's native HTML report to inject sequence diagram attachments. Registered automatically by `ReqNRollReportGenerator`. |
+| `ReqNRollReportEnhancer` | Post-processes ReqNRoll's native HTML report to inject sequence diagram attachments linked to each scenario's last step. Registered automatically by `ReqNRollReportGenerator`. |
 
 **LightBDD-specific:**
 

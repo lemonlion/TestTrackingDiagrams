@@ -57,11 +57,20 @@ public static class ReqNRollReportEnhancer
 
         // Cucumber Messages uses a chain of IDs to link scenarios to test executions:
         //   pickle (scenario definition) → testCase (test plan) → testCaseStarted (test execution)
-        // We need the testCaseStartedId to attach diagrams to the correct scenario in the report.
+        // Attachments must reference both testCaseStartedId AND testStepId because
+        // Cucumber React's findAttachmentsBy filters by testStepId within the testCaseStartedId bucket.
         var pickleNameToId = new Dictionary<string, List<string>>();
         var pickleIdToTestCaseId = new Dictionary<string, string>();
         var testCaseIdToStartedId = new Dictionary<string, string>();
+        // For each testCase, find the last scenario step's testStepId (the step with a pickleStepId,
+        // as opposed to hook steps which have hookId). We attach diagrams to this step.
+        var testCaseIdToLastStepId = new Dictionary<string, string>();
+        // Track each testCaseFinished's array index and its testCaseStartedId, so we can insert
+        // attachments just before it. Cucumber React processes messages sequentially — attachments
+        // must appear between testCaseStarted and testCaseFinished to be rendered.
+        var testCaseFinishedPositions = new Dictionary<int, string>();
 
+        var idx = 0;
         foreach (var element in document.RootElement.EnumerateArray())
         {
             if (element.TryGetProperty("pickle", out var pickle))
@@ -78,8 +87,15 @@ public static class ReqNRollReportEnhancer
             else if (element.TryGetProperty("testCase", out var testCase))
             {
                 var pickleId = testCase.GetProperty("pickleId").GetString()!;
-                var id = testCase.GetProperty("id").GetString()!;
-                pickleIdToTestCaseId[pickleId] = id;
+                var tcId = testCase.GetProperty("id").GetString()!;
+                pickleIdToTestCaseId[pickleId] = tcId;
+
+                // Find the last test step that represents an actual scenario step (has pickleStepId)
+                foreach (var step in testCase.GetProperty("testSteps").EnumerateArray())
+                {
+                    if (step.TryGetProperty("pickleStepId", out _))
+                        testCaseIdToLastStepId[tcId] = step.GetProperty("id").GetString()!;
+                }
             }
             else if (element.TryGetProperty("testCaseStarted", out var started))
             {
@@ -87,9 +103,16 @@ public static class ReqNRollReportEnhancer
                 var id = started.GetProperty("id").GetString()!;
                 testCaseIdToStartedId[testCaseId] = id;
             }
+            else if (element.TryGetProperty("testCaseFinished", out var finished))
+            {
+                var startedId = finished.GetProperty("testCaseStartedId").GetString()!;
+                testCaseFinishedPositions[idx] = startedId;
+            }
+            idx++;
         }
 
-        var attachmentMessages = new List<string>();
+        // Build a map of testCaseStartedId → attachment JSON strings for that scenario
+        var attachmentsPerStartedId = new Dictionary<string, List<string>>();
 
         foreach (var scenario in scenarios)
         {
@@ -102,16 +125,19 @@ public static class ReqNRollReportEnhancer
             {
                 if (!pickleIdToTestCaseId.TryGetValue(pickleId, out var testCaseId)) continue;
                 if (!testCaseIdToStartedId.TryGetValue(testCaseId, out var testCaseStartedId)) continue;
+                testCaseIdToLastStepId.TryGetValue(testCaseId, out var lastStepId);
 
+                var attachments = new List<string>();
                 foreach (var diagram in scenarioDiagrams)
                 {
                     // Cucumber React Components render image/* attachments with a url property as <img src="url">,
                     // which is how we get the PlantUML diagram image to display in the report.
-                    attachmentMessages.Add(JsonSerializer.Serialize(new
+                    attachments.Add(JsonSerializer.Serialize(new
                     {
                         attachment = new
                         {
                             testCaseStartedId,
+                            testStepId = lastStepId,
                             body = "",
                             contentEncoding = "IDENTITY", // IDENTITY = no encoding (plain text); the alternative is BASE64
                             mediaType = "image/png",
@@ -122,11 +148,12 @@ public static class ReqNRollReportEnhancer
 
                     // We use text/plain rather than text/html because Cucumber React Components
                     // renders text/html as escaped text inside <pre>, not as actual HTML.
-                    attachmentMessages.Add(JsonSerializer.Serialize(new
+                    attachments.Add(JsonSerializer.Serialize(new
                     {
                         attachment = new
                         {
                             testCaseStartedId,
+                            testStepId = lastStepId,
                             body = diagram.CodeBehind,
                             contentEncoding = "IDENTITY",
                             mediaType = "text/plain",
@@ -135,14 +162,29 @@ public static class ReqNRollReportEnhancer
                     }));
                 }
 
+                attachmentsPerStartedId[testCaseStartedId] = attachments;
                 break; // Only need to match the first pickle ID for this scenario
             }
         }
 
-        if (attachmentMessages.Count == 0) return;
+        if (attachmentsPerStartedId.Count == 0) return;
 
-        // Inject our attachment messages just before the closing ']' of the CUCUMBER_MESSAGES array
-        html = html.Insert(arrayEndIdx, "," + string.Join(",", attachmentMessages));
+        // Rebuild the messages array, inserting attachments just before each testCaseFinished.
+        var newElements = new List<string>();
+        idx = 0;
+        foreach (var element in document.RootElement.EnumerateArray())
+        {
+            if (testCaseFinishedPositions.TryGetValue(idx, out var startedId) &&
+                attachmentsPerStartedId.TryGetValue(startedId, out var pending))
+            {
+                newElements.AddRange(pending);
+            }
+            newElements.Add(element.GetRawText());
+            idx++;
+        }
+
+        var newArrayJson = "[" + string.Join(",", newElements) + "]";
+        html = html.Substring(0, arrayStartIdx) + newArrayJson + html.Substring(arrayEndIdx + 1);
         File.WriteAllText(path, html);
     }
 }

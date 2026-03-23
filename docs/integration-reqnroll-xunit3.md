@@ -97,7 +97,7 @@ Create a `reqnroll.json` file in your test project root. **This step is mandator
 
 **Why is this needed?** ReqNRoll only auto-discovers `[Binding]` classes in the test project's own assembly. The library's hooks (`ReqNRollTrackingHooks`, `ReqNRollTestRunHooks`) live in the `TestTrackingDiagrams.ReqNRoll.xUnit3` assembly, so you must explicitly register it.
 
-The `formatters.html` section enables ReqNRoll's native HTML report. When enabled, the library automatically enhances the report with sequence diagram images attached to each scenario.
+The `formatters.html` section enables ReqNRoll's native HTML report. When enabled, the library additionally enhances the report with sequence diagram images attached to each scenario's last step — on top of the standard custom reports that are always generated in the Reports directory. See the [ReqNRoll xUnit2 integration guide](integration-reqnroll-xunit2.md#reqnroll-report-enhancement) for full details on how the enhancement works.
 
 ---
 
