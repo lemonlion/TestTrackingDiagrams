@@ -24,7 +24,7 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 
 Each test that makes HTTP calls through the tracked pipeline automatically produces a sequence diagram showing the full request/response flow between services.
 
-> **Tip:** You can visually separate the setup (arrange) phase from the action phase using the [`SeparateSetup` flag](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation#setup-separation).
+> **Tip:** You can visually separate the setup (arrange) phase from the action phase using the [`SeparateSetup`](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation#setup-separation) flag.
 
 ---
 
