@@ -7,13 +7,13 @@ public class FakeEventPublisher(MessageTracker tracker) : IEventPublisher
 {
     public Task PublishAsync(CakeCreatedEvent @event)
     {
-        var correlationId = tracker.LogRequest(
+        var correlationId = tracker.TrackMessageRequest(
             protocol: "Event",
             destinationName: "Cake Events",
             destinationUri: new Uri("event://cake-created"),
             payload: @event);
 
-        tracker.LogResponse(
+        tracker.TrackMessageResponse(
             protocol: "Event",
             destinationName: "Cake Events",
             destinationUri: new Uri("event://cake-created"),

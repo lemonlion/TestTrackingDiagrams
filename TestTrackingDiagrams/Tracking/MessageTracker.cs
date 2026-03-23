@@ -30,14 +30,14 @@ public class MessageTracker
 
     /// <summary>
     /// Logs a request entry for a message being sent to a named destination.
-    /// Returns a correlation ID to pass to <see cref="LogResponse"/>.
+    /// Returns a correlation ID to pass to <see cref="TrackMessageResponse"/>.
     /// </summary>
     /// <param name="protocol">The protocol or transport label shown in the diagram (e.g. "Kafka", "EventGrid", "SNS", "RabbitMQ").</param>
     /// <param name="destinationName">The name of the destination service or topic shown in the diagram.</param>
     /// <param name="destinationUri">A URI representing the destination (e.g. <c>new Uri("kafka://orders-topic")</c>).</param>
     /// <param name="payload">The message payload. Will be JSON-serialised and shown in the diagram note.</param>
-    /// <returns>A correlation ID that must be passed to <see cref="LogResponse"/> to pair the request and response.</returns>
-    public Guid LogRequest(string protocol, string destinationName, Uri destinationUri, object payload)
+    /// <returns>A correlation ID that must be passed to <see cref="TrackMessageResponse"/> to pair the request and response.</returns>
+    public Guid TrackMessageRequest(string protocol, string destinationName, Uri destinationUri, object payload)
     {
         var requestResponseId = Guid.NewGuid();
         var content = JsonSerializer.Serialize(payload, _serializerOptions);
@@ -65,12 +65,12 @@ public class MessageTracker
     /// <summary>
     /// Logs a response entry for a message that was sent.
     /// </summary>
-    /// <param name="protocol">The protocol or transport label (must match the value passed to <see cref="LogRequest"/>).</param>
-    /// <param name="destinationName">The destination service or topic name (must match the value passed to <see cref="LogRequest"/>).</param>
-    /// <param name="destinationUri">The destination URI (must match the value passed to <see cref="LogRequest"/>).</param>
-    /// <param name="requestResponseId">The correlation ID returned by <see cref="LogRequest"/>.</param>
+    /// <param name="protocol">The protocol or transport label (must match the value passed to <see cref="TrackMessageRequest"/>).</param>
+    /// <param name="destinationName">The destination service or topic name (must match the value passed to <see cref="TrackMessageRequest"/>).</param>
+    /// <param name="destinationUri">The destination URI (must match the value passed to <see cref="TrackMessageRequest"/>).</param>
+    /// <param name="requestResponseId">The correlation ID returned by <see cref="TrackMessageRequest"/>.</param>
     /// <param name="responsePayload">Optional response payload (e.g. an acknowledgement). Will be JSON-serialised if provided.</param>
-    public void LogResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null)
+    public void TrackMessageResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null)
     {
         var content = responsePayload is not null
             ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
