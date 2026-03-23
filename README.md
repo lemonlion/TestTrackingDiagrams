@@ -12,6 +12,7 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [Use Cases](#use-cases)
   - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
 - [Supported Frameworks](#supported-frameworks)
+- [Recommended BDD Framework](#recommended-bdd)
 - [NuGet Packages](#nuget-packages)
 - [How It Works](#how-it-works)
 - [Quick Start (xUnit)](#quick-start)
@@ -131,6 +132,21 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 |
 
 All packages target **.NET 8.0**.
+
+---
+
+## <a name="recommended-bdd"></a>Recommended BDD Framework [↑](#top)
+
+If you're choosing a BDD framework to pair with TestTrackingDiagrams, we recommend **[LightBDD](https://github.com/LightBDD/LightBDD)**.
+
+- **Composite (sub) steps** — LightBDD lets you nest steps inside other steps, creating a hierarchy of abstraction levels. These sub-steps appear in the generated reports, allowing you to read the high-level scenario at a glance and drill down into implementation details only when needed.
+- **Pure C#** — Scenarios are plain method calls with refactoring, IntelliSense, and compile-time safety. No `.feature` files to keep in sync.
+- **Rich built-in reporting** — LightBDD generates its own HTML reports with step timings, statuses, and categories. TestTrackingDiagrams hooks into this pipeline to embed sequence diagrams directly alongside the scenario results.
+- **Parameterised and tabular steps** — First-class support for data-driven steps with inline parameters and verifiable tabular data, making it easy to express complex test inputs and expected outputs.
+- **DI container support** — Native integration with `Microsoft.Extensions.DependencyInjection` and Autofac, which aligns naturally with ASP.NET Core test setups.
+- **Active maintenance** — LightBDD is actively maintained with regular releases and good documentation.
+
+That said, all [supported frameworks](#supported-frameworks) work well with TestTrackingDiagrams — pick whichever fits your team best.
 
 ---
 
