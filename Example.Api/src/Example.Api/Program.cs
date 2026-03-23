@@ -1,3 +1,5 @@
+using Example.Api.Events;
+
 namespace Example.Api;
 
 public class Program
@@ -10,6 +12,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<IEventPublisher, NoOpEventPublisher>();
 
         var app = builder.Build();
 

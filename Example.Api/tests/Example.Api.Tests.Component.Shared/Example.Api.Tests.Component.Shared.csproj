@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\fakes\Example.Api.HttpFakes.CowService\Example.Api.HttpFakes.CowService.csproj" />
     <ProjectReference Include="..\..\src\Example.Api\Example.Api.csproj" />
+    <ProjectReference Include="..\..\..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
   </ItemGroup>
 
 </Project>

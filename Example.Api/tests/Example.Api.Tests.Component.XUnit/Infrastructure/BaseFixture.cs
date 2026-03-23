@@ -1,7 +1,11 @@
-﻿using Example.Api.Tests.Component.Shared;
+﻿using Example.Api.Events;
+using Example.Api.Tests.Component.Shared;
+using Example.Api.Tests.Component.Shared.Fakes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using TestTrackingDiagrams.Tracking;
 using TestTrackingDiagrams.XUnit;
 
 namespace Example.Api.Tests.Component.XUnit.Infrastructure;
@@ -28,6 +32,11 @@ public abstract class BaseFixture : DiagrammedComponentTest
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
+                services.AddHttpContextAccessor();
+                services.AddSingleton(sp => new MessageTracker(
+                    sp.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+                    ServiceUnderTestName));
+                services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });
     }
