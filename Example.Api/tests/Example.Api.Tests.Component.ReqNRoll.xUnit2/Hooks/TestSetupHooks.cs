@@ -41,10 +41,7 @@ public class TestSetupHooks
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(_settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
-                services.AddHttpContextAccessor();
-                services.AddSingleton(sp => new MessageTracker(
-                    sp.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
-                    ServiceUnderTestName));
+                services.TrackMessagesForDiagrams(ServiceUnderTestName);
                 services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });

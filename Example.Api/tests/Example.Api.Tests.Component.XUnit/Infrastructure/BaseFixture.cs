@@ -32,10 +32,7 @@ public abstract class BaseFixture : DiagrammedComponentTest
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
-                services.AddHttpContextAccessor();
-                services.AddSingleton(sp => new MessageTracker(
-                    sp.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
-                    ServiceUnderTestName));
+                services.TrackMessagesForDiagrams(ServiceUnderTestName);
                 services.AddSingleton<IEventPublisher, FakeEventPublisher>();
             });
         });

@@ -2,7 +2,7 @@
 
 public record Feature
 {
-    public string DisplayName { get; set; }
+    public required string DisplayName { get; set; }
     public string? Endpoint { get; set; }
     public Scenario[] Scenarios { get; set; } = [];
 }
