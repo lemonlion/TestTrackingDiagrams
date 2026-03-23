@@ -12,8 +12,8 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [Use Cases](#use-cases)
   - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
 - [Supported Frameworks & NuGet Packages](#supported-frameworks)
-- [Recommended BDD Framework](#recommended-bdd)
 - [How It Works](#how-it-works)
+- [Recommended BDD Framework](#recommended-bdd)
 - [Quick Start (xUnit)](#quick-start)
   - [1. Install Packages](#qs-install)
   - [2. Create the Test Run Fixture](#qs-test-run)
@@ -135,21 +135,6 @@ All packages target **.NET 8.0**.
 
 ---
 
-## <a name="recommended-bdd"></a>Recommended BDD Framework [↑](#top)
-
-If you're choosing a BDD framework to pair with TestTrackingDiagrams, we recommend **[LightBDD](https://github.com/LightBDD/LightBDD)**.
-
-- **Composite (sub) steps** — LightBDD lets you nest steps inside other steps, creating a hierarchy of abstraction levels. These sub-steps appear in the generated reports, allowing you to read the high-level scenario at a glance and drill down into implementation details only when needed.
-- **Pure C#** — Scenarios are plain method calls with refactoring, IntelliSense, and compile-time safety. No `.feature` files to keep in sync.
-- **Rich built-in reporting** — LightBDD generates its own HTML reports with step timings, statuses, and categories. TestTrackingDiagrams hooks into this pipeline to embed sequence diagrams directly alongside the scenario results.
-- **Parameterised and tabular steps** — First-class support for data-driven steps with inline parameters, verifiable [tabular data](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters), and [tabular attributes](https://github.com/lemonlion/LightBdd.TabularAttributes), making it easy to express complex test inputs and expected outputs.
-- **DI container support** — Native integration with `Microsoft.Extensions.DependencyInjection` and Autofac, which aligns naturally with ASP.NET Core test setups.
-- **Active maintenance** — LightBDD is actively maintained with regular releases and good documentation.
-
-That said, all [supported frameworks](#supported-frameworks) work well with TestTrackingDiagrams — pick whichever fits your team best.
-
----
-
 ## <a name="how-it-works"></a>How It Works [↑](#top)
 
 ```
@@ -186,6 +171,21 @@ That said, all [supported frameworks](#supported-frameworks) work well with Test
 3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into PlantUML sequence diagram code. The code is encoded and rendered via a PlantUML server.
 
 4. **Report** — `ReportGenerator` combines the diagrams with test metadata (features, scenarios, results, BDD steps) to produce three output files: a YAML specification, an HTML specification with diagrams, and an HTML test run report.
+
+---
+
+## <a name="recommended-bdd"></a>Recommended BDD Framework [↑](#top)
+
+If you're choosing a BDD framework to pair with TestTrackingDiagrams, we recommend **[LightBDD](https://github.com/LightBDD/LightBDD)**.
+
+- **Composite (sub) steps** — LightBDD lets you nest steps inside other steps, creating a hierarchy of abstraction levels. These sub-steps appear in the generated reports, allowing you to read the high-level scenario at a glance and drill down into implementation details only when needed.
+- **Pure C#** — Scenarios are plain method calls with refactoring, IntelliSense, and compile-time safety. No `.feature` files to keep in sync.
+- **Rich built-in reporting** — LightBDD generates its own HTML reports with step timings, statuses, and categories. TestTrackingDiagrams hooks into this pipeline to embed sequence diagrams directly alongside the scenario results.
+- **Parameterised and tabular steps** — First-class support for data-driven steps with inline parameters, verifiable [tabular data](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters), and [tabular attributes](https://github.com/lemonlion/LightBdd.TabularAttributes), making it easy to express complex test inputs and expected outputs.
+- **DI container support** — Native integration with `Microsoft.Extensions.DependencyInjection` and Autofac, which aligns naturally with ASP.NET Core test setups.
+- **Active maintenance** — LightBDD is actively maintained with regular releases and good documentation.
+
+That said, all [supported frameworks](#supported-frameworks) work well with TestTrackingDiagrams — pick whichever fits your team best.
 
 ---
 
