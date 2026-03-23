@@ -8,15 +8,15 @@ public class FakeEventPublisher(MessageTracker tracker) : IEventPublisher
     public Task PublishAsync(CakeCreatedEvent @event)
     {
         var correlationId = tracker.TrackMessageRequest(
-            protocol: "Event",
+            protocol: "Send (Event Protocol)",
             destinationName: "Event broker",
-            destinationUri: new Uri("event://cake-created"),
+            destinationUri: new Uri("event://event-broker/cake_events"),
             payload: @event);
 
         tracker.TrackMessageResponse(
-            protocol: "Event",
+            protocol: "Send (Event Protocol)",
             destinationName: "Event broker",
-            destinationUri: new Uri("event://cake-created"),
+            destinationUri: new Uri("event://event-broker/cake_events"),
             requestResponseId: correlationId);
 
         return Task.CompletedTask;
