@@ -28,3 +28,9 @@ jobs:
 
       - name: Test
         run: dotnet test TestTrackingDiagrams.Tests/TestTrackingDiagrams.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Build Example.Api
+        run: dotnet build Example.Api/Example.Api.sln --configuration Release
+
+      - name: Test Example.Api
+        run: dotnet test Example.Api/Example.Api.sln --configuration Release --no-build --verbosity normal
