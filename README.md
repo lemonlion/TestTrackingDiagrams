@@ -9,10 +9,10 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 ## Table of Contents
 
 - [Example Output](#example-output)
+- [How It Works](#how-it-works)
 - [Use Cases](#use-cases)
   - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
 - [Supported Frameworks & NuGet Packages](#supported-frameworks)
-- [How It Works](#how-it-works)
 - [Recommended BDD Framework](#recommended-bdd)
 - [Quick Start (xUnit)](#quick-start)
   - [1. Install Packages](#qs-install)
@@ -74,6 +74,45 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 
 ---
 
+## <a name="how-it-works"></a>How It Works [↑](#top)
+
+```
+┌─────────────┐     HTTP      ┌─────────────┐     HTTP      ┌─────────────┐
+│  Test Code  │ ──────────►   │     SUT     │ ──────────►   │ Dependency  │
+│  (Caller)   │ ◄──────────   │  (Your API) │ ◄──────────   │  (Fakes)    │
+└─────────────┘               └─────────────┘               └─────────────┘
+       │                             │                             │
+       └───────────── All HTTP traffic is intercepted ─────────────┘
+                                     │
+                                     ▼
+                          ┌─────────────────────┐
+                          │ RequestResponseLogger│
+                          │  (in-memory log)     │
+                          └──────────┬──────────┘
+                                     │
+                                     ▼
+                          ┌─────────────────────┐
+                          │   PlantUmlCreator    │
+                          │ (generates PlantUML) │
+                          └──────────┬──────────┘
+                                     │
+                                     ▼
+                          ┌─────────────────────┐
+                          │   ReportGenerator    │
+                          │  (HTML + YAML files) │
+                          └─────────────────────┘
+```
+
+1. **Intercept** — A `TestTrackingMessageHandler` (a `DelegatingHandler`) is inserted into the HTTP pipeline. It logs every request and response, enriching them with tracking headers (test name, test ID, trace ID, caller name).
+
+2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the method, URI, headers, body, status code, service names, and a trace ID to correlate requests across services.
+
+3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into PlantUML sequence diagram code. The code is encoded and rendered via a PlantUML server.
+
+4. **Report** — `ReportGenerator` combines the diagrams with test metadata (features, scenarios, results, BDD steps) to produce three output files: a YAML specification, an HTML specification with diagrams, and an HTML test run report.
+
+---
+
 ## <a name="use-cases"></a>Use Cases [↑](#top)
 
 ### Debugging failed tests locally and in CI/staging
@@ -132,45 +171,6 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 
 All packages target **.NET 8.0**.
-
----
-
-## <a name="how-it-works"></a>How It Works [↑](#top)
-
-```
-┌─────────────┐     HTTP      ┌─────────────┐     HTTP      ┌─────────────┐
-│  Test Code  │ ──────────►   │     SUT     │ ──────────►   │ Dependency  │
-│  (Caller)   │ ◄──────────   │  (Your API) │ ◄──────────   │  (Fakes)    │
-└─────────────┘               └─────────────┘               └─────────────┘
-       │                             │                             │
-       └───────────── All HTTP traffic is intercepted ─────────────┘
-                                     │
-                                     ▼
-                          ┌─────────────────────┐
-                          │ RequestResponseLogger│
-                          │  (in-memory log)     │
-                          └──────────┬──────────┘
-                                     │
-                                     ▼
-                          ┌─────────────────────┐
-                          │   PlantUmlCreator    │
-                          │ (generates PlantUML) │
-                          └──────────┬──────────┘
-                                     │
-                                     ▼
-                          ┌─────────────────────┐
-                          │   ReportGenerator    │
-                          │  (HTML + YAML files) │
-                          └─────────────────────┘
-```
-
-1. **Intercept** — A `TestTrackingMessageHandler` (a `DelegatingHandler`) is inserted into the HTTP pipeline. It logs every request and response, enriching them with tracking headers (test name, test ID, trace ID, caller name).
-
-2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the method, URI, headers, body, status code, service names, and a trace ID to correlate requests across services.
-
-3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into PlantUML sequence diagram code. The code is encoded and rendered via a PlantUML server.
-
-4. **Report** — `ReportGenerator` combines the diagrams with test metadata (features, scenarios, results, BDD steps) to produce three output files: a YAML specification, an HTML specification with diagrams, and an HTML test run report.
 
 ---
 
