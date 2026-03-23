@@ -275,7 +275,7 @@ public static class ReqNRollReportGenerator
                 {
                     body += """
                             <details class="example-diagrams" open>
-                            <summary class="h4">Example Diagram</summary>
+                            <summary class="h4">Sequence Diagrams</summary>
                             """;
 
                     foreach (var diagram in diagramsForTest)

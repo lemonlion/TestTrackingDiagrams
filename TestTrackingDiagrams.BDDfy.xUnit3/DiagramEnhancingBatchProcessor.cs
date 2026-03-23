@@ -52,7 +52,7 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
         foreach (var (scenarioId, scenarioDiagrams) in bddifyIdToDiagrams)
         {
             var diagramHtml = new StringBuilder();
-            diagramHtml.Append("<div class=\"tracking-diagram\"><h4>Sequence Diagram</h4>");
+            diagramHtml.Append("<div class=\"tracking-diagram\"><h4>Sequence Diagrams</h4>");
             foreach (var diagram in scenarioDiagrams)
             {
                 diagramHtml.Append($"<details><summary><img src=\"{diagram.ImgSrc}\"></summary>");
