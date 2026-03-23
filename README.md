@@ -556,7 +556,7 @@ TrackingDiagramOverride.StartAction();
 var response = await client.GetAsync("/api/cake");
 ```
 
-> **BDD frameworks (LightBDD, ReqNRoll):** `StartAction()` is called automatically when the test transitions from a GIVEN step to a WHEN or THEN step. You only need to call it explicitly if you want to override the automatic detection or are using a non-BDD framework.
+> **BDD frameworks (BDDfy, LightBDD, ReqNRoll):** `StartAction()` is called automatically when the test transitions from a GIVEN step to a WHEN or THEN step. You only need to call it explicitly if you want to override the automatic detection or are using a non-BDD framework.
 
 ### <a name="setup-separation"></a>Setup Separation [↑](#top)
 
@@ -581,7 +581,7 @@ new ReportConfigurationOptions
 The boundary between setup and action is determined by:
 
 1. **Explicit** — Call `TrackingDiagramOverride.StartAction()` in your test code
-2. **Implicit (BDD frameworks)** — Automatically detected when the test transitions from a GIVEN step to a WHEN or THEN step (supported in LightBDD and ReqNRoll)
+2. **Implicit (BDD frameworks)** — Automatically detected when the test transitions from a GIVEN step to a WHEN or THEN step (supported in BDDfy, LightBDD, and ReqNRoll)
 
 ---
 
@@ -813,7 +813,8 @@ Each integration package provides the same set of framework-specific types:
 
 | Type | Purpose |
 |---|---|
-| `BDDfyDiagramsConfigurator` | `Configure()` registers BDDfy processors for diagram capture. |
+| `BDDfyDiagramsConfigurator` | `Configure()` registers BDDfy processors and the step-tracking executor for diagram capture and implicit setup detection. |
+| `BDDfyStepTrackingExecutor` | Custom `IStepExecutor` that tracks the current BDD step type (GIVEN/WHEN/THEN) via `AsyncLocal` for implicit setup separation. |
 | `BDDfyScenarioCollector` | Thread-safe collector for BDDfy scenario metadata. |
 | `BDDfyScenarioInfo` / `BDDfyStepInfo` | Records for BDD scenario and step metadata. |
 

@@ -319,7 +319,12 @@ TrackingDiagramOverride.InsertPlantUml("note over MyApi : Custom note");
 // Override the start/end of diagram generation
 TrackingDiagramOverride.StartOverride();
 TrackingDiagramOverride.EndOverride();
+
+// Explicitly mark the boundary between setup and action phases
+TrackingDiagramOverride.StartAction();
 ```
+
+> **Setup separation:** When `SeparateSetup = true` is set on `ReportConfigurationOptions`, HTTP calls made before `StartAction()` are wrapped in a visual "Setup" partition in the diagram.
 
 ---
 
@@ -336,6 +341,8 @@ TrackingDiagramOverride.EndOverride();
 | `YamlSpecificationsFileName` | `"ComponentSpecifications"` | Output filename for YAML specs |
 | `HtmlSpecificationsCustomStyleSheet` | `null` | Custom CSS appended to specs HTML |
 | `ExcludedHeaders` | `[]` | HTTP headers to exclude from diagrams |
+| `SeparateSetup` | `false` | When `true`, HTTP calls made before `StartAction()` are wrapped in a visual "Setup" partition in the diagram |
+| `HighlightSetup` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour |
 
 ### NUnitTestTrackingMessageHandlerOptions
 
