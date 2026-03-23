@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="LightBDD.Contrib.ReportingEnhancements" Version="1.5.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>
