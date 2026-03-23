@@ -18,6 +18,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Pin SDK
+        run: echo '{"sdk":{"version":"8.0.0","rollForward":"latestFeature"}}' > global.json
+
       - name: Build
         run: dotnet build TestTrackingDiagrams.sln --configuration Release
 
