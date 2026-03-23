@@ -4,5 +4,8 @@
     {
       "assembly": "TestTrackingDiagrams.ReqNRoll.xUnit2"
     }
-  ]
+  ],
+  "formatters": {
+    "html": { "outputFilePath": "reqnroll_report.html" }
+  }
 }

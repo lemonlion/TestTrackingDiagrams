@@ -33,6 +33,8 @@ public static class ReqNRollReportGenerator
         GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
         GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
         GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true);
+
+        ReqNRollReportEnhancer.RegisterForEnhancement(fetcherOptions);
     }
 
     private static void GenerateGherkinHtmlReport(
@@ -273,7 +275,7 @@ public static class ReqNRollReportGenerator
                 {
                     body += """
                             <details class="example-diagrams" open>
-                            <summary class="h4">Example Diagram</summary>
+                            <summary class="h4">Sequence Diagrams</summary>
                             """;
 
                     foreach (var diagram in diagramsForTest)
