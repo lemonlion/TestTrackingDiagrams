@@ -68,12 +68,9 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 
 ![d5J1Qjj04Bqlx3zCHGuDYQZakB4ZwX18tD26a80DFOGIrhiZMrZQ3QELJGZziXxwIVs5QYKv8cgAwzoqxysyD_Eqqk-VlyvoAyWMMSePP_aoqG-2H0Ph4W_V4cKNC0m2pjx5XPOsCHhsf4aDlTzRYRJ0_P8Xj0Lfy3vLHEGTrDI11wTUIQDMcrxEH66DBh8P4eJEJqXh2BnpaQP87eWSPF-1](https://github.com/user-attachments/assets/4027c3db-4799-4612-a12a-3de68f4f557c)
 
-Or with the setup separated (using the SeparateSetup flag)
-
-<img width="789" height="903" alt="image" src="https://github.com/user-attachments/assets/8861c0da-d492-4ff3-b1b8-f167113b9873" />
-
-
 Each test that makes HTTP calls through the tracked pipeline automatically produces a sequence diagram showing the full request/response flow between services.
+
+> **Tip:** You can visually separate the setup (arrange) phase from the action phase using the [`SeparateSetup` flag](#setup-separation).
 
 ---
 
@@ -635,6 +632,8 @@ new ReportConfigurationOptions
 | `SeparateSetup = false` | No partition — all calls rendered sequentially (default) |
 | `SeparateSetup = true, HighlightSetup = true` | Setup calls wrapped in a coloured partition |
 | `SeparateSetup = true, HighlightSetup = false` | Setup calls wrapped in a plain partition (no background colour) |
+
+<img width="789" height="903" alt="Example diagram with SeparateSetup enabled" src="https://github.com/user-attachments/assets/8861c0da-d492-4ff3-b1b8-f167113b9873" />
 
 The boundary between setup and action is determined by:
 
