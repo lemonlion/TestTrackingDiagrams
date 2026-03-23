@@ -138,13 +138,13 @@ All packages target **.NET 8.0**.
 
 | Package | NuGet |
 |---|---|
-| Core library | [TestTrackingDiagrams](https://www.nuget.org/packages/TestTrackingDiagrams) |
-| xUnit | [TestTrackingDiagrams.XUnit](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
-| NUnit | [TestTrackingDiagrams.NUnit4](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
-| BDDfy + xUnit v3 | [TestTrackingDiagrams.BDDfy.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
-| LightBDD + xUnit v2 | [TestTrackingDiagrams.LightBDD.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
-| ReqNRoll + xUnit v2 | [TestTrackingDiagrams.ReqNRoll.xUnit2](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
-| ReqNRoll + xUnit v3 | [TestTrackingDiagrams.ReqNRoll.xUnit3](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
+| Core library | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams)](https://www.nuget.org/packages/TestTrackingDiagrams) |
+| xUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.XUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
+| NUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.NUnit4)](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
+| BDDfy + xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.BDDfy.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
+| LightBDD + xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
+| ReqNRoll + xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
+| ReqNRoll + xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 
 ---
 
