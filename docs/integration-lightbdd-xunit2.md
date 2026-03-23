@@ -288,7 +288,12 @@ TrackingDiagramOverride.InsertPlantUml("note over MyApi : Custom note");
 // Override the start/end of diagram generation
 TrackingDiagramOverride.StartOverride();
 TrackingDiagramOverride.EndOverride();
+
+// Explicitly mark the boundary between setup and action phases
+TrackingDiagramOverride.StartAction();
 ```
+
+> **Setup separation:** When `SeparateSetup = true` is set on `ReportConfigurationOptions`, LightBDD automatically detects the boundary between GIVEN steps and WHEN/THEN steps. HTTP calls made during GIVEN steps are wrapped in a visual "Setup" partition in the diagram — no manual `StartAction()` call is needed.
 
 > **Tip:** `InsertTestDelimiter` is particularly useful when using LightBDD's [Tabular Parameters](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters) or [TabularAttributes](https://github.com/lemonlion/LightBdd.TabularAttributes), where a single scenario runs multiple iterations. Insert a delimiter between each iteration to clearly separate them in the diagram.
 
@@ -309,6 +314,8 @@ Passed to `CreateStandardReportsWithDiagrams`:
 | `YamlSpecificationsFileName` | `"ComponentSpecifications"` | Output filename for YAML specs |
 | `HtmlSpecificationsCustomStyleSheet` | `null` | Custom CSS appended to specs HTML |
 | `ExcludedHeaders` | `[]` | HTTP headers to exclude from diagrams |
+| `SeparateSetup` | `false` | When `true`, HTTP calls made during GIVEN steps are wrapped in a visual "Setup" partition in the diagram |
+| `HighlightSetup` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour |
 
 ### LightBddTestTrackingMessageHandlerOptions
 

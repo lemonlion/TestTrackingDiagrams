@@ -348,7 +348,9 @@ BDDfyReportGenerator.CreateStandardReportsWithDiagrams(
         HtmlTestRunReportFileName = "CustomReport",
         YamlSpecificationsFileName = "CustomYaml",
         PlantUmlServerBaseUrl = "https://my-plantuml-server.com/plantuml",
-        ExcludedHeaders = new[] { "Authorization", "X-Api-Key" }
+        ExcludedHeaders = new[] { "Authorization", "X-Api-Key" },
+        SeparateSetup = true,
+        HighlightSetup = true
     });
 ```
 
@@ -361,4 +363,17 @@ using TestTrackingDiagrams.BDDfy.xUnit3;
 
 TrackingDiagramOverride.InsertPlantUml("note right: Custom annotation");
 TrackingDiagramOverride.InsertTestDelimiter("Phase 1");
+
+// Override the start/end of diagram generation
+TrackingDiagramOverride.StartOverride();
+TrackingDiagramOverride.EndOverride();
+
+// Explicitly mark the boundary between setup and action phases
+TrackingDiagramOverride.StartAction();
 ```
+
+### Setup Separation
+
+BDDfy supports **automatic setup separation**. When `SeparateSetup = true` is set on `ReportConfigurationOptions`, HTTP calls made during GIVEN steps are automatically wrapped in a visual "Setup" partition in the diagram. The boundary is detected implicitly when the test transitions from a GIVEN step to a WHEN or THEN step — no manual `StartAction()` call is needed.
+
+This works via a custom `IStepExecutor` that tracks the current BDD step type during execution. It is registered automatically when you call `BDDfyDiagramsConfigurator.Configure()`.

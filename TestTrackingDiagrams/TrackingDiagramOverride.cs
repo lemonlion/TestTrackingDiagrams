@@ -67,4 +67,25 @@ public static class DefaultTrackingDiagramOverride
         StartOverride(testRuntimeId, $"hnote across #black:<color:white>Test {testIdentifier}");
         EndOverride(testRuntimeId);
     }
+
+    public static void StartAction(string testId)
+    {
+        var log = new RequestResponseLog(
+            testId,
+            testId,
+            "",
+            "",
+            new Uri("http://override.com"),
+            [],
+            "",
+            "",
+            RequestResponseType.Request,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            false)
+        {
+            IsActionStart = true
+        };
+        RequestResponseLogger.Log(log);
+    }
 }

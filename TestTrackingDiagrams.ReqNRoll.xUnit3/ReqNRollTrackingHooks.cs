@@ -23,6 +23,12 @@ public class ReqNRollTrackingHooks
         ReqNRollTestContext.CurrentTestInfo = (_scenarioContext.ScenarioInfo.Title, scenarioId);
     }
 
+    [BeforeStep(Order = int.MinValue)]
+    public void BeforeStep()
+    {
+        ReqNRollTestContext.CurrentStepType = _scenarioContext.StepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString();
+    }
+
     [AfterStep(Order = int.MaxValue)]
     public void AfterStep()
     {

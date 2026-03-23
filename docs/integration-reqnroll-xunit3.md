@@ -320,6 +320,8 @@ Pass these when calling `ReqNRollReportGenerator.CreateStandardReportsWithDiagra
 | `HtmlSpecificationsCustomStyleSheet` | `null` | Custom CSS to append to the specifications HTML |
 | `ExcludedHeaders` | `[]` | HTTP headers to exclude from diagrams |
 | `RequestResponsePostProcessor` | `null` | Post-processing function for request/response content in diagrams |
+| `SeparateSetup` | `false` | When `true`, HTTP calls made during GIVEN steps are wrapped in a visual "Setup" partition in the diagram |
+| `HighlightSetup` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour |
 
 ### ReqNRollTestTrackingMessageHandlerOptions
 
@@ -330,6 +332,8 @@ Pass these when calling `TrackDependenciesForDiagrams` and `CreateTestTrackingCl
 | `CallingServiceName` | Display name for the service making outgoing HTTP calls |
 | `FixedNameForReceivingService` | Display name for the service receiving requests (your SUT) |
 | `PortsToServiceNames` | Dictionary mapping port numbers to friendly service names. Unmapped ports appear as `localhost_80`, `localhost_5001`, etc. |
+
+> **Setup separation:** When `SeparateSetup = true`, ReqNRoll automatically detects the boundary between GIVEN steps and WHEN/THEN steps. No manual `StartAction()` call is needed.
 
 ---
 

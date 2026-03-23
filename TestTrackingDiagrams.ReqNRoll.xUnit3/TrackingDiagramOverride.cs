@@ -22,6 +22,11 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.InsertTestDelimiter(GetTestId(), testIdentifier);
     }
 
+    public static void StartAction()
+    {
+        DefaultTrackingDiagramOverride.StartAction(GetTestId());
+    }
+
     private static string GetTestId() =>
         ReqNRollTestContext.CurrentTestInfo?.Id
         ?? throw new InvalidOperationException("No ReqNRoll scenario is currently executing.");

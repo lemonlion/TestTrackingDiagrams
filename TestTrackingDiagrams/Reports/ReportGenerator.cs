@@ -11,7 +11,9 @@ public static class ReportGenerator
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
             RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
-            ExcludedHeaders = options.ExcludedHeaders
+            ExcludedHeaders = options.ExcludedHeaders,
+            SeparateSetup = options.SeparateSetup,
+            HighlightSetup = options.HighlightSetup
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

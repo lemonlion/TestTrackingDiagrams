@@ -7,5 +7,6 @@ public record BDDfyTestTrackingMessageHandlerOptions : TestTrackingMessageHandle
     public BDDfyTestTrackingMessageHandlerOptions()
     {
         CurrentTestInfoFetcher = () => (Xunit.TestContext.Current.Test!.TestDisplayName, Xunit.TestContext.Current.Test.UniqueID);
+        CurrentStepTypeFetcher = () => BDDfyStepTrackingExecutor.CurrentStepType;
     }
 }

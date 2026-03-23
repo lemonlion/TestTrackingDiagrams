@@ -34,6 +34,7 @@ public class TestRun : DiagrammedTestRun
             new ReportConfigurationOptions
             {
                 SpecificationsTitle = "Dessert Provider Specifications",
+                SeparateSetup = true,
             });
 
     }

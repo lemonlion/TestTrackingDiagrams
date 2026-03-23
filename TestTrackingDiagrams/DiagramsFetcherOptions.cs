@@ -8,4 +8,6 @@ public record DiagramsFetcherOptions
     public Func<string, string>? ResponsePostFormattingProcessor { get; set; }
     public Func<string, string>? ResponsePreFormattingProcessor { get; set; }
     public IEnumerable<string> ExcludedHeaders { get; set; } = [];
+    public bool SeparateSetup { get; set; }
+    public bool HighlightSetup { get; set; } = true;
 }

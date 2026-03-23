@@ -110,9 +110,9 @@ public class PlantUmlCreatorTests
         };
     }
 
-    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs)
+    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs, bool separateSetup = false, bool highlightSetup = true)
     {
-        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: separateSetup, highlightSetup: highlightSetup).ToList();
         return results.Single().PlantUmls.First().PlainText;
     }
 
@@ -1280,5 +1280,391 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs);
 
         Assert.Contains("PATCH: /api/items/1", plantUml);
+    }
+
+    // ─── Setup partition ────────────────────────────────────────
+
+    [Fact]
+    public void Setup_partition_wraps_traces_before_StartAction_marker_when_enabled()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.Contains("partition #E2E2F0 Setup", plantUml);
+        var endMarker = Environment.NewLine + "end" + Environment.NewLine;
+        var partitionOpen = plantUml.IndexOf("partition #E2E2F0 Setup");
+        var setupCall = plantUml.IndexOf("/api/setup");
+        var partitionEnd = plantUml.IndexOf(endMarker, partitionOpen);
+        var actionCall = plantUml.IndexOf("/api/action");
+        Assert.True(partitionOpen < setupCall, "Partition should open before setup call");
+        Assert.True(setupCall < partitionEnd, "Setup call should be inside partition");
+        Assert.True(partitionEnd < actionCall, "Action call should be after partition closes");
+    }
+
+    [Fact]
+    public void No_partition_when_separateSetup_is_false_even_with_StartAction_marker()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.DoesNotContain("partition", plantUml);
+    }
+
+    [Fact]
+    public void No_partition_when_no_StartAction_marker_even_when_separateSetup_is_true()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.DoesNotContain("partition", plantUml);
+    }
+
+    [Fact]
+    public void Setup_partition_has_background_color()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.Matches("partition #[a-fA-F0-9]+ Setup", plantUml);
+    }
+
+    [Fact]
+    public void Setup_partition_has_no_background_color_when_highlightSetup_is_false()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true, highlightSetup: false);
+
+        Assert.Contains("partition Setup", plantUml);
+        Assert.DoesNotMatch("partition #[a-fA-F0-9]+ Setup", plantUml);
+    }
+
+    [Fact]
+    public void HighlightSetup_has_no_effect_when_separateSetup_is_false()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: false, highlightSetup: true);
+
+        Assert.DoesNotContain("partition", plantUml);
+    }
+
+    [Fact]
+    public void StartAction_marker_is_not_rendered_as_entity()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.DoesNotContain("entity \"\" as", plantUml);
+        Assert.DoesNotContain("actor \"\" as", plantUml);
+    }
+
+    [Fact]
+    public void StartAction_marker_does_not_produce_arrow_or_note()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.DoesNotContain("override.com", plantUml);
+    }
+
+    [Fact]
+    public void Setup_partition_works_with_multiple_setup_request_response_pairs()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup1"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup2"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        var endMarker = Environment.NewLine + "end" + Environment.NewLine;
+        var partitionOpen = plantUml.IndexOf("partition #E2E2F0 Setup");
+        var setup1 = plantUml.IndexOf("/api/setup1");
+        var setup2 = plantUml.IndexOf("/api/setup2");
+        var partitionEnd = plantUml.IndexOf(endMarker, partitionOpen);
+        var actionCall = plantUml.IndexOf("/api/action");
+        Assert.True(partitionOpen < setup1);
+        Assert.True(setup1 < setup2);
+        Assert.True(setup2 < partitionEnd);
+        Assert.True(partitionEnd < actionCall);
+    }
+
+    [Fact]
+    public void StartAction_at_beginning_produces_no_partition_since_setup_is_empty()
+    {
+        var logs = new[]
+        {
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.DoesNotContain("partition", plantUml);
+    }
+
+    private static RequestResponseLog MakeActionStart(string testId = "test-1")
+    {
+        return new RequestResponseLog(
+            TestName: testId,
+            TestId: testId,
+            Method: "",
+            Content: "",
+            Uri: new Uri("http://override.com"),
+            Headers: [],
+            ServiceName: "",
+            CallerName: "",
+            Type: RequestResponseType.Request,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false)
+        {
+            IsActionStart = true
+        };
+    }
+
+    // ─── Partition + override interaction ────────────────────────
+
+    [Fact]
+    public void Override_between_setup_and_action_is_rendered_outside_partition()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeOverrideStart(plantUml: "\nhnote across #black:<color:white>Test 1\n"),
+            MakeOverrideEnd(),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        var endMarker = Environment.NewLine + "end" + Environment.NewLine;
+        var partitionEnd = plantUml.IndexOf(endMarker, plantUml.IndexOf("partition"));
+        var hnote = plantUml.IndexOf("hnote across");
+        var actionCall = plantUml.IndexOf("/api/action");
+        Assert.True(partitionEnd < hnote, "Partition should close before the override hnote");
+        Assert.True(hnote < actionCall, "Override hnote should appear before the action call");
+    }
+
+    [Fact]
+    public void Multiple_overrides_between_setup_and_action_are_all_outside_partition()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeOverrideStart(plantUml: "\nhnote across #black:<color:white>Test 1\n"),
+            MakeOverrideEnd(),
+            MakeOverrideStart(plantUml: "\nhnote across #blue:<color:white>Marker\n"),
+            MakeOverrideEnd(),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        var endMarker = Environment.NewLine + "end" + Environment.NewLine;
+        var partitionEnd = plantUml.IndexOf(endMarker, plantUml.IndexOf("partition"));
+        var hnote1 = plantUml.IndexOf("Test 1");
+        var hnote2 = plantUml.IndexOf("Marker");
+        Assert.True(partitionEnd < hnote1, "Partition should close before first override");
+        Assert.True(partitionEnd < hnote2, "Partition should close before second override");
+    }
+
+    // ─── PlantUML structural validity ────────────────────────────
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PlantUml_has_balanced_partitions(bool separateSetup)
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: separateSetup);
+
+        AssertBalancedPartitions(plantUml);
+    }
+
+    [Fact]
+    public void PlantUml_has_balanced_partitions_with_override_between_setup_and_action()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeOverrideStart(plantUml: "\nhnote across #black:<color:white>Test 1\n"),
+            MakeOverrideEnd(),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        AssertBalancedPartitions(plantUml);
+    }
+
+    [Fact]
+    public void PlantUml_has_balanced_note_blocks()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup", content: "body"),
+            MakeResponse(callerName: "User", serviceName: "Api", content: "response"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action", content: "action-body"),
+            MakeResponse(callerName: "User", serviceName: "Api", content: "action-response"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        AssertBalancedNotes(plantUml);
+    }
+
+    [Fact]
+    public void PlantUml_starts_with_startuml_and_ends_with_enduml()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.StartsWith("@startuml", plantUml.TrimStart());
+        Assert.EndsWith("@enduml", plantUml.TrimEnd());
+    }
+
+    [Fact]
+    public void PlantUml_contains_teoz_pragma_when_partition_is_used()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.Contains("!pragma teoz true", plantUml);
+        var pragmaIndex = plantUml.IndexOf("!pragma teoz true");
+        var partitionIndex = plantUml.IndexOf("partition");
+        Assert.True(pragmaIndex < partitionIndex, "Teoz pragma must appear before partition");
+    }
+
+    [Fact]
+    public void PlantUml_partition_block_is_well_formed()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        // partition line uses teoz syntax (no braces)
+        var partitionLine = plantUml.Split('\n').First(l => l.Contains("partition"));
+        Assert.Equal("partition #E2E2F0 Setup", partitionLine.TrimEnd());
+
+        // "end" line comes before action content
+        var endMarker = Environment.NewLine + "end" + Environment.NewLine;
+        var partitionOpen = plantUml.IndexOf("partition");
+        var endLine = plantUml.IndexOf(endMarker, partitionOpen);
+        Assert.True(endLine > partitionOpen, "Partition must have an end keyword");
+        Assert.True(endLine < plantUml.IndexOf("/api/action"), "Partition must close before action");
+    }
+
+    private static void AssertBalancedPartitions(string plantUml)
+    {
+        // Count partition opens and their matching "end" lines (teoz syntax)
+        var openCount = 0;
+        var closeCount = 0;
+        var inNote = false;
+        foreach (var line in plantUml.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("note ")) inNote = true;
+            if (trimmed == "end note") { inNote = false; continue; }
+            if (inNote) continue;
+
+            if (trimmed.StartsWith("partition ")) openCount++;
+            else if (trimmed == "end") closeCount++;
+        }
+        Assert.Equal(openCount, closeCount);
+    }
+
+    private static void AssertBalancedNotes(string plantUml)
+    {
+        var noteOpens = plantUml.Split('\n').Count(l => l.Trim().StartsWith("note "));
+        var noteCloses = plantUml.Split('\n').Count(l => l.Trim() == "end note");
+        Assert.Equal(noteOpens, noteCloses);
     }
 }

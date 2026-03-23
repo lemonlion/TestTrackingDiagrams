@@ -27,7 +27,8 @@ internal class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
         configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(testAssembly,
             new ReportConfigurationOptions
             {
-                SpecificationsTitle = "Dessert Provider Specifications"
+                SpecificationsTitle = "Dessert Provider Specifications",
+                SeparateSetup = true,
             });
 
         // To stop the output repeating the step name for each step

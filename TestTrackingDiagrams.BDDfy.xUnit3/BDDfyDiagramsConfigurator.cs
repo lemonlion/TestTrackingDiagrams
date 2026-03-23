@@ -13,5 +13,6 @@ public static class BDDfyDiagramsConfigurator
 
         Configurator.Processors.Add(() => new DiagramCapturingProcessor());
         Configurator.BatchProcessors.Add(new DiagramEnhancingBatchProcessor(fetcherOptions));
+        Configurator.StepExecutor = new BDDfyStepTrackingExecutor(Configurator.StepExecutor);
     }
 }

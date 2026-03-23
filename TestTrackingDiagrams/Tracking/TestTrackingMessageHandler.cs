@@ -9,13 +9,18 @@ public class TestTrackingMessageHandler : DelegatingHandler
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly string? _callingServiceName;
     private readonly Func<(string Name, string Id)>? _currentTestInfoFetcher;
+    private readonly Func<string?>? _currentStepTypeFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly IEnumerable<string> _headersToForward;
+    private string? _lastStepType;
+    private bool _wasInGivenSection;
+    private bool _actionStartInjected;
 
     public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _getServiceNameFromPortTranslator = options.FixedNameForReceivingService is not null ? _ => options.FixedNameForReceivingService : GetPortTranslator(options.PortsToServiceNames);
         _currentTestInfoFetcher = options.CurrentTestInfoFetcher;
+        _currentStepTypeFetcher = options.CurrentStepTypeFetcher;
         _callingServiceName = options.CallingServiceName;
         _httpContextAccessor = httpContextAccessor;
         _headersToForward = options.HeadersToForward;
@@ -81,6 +86,9 @@ public class TestTrackingMessageHandler : DelegatingHandler
 
         var serviceName = _getServiceNameFromPortTranslator(request.RequestUri.Port);
 
+        if (!hasCurrentTestNameHeader)
+            InjectImplicitActionStartIfNeeded(currentTestInfo);
+
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
@@ -134,5 +142,34 @@ public class TestTrackingMessageHandler : DelegatingHandler
             if (contextHeaders.TryGetValue(header, out var value))
                 request.Headers.Add(header, (IEnumerable<string?>)value);
         }
+    }
+
+    private void InjectImplicitActionStartIfNeeded((string Name, string Id) currentTestInfo)
+    {
+        if (_actionStartInjected || _currentStepTypeFetcher is null)
+            return;
+
+        var currentStepType = _currentStepTypeFetcher();
+        if (currentStepType is null)
+        {
+            _lastStepType = null;
+            return;
+        }
+
+        var isGivenOrAnd = currentStepType.StartsWith("GIVEN", StringComparison.OrdinalIgnoreCase)
+                           || currentStepType.StartsWith("AND", StringComparison.OrdinalIgnoreCase)
+                           || currentStepType.StartsWith("BUT", StringComparison.OrdinalIgnoreCase);
+
+        if (isGivenOrAnd)
+        {
+            _wasInGivenSection = true;
+        }
+        else if (_wasInGivenSection)
+        {
+            _actionStartInjected = true;
+            DefaultTrackingDiagramOverride.StartAction(currentTestInfo.Id);
+        }
+
+        _lastStepType = currentStepType;
     }
 }
