@@ -1,0 +1,21 @@
+<Project>
+
+  <PropertyGroup>
+    <Version>1.21.0</Version>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!-- Include LICENSE and README in all NuGet packages -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false' AND '$(IsTestProject)' != 'true'">
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Link="README.md" />
+  </ItemGroup>
+
+</Project>

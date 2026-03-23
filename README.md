@@ -44,8 +44,8 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
   - [StartOverride / EndOverride](#override-start-end)
   - [InsertPlantUml](#override-insert)
   - [InsertTestDelimiter](#override-delimiter)
-  - [StartAction](#override-start-action)
   - [Setup Separation](#setup-separation)
+    - [StartAction](#override-start-action)
 - [Content Formatting](#content-formatting)
   - [DiagramsFetcherOptions](#fetcher-options)
   - [Pre- and Post-Formatting Processors](#formatting-processors)
@@ -596,23 +596,6 @@ This renders as a black horizontal note across all participants with white text 
 
 > **LightBDD tip:** This is particularly useful when using LightBDD's [Tabular Parameters](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters) or [TabularAttributes](https://github.com/lemonlion/LightBdd.TabularAttributes), where a single scenario runs multiple iterations. Insert a delimiter between each iteration to clearly separate them in the diagram.
 
-### <a name="override-start-action"></a>StartAction [↑](#top)
-
-Explicitly mark the boundary between setup and action phases of a test. When `SeparateSetup` is enabled, all HTTP calls before `StartAction()` are rendered inside a "Setup" partition in the diagram:
-
-```csharp
-// Setup phase — these calls appear inside the partition
-await client.PostAsync("/api/seed-data", content);
-await client.PostAsync("/api/configure", settings);
-
-TrackingDiagramOverride.StartAction();
-
-// Action phase — these calls appear after the partition
-var response = await client.GetAsync("/api/cake");
-```
-
-> **BDD frameworks (BDDfy, LightBDD, ReqNRoll):** `StartAction()` is called automatically when the test transitions from a GIVEN step to a WHEN or THEN step. You only need to call it explicitly if you want to override the automatic detection or are using a non-BDD framework.
-
 ### <a name="setup-separation"></a>Setup Separation [↑](#top)
 
 Setup separation visually distinguishes the "arrange" phase of a test from the "act" phase in the generated sequence diagrams by wrapping setup HTTP calls in a PlantUML partition block.
@@ -637,8 +620,25 @@ new ReportConfigurationOptions
 
 The boundary between setup and action is determined by:
 
-1. **Explicit** — Call `TrackingDiagramOverride.StartAction()` in your test code
+1. **Explicit** — Call `TrackingDiagramOverride.StartAction()` in your test code (see [StartAction](#override-start-action) below)
 2. **Implicit (BDD frameworks)** — Automatically detected when the test transitions from a GIVEN step to a WHEN or THEN step (supported in BDDfy, LightBDD, and ReqNRoll)
+
+#### <a name="override-start-action"></a>StartAction [↑](#top)
+
+For non-BDD frameworks (or to override automatic detection), explicitly mark the boundary by calling `TrackingDiagramOverride.StartAction()`:
+
+```csharp
+// Setup phase — these calls appear inside the partition
+await client.PostAsync("/api/seed-data", content);
+await client.PostAsync("/api/configure", settings);
+
+TrackingDiagramOverride.StartAction();
+
+// Action phase — these calls appear after the partition
+var response = await client.GetAsync("/api/cake");
+```
+
+> **BDD frameworks (BDDfy, LightBDD, ReqNRoll):** `StartAction()` is called automatically when the test transitions from a GIVEN step to a WHEN or THEN step. You only need to call it explicitly if you want to override the automatic detection.
 
 ---
 

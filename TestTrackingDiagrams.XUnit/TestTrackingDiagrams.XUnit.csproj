@@ -1,32 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<Title>Test Tracking Diagrams For XUnit</Title>
 		<Description>XUnit extensions for tracking the request-responses in your tests and converting them into diagrams.</Description>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams.XUnit</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<LangVersion>preview</LangVersion>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>1.20.0</Version>
-		<OutputType>Library</OutputType>
 		<IsPackable>true</IsPackable>
+		<IsTestProject>false</IsTestProject>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="..\LICENSE" Link="LICENSE">
-			<PackagePath>\</PackagePath>
-			<Pack>True</Pack>
-		</None>
-		<None Include="..\README.md" Link="README.md">
-			<PackagePath>\</PackagePath>
-			<Pack>True</Pack>
-		</None>
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
