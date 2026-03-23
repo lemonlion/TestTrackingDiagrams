@@ -316,7 +316,7 @@ Passed to `CreateStandardReportsWithDiagrams`:
 |----------|-------------|
 | `CallingServiceName` | Display name for the service making outgoing HTTP calls |
 | `FixedNameForReceivingService` | Display name for the service receiving requests (your SUT) |
-| `PortsToServiceNames` | Dictionary mapping port numbers to friendly service names |
+| `PortsToServiceNames` | Dictionary mapping port numbers to friendly service names. Unmapped ports appear as `localhost_80`, `localhost_5001`, etc. |
 
 ---
 

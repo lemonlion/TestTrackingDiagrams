@@ -916,6 +916,24 @@ public class PlantUmlCreatorTests
         Assert.Contains("\"Order Service\"", plantUml);
     }
 
+    [Fact]
+    public void Service_names_with_colons_produce_valid_aliases()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "localhost:80", serviceName: "localhost:5001"),
+            MakeResponse(callerName: "localhost:80", serviceName: "localhost:5001"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("\"localhost:80\" as localhost_80", plantUml);
+        Assert.Contains("\"localhost:5001\" as localhost_5001", plantUml);
+        Assert.Contains("localhost_80 -> localhost_5001", plantUml);
+        Assert.Contains("localhost_5001 --> localhost_80", plantUml);
+        Assert.DoesNotContain("as localhost:80", plantUml);
+        Assert.DoesNotContain("as localhost:5001", plantUml);
+    }
+
     // ─── Full request-response flow ─────────────────────────────
 
     [Fact]

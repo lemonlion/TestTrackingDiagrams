@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Text.RegularExpressions;
 using Humanizer;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -92,8 +93,8 @@ public static class PlantUmlCreator
             string GetNoteClass() =>
                 trace!.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
 
-            var serviceShortName = trace.ServiceName.Camelize();
-            var callerShortName = trace.CallerName.Camelize();
+            var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
+            var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
 
             var content = trace.Content ?? string.Empty;
             if (trace.Type == RequestResponseType.Request)
@@ -242,8 +243,8 @@ public static class PlantUmlCreator
 
         foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false }))
         {
-            var serviceShortName = trace.ServiceName.Camelize();
-            var callerShortName = trace.CallerName.Camelize();
+            var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
+            var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
 
             if (!currentPlayers.Contains(callerShortName))
             {
@@ -260,6 +261,11 @@ public static class PlantUmlCreator
         }
 
         return entitiesPlantUml;
+    }
+
+    private static string SanitizePlantUmlAlias(string name)
+    {
+        return Regex.Replace(name.Camelize(), @"[^a-zA-Z0-9_]", "_");
     }
 
     private static string FormatContentForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders, RequestResponseType type)
