@@ -11,9 +11,8 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [Example Output](#example-output)
 - [Use Cases](#use-cases)
   - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
-- [Supported Frameworks](#supported-frameworks)
+- [Supported Frameworks & NuGet Packages](#supported-frameworks)
 - [Recommended BDD Framework](#recommended-bdd)
-- [NuGet Packages](#nuget-packages)
 - [How It Works](#how-it-works)
 - [Quick Start (xUnit)](#quick-start)
   - [1. Install Packages](#qs-install)
@@ -120,16 +119,17 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 
 ---
 
-## <a name="supported-frameworks"></a>Supported Frameworks [↑](#top)
+## <a name="supported-frameworks"></a>Supported Frameworks & NuGet Packages [↑](#top)
 
-| Framework | Package | Test Runner |
-|---|---|---|
-| **xUnit** | `TestTrackingDiagrams.XUnit` | xUnit v3 |
-| **NUnit** | `TestTrackingDiagrams.NUnit4` | NUnit v4 |
-| **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 |
-| **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 |
-| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 |
-| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 |
+| Framework | Package | Test Runner | NuGet |
+|---|---|---|---|
+| **Core library** | `TestTrackingDiagrams` | — | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams)](https://www.nuget.org/packages/TestTrackingDiagrams) |
+| **xUnit** | `TestTrackingDiagrams.XUnit` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.XUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
+| **NUnit** | `TestTrackingDiagrams.NUnit4` | NUnit v4 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.NUnit4)](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
+| **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.BDDfy.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
+| **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
+| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
+| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 
 All packages target **.NET 8.0**.
 
@@ -147,20 +147,6 @@ If you're choosing a BDD framework to pair with TestTrackingDiagrams, we recomme
 - **Active maintenance** — LightBDD is actively maintained with regular releases and good documentation.
 
 That said, all [supported frameworks](#supported-frameworks) work well with TestTrackingDiagrams — pick whichever fits your team best.
-
----
-
-## <a name="nuget-packages"></a>NuGet Packages [↑](#top)
-
-| Package | NuGet |
-|---|---|
-| Core library | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams)](https://www.nuget.org/packages/TestTrackingDiagrams) |
-| xUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.XUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.XUnit) |
-| NUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.NUnit4)](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
-| BDDfy + xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.BDDfy.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
-| LightBDD + xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
-| ReqNRoll + xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
-| ReqNRoll + xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 
 ---
 
