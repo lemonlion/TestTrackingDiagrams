@@ -9,13 +9,13 @@ public class FakeEventPublisher(MessageTracker tracker) : IEventPublisher
     {
         var correlationId = tracker.TrackMessageRequest(
             protocol: "Event",
-            destinationName: "Cake Events",
+            destinationName: "Event broker",
             destinationUri: new Uri("event://cake-created"),
             payload: @event);
 
         tracker.TrackMessageResponse(
             protocol: "Event",
-            destinationName: "Cake Events",
+            destinationName: "Event broker",
             destinationUri: new Uri("event://cake-created"),
             requestResponseId: correlationId);
 

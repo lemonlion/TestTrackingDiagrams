@@ -36,7 +36,13 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 │  (Caller)   │ ◄──────────   │  (Your API) │ ◄──────────   │  (Fakes)    │
 └─────────────┘               └─────────────┘               └─────────────┘
        │                             │                             │
-       └───────────── All HTTP traffic is intercepted ─────────────┘
+       │                             │   Event / Message           │
+       │                             │ ─────────────────►  ┌──────┴──────┐
+       │                             │                     │Event broker │
+       │                             │                     │  (Fakes)    │
+       │                             │                     └──────┬──────┘
+       │                             │                             │
+       └───── All HTTP traffic + events/messages are intercepted ──┘
                                      │
                                      ▼
                           ┌─────────────────────┐
@@ -57,9 +63,9 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
                           └─────────────────────┘
 ```
 
-1. **Intercept** — A `TestTrackingMessageHandler` (a `DelegatingHandler`) is inserted into the HTTP pipeline. It logs every request and response, enriching them with tracking headers (test name, test ID, trace ID, caller name).
+1. **Intercept** — A `TestTrackingMessageHandler` (a `DelegatingHandler`) is inserted into the HTTP pipeline. It logs every request and response, enriching them with tracking headers (test name, test ID, trace ID, caller name). For non-HTTP interactions (events, messages, commands), `MessageTracker` logs them directly to the same in-memory store.
 
-2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the method, URI, headers, body, status code, service names, and a trace ID to correlate requests across services.
+2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the method, URI, headers, body, status code, service names, and a trace ID to correlate requests across services. Events and messages are stored alongside HTTP logs with a distinct `Event` meta type.
 
 3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into PlantUML sequence diagram code. The code is encoded and rendered via a PlantUML server.
 
