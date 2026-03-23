@@ -5,6 +5,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("RequestResponseLogger")]
 public class TestTrackingMessageHandlerTests : IDisposable
 {
     // ─── Test infrastructure ────────────────────────────────────

@@ -4,13 +4,14 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("RequestResponseLogger")]
 public class MessageTrackerTests
 {
-    private readonly int _logCountBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+    private static int LogCount => RequestResponseLogger.RequestAndResponseLogs.Length;
 
-    private RequestResponseLog[] GetLogsFromThisTest()
+    private static RequestResponseLog[] GetLogsSince(int baseline)
     {
-        return RequestResponseLogger.RequestAndResponseLogs.Skip(_logCountBefore).ToArray();
+        return RequestResponseLogger.RequestAndResponseLogs.Skip(baseline).ToArray();
     }
 
     private static IHttpContextAccessor CreateHttpContextAccessor(
@@ -39,10 +40,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_logs_a_request_entry()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders-topic"), new { Id = 1 });
 
-        var logs = GetLogsFromThisTest();
+        var logs = GetLogsSince(baseline);
         Assert.Single(logs);
         Assert.Equal(RequestResponseType.Request, logs[0].Type);
     }
@@ -61,10 +63,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_sets_protocol_as_method()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("EventGrid", "NotificationService", new Uri("eventgrid://events"), new { Msg = "hi" });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal("EventGrid", log.Method.Value);
     }
 
@@ -72,10 +75,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_sets_destination_as_service_name()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal("OrderService", log.ServiceName);
     }
 
@@ -83,10 +87,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_sets_calling_service_name()
     {
         var tracker = CreateTracker(callingServiceName: "PublisherApp");
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal("PublisherApp", log.CallerName);
     }
 
@@ -94,10 +99,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_serialises_payload_as_content()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { Name = "Widget" });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Contains("Widget", log.Content);
     }
 
@@ -106,10 +112,11 @@ public class MessageTrackerTests
     {
         var uri = new Uri("kafka://my-topic");
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", uri, new { });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal(uri, log.Uri);
     }
 
@@ -117,10 +124,11 @@ public class MessageTrackerTests
     public void TrackMessageRequest_sets_meta_type_to_event()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal(RequestResponseMetaType.Event, log.MetaType);
     }
 
@@ -129,10 +137,11 @@ public class MessageTrackerTests
     {
         var accessor = CreateHttpContextAccessor("SpecificTest", "id-42", "7c9e6679-7425-40de-944b-e07fc1f90ae7");
         var tracker = CreateTracker(accessor);
+        var baseline = LogCount;
 
         tracker.TrackMessageRequest("SNS", "NotifySvc", new Uri("sns://topic"), new { });
 
-        var log = GetLogsFromThisTest().Single();
+        var log = GetLogsSince(baseline).Single();
         Assert.Equal("SpecificTest", log.TestName);
         Assert.Equal("id-42", log.TestId);
         Assert.Equal(Guid.Parse("7c9e6679-7425-40de-944b-e07fc1f90ae7"), log.TraceId);
@@ -144,11 +153,12 @@ public class MessageTrackerTests
     public void TrackMessageResponse_logs_a_response_entry()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
         var correlationId = tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { });
 
         tracker.TrackMessageResponse("Kafka", "OrderService", new Uri("kafka://orders"), correlationId);
 
-        var logs = GetLogsFromThisTest();
+        var logs = GetLogsSince(baseline);
         Assert.Equal(2, logs.Length);
         Assert.Equal(RequestResponseType.Response, logs[1].Type);
     }
@@ -157,11 +167,12 @@ public class MessageTrackerTests
     public void TrackMessageResponse_uses_same_correlation_id_as_request()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
         var correlationId = tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { });
 
         tracker.TrackMessageResponse("Kafka", "OrderService", new Uri("kafka://orders"), correlationId);
 
-        var logs = GetLogsFromThisTest();
+        var logs = GetLogsSince(baseline);
         Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
     }
 
@@ -169,11 +180,12 @@ public class MessageTrackerTests
     public void TrackMessageResponse_serialises_response_payload_when_provided()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
         var id = tracker.TrackMessageRequest("MQ", "Worker", new Uri("mq://queue"), new { });
 
         tracker.TrackMessageResponse("MQ", "Worker", new Uri("mq://queue"), id, new { Ack = true });
 
-        var responseLog = GetLogsFromThisTest().Last();
+        var responseLog = GetLogsSince(baseline).Last();
         Assert.Contains("true", responseLog.Content);
     }
 
@@ -181,11 +193,12 @@ public class MessageTrackerTests
     public void TrackMessageResponse_sets_empty_content_when_no_response_payload()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
         var id = tracker.TrackMessageRequest("MQ", "Worker", new Uri("mq://queue"), new { });
 
         tracker.TrackMessageResponse("MQ", "Worker", new Uri("mq://queue"), id);
 
-        var responseLog = GetLogsFromThisTest().Last();
+        var responseLog = GetLogsSince(baseline).Last();
         Assert.Equal(string.Empty, responseLog.Content);
     }
 
@@ -193,11 +206,12 @@ public class MessageTrackerTests
     public void TrackMessageResponse_sets_meta_type_to_event()
     {
         var tracker = CreateTracker();
+        var baseline = LogCount;
         var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
 
         tracker.TrackMessageResponse("Kafka", "Svc", new Uri("kafka://t"), id);
 
-        var responseLog = GetLogsFromThisTest().Last();
+        var responseLog = GetLogsSince(baseline).Last();
         Assert.Equal(RequestResponseMetaType.Event, responseLog.MetaType);
     }
 }
