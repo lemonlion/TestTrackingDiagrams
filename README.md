@@ -37,30 +37,30 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 └─────────────┘               └─────────────┘               └─────────────┘
        │                             │                             │
        │                             │   Event / Message           │
-       │                             │ ─────────────────►  ┌──────┴──────┐
-       │                             │                     │Event broker │
-       │                             │                     │  (Fakes)    │
-       │                             │                     └──────┬──────┘
-       │                             │                             │
-       └───── All HTTP traffic + events/messages are intercepted ──┘
+       │                             │ ──────────────────►  ┌──────┴──────┐
+       │                             │                      │Event broker │
+       │                             │                      │  (Fakes)    │
+       │                             │                      └───────┬─────┘
+       │                             │                              │
+       └───── All HTTP traffic + events/messages are intercepted ───┘
                                      │
                                      ▼
-                          ┌─────────────────────┐
+                          ┌──────────────────────┐
                           │ RequestResponseLogger│
                           │  (in-memory log)     │
-                          └──────────┬──────────┘
+                          └──────────┬───────────┘
                                      │
                                      ▼
-                          ┌─────────────────────┐
+                          ┌──────────────────────┐
                           │   PlantUmlCreator    │
                           │ (generates PlantUML) │
-                          └──────────┬──────────┘
+                          └──────────┬───────────┘
                                      │
                                      ▼
-                          ┌─────────────────────┐
+                          ┌──────────────────────┐
                           │   ReportGenerator    │
                           │  (HTML + YAML files) │
-                          └─────────────────────┘
+                          └──────────────────────┘
 ```
 
 1. **Intercept** — A `TestTrackingMessageHandler` (a `DelegatingHandler`) is inserted into the HTTP pipeline. It logs every request and response, enriching them with tracking headers (test name, test ID, trace ID, caller name). For non-HTTP interactions (events, messages, commands), `MessageTracker` logs them directly to the same in-memory store. See the [Tracking Dependencies](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Tracking-Dependencies) wiki page for a detailed guide on how to configure tracking for every common `HttpClient` pattern.
