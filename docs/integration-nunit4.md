@@ -16,7 +16,7 @@ This guide walks you through integrating **TestTrackingDiagrams** with **NUnit**
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with NUnit
 
@@ -46,7 +46,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.23.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
@@ -268,7 +268,7 @@ public partial class Cake_Feature : BaseFixture
 dotnet test
 ```
 
-After the tests complete, check the `bin/Debug/net8.0/Reports/` folder:
+After the tests complete, check the `bin/Debug/net10.0/Reports/` folder:
 
 | File | Description |
 |------|-------------|

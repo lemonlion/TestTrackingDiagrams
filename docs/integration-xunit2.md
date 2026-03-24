@@ -18,7 +18,7 @@ xUnit v2 does not have `TestContext.Current` (introduced in xUnit v3), so this i
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with xUnit v2
 
@@ -48,7 +48,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.xUnit2" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.xUnit2" Version="1.23.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -279,7 +279,7 @@ public partial class Cake_Feature : BaseFixture
 dotnet test
 ```
 
-After the tests complete, check the `bin/Debug/net8.0/Reports/` folder:
+After the tests complete, check the `bin/Debug/net10.0/Reports/` folder:
 
 | File | Description |
 |------|-------------|

@@ -16,7 +16,7 @@ This guide walks you through integrating **TestTrackingDiagrams** with [ReqNRoll
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with ReqNRoll / SpecFlow and Gherkin syntax
 
@@ -34,7 +34,7 @@ dotnet new xunit -n MyApi.Tests.Component.ReqNRoll
 
 ```xml
 <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -289,7 +289,7 @@ public class CakeStepDefinitions
 dotnet test
 ```
 
-After the tests complete, check the `bin/Debug/net8.0/Reports/` folder. You should find three files:
+After the tests complete, check the `bin/Debug/net10.0/Reports/` folder. You should find three files:
 
 | File | Description |
 |------|-------------|

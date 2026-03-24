@@ -18,7 +18,7 @@ LightBDD is a BDD framework that lets you write scenarios as C# method calls (`g
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with LightBDD
 
@@ -49,7 +49,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.23.5" />
     <PackageReference Include="LightBDD.XUnit2" Version="3.10.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -262,7 +262,7 @@ public partial class Cake_Feature : BaseFixture
 dotnet test
 ```
 
-After the tests complete, check the `bin/Debug/net8.0/Reports/` folder:
+After the tests complete, check the `bin/Debug/net10.0/Reports/` folder:
 
 | File | Description |
 |------|-------------|

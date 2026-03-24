@@ -18,7 +18,7 @@ This guide walks you through integrating **TestTrackingDiagrams** with [ReqNRoll
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with ReqNRoll / SpecFlow and Gherkin syntax
 
@@ -36,7 +36,7 @@ Your `.csproj` `<PropertyGroup>` should look like this (note: **no** `<OutputTyp
 
 ```xml
 <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -292,7 +292,7 @@ public class CakeStepDefinitions
 dotnet test
 ```
 
-After the tests complete, check the `bin/Debug/net8.0/Reports/` folder. You should find three files:
+After the tests complete, check the `bin/Debug/net10.0/Reports/` folder. You should find three files:
 
 | File | Description |
 |------|-------------|
@@ -366,7 +366,7 @@ Add the `formatters` section to your `reqnroll.json`:
 }
 ```
 
-After tests complete, the enhanced report will be at `bin/Debug/net8.0/reqnroll_report.html`.
+After tests complete, the enhanced report will be at `bin/Debug/net10.0/reqnroll_report.html`.
 
 > **Note:** The enhancement runs via `AppDomain.ProcessExit` to ensure the ReqNRoll formatter has finished writing the HTML file before post-processing it.
 

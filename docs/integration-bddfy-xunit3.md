@@ -17,7 +17,7 @@ This guide walks you through integrating **TestTrackingDiagrams** with [BDDfy](h
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
 - Basic familiarity with BDDfy's fluent API or convention-based step patterns
 
@@ -35,7 +35,7 @@ dotnet new xunit -n MyApi.Tests.Component.BDDfy
 
 ```xml
 <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -163,7 +163,7 @@ public class BDDfyTestSetup : IAsyncLifetime
 | `BDDfyScenarioCollector.StartRunTime` | Sets the test run start time for the report header |
 | `TrackDependenciesForDiagrams()` | Configures HTTP tracking for outgoing requests from the SUT |
 | `CreateTestTrackingClient()` | Creates an `HttpClient` that tracks all requests for diagram generation |
-| `BDDfyReportGenerator.CreateStandardReportsWithDiagrams()` | Generates all report files in `bin/Debug/net8.0/Reports/` |
+| `BDDfyReportGenerator.CreateStandardReportsWithDiagrams()` | Generates all report files in `bin/Debug/net10.0/Reports/` |
 
 ---
 
@@ -283,7 +283,7 @@ The `AsA`/`IWant`/`SoThat` narrative appears as a feature description in the gen
 dotnet test
 ```
 
-After a successful run, check the output directory (`bin/Debug/net8.0/`) for generated reports:
+After a successful run, check the output directory (`bin/Debug/net10.0/`) for generated reports:
 
 ### Reports generated
 
