@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Title>Test Tracking Diagrams For XUnit v3</Title>
+		<Description>XUnit v3 extensions for tracking the request-responses in your tests and converting them into diagrams.</Description>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<IsPackable>true</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+		<PackageReference Include="xunit.v3" Version="1.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+	</ItemGroup>
+
+</Project>

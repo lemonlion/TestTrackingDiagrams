@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit4", "TestTrackingDiagrams.NUnit4\TestTrackingDiagrams.NUnit4.csproj", "{57117522-8940-40E0-A9E6-EAFD9E54A076}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.XUnit", "TestTrackingDiagrams.XUnit\TestTrackingDiagrams.XUnit.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.xUnit3", "TestTrackingDiagrams.xUnit3\TestTrackingDiagrams.xUnit3.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit3", "TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj", "{531C6839-BC2A-440D-B681-EE1743CF15B0}"
 EndProject
@@ -19,7 +19,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.BDDfy.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests", "TestTrackingDiagrams.Tests\TestTrackingDiagrams.Tests.csproj", "{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.XUnit", "TestTrackingDiagrams.Tests.XUnit\TestTrackingDiagrams.Tests.XUnit.csproj", "{0234135C-5B45-479B-B347-EA6B09821191}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit3", "TestTrackingDiagrams.Tests.xUnit3\TestTrackingDiagrams.Tests.xUnit3.csproj", "{0234135C-5B45-479B-B347-EA6B09821191}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.xUnit2", "TestTrackingDiagrams.xUnit2\TestTrackingDiagrams.xUnit2.csproj", "{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit2", "TestTrackingDiagrams.Tests.xUnit2\TestTrackingDiagrams.Tests.xUnit2.csproj", "{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -139,6 +143,30 @@ Global
 		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x64.Build.0 = Release|Any CPU
 		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x86.ActiveCfg = Release|Any CPU
 		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x86.Build.0 = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|x64.Build.0 = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Debug|x86.Build.0 = Debug|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|x64.ActiveCfg = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|x64.Build.0 = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|x86.ActiveCfg = Release|Any CPU
+		{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}.Release|x86.Build.0 = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|x64.Build.0 = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Debug|x86.Build.0 = Debug|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|x64.ActiveCfg = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|x64.Build.0 = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|x86.ActiveCfg = Release|Any CPU
+		{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

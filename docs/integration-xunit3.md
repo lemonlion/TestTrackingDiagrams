@@ -1,16 +1,18 @@
-# Integration Guide: NUnit 4
+# Integration Guide: xUnit (without BDD framework)
 
-> **Example project:** A complete working example is available at [`Example.Api/tests/Example.Api.Tests.Component.NUnit4/`](../Example.Api/tests/Example.Api.Tests.Component.NUnit4/). You can reference it alongside this guide for a fully working implementation.
+> **Example project:** A complete working example is available at [`Example.Api/tests/Example.Api.Tests.Component.xUnit3/`](../Example.Api/tests/Example.Api.Tests.Component.xUnit3/). You can reference it alongside this guide for a fully working implementation.
 
 ---
 
 ## Overview
 
-This guide walks you through integrating **TestTrackingDiagrams** with **NUnit**. After completing this guide, your NUnit tests will automatically generate:
+This guide walks you through integrating **TestTrackingDiagrams** with plain **xUnit** (no BDD framework). After completing this guide, your xUnit tests will automatically generate:
 
 - **PlantUML sequence diagrams** from HTTP traffic between your service and its dependencies
 - **HTML reports** with embedded diagrams
 - **YAML specification files**
+
+This is the simplest integration path if you are already writing xUnit tests and just want to add automatic diagram generation.
 
 ---
 
@@ -18,16 +20,16 @@ This guide walks you through integrating **TestTrackingDiagrams** with **NUnit**
 
 - .NET 8.0 SDK or later
 - An ASP.NET Core API project to test (your "Service Under Test")
-- Basic familiarity with NUnit
+- Basic familiarity with xUnit
 
 ---
 
 ## Step 1: Create the Test Project
 
-Create a new NUnit test project:
+Create a new xUnit test project:
 
 ```bash
-dotnet new nunit -n MyApi.Tests.Component
+dotnet new xunit -n MyApi.Tests.Component
 ```
 
 ---
@@ -35,74 +37,55 @@ dotnet new nunit -n MyApi.Tests.Component
 ## Step 2: Install NuGet Packages
 
 ```bash
-dotnet add package TestTrackingDiagrams.NUnit4
+dotnet add package TestTrackingDiagrams.xUnit3
 dotnet add package Microsoft.AspNetCore.Mvc.Testing
 dotnet add package Microsoft.NET.Test.Sdk
-dotnet add package NUnit
-dotnet add package NUnit3TestAdapter
+dotnet add package xunit.v3
+dotnet add package xunit.runner.visualstudio
 ```
 
 Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.xUnit3" Version="1.22.2" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="NUnit" Version="4.3.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.6.0">
-        <PrivateAssets>all</PrivateAssets>
+    <PackageReference Include="xunit.v3" Version="1.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.1">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
         <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 </ItemGroup>
 ```
 
 ---
 
-## Step 3: Add a Global Usings File
+## Step 3: Create the Test Run Collection Fixture
 
-Create a `GlobalUsings.cs`:
+xUnit uses "collection fixtures" to share state across tests. TestTrackingDiagrams provides `DiagrammedTestRun` as a base class for your collection fixture. This is where reports are generated.
 
-```csharp
-global using NUnit.Framework;
-```
-
----
-
-## Step 4: Create the Test Run Setup/Teardown
-
-NUnit uses a `[SetUpFixture]` class for global setup and teardown. **This must be placed outside of any namespace** so that it applies to the whole assembly.
-
-Create a `Infrastructure/TestRun.cs`:
+### `Infrastructure/TestRun.cs`:
 
 ```csharp
 using TestTrackingDiagrams;
-using TestTrackingDiagrams.NUnit4;
+using TestTrackingDiagrams.xUnit3;
 
-[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+namespace MyApi.Tests.Component.Infrastructure;
 
-[SetUpFixture]
-public class TestRun : DiagrammedTestRun
+public class TestRun : DiagrammedTestRun, IDisposable
 {
-    [OneTimeSetUp]
-    public static void GlobalSetup()
+    public TestRun()
     {
-        Setup();
         // Optional: start any HTTP fakes here
     }
 
-    [OneTimeTearDown]
-    public static void GlobalTeardown()
+    public void Dispose()
     {
         EndRunTime = DateTime.UtcNow;
 
         // Generate reports when the test run ends
-        NUnitReportGenerator.CreateStandardReportsWithDiagrams(
+        XUnitReportGenerator.CreateStandardReportsWithDiagrams(
             TestContexts,
             StartRunTime,
             EndRunTime,
@@ -116,25 +99,39 @@ public class TestRun : DiagrammedTestRun
 }
 ```
 
-**Critical points:**
-- The class **must not be inside a namespace** — NUnit only runs `[SetUpFixture]` as a global fixture when it has no namespace.
-- `[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]` ensures each test gets a fresh fixture instance (important for accurate tracking).
-- Call `Setup()` in `[OneTimeSetUp]` — this records the `StartRunTime`.
+---
+
+## Step 4: Create the Test Collection Definition
+
+Create a collection definition that ties all your diagrammed tests to the `TestRun` fixture:
+
+### `DiagrammedTestCollection.cs`:
+
+```csharp
+using TestTrackingDiagrams.xUnit3;
+
+namespace MyApi.Tests.Component;
+
+[CollectionDefinition(DiagrammedComponentTest.DiagrammedTestCollectionName)]
+public class DiagrammedTestCollection : ICollectionFixture<Infrastructure.TestRun> { }
+```
+
+This class is never instantiated directly — it just tells xUnit to create a single `TestRun` instance shared across all tests in the collection.
 
 ---
 
 ## Step 5: Create the Base Fixture
 
-Create `Infrastructure/BaseFixture.cs`:
+Create `Infrastructure/BaseFixture.cs`. All your test classes will inherit from this:
 
 ```csharp
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using TestTrackingDiagrams.NUnit4;
+using TestTrackingDiagrams.xUnit3;
 
 namespace MyApi.Tests.Component.Infrastructure;
 
-public abstract class BaseFixture : DiagrammedComponentTest, IDisposable
+public abstract class BaseFixture : DiagrammedComponentTest
 {
     private static readonly WebApplicationFactory<Program>? SFactory;
     protected HttpClient Client { get; }
@@ -147,7 +144,7 @@ public abstract class BaseFixture : DiagrammedComponentTest, IDisposable
         {
             builder.ConfigureTestServices(services =>
             {
-                services.TrackDependenciesForDiagrams(new NUnitTestTrackingMessageHandlerOptions
+                services.TrackDependenciesForDiagrams(new XUnitTestTrackingMessageHandlerOptions
                 {
                     CallingServiceName = ServiceUnderTestName,
                     PortsToServiceNames =
@@ -163,37 +160,37 @@ public abstract class BaseFixture : DiagrammedComponentTest, IDisposable
     protected BaseFixture()
     {
         Client = SFactory!.CreateTestTrackingClient(
-            new NUnitTestTrackingMessageHandlerOptions
+            new XUnitTestTrackingMessageHandlerOptions
             {
                 FixedNameForReceivingService = ServiceUnderTestName
             });
     }
 
-    public void Dispose() => Client.Dispose();
+    public void Dispose(bool disposing) => Client?.Dispose();
 }
 ```
 
 **Key points:**
-- `DiagrammedComponentTest` provides a `[TearDown]` method that enqueues `TestContext.CurrentContext` for report collection after each test.
-- `NUnitTestTrackingMessageHandlerOptions` uses NUnit's `TestContext.CurrentContext` to resolve the current test's identity.
+- `DiagrammedComponentTest` is the library's base class. It applies `[Collection("Diagrammed Test Collection")]` automatically and enqueues the `TestContext` on `Dispose()` for report collection.
+- `XUnitTestTrackingMessageHandlerOptions` uses xUnit's built-in `TestContext.Current` to resolve the current test's identity.
 
 ---
 
 ## Step 6: Write Test Scenarios
 
-Tests are written as regular NUnit `[Test]` methods. Use the `[Endpoint]` and `[HappyPath]` attributes to add metadata for the report.
+Tests are written as regular xUnit `[Fact]` or `[Theory]` methods. Use the `[Endpoint]` and `[HappyPath]` attributes to add metadata for the report.
 
 ### `Scenarios/Cake_Feature.cs`:
 
 ```csharp
-using TestTrackingDiagrams.NUnit4;
+using TestTrackingDiagrams.xUnit3;
 
 namespace MyApi.Tests.Component.Scenarios;
 
 [Endpoint("/cake")]
 public partial class Cake_Feature
 {
-    [Test]
+    [Fact]
     [HappyPath]
     public async Task Calling_Create_Cake_Endpoint_Returns_Cake()
     {
@@ -202,7 +199,7 @@ public partial class Cake_Feature
         await Then_the_response_should_be_successful();
     }
 
-    [Test]
+    [Fact]
     public async Task Calling_Create_Cake_Endpoint_Without_Eggs_Returns_Bad_Request()
     {
         await Given_a_valid_post_request_for_the_Cake_endpoint();
@@ -222,7 +219,6 @@ using MyApi.Tests.Component.Infrastructure;
 
 namespace MyApi.Tests.Component.Scenarios;
 
-[TestFixture]
 public partial class Cake_Feature : BaseFixture
 {
     private HttpResponseMessage? _response;
@@ -255,10 +251,10 @@ public partial class Cake_Feature : BaseFixture
 ```
 
 **Key points:**
-- `[Endpoint("/cake")]` — Sets the endpoint label for this feature group in the report. This attribute maps to NUnit's `PropertyAttribute`.
+- `[Endpoint("/cake")]` — Sets the endpoint label for this feature group in the report.
 - `[HappyPath]` — Marks a scenario as a happy path (filterable in the HTML report).
-- `[TestFixture]` — Required on the partial class with steps that inherits from `BaseFixture`.
-- Class and method names are converted from underscore-separated to space-separated in reports.
+- Class names are converted to feature names: underscores become spaces (e.g. `Cake_Feature` → "Cake Feature").
+- Method names are converted to scenario names in the same way.
 
 ---
 
@@ -278,37 +274,12 @@ After the tests complete, check the `bin/Debug/net8.0/Reports/` folder:
 
 ---
 
-## Architecture Summary
-
-```
-┌─────────────────────────────────┐
-│           TestRun               │  ← [SetUpFixture] outside any namespace
-│     : DiagrammedTestRun         │     Generates reports in [OneTimeTearDown]
-│     [SetUpFixture]              │
-└─────────────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────┐
-│          BaseFixture            │  ← Creates tracked HttpClient
-│   : DiagrammedComponentTest     │     Enqueues TestContext on [TearDown]
-│   IDisposable                   │
-└─────────────┬───────────────────┘
-              │ inherited by
-              ▼
-┌─────────────────────────────────┐
-│  Cake_Feature : BaseFixture     │  ← Your test class with [Test] methods
-│  [TestFixture]                  │
-└─────────────────────────────────┘
-```
-
----
-
 ## Using PlantUML Overrides
 
 You can customise diagrams within a test using `TrackingDiagramOverride`:
 
 ```csharp
-using TestTrackingDiagrams.NUnit4;
+using TestTrackingDiagrams.xUnit3;
 
 // Insert a delimiter between multiple requests in the diagram
 TrackingDiagramOverride.InsertTestDelimiter("Step 1");
@@ -328,6 +299,34 @@ TrackingDiagramOverride.StartAction();
 
 ---
 
+## Architecture Summary
+
+```
+┌─────────────────────────────────┐
+│     DiagrammedTestCollection    │  ← Collection definition (one per assembly)
+│   ICollectionFixture<TestRun>   │
+└─────────────┬───────────────────┘
+              │ creates once
+              ▼
+┌─────────────────────────────────┐
+│           TestRun               │  ← Generates reports in Dispose()
+│     : DiagrammedTestRun         │
+└─────────────────────────────────┘
+              │ shared across
+              ▼
+┌─────────────────────────────────┐
+│          BaseFixture            │  ← Creates tracked HttpClient
+│   : DiagrammedComponentTest     │     Enqueues TestContext on Dispose
+└─────────────┬───────────────────┘
+              │ inherited by
+              ▼
+┌─────────────────────────────────┐
+│       Cake_Feature : BaseFixture│  ← Your test class with [Fact] methods
+└─────────────────────────────────┘
+```
+
+---
+
 ## Customisation Options
 
 ### ReportConfigurationOptions
@@ -344,7 +343,7 @@ TrackingDiagramOverride.StartAction();
 | `SeparateSetup` | `false` | When `true`, HTTP calls made before `StartAction()` are wrapped in a visual "Setup" partition in the diagram |
 | `HighlightSetup` | `true` | When `true` (and `SeparateSetup` is enabled), the setup partition is rendered with a background colour |
 
-### NUnitTestTrackingMessageHandlerOptions
+### XUnitTestTrackingMessageHandlerOptions
 
 | Property | Description |
 |----------|-------------|
@@ -357,12 +356,12 @@ TrackingDiagramOverride.StartAction();
 ## Troubleshooting
 
 ### Reports folder is empty
-- Ensure `TestRun.GlobalTeardown()` calls `NUnitReportGenerator.CreateStandardReportsWithDiagrams`.
-- Ensure `TestRun` has no namespace (otherwise NUnit won't treat it as a global `[SetUpFixture]`).
+- Ensure `TestRun.Dispose()` calls `XUnitReportGenerator.CreateStandardReportsWithDiagrams`.
 - Ensure your test classes inherit from `BaseFixture` (which inherits from `DiagrammedComponentTest`).
+- Ensure you have the `DiagrammedTestCollection` collection definition class.
 
 ### Tests are not showing in the report
-- Make sure each test class inherits from `DiagrammedComponentTest` (directly or via `BaseFixture`). The base class's `[TearDown]` enqueues the `TestContext` for collection.
+- Make sure each test class inherits from `DiagrammedComponentTest` (directly or via `BaseFixture`). The base class calls `DiagrammedTestRun.TestContexts.Enqueue(TestContext.Current)` on `Dispose()`.
 
 ### Empty specifications HTML / YAML
 If any test has failed, the specifications files will be blank by design. The `FeaturesReport.html` will still be generated.
