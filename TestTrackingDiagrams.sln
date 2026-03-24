@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.BDDfy.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests", "TestTrackingDiagrams.Tests\TestTrackingDiagrams.Tests.csproj", "{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.XUnit", "TestTrackingDiagrams.Tests.XUnit\TestTrackingDiagrams.Tests.XUnit.csproj", "{0234135C-5B45-479B-B347-EA6B09821191}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}.Release|x64.Build.0 = Release|Any CPU
 		{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}.Release|x86.ActiveCfg = Release|Any CPU
 		{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}.Release|x86.Build.0 = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|x64.Build.0 = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Debug|x86.Build.0 = Debug|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x64.ActiveCfg = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x64.Build.0 = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x86.ActiveCfg = Release|Any CPU
+		{0234135C-5B45-479B-B347-EA6B09821191}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
