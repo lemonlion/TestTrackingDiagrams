@@ -50,14 +50,14 @@ public class CakeFeature : BaseFixture
 
     private async Task GivenAValidPostRequestForTheCakeEndpoint()
     {
-        _milkResponse = await Client.GetFromJsonAsync<MilkResponse>("milk");
-        _cakeRequest.Milk = _milkResponse!.Milk;
+        _milkResponse = (await Client.GetFromJsonAsync<MilkResponse>("milk"))!;
+        _cakeRequest.Milk = _milkResponse.Milk;
 
-        _eggsResponse = await Client.GetFromJsonAsync<EggsResponse>("eggs");
-        _cakeRequest.Eggs = _eggsResponse!.Eggs;
+        _eggsResponse = (await Client.GetFromJsonAsync<EggsResponse>("eggs"))!;
+        _cakeRequest.Eggs = _eggsResponse.Eggs;
 
-        _flourResponse = await Client.GetFromJsonAsync<FlourResponse>("flour");
-        _cakeRequest.Flour = _flourResponse!.Flour;
+        _flourResponse = (await Client.GetFromJsonAsync<FlourResponse>("flour"))!;
+        _cakeRequest.Flour = _flourResponse.Flour;
     }
 
     private void AndTheRequestBodyIsMissingEggs()

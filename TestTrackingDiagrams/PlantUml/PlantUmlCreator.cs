@@ -215,7 +215,7 @@ public static partial class PlantUmlCreator
         }
         else
         {
-            var status = trace.StatusCode?.Value?.ToString().Titleize();
+            var status = trace.StatusCode?.Value?.ToString()?.Titleize();
             if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
                 status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
 

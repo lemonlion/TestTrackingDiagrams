@@ -7,10 +7,10 @@ public static class ObjectExtensions
 {
     public static T GetWithPropertyRemoved<T>(this T @object, string propertyName)
     {
-        return @object.GetWithPropertyValueChanged(propertyName, null);
+        return @object.GetWithPropertyValueChanged(propertyName, null!);
     }
 
-    public static T GetWithPropertyValueChanged<T>(this T @object, string propertyName, string propertyValue)
+    public static T GetWithPropertyValueChanged<T>(this T @object, string propertyName, string? propertyValue)
     {
         var objectAsJson = JsonSerializer.SerializeToNode(@object);
         objectAsJson![propertyName] = propertyValue;
