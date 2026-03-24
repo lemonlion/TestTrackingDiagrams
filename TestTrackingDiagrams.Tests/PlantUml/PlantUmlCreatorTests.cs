@@ -713,7 +713,7 @@ public class PlantUmlCreatorTests
         var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
         var imageTag = results.Single().ImageTags.First();
 
-        Assert.StartsWith("<img src=\"https://www.plantuml.com/plantuml/png/", imageTag);
+        Assert.StartsWith("<img loading=\"lazy\" src=\"https://www.plantuml.com/plantuml/png/", imageTag);
         Assert.EndsWith("\">", imageTag);
     }
 
@@ -725,7 +725,7 @@ public class PlantUmlCreatorTests
         var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlServerRendererUrl: customUrl).ToList();
         var imageTag = results.Single().ImageTags.First();
 
-        Assert.StartsWith("<img src=\"http://my-plantuml-server/svg/", imageTag);
+        Assert.StartsWith("<img loading=\"lazy\" src=\"http://my-plantuml-server/svg/", imageTag);
     }
 
     [Fact]
@@ -737,6 +737,38 @@ public class PlantUmlCreatorTests
         var imageTag = results.Single().ImageTags.First();
 
         Assert.DoesNotContain("png//", imageTag);
+    }
+
+    [Fact]
+    public void Image_tags_include_lazy_loading_by_default()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var imageTag = results.Single().ImageTags.First();
+
+        Assert.StartsWith("<img loading=\"lazy\" src=\"", imageTag);
+    }
+
+    [Fact]
+    public void Image_tags_omit_lazy_loading_when_disabled()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, lazyLoadImages: false).ToList();
+        var imageTag = results.Single().ImageTags.First();
+
+        Assert.StartsWith("<img src=\"", imageTag);
+        Assert.DoesNotContain("loading", imageTag);
+    }
+
+    [Fact]
+    public void Image_tags_include_lazy_loading_with_custom_server_url()
+    {
+        var logs = new[] { MakeRequest() };
+        var customUrl = "http://my-plantuml-server/svg";
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlServerRendererUrl: customUrl, lazyLoadImages: true).ToList();
+        var imageTag = results.Single().ImageTags.First();
+
+        Assert.StartsWith("<img loading=\"lazy\" src=\"http://my-plantuml-server/svg/", imageTag);
     }
 
     // ─── Encoded PlantUML ───────────────────────────────────────

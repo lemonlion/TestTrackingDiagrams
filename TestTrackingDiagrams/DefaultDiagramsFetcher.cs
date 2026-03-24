@@ -24,7 +24,8 @@ public static class DefaultDiagramsFetcher
                 responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
                 excludedHeaders: options.ExcludedHeaders.ToArray(),
                 separateSetup: options.SeparateSetup,
-                highlightSetup: options.HighlightSetup).ToArray();
+                highlightSetup: options.HighlightSetup,
+                lazyLoadImages: options.LazyLoadDiagramImages).ToArray();
             return _diagrams = perTestId
                 .SelectMany(test => test.PlantUmls.Select(plantUml =>
                     new DiagramAsCode(test.TestId,

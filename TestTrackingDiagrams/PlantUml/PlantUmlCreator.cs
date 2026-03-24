@@ -29,7 +29,8 @@ public static partial class PlantUmlCreator
         string[]? excludedHeaders = null,
         int maxUrlLength = 100,
         bool separateSetup = false,
-        bool highlightSetup = true)
+        bool highlightSetup = true,
+        bool lazyLoadImages = true)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -49,7 +50,7 @@ public static partial class PlantUmlCreator
                 maxUrlLength,
                 separateSetup,
                 highlightSetup);
-            var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl)).ToArray();
+            var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
 
@@ -384,8 +385,8 @@ public static partial class PlantUmlCreator
 
     private record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
     {
-        public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) =>
-            $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
+        public string GetPlantUmlImageTag(string plantUmlServerRendererUrl, bool lazyLoad = true) =>
+            $"<img{(lazyLoad ? " loading=\"lazy\"" : "")} src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     }
 
     public record PlantUmlForTest(

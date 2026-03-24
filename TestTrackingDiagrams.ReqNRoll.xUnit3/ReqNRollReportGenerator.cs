@@ -26,12 +26,13 @@ public static class ReqNRollReportGenerator
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
             ExcludedHeaders = options.ExcludedHeaders,
             SeparateSetup = options.SeparateSetup,
-            HighlightSetup = options.HighlightSetup
+            HighlightSetup = options.HighlightSetup,
+            LazyLoadDiagramImages = options.LazyLoadDiagramImages
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
-        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
+        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages);
+        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages);
         GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true);
 
         ReqNRollReportEnhancer.RegisterForEnhancement(fetcherOptions);
@@ -47,7 +48,8 @@ public static class ReqNRollReportGenerator
         string fileName,
         string title,
         bool includeTestRunData,
-        bool generateBlankOnFailedTests = false)
+        bool generateBlankOnFailedTests = false,
+        bool lazyLoadImages = true)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
         {
@@ -278,12 +280,13 @@ public static class ReqNRollReportGenerator
                             <summary class="h4">Sequence Diagrams</summary>
                             """;
 
+                    var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
                     foreach (var diagram in diagramsForTest)
                     {
                         body += $"""
                                  <details class="example">
                                     <summary class="example-image">
-                                        <img src="{diagram.ImgSrc}">
+                                        <img{lazyLoadAttr} src="{diagram.ImgSrc}">
                                     </summary>
                                     <div class="raw-plantuml">
                                         <h4>Raw Plant UML</h4>
