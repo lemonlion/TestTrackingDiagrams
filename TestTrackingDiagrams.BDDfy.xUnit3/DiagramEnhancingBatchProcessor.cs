@@ -55,7 +55,8 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
             diagramHtml.Append("<div class=\"tracking-diagram\"><h4>Sequence Diagrams</h4>");
             foreach (var diagram in scenarioDiagrams)
             {
-                diagramHtml.Append($"<details><summary><img src=\"{diagram.ImgSrc}\"></summary>");
+                var lazyLoadAttr = _fetcherOptions?.LazyLoadDiagramImages ?? true ? " loading=\"lazy\"" : "";
+                diagramHtml.Append($"<details><summary><img{lazyLoadAttr} src=\"{diagram.ImgSrc}\"></summary>");
                 diagramHtml.Append($"<h4>Raw PlantUML</h4><pre>{WebUtility.HtmlEncode(diagram.CodeBehind)}</pre>");
                 diagramHtml.Append("</details>");
             }

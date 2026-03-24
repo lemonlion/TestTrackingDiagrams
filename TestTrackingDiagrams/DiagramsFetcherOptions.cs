@@ -10,4 +10,5 @@ public record DiagramsFetcherOptions
     public IEnumerable<string> ExcludedHeaders { get; set; } = [];
     public bool SeparateSetup { get; set; }
     public bool HighlightSetup { get; set; } = true;
+    public bool LazyLoadDiagramImages { get; set; } = true;
 }

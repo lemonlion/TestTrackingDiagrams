@@ -13,12 +13,13 @@ public static class ReportGenerator
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
             ExcludedHeaders = options.ExcludedHeaders,
             SeparateSetup = options.SeparateSetup,
-            HighlightSetup = options.HighlightSetup
+            HighlightSetup = options.HighlightSetup,
+            LazyLoadDiagramImages = options.LazyLoadDiagramImages
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true);
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true);
+        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages);
+        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages);
         GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true);
     }
 
@@ -30,7 +31,8 @@ public static class ReportGenerator
         string fileName,
         string title,
         bool includeTestRunData,
-        bool generateBlankOnFailedTests = false)
+        bool generateBlankOnFailedTests = false,
+        bool lazyLoadImages = true)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -237,12 +239,13 @@ public static class ReportGenerator
                             <summary class="h4">Sequence Diagrams</summary>
                             """;
 
+                    var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
                     foreach (var diagram in diagramsForTest)
                     {
                         body += $"""
                                  <details class="example">
                                     <summary class="example-image">
-                                        <img src="{diagram.ImgSrc}">
+                                        <img{lazyLoadAttr} src="{diagram.ImgSrc}">
                                     </summary>
                                     <div class="raw-plantuml">
                                         <h4>Raw Plant UML</h4>
