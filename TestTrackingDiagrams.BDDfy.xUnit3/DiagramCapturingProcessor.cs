@@ -1,14 +1,19 @@
+using System.Reflection;
 using TestStack.BDDfy;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
 public class DiagramCapturingProcessor : IProcessor
 {
+    private static readonly PropertyInfo? ScenarioTitleProperty =
+        typeof(Scenario).GetProperty(nameof(Scenario.Title));
+
     public ProcessType ProcessType => ProcessType.Report;
 
     public void Process(Story story)
     {
-        var testId = Xunit.TestContext.Current.Test?.UniqueID;
+        var testContext = Xunit.TestContext.Current;
+        var testId = testContext.Test?.UniqueID;
         if (testId == null) return;
 
         var storyTitle = story.Metadata?.Title
@@ -17,8 +22,17 @@ public class DiagramCapturingProcessor : IProcessor
 
         var storyDescription = BuildStoryDescription(story.Metadata);
 
+        var testClassSimpleName = testContext.TestClass?.TestClassSimpleName;
+        var testMethodName = testContext.TestMethod?.MethodName;
+
         foreach (var scenario in story.Scenarios)
         {
+            var resolvedTitle = ScenarioTitleResolver.ResolveScenarioTitle(
+                scenario.Title, testClassSimpleName, testMethodName);
+
+            // Fix the title in-place so BDDfy's own HtmlReporter sees unique titles
+            ScenarioTitleProperty?.SetValue(scenario, resolvedTitle);
+
             var steps = scenario.Steps
                 .Where(s => s.ShouldReport)
                 .OrderBy(s => s.ExecutionOrder)
@@ -31,7 +45,7 @@ public class DiagramCapturingProcessor : IProcessor
                 BDDfyScenarioId = scenario.Id,
                 StoryTitle = storyTitle,
                 StoryDescription = storyDescription,
-                ScenarioTitle = scenario.Title,
+                ScenarioTitle = resolvedTitle,
                 Tags = scenario.Tags?.ToArray() ?? [],
                 Steps = steps,
                 Result = scenario.Result,
