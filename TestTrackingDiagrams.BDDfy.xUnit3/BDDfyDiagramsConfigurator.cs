@@ -11,6 +11,11 @@ public static class BDDfyDiagramsConfigurator
         if (_configured) return;
         _configured = true;
 
+        // Disable BDDfy's built-in HTML reporter to prevent crashes when scenarios
+        // have duplicate titles (e.g. .BDDfy(nameof(ClassName))). Our batch processor
+        // generates the report after fixing scenario titles.
+        Configurator.BatchProcessors.HtmlReport.Disable();
+
         Configurator.Processors.Add(() => new DiagramCapturingProcessor());
         Configurator.BatchProcessors.Add(new DiagramEnhancingBatchProcessor(fetcherOptions));
         Configurator.StepExecutor = new BDDfyStepTrackingExecutor(Configurator.StepExecutor);

@@ -5,6 +5,9 @@ namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
 public class DiagramCapturingProcessor : IProcessor
 {
+    private static readonly FieldInfo? ScenarioTitleField =
+        typeof(Scenario).GetField("<Title>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+
     private static readonly PropertyInfo? ScenarioTitleProperty =
         typeof(Scenario).GetProperty(nameof(Scenario.Title));
 
@@ -30,8 +33,11 @@ public class DiagramCapturingProcessor : IProcessor
             var resolvedTitle = ScenarioTitleResolver.ResolveScenarioTitle(
                 scenario.Title, testClassSimpleName, testMethodName);
 
-            // Fix the title in-place so BDDfy's own HtmlReporter sees unique titles
-            ScenarioTitleProperty?.SetValue(scenario, resolvedTitle);
+            // Fix the title in-place so BDDfy's own reporters see unique titles
+            if (ScenarioTitleField != null)
+                ScenarioTitleField.SetValue(scenario, resolvedTitle);
+            else
+                ScenarioTitleProperty?.SetValue(scenario, resolvedTitle);
 
             var steps = scenario.Steps
                 .Where(s => s.ShouldReport)

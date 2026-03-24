@@ -1,12 +1,20 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using TestStack.BDDfy;
+using TestStack.BDDfy.Reporters.Html;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
 public class DiagramEnhancingBatchProcessor : IBatchProcessor
 {
+    private static readonly FieldInfo? ScenarioTitleField =
+        typeof(Scenario).GetField("<Title>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+
+    private static readonly PropertyInfo? ScenarioTitleProperty =
+        typeof(Scenario).GetProperty(nameof(Scenario.Title));
+
     private readonly DiagramsFetcherOptions? _fetcherOptions;
 
     public DiagramEnhancingBatchProcessor(DiagramsFetcherOptions? fetcherOptions = null)
@@ -15,6 +23,61 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
     }
 
     public void Process(IEnumerable<Story> stories)
+    {
+        var storiesList = stories.ToList();
+
+        FixScenarioTitles(storiesList);
+        GenerateBDDfyHtmlReport(storiesList);
+        InjectDiagrams(storiesList);
+    }
+
+    private static void FixScenarioTitles(List<Story> stories)
+    {
+        var scenarioInfos = BDDfyScenarioCollector.GetAll();
+        var idToTitle = new Dictionary<string, string>();
+        foreach (var info in scenarioInfos)
+        {
+            if (info.BDDfyScenarioId != null)
+                idToTitle[info.BDDfyScenarioId] = info.ScenarioTitle;
+        }
+
+        if (idToTitle.Count == 0) return;
+
+        foreach (var story in stories)
+        {
+            foreach (var scenario in story.Scenarios)
+            {
+                if (idToTitle.TryGetValue(scenario.Id, out var fixedTitle))
+                    SetScenarioTitle(scenario, fixedTitle);
+            }
+        }
+    }
+
+    private static void SetScenarioTitle(Scenario scenario, string title)
+    {
+        if (ScenarioTitleField != null)
+            ScenarioTitleField.SetValue(scenario, title);
+        else
+            ScenarioTitleProperty?.SetValue(scenario, title);
+    }
+
+    private static void GenerateBDDfyHtmlReport(List<Story> stories)
+    {
+        try
+        {
+            var reporter = new HtmlReporter(
+                new DefaultHtmlReportConfiguration(),
+                new ClassicReportBuilder());
+            reporter.Process(stories);
+        }
+        catch
+        {
+            // If report generation fails, continue without the HTML report.
+            // The FeaturesReport is the primary output.
+        }
+    }
+
+    private void InjectDiagrams(List<Story> stories)
     {
         var bddifyReportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BDDfy.html");
         if (!File.Exists(bddifyReportPath)) return;
