@@ -10,14 +10,14 @@ internal static class TestContextEnumerableExtensions
         return contexts
             .Where(x => x.Test is not null && x.TestClass is not null)
             .OrderBy(x => x.TestClass!.TestClassSimpleName)
-            .GroupBy(x => x.TestClass)
+            .GroupBy(x => x.TestClass!.TestClassSimpleName)
             .Select(scenariosForFeature =>
             {
-                var feature = scenariosForFeature.Key!;
+                var featureClass = scenariosForFeature.First().TestClass!;
                 return new Feature
                 {
-                    DisplayName = feature.TestClassSimpleName.Replace("_", " "),
-                    Endpoint = feature.Traits.SingleOrDefault(y => y.Key == EndpointAttribute.EndpointTraitKey).Value?.FirstOrDefault(),
+                    DisplayName = DisplayNameFormatter.FormatFeatureName(scenariosForFeature.Key),
+                    Endpoint = featureClass.Traits.SingleOrDefault(y => y.Key == EndpointAttribute.EndpointTraitKey).Value?.FirstOrDefault(),
                     Scenarios = scenariosForFeature
                         .DistinctBy(x => x.Test!.UniqueID)
                         .OrderByDescending(x => x.TestMethod!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey))
@@ -26,7 +26,7 @@ internal static class TestContextEnumerableExtensions
                         {
                             Id = x.Test!.UniqueID,
                             Result = x.TestState!.Result.ToScenarioResult(),
-                            DisplayName = x.Test!.TestDisplayName.Replace("_", " "),
+                            DisplayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName),
                             IsHappyPath = x.Test!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey),
                             ErrorMessage = string.Join(Environment.NewLine, x.TestState!.FailureCause) + Environment.NewLine + string.Join(Environment.NewLine, x.TestState!.ExceptionMessages ?? []),
                             ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? [])
