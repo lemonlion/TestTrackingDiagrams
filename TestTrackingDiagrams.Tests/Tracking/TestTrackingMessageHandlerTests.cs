@@ -598,7 +598,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var response = await invoker.SendAsync(MakeGetRequest(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal("created-item", body);
     }
 
