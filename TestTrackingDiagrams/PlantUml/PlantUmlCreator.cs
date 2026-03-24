@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Humanizer;
 using System.Text.Json;
@@ -9,9 +10,12 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.PlantUml;
 
-public static class PlantUmlCreator
+public static partial class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
+    private const string EventNoteClass = "eventNote";
+    private const int MaxEncodedDiagramLength = 2000;
+    private const int MaxResponseNoteChunkLength = 15_000;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
@@ -63,11 +67,8 @@ public static class PlantUmlCreator
         bool separateSetup,
         bool highlightSetup)
     {
-        const string eventNoteClass = "eventNote";
-        List<PlantUmlResult> plantUmls = [];
-
-        var stepNumber = 1;
-        var plantUml = CreatePlantUmlPrefix();
+        var builder = new DiagramBuilder(tracesForTest);
+        var lastTrace = tracesForTest[^1];
 
         var currentlyOverriding = false;
         var hasActionStart = separateSetup && tracesForTest.Any(t => t.IsActionStart);
@@ -84,7 +85,7 @@ public static class PlantUmlCreator
             {
                 if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
                 {
-                    plantUml += $"end{Environment.NewLine}";
+                    builder.AppendLine("end");
                     setupPartitionClosed = true;
                 }
                 continue;
@@ -99,7 +100,7 @@ public static class PlantUmlCreator
             if (trace.IsOverrideEnd)
             {
                 currentlyOverriding = false;
-                plantUml += trace.PlantUml ?? "";
+                builder.Append(trace.PlantUml ?? "");
                 continue;
             }
 
@@ -107,11 +108,11 @@ public static class PlantUmlCreator
             {
                 if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
                 {
-                    plantUml += $"end{Environment.NewLine}";
+                    builder.AppendLine("end");
                     setupPartitionClosed = true;
                 }
                 currentlyOverriding = true;
-                plantUml += trace.PlantUml ?? "";
+                builder.Append(trace.PlantUml ?? "");
                 continue;
             }
 
@@ -120,245 +121,277 @@ public static class PlantUmlCreator
 
             if (hasSetupTraces && !setupPartitionOpen && !setupPartitionClosed)
             {
-                plantUml += highlightSetup
-                    ? $"partition #E2E2F0 Setup{Environment.NewLine}"
-                    : $"partition Setup{Environment.NewLine}";
+                builder.AppendLine(highlightSetup ? "partition #E2E2F0 Setup" : "partition Setup");
                 setupPartitionOpen = true;
             }
 
-            string GetNoteClass() =>
-                trace!.MetaType == RequestResponseMetaType.Event ? "<<" + eventNoteClass + ">>" : "";
-
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
-
             var content = trace.Content ?? string.Empty;
-            if (trace.Type == RequestResponseType.Request)
+
+            switch (trace.Type)
             {
-                if (requestPreFormattingProcessor is not null)
-                    content = requestPreFormattingProcessor(content);
-
-                var requestPlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, content, excludedHeaders, RequestResponseType.Request);
-
-                if (requestPostFormattingProcessor is not null)
-                    requestPlantUmlNoteContent = requestPostFormattingProcessor(requestPlantUmlNoteContent);
-
-                var pathAndQuery = trace.Uri.PathAndQuery;
-                if (pathAndQuery.Length > maxUrlLength)
-                    pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
-
-                plantUml +=
-                    $"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {pathAndQuery}{Environment.NewLine}";
-
-                if (!string.IsNullOrEmpty(requestPlantUmlNoteContent))
+                case RequestResponseType.Request:
                 {
-                    plantUml +=
-                        $"note{GetNoteClass()} left{Environment.NewLine}" +
-                        $"{requestPlantUmlNoteContent}{Environment.NewLine}" +
-                        $"end note{Environment.NewLine}";
+                    if (requestPreFormattingProcessor is not null)
+                        content = requestPreFormattingProcessor(content);
+
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request);
+
+                    if (requestPostFormattingProcessor is not null)
+                        noteContent = requestPostFormattingProcessor(noteContent);
+
+                    var pathAndQuery = trace.Uri.PathAndQuery;
+                    if (pathAndQuery.Length > maxUrlLength)
+                        pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
+
+                    builder.AppendLine($"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {pathAndQuery}");
+
+                    if (!string.IsNullOrEmpty(noteContent))
+                    {
+                        builder.AppendLine($"note{GetNoteClass(trace.MetaType)} left");
+                        builder.AppendLine(noteContent);
+                        builder.AppendLine("end note");
+                    }
+
+                    break;
+                }
+                case RequestResponseType.Response:
+                {
+                    if (responsePreFormattingProcessor is not null)
+                        content = responsePreFormattingProcessor(content);
+
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response);
+
+                    if (responsePostFormattingProcessor is not null)
+                        noteContent = responsePostFormattingProcessor(noteContent);
+
+                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName);
+                    break;
                 }
             }
 
-            if (trace.Type == RequestResponseType.Response)
+            builder.IncrementStep();
+
+            if (builder.EncodedDiagramExceedsMaxLength && trace != lastTrace)
+                builder.FinishAndStartNewDiagram();
+        }
+
+        builder.FinishAndStartNewDiagram();
+        return builder.GetResults();
+    }
+
+    private static string GetNoteClass(RequestResponseMetaType metaType) =>
+        metaType == RequestResponseMetaType.Event ? $"<<{EventNoteClass}>>" : "";
+
+    private static void AppendResponseNoteContent(
+        DiagramBuilder builder,
+        string noteContent,
+        RequestResponseLog trace,
+        string serviceShortName,
+        string callerShortName)
+    {
+        var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
+        var suffix = Environment.NewLine + "..Continued On Next Diagram..";
+        var maxResponseLength = MaxResponseNoteChunkLength + suffix.Length + prefix.Length;
+
+        if (noteContent.Length > maxResponseLength)
+        {
+            var chunks = noteContent.ChunksUpTo(MaxResponseNoteChunkLength).ToArray();
+            for (var i = 0; i < chunks.Length; i++)
             {
-                if (responsePreFormattingProcessor is not null)
-                    content = responsePreFormattingProcessor(content);
+                var chunk = chunks[i];
+                var isFirst = i == 0;
+                var isLast = i == chunks.Length - 1;
 
-                var responsePlantUmlNoteContent = FormatContentForRequestOrResponseNote
-                    (trace.Headers, content, excludedHeaders, RequestResponseType.Response);
+                if (!isFirst) chunk = prefix + chunk;
+                if (!isLast) chunk += suffix;
 
-                if (responsePostFormattingProcessor is not null)
-                    responsePlantUmlNoteContent = responsePostFormattingProcessor(responsePlantUmlNoteContent);
+                AppendResponseNoteContent(builder, chunk, trace, serviceShortName, callerShortName);
 
-                CreateResponseNote(responsePlantUmlNoteContent);
-
-                void CreateResponseNote(string noteContent)
-                {
-                    var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
-                    var suffix = Environment.NewLine + "..Continued On Next Diagram..";
-                    var maxChunkLength = 15_000;
-                    var maxResponseLength = maxChunkLength + suffix.Length + prefix.Length;
-                    if (noteContent.Length > maxResponseLength)
-                    {
-                        var chunks = noteContent.ChunksUpTo(maxChunkLength).ToArray();
-                        for (var i = 0; i < chunks.Length; i++)
-                        {
-                            var noteContentChunk = chunks[i];
-                            var isFirstChunk = i == 0;
-                            var isLastChunk = i == chunks.Length - 1;
-
-                            if (!isFirstChunk)
-                                noteContentChunk = prefix + noteContentChunk;
-
-                            if (!isLastChunk)
-                                noteContentChunk += suffix;
-
-                            CreateResponseNote(noteContentChunk);
-
-                            if (!isLastChunk)
-                                FinishPlantUmlDiagramAndStartNewOne();
-                        }
-                    }
-                    else
-                    {
-                        var status = trace.StatusCode?.Value?.ToString().Titleize();
-                        if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
-                            status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
-
-                        plantUml +=
-                            $"{serviceShortName} --> {callerShortName}: {status}{Environment.NewLine}";
-
-                        if (!string.IsNullOrEmpty(noteContent))
-                        {
-                            plantUml +=
-                                $"note{GetNoteClass()} right{Environment.NewLine}" +
-                                $"{noteContent}{Environment.NewLine}" +
-                                $"end note{Environment.NewLine}";
-                        }
-                    }
-                }
+                if (!isLast)
+                    builder.FinishAndStartNewDiagram();
             }
-
-            var currentEncodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
-
-            stepNumber++;
-
-            if (currentEncodedPlantUml.Length > 2000 && trace != tracesForTest.Last())
-                FinishPlantUmlDiagramAndStartNewOne();
         }
-        FinishPlantUmlDiagramAndStartNewOne();
-
-        return plantUmls.ToArray();
-
-        string CreatePlantUmlPrefix()
+        else
         {
-            var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
-            return $"""
+            var status = trace.StatusCode?.Value?.ToString()?.Titleize();
+            if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
+                status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
 
-                    @startuml
-                    !pragma teoz true
-                    {AddStyling()}
-                    skinparam wrapWidth {MaxLineWidth}
-                    !function $color($value)
-                    !return "<color:"+$value+" >"
-                    !endfunction
-                    autonumber {stepNumber}
+            builder.AppendLine($"{serviceShortName} --> {callerShortName}: {status}");
 
-                    {entitiesPlantUml}
-
-                    """.TrimStart();
-
-            string AddStyling() => tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
-                ? $$"""
-
-                    <style>
-                     .{{eventNoteClass}} {
-                         BackgroundColor #cfecf7
-                         FontSize 11
-                         RoundCorner 10
-                     }
-                    </style>
-                    """.TrimStart()
-                : "";
-        }
-
-        void FinishPlantUmlDiagramAndStartNewOne()
-        {
-            plantUml += $"@enduml{Environment.NewLine}";
-            var encodedPlantUml = PlantUmlTextEncoder.Encode(plantUml);
-            plantUmls.Add(new(plantUml, encodedPlantUml));
-            plantUml = CreatePlantUmlPrefix();
+            if (!string.IsNullOrEmpty(noteContent))
+            {
+                builder.AppendLine($"note{GetNoteClass(trace!.MetaType)} right");
+                builder.AppendLine(noteContent);
+                builder.AppendLine("end note");
+            }
         }
     }
 
+    private static string CreatePlantUmlPrefix(List<RequestResponseLog> tracesForTest, int stepNumber)
+    {
+        var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
+        return $"""
+
+                @startuml
+                !pragma teoz true
+                {AddEventStyling(tracesForTest)}
+                skinparam wrapWidth {MaxLineWidth}
+                !function $color($value)
+                !return "<color:"+$value+" >"
+                !endfunction
+                autonumber {stepNumber}
+
+                {entitiesPlantUml}
+
+                """.TrimStart();
+    }
+
+    private static string AddEventStyling(List<RequestResponseLog> tracesForTest) =>
+        tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
+            ? $$"""
+
+                <style>
+                 .{{EventNoteClass}} {
+                     BackgroundColor #cfecf7
+                     FontSize 11
+                     RoundCorner 10
+                 }
+                </style>
+                """.TrimStart()
+            : "";
+
     private static string CreateEntitiesPlantUml(List<RequestResponseLog> tracesForTest)
     {
-        var entitiesPlantUml = "";
+        var sb = new StringBuilder();
         var actorDefined = false;
-        var currentPlayers = new List<string>();
+        var currentPlayers = new HashSet<string>();
 
         foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false }))
         {
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
 
-            if (!currentPlayers.Contains(callerShortName))
+            if (currentPlayers.Add(callerShortName))
             {
-                entitiesPlantUml +=
-                    $"{(actorDefined ? "entity" : "actor")} \"{trace.CallerName}\" as {callerShortName}{Environment.NewLine}";
-                currentPlayers.Add(callerShortName);
+                sb.Append(actorDefined ? "entity" : "actor")
+                    .Append(" \"")
+                    .Append(trace.CallerName)
+                    .Append("\" as ")
+                    .AppendLine(callerShortName);
             }
 
-            if (!currentPlayers.Contains(serviceShortName))
+            if (currentPlayers.Add(serviceShortName))
             {
-                entitiesPlantUml += $"entity \"{trace.ServiceName}\" as {serviceShortName}{Environment.NewLine}";
-                currentPlayers.Add(serviceShortName);
+                sb.Append("entity \"")
+                    .Append(trace.ServiceName)
+                    .Append("\" as ")
+                    .AppendLine(serviceShortName);
             }
         }
 
-        return entitiesPlantUml;
+        return sb.ToString();
     }
+
+    [GeneratedRegex(@"[^a-zA-Z0-9_]")]
+    private static partial Regex SanitizeAliasRegex();
 
     private static string SanitizePlantUmlAlias(string name)
     {
-        return Regex.Replace(name.Camelize(), @"[^a-zA-Z0-9_]", "_");
+        return SanitizeAliasRegex().Replace(name.Camelize(), "_");
     }
 
-    private static string FormatContentForRequestOrResponseNote(IEnumerable<(string Key, string? Value)> headers, string? content, string[] excludedHeaders, RequestResponseType type)
+    private static string FormatNoteContent(
+        IEnumerable<(string Key, string? Value)> headers,
+        string? content,
+        string[] excludedHeaders,
+        RequestResponseType type)
     {
-        var parsedContent = string.Empty;
-        var isContentJson = false;
-        if ((content?.StartsWith("{") ?? false) || (content?.StartsWith("[") ?? false))
+        var parsedContent = TryFormatAsJson(content);
+        if (parsedContent is null)
         {
-            try
-            {
-                parsedContent = JsonNode.Parse(content)!.ToString();
-                isContentJson = true;
-            }
-            catch (JsonException) { }
+            parsedContent = type is RequestResponseType.Response
+                ? content ?? string.Empty
+                : FormatFormUrlEncodedContent(content);
         }
 
-        if (!isContentJson)
-        {
-            if (type is RequestResponseType.Response)
-                parsedContent = content ?? string.Empty;
-            else
-            {
-                var formUrlEncodedDivider = "<font color=\"lightgray\">&";
-                parsedContent = content?
-                    .Split("&")
-                    .SelectMany(x =>
-                    {
-                        var chunks = x.ChunksUpTo(100).ToArray();
-                        if (chunks.Length == 0)
-                            return chunks;
-                        chunks[^1] += formUrlEncodedDivider;
-                        return chunks;
-                    })
-                    .StringJoin(Environment.NewLine)
-                    .TrimEnd(formUrlEncodedDivider) ?? string.Empty;
-            }
-        }
-
-        var headersOnTop = $"{string.Join(Environment.NewLine, headers
+        var headersOnTop = string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
             .OrderBy(y => y.Key)
-            .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]"))
-        )}";
+            .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]")));
 
         return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + parsedContent.Trim()).TrimEnd();
+    }
 
-        IEnumerable<string> BatchGray(string value)
+    private static string? TryFormatAsJson(string? content)
+    {
+        if (content is null || (!content.StartsWith('{') && !content.StartsWith('[')))
+            return null;
+
+        try { return JsonNode.Parse(content)!.ToString(); }
+        catch (JsonException) { return null; }
+    }
+
+    private static string FormatFormUrlEncodedContent(string? content)
+    {
+        const string divider = "<font color=\"lightgray\">&";
+        return content?
+            .Split("&")
+            .SelectMany(x =>
+            {
+                var chunks = x.ChunksUpTo(100).ToArray();
+                if (chunks.Length == 0)
+                    return chunks;
+                chunks[^1] += divider;
+                return chunks;
+            })
+            .StringJoin(Environment.NewLine)
+            .TrimEnd(divider) ?? string.Empty;
+    }
+
+    private static IEnumerable<string> BatchGray(string value)
+    {
+        return value.ChunksUpTo(100).Select(x => $"$color(gray){x}");
+    }
+
+    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest)
+    {
+        private readonly List<PlantUmlResult> _results = [];
+        private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1));
+        private int _stepNumber = 1;
+
+        public void Append(string text) => _currentDiagram.Append(text);
+        public void AppendLine(string text) => _currentDiagram.AppendLine(text);
+        public void IncrementStep() => _stepNumber++;
+
+        public bool EncodedDiagramExceedsMaxLength =>
+            _currentDiagram.Length > MaxEncodedDiagramLength
+            && PlantUmlTextEncoder.Encode(_currentDiagram.ToString()).Length > MaxEncodedDiagramLength;
+
+        public void FinishAndStartNewDiagram()
         {
-            return value.ChunksUpTo(100).Select(x => $"$color(gray){x}");
+            AppendLine("@enduml");
+            var plainText = _currentDiagram.ToString();
+            var encodedPlantUml = PlantUmlTextEncoder.Encode(plainText);
+            _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
+            _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber));
         }
+
+        public PlantUmlResult[] GetResults() => [.. _results];
     }
 
     private record PlantUmlResult(string PlantUml, string PlantUmlEncoded)
     {
-        public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) => $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
-    };
+        public string GetPlantUmlImageTag(string plantUmlServerRendererUrl) =>
+            $"<img src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
+    }
 
-    public record PlantUmlForTest(string TestId, string TestName, IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls, IEnumerable<RequestResponseLog> Traces, string[] ImageTags);
+    public record PlantUmlForTest(
+        string TestId,
+        string TestName,
+        IEnumerable<(string PlainText, string PlantUmlEncoded)> PlantUmls,
+        IEnumerable<RequestResponseLog> Traces,
+        string[] ImageTags);
 }

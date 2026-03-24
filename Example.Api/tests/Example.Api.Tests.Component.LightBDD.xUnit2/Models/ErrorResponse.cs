@@ -2,9 +2,9 @@ namespace Example.Api.Tests.Component.LightBDD.xUnit2.Models;
 
 public class ErrorResponse
 {
-    public string Type { get; set; }
-    public string Title { get; set; }
+    public required string Type { get; set; }
+    public required string Title { get; set; }
     public int Status { get; set; }
-    public Dictionary<string, string[]> Errors { get; set; }
-    public string TraceId { get; set; }
+    public required Dictionary<string, string[]> Errors { get; set; }
+    public required string TraceId { get; set; }
 }
