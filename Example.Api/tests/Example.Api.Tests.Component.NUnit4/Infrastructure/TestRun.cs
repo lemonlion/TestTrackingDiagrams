@@ -43,7 +43,7 @@ public class TestRun : DiagrammedTestRun
     {
         DisposeHttpFakes(); 
 
-        _cowServiceHttpFake = InMemoryFakeHelper.Create<CowServiceHttpFake>(Settings.CowServiceBaseUrl!);
+        _cowServiceHttpFake = WebApplicationFactoryForSpecificUrl<CowServiceHttpFake>.Create(Settings.CowServiceBaseUrl!);
     }
 
     private static void DisposeHttpFakes()

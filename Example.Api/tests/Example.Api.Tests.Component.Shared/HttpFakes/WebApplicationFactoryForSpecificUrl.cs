@@ -8,6 +8,14 @@ public class WebApplicationFactoryForSpecificUrl<T>(string hostUrl) : WebApplica
 {
     private string HostUrl { get; } = hostUrl;
 
+    public static WebApplicationFactoryForSpecificUrl<T> Create(string baseUrl)
+    {
+        PortChecker.AssertPortIsNotInUse(baseUrl);
+        var fixture = new WebApplicationFactoryForSpecificUrl<T>(hostUrl: baseUrl);
+        _ = fixture.Services; // Trigger EnsureServer/CreateHost to start Kestrel without accessing TestServer.Application
+        return fixture;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.UseUrls(HostUrl);
 
     protected override IHost CreateHost(IHostBuilder builder)

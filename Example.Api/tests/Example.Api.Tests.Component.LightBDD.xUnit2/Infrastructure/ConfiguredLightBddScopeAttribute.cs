@@ -43,7 +43,7 @@ internal class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
     {
         DisposeHttpFakes();
 
-        _cowServiceHttpFake = InMemoryFakeHelper.Create<CowServiceHttpFake>(Settings.CowServiceBaseUrl!);
+        _cowServiceHttpFake = WebApplicationFactoryForSpecificUrl<CowServiceHttpFake>.Create(Settings.CowServiceBaseUrl!);
     }
 
     private void DisposeHttpFakes()

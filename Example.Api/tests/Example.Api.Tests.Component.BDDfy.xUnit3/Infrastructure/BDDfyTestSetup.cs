@@ -79,7 +79,7 @@ public class BDDfyTestSetup : IAsyncLifetime
     private static void StartHttpFakes()
     {
         DisposeHttpFakes();
-        _cowServiceHttpFake = InMemoryFakeHelper.Create<CowServiceHttpFake>(_settings.CowServiceBaseUrl!);
+        _cowServiceHttpFake = WebApplicationFactoryForSpecificUrl<CowServiceHttpFake>.Create(_settings.CowServiceBaseUrl!);
     }
 
     private static void DisposeHttpFakes()
