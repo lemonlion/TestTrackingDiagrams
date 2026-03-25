@@ -7,6 +7,10 @@
   </PropertyGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Humanizer.Core" Version="2.14.1" />
 		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.25" />
 	</ItemGroup>

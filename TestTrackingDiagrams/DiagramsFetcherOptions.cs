@@ -11,4 +11,6 @@ public record DiagramsFetcherOptions
     public bool SeparateSetup { get; set; }
     public bool HighlightSetup { get; set; } = true;
     public bool LazyLoadDiagramImages { get; set; } = true;
+    public FocusEmphasis FocusEmphasis { get; set; } = FocusEmphasis.Bold;
+    public FocusDeEmphasis FocusDeEmphasis { get; set; } = FocusDeEmphasis.LightGray;
 }

@@ -25,7 +25,9 @@ public static class DefaultDiagramsFetcher
                 excludedHeaders: options.ExcludedHeaders.ToArray(),
                 separateSetup: options.SeparateSetup,
                 highlightSetup: options.HighlightSetup,
-                lazyLoadImages: options.LazyLoadDiagramImages).ToArray();
+                lazyLoadImages: options.LazyLoadDiagramImages,
+                focusEmphasis: options.FocusEmphasis,
+                focusDeEmphasis: options.FocusDeEmphasis).ToArray();
             return _diagrams = perTestId
                 .SelectMany(test => test.PlantUmls.Select(plantUml =>
                     new DiagramAsCode(test.TestId,
