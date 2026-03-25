@@ -46,7 +46,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.23.5" />
+    <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="1.23.8" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />

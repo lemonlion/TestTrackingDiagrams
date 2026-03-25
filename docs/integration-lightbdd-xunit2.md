@@ -49,7 +49,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.23.5" />
+    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.23.8" />
     <PackageReference Include="LightBDD.XUnit2" Version="3.10.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

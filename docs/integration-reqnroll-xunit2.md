@@ -64,7 +64,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.ReqNRoll.xUnit2" Version="1.23.5" />
+    <PackageReference Include="TestTrackingDiagrams.ReqNRoll.xUnit2" Version="1.23.8" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="Reqnroll" Version="3.3.3" />
