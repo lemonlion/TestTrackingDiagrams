@@ -41,14 +41,45 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
                 idToTitle[info.BDDfyScenarioId] = info.ScenarioTitle;
         }
 
-        if (idToTitle.Count == 0) return;
-
         foreach (var story in stories)
         {
+            // Apply collected titles
+            if (idToTitle.Count > 0)
+            {
+                foreach (var scenario in story.Scenarios)
+                {
+                    if (idToTitle.TryGetValue(scenario.Id, out var fixedTitle))
+                        SetScenarioTitle(scenario, fixedTitle);
+                }
+            }
+
+            // BDDfy's ClassicReportBuilder calls .Single() on scenarios grouped by title,
+            // so duplicate titles within a story cause a crash. Append an index suffix to
+            // any duplicates to ensure every scenario in a story has a unique title.
+            var titleCounts = new Dictionary<string, int>();
             foreach (var scenario in story.Scenarios)
             {
-                if (idToTitle.TryGetValue(scenario.Id, out var fixedTitle))
-                    SetScenarioTitle(scenario, fixedTitle);
+                var title = scenario.Title;
+                if (!titleCounts.TryGetValue(title, out var count))
+                    count = 0;
+                titleCounts[title] = count + 1;
+            }
+
+            var duplicateTitles = new HashSet<string>(titleCounts.Where(x => x.Value > 1).Select(x => x.Key));
+            if (duplicateTitles.Count > 0)
+            {
+                var titleIndex = new Dictionary<string, int>();
+                foreach (var scenario in story.Scenarios)
+                {
+                    var title = scenario.Title;
+                    if (!duplicateTitles.Contains(title)) continue;
+
+                    if (!titleIndex.TryGetValue(title, out var index))
+                        index = 0;
+                    titleIndex[title] = index + 1;
+
+                    SetScenarioTitle(scenario, $"{title} ({index + 1})");
+                }
             }
         }
     }
