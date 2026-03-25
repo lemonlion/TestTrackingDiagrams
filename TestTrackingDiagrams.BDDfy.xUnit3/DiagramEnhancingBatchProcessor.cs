@@ -146,6 +146,22 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
             m => m.Groups[1].Value + WebUtility.HtmlEncode(m.Groups[2].Value) + m.Groups[3].Value,
             RegexOptions.Singleline);
 
+        // BDDfy assigns scenario/step IDs per-story (e.g. scenario-1, step-1-1), so
+        // different stories can produce duplicate IDs. jQuery's toggle uses these IDs,
+        // and duplicate IDs cause the wrong element to be toggled. Fix by making all
+        // scenario and step IDs globally unique. Each id='...' gets a unique suffix,
+        // and the immediately preceding data-toggle-target is updated to match.
+        var idCounter = 0;
+        html = Regex.Replace(
+            html,
+            @"data-toggle-target='((?:scenario|step)-[\d-]+)'(.*?)id='(\1)'",
+            m =>
+            {
+                var uniqueId = $"{m.Groups[1].Value}-g{idCounter++}";
+                return $"data-toggle-target='{uniqueId}'{m.Groups[2].Value}id='{uniqueId}'";
+            },
+            RegexOptions.Singleline);
+
         // Inject diagram CSS and overrides before </head>
         var diagramCss = """
             <style>
