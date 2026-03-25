@@ -148,20 +148,6 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
             html = Regex.Replace(html, pattern, $"$1{diagramHtml}$2", RegexOptions.Singleline);
         }
 
-        // BDDfy's jQuery hides all steps on page load and requires clicking the title to
-        // expand. Override so that steps are expanded and diagrams are collapsed by default.
-        var overrideScript = """
-            <script>
-            $(function(){
-                // Show steps that BDDfy's script hid on load
-                $('ul.steps').css('display','');
-                // Collapse all diagram details (the inner details, not the step list)
-                $('.tracking-diagram details').removeAttr('open');
-            });
-            </script>
-            """;
-        html = html.Replace("</body>", overrideScript + "</body>");
-
         File.WriteAllText(bddifyReportPath, html);
     }
 }
