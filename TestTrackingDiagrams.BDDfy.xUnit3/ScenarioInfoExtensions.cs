@@ -21,7 +21,7 @@ internal static class ScenarioInfoExtensions
                 {
                     DisplayName = featureGroup.Key,
                     Endpoint = endpoint,
-                    Scenarios = featureGroup
+                    Scenarios = DeduplicateScenarioTitles(featureGroup
                         .DistinctBy(x => x.TestId)
                         .OrderByDescending(x => x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
@@ -31,8 +31,28 @@ internal static class ScenarioInfoExtensions
                             DisplayName = x.ScenarioTitle,
                             IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
                             Result = x.Result.ToScenarioResult(),
-                        }).ToArray()
+                        }).ToArray())
                 };
             }).ToArray();
+    }
+
+    private static Scenario[] DeduplicateScenarioTitles(Scenario[] scenarios)
+    {
+        var titleCounts = scenarios.GroupBy(s => s.DisplayName).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+        if (titleCounts.Count == 0) return scenarios;
+
+        var titleIndex = new Dictionary<string, int>();
+        foreach (var scenario in scenarios)
+        {
+            if (!titleCounts.Contains(scenario.DisplayName)) continue;
+
+            if (!titleIndex.TryGetValue(scenario.DisplayName, out var index))
+                index = 0;
+            titleIndex[scenario.DisplayName] = index + 1;
+
+            scenario.DisplayName = $"{scenario.DisplayName} ({index + 1})";
+        }
+
+        return scenarios;
     }
 }
