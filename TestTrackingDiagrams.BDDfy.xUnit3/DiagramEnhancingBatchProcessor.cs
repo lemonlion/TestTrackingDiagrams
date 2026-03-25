@@ -99,7 +99,23 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
 
         var html = File.ReadAllText(bddifyReportPath);
 
-        // Inject diagram CSS before </head>
+        // BDDfy's ClassicReportBuilder does not HTML-encode step text, so test data
+        // containing HTML (e.g. XSS payloads like <script>alert(1)</script>) is rendered
+        // as live markup. Sanitise step content by encoding any raw HTML inside step spans.
+        html = Regex.Replace(
+            html,
+            @"(<li\s+class='step[^']*'[^>]*>\s*<span>)(.*?)(</span>\s*</li>)",
+            m => m.Groups[1].Value + WebUtility.HtmlEncode(m.Groups[2].Value) + m.Groups[3].Value,
+            RegexOptions.Singleline);
+
+        // Also sanitise the scenario title divs which can contain unescaped test data
+        html = Regex.Replace(
+            html,
+            @"(<div\s+class='[^']*canToggle\s+scenarioTitle'[^>]*>)(.*?)(</div>)",
+            m => m.Groups[1].Value + WebUtility.HtmlEncode(m.Groups[2].Value) + m.Groups[3].Value,
+            RegexOptions.Singleline);
+
+        // Inject diagram CSS and overrides before </head>
         var diagramCss = """
             <style>
             .tracking-diagram { margin: 10px 0 15px 20px; }
@@ -111,11 +127,12 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
             """;
         html = html.Replace("</head>", diagramCss + "</head>");
 
-        // Inject diagram images after each scenario's steps (identified by id="{scenarioId}")
+        // Inject diagram images inside each scenario's step list (before the closing </ul>)
+        // so that BDDfy's jQuery toggle mechanism shows/hides diagrams together with steps.
         foreach (var (scenarioId, scenarioDiagrams) in bddifyIdToDiagrams)
         {
             var diagramHtml = new StringBuilder();
-            diagramHtml.Append("<div class=\"tracking-diagram\"><h4>Sequence Diagrams</h4>");
+            diagramHtml.Append("<li class=\"tracking-diagram\"><h4>Sequence Diagrams</h4>");
             foreach (var diagram in scenarioDiagrams)
             {
                 var lazyLoadAttr = _fetcherOptions?.LazyLoadDiagramImages ?? true ? " loading=\"lazy\"" : "";
@@ -123,12 +140,12 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
                 diagramHtml.Append($"<h4>Raw PlantUML</h4><pre>{WebUtility.HtmlEncode(diagram.CodeBehind)}</pre>");
                 diagramHtml.Append("</details>");
             }
-            diagramHtml.Append("</div>");
+            diagramHtml.Append("</li>");
 
             // BDDfy's HTML structure: <ul class='steps' id='scenario-1'>...</ul>
-            // Insert diagram HTML after the closing </ul> tag for this scenario
-            var pattern = $@"(<ul[^>]*\bid\s*=\s*['""]?{Regex.Escape(scenarioId)}['""]?[^>]*>.*?</ul>)";
-            html = Regex.Replace(html, pattern, $"$1{diagramHtml}", RegexOptions.Singleline);
+            // Insert diagram HTML as final <li> inside the <ul>, before its closing tag
+            var pattern = $@"(<ul[^>]*\bid\s*=\s*['""]?{Regex.Escape(scenarioId)}['""]?[^>]*>.*?)(</ul>)";
+            html = Regex.Replace(html, pattern, $"$1{diagramHtml}$2", RegexOptions.Singleline);
         }
 
         File.WriteAllText(bddifyReportPath, html);
