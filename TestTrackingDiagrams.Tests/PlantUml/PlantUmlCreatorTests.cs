@@ -19,7 +19,8 @@ public class PlantUmlCreatorTests
         string uri = "http://example.com/api/orders",
         string? content = null,
         (string Key, string? Value)[]? headers = null,
-        RequestResponseMetaType metaType = RequestResponseMetaType.Default)
+        RequestResponseMetaType metaType = RequestResponseMetaType.Default,
+        string[]? focusFields = null)
     {
         return new RequestResponseLog(
             TestName: testName,
@@ -34,7 +35,10 @@ public class PlantUmlCreatorTests
             TraceId: Guid.NewGuid(),
             RequestResponseId: Guid.NewGuid(),
             TrackingIgnore: false,
-            MetaType: metaType);
+            MetaType: metaType)
+        {
+            FocusFields = focusFields
+        };
     }
 
     private static RequestResponseLog MakeResponse(
@@ -45,7 +49,8 @@ public class PlantUmlCreatorTests
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string? content = null,
         (string Key, string? Value)[]? headers = null,
-        RequestResponseMetaType metaType = RequestResponseMetaType.Default)
+        RequestResponseMetaType metaType = RequestResponseMetaType.Default,
+        string[]? focusFields = null)
     {
         return new RequestResponseLog(
             TestName: testName,
@@ -61,7 +66,10 @@ public class PlantUmlCreatorTests
             RequestResponseId: Guid.NewGuid(),
             TrackingIgnore: false,
             StatusCode: statusCode,
-            MetaType: metaType);
+            MetaType: metaType)
+        {
+            FocusFields = focusFields
+        };
     }
 
     private static RequestResponseLog MakeOverrideStart(
@@ -1873,5 +1881,154 @@ public class PlantUmlCreatorTests
 
         Assert.Contains("note right", plantUml);
         Assert.Contains("[X-Request-Id=req-42]", plantUml);
+    }
+
+    // ─── Focus field formatting ─────────────────────────────────
+
+    [Fact]
+    public void Focused_request_fields_are_bold_in_note_by_default()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note left", plantUml);
+        Assert.Contains("<b>\"name\": \"Alice\"", plantUml);
+    }
+
+    [Fact]
+    public void Non_focused_request_fields_are_lightgray_by_default()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("<color:lightgray>\"age\": 30</color>", plantUml);
+    }
+
+    [Fact]
+    public void Focused_response_fields_are_bold_in_note_by_default()
+    {
+        var json = """{"id":"123","status":"ok"}""";
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: json, focusFields: ["status"]),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note right", plantUml);
+        Assert.Contains("<b>\"status\": \"ok\"</b>", plantUml);
+    }
+
+    [Fact]
+    public void Non_focused_response_fields_are_lightgray_by_default()
+    {
+        var json = """{"id":"123","status":"ok"}""";
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: json, focusFields: ["status"]),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("<color:lightgray>\"id\": \"123\"", plantUml);
+    }
+
+    [Fact]
+    public void Custom_focus_emphasis_is_respected()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs,
+            focusEmphasis: FocusEmphasis.Colored,
+            focusDeEmphasis: FocusDeEmphasis.None).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("<color:blue>\"name\": \"Alice\"", plantUml);
+        Assert.DoesNotContain("<b>", plantUml);
+    }
+
+    [Fact]
+    public void Hidden_focus_deemphasis_replaces_non_focused_with_ellipsis()
+    {
+        var json = """{"a":"1","name":"Alice","b":"2"}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs,
+            focusDeEmphasis: FocusDeEmphasis.Hidden).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("\"name\": \"Alice\"", plantUml);
+        Assert.DoesNotContain("\"a\"", plantUml);
+        Assert.DoesNotContain("\"b\"", plantUml);
+        Assert.Contains("...", plantUml);
+    }
+
+    [Fact]
+    public void No_focus_fields_renders_json_normally()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.DoesNotContain("<b>", plantUml);
+        Assert.DoesNotContain("<color:lightgray>", plantUml);
+        Assert.Contains("\"name\": \"Alice\"", plantUml);
+    }
+
+    [Fact]
+    public void Focus_fields_with_non_json_content_are_ignored()
+    {
+        var logs = new[] { MakeRequest(content: "plain text body", focusFields: ["name"]) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("plain text body", plantUml);
+        Assert.DoesNotContain("<b>", plantUml);
+    }
+
+    [Fact]
+    public void Focus_does_not_affect_headers_formatting()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, headers: [("Authorization", "Bearer xyz")], focusFields: ["name"]) };
+        var plantUml = GetPlantUml(logs);
+
+        // Headers still use the gray color function
+        Assert.Contains("$color(gray)[Authorization=Bearer xyz]", plantUml);
+        // But JSON fields use focus formatting
+        Assert.Contains("<b>\"name\": \"Alice\"", plantUml);
+    }
+
+    [Fact]
+    public void Focus_composes_with_post_processor()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs,
+            requestPostFormattingProcessor: s => s.Replace("Alice", "***")).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        // Post-processor runs AFTER focus formatting
+        Assert.Contains("***", plantUml);
+    }
+
+    [Fact]
+    public void Focus_emphasis_none_and_deemphasis_none_renders_normally()
+    {
+        var json = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(content: json, focusFields: ["name"]) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs,
+            focusEmphasis: FocusEmphasis.None,
+            focusDeEmphasis: FocusDeEmphasis.None).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.DoesNotContain("<b>", plantUml);
+        Assert.DoesNotContain("<color:lightgray>", plantUml);
+        Assert.DoesNotContain("<color:blue>", plantUml);
+        Assert.Contains("\"name\": \"Alice\"", plantUml);
     }
 }

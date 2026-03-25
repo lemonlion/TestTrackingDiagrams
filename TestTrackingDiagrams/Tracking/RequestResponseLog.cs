@@ -22,6 +22,7 @@ public record RequestResponseLog(
     public bool IsOverrideEnd { get; set; }
     public bool IsActionStart { get; set; }
     public string? PlantUml { get; set; }
+    public string[]? FocusFields { get; set; }
 };
 
 public enum RequestResponseType

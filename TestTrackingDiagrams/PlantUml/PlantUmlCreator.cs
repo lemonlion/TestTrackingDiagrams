@@ -30,7 +30,9 @@ public static partial class PlantUmlCreator
         int maxUrlLength = 100,
         bool separateSetup = false,
         bool highlightSetup = true,
-        bool lazyLoadImages = true)
+        bool lazyLoadImages = true,
+        FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
+        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -49,7 +51,9 @@ public static partial class PlantUmlCreator
                 excludedHeaders, 
                 maxUrlLength,
                 separateSetup,
-                highlightSetup);
+                highlightSetup,
+                focusEmphasis,
+                focusDeEmphasis);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -66,7 +70,9 @@ public static partial class PlantUmlCreator
         string[] excludedHeaders,
         int maxUrlLength,
         bool separateSetup,
-        bool highlightSetup)
+        bool highlightSetup,
+        FocusEmphasis focusEmphasis,
+        FocusDeEmphasis focusDeEmphasis)
     {
         var builder = new DiagramBuilder(tracesForTest);
         var lastTrace = tracesForTest[^1];
@@ -137,7 +143,7 @@ public static partial class PlantUmlCreator
                     if (requestPreFormattingProcessor is not null)
                         content = requestPreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request);
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (requestPostFormattingProcessor is not null)
                         noteContent = requestPostFormattingProcessor(noteContent);
@@ -162,7 +168,7 @@ public static partial class PlantUmlCreator
                     if (responsePreFormattingProcessor is not null)
                         content = responsePreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response);
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);
@@ -308,9 +314,18 @@ public static partial class PlantUmlCreator
         IEnumerable<(string Key, string? Value)> headers,
         string? content,
         string[] excludedHeaders,
-        RequestResponseType type)
+        RequestResponseType type,
+        string[]? focusFields = null,
+        FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
+        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray)
     {
         var parsedContent = TryFormatAsJson(content);
+
+        if (parsedContent is not null && focusFields is { Length: > 0 })
+        {
+            parsedContent = JsonFocusFormatter.FormatWithFocus(parsedContent, focusFields, focusEmphasis, focusDeEmphasis);
+        }
+
         if (parsedContent is null)
         {
             parsedContent = type is RequestResponseType.Response

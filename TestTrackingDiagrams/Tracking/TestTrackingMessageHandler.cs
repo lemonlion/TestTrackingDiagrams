@@ -89,6 +89,9 @@ public class TestTrackingMessageHandler : DelegatingHandler
         if (!hasCurrentTestNameHeader)
             InjectImplicitActionStartIfNeeded(currentTestInfo);
 
+        var requestFocusFields = !hasCurrentTestNameHeader ? DiagramFocus.ConsumePendingRequestFocus() : null;
+        var responseFocusFields = !hasCurrentTestNameHeader ? DiagramFocus.ConsumePendingResponseFocus() : null;
+
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
@@ -102,7 +105,10 @@ public class TestTrackingMessageHandler : DelegatingHandler
             traceId,
             requestResponseId,
             requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
-        ));
+        )
+        {
+            FocusFields = requestFocusFields
+        });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -123,7 +129,10 @@ public class TestTrackingMessageHandler : DelegatingHandler
             requestResponseId,
             requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore),
             response.StatusCode
-            ));
+            )
+        {
+            FocusFields = responseFocusFields
+        });
 
         return response;
     }

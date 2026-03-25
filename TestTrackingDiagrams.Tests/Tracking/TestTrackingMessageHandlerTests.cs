@@ -1194,4 +1194,126 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var logs = GetLogsFromThisTest();
         Assert.Equal(2, logs.Length); // request + response, no crash
     }
+
+    // ─── DiagramFocus propagation ───────────────────────────────
+
+    [Fact]
+    public async Task Request_FocusFields_populated_when_DiagramFocus_Request_is_set()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        DiagramFocus.Request<SamplePayload>(x => x.Name, x => x.Age);
+
+        await invoker.SendAsync(MakePostRequest("""{"name":"Alice","age":30}"""), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.FocusFields);
+        Assert.Contains("Name", requestLog.FocusFields);
+        Assert.Contains("Age", requestLog.FocusFields);
+    }
+
+    [Fact]
+    public async Task Response_FocusFields_populated_when_DiagramFocus_Response_is_set()
+    {
+        _innerHandler.ResponseToReturn = new(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"id":"123","status":"ok"}""")
+        };
+        using var invoker = CreateInvoker(DefaultOptions());
+        DiagramFocus.Response<SampleResult>(x => x.Status);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var responseLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(responseLog.FocusFields);
+        Assert.Single(responseLog.FocusFields);
+        Assert.Equal("Status", responseLog.FocusFields[0]);
+    }
+
+    [Fact]
+    public async Task FocusFields_is_null_when_no_focus_set()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.All(logs, l => Assert.Null(l.FocusFields));
+    }
+
+    [Fact]
+    public async Task Focus_is_consumed_after_one_HTTP_call()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        DiagramFocus.Request<SamplePayload>(x => x.Name);
+        DiagramFocus.Response<SampleResult>(x => x.Status);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var secondRequestLog = GetLogsFromThisTest()
+            .Where(l => l.Type == RequestResponseType.Request).Skip(1).First();
+        var secondResponseLog = GetLogsFromThisTest()
+            .Where(l => l.Type == RequestResponseType.Response).Skip(1).First();
+        Assert.Null(secondRequestLog.FocusFields);
+        Assert.Null(secondResponseLog.FocusFields);
+    }
+
+    [Fact]
+    public async Task Focus_not_consumed_by_downstream_handler_when_HttpContext_is_set()
+    {
+        DiagramFocus.Request<SamplePayload>(x => x.Name);
+        DiagramFocus.Response<SampleResult>(x => x.Status);
+
+        var accessor = CreateHttpContextAccessor(
+            (TestTrackingHttpHeaders.CurrentTestNameHeader, "Server Test"),
+            (TestTrackingHttpHeaders.CurrentTestIdHeader, _testId));
+        using var invoker = CreateInvoker(DefaultOptions(), accessor);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        // When HttpContext is set, the handler is on the server side — focus should NOT be consumed
+        var logs = GetLogsFromThisTest();
+        Assert.All(logs, l => Assert.Null(l.FocusFields));
+
+        // And focus should still be pending (not consumed)
+        Assert.NotNull(DiagramFocus.ConsumePendingRequestFocus());
+        Assert.NotNull(DiagramFocus.ConsumePendingResponseFocus());
+    }
+
+    [Fact]
+    public async Task Both_request_and_response_focus_set_independently()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        DiagramFocus.Request<SamplePayload>(x => x.Name);
+        DiagramFocus.Response<SampleResult>(x => x.Id, x => x.Status);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        var responseLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+
+        Assert.NotNull(requestLog.FocusFields);
+        Assert.Single(requestLog.FocusFields);
+        Assert.Equal("Name", requestLog.FocusFields[0]);
+
+        Assert.NotNull(responseLog.FocusFields);
+        Assert.Equal(2, responseLog.FocusFields.Length);
+        Assert.Contains("Id", responseLog.FocusFields);
+        Assert.Contains("Status", responseLog.FocusFields);
+    }
+
+    // ─── Focus helpers ──────────────────────────────────────────
+
+    // ReSharper disable once ClassNeverInstantiated.Local
+    private record SamplePayload(string Name, int Age);
+    // ReSharper disable once ClassNeverInstantiated.Local
+    private record SampleResult(string Id, string Status);
+
+    private static HttpRequestMessage MakePostRequest(string body)
+    {
+        return new HttpRequestMessage(HttpMethod.Post, "http://target-service:5000/api/items")
+        {
+            Content = new StringContent(body)
+        };
+    }
 }
