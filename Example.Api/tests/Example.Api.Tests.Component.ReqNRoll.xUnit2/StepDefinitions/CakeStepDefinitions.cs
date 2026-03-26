@@ -49,6 +49,11 @@ public class CakeStepDefinitions
     [When("the request is sent to the cake post endpoint")]
     public async Task WhenTheRequestIsSentToTheCakePostEndpoint()
     {
+        // When run by the integration test project, field focus is configured via environment variables.
+        // Otherwise, no focus is applied — keeping this as a clean example for users.
+        if (IntegrationTestConfiguration.IsIntegrationTestMode)
+            IntegrationTestConfiguration.ApplyDiagramFocus();
+
         _cakeResponseMessage = await _client.PostAsJsonAsync("cake", _cakeRequest);
     }
 

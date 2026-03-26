@@ -26,6 +26,8 @@ public static partial class PlantUmlCreator
         Func<string, string>? requestPostFormattingProcessor = null,
         Func<string, string>? responsePreFormattingProcessor = null,
         Func<string, string>? responsePostFormattingProcessor = null,
+        Func<string, string>? requestMidFormattingProcessor = null,
+        Func<string, string>? responseMidFormattingProcessor = null,
         string[]? excludedHeaders = null,
         int maxUrlLength = 100,
         bool separateSetup = false,
@@ -48,6 +50,8 @@ public static partial class PlantUmlCreator
                 requestPostFormattingProcessor,
                 responsePreFormattingProcessor,
                 responsePostFormattingProcessor,
+                requestMidFormattingProcessor,
+                responseMidFormattingProcessor,
                 excludedHeaders, 
                 maxUrlLength,
                 separateSetup,
@@ -67,6 +71,8 @@ public static partial class PlantUmlCreator
         Func<string, string>? requestPostFormattingProcessor,
         Func<string, string>? responsePreFormattingProcessor,
         Func<string, string>? responsePostFormattingProcessor,
+        Func<string, string>? requestMidFormattingProcessor,
+        Func<string, string>? responseMidFormattingProcessor,
         string[] excludedHeaders,
         int maxUrlLength,
         bool separateSetup,
@@ -137,7 +143,7 @@ public static partial class PlantUmlCreator
                     if (requestPreFormattingProcessor is not null)
                         content = requestPreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (requestPostFormattingProcessor is not null)
                         noteContent = requestPostFormattingProcessor(noteContent);
@@ -162,7 +168,7 @@ public static partial class PlantUmlCreator
                     if (responsePreFormattingProcessor is not null)
                         content = responsePreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response, responseMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);
@@ -309,16 +315,12 @@ public static partial class PlantUmlCreator
         string? content,
         string[] excludedHeaders,
         RequestResponseType type,
+        Func<string, string>? midFormattingProcessor = null,
         string[]? focusFields = null,
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray)
     {
         var parsedContent = TryFormatAsJson(content);
-
-        if (parsedContent is not null && focusFields is { Length: > 0 })
-        {
-            parsedContent = JsonFocusFormatter.FormatWithFocus(parsedContent, focusFields, focusEmphasis, focusDeEmphasis);
-        }
 
         if (parsedContent is null)
         {
@@ -327,12 +329,22 @@ public static partial class PlantUmlCreator
                 : FormatFormUrlEncodedContent(content);
         }
 
+        var formattedContent = parsedContent!;
+
+        if (midFormattingProcessor is not null)
+            formattedContent = midFormattingProcessor(formattedContent);
+
+        if (focusFields is { Length: > 0 })
+        {
+            formattedContent = JsonFocusFormatter.FormatWithFocus(formattedContent, focusFields, focusEmphasis, focusDeEmphasis);
+        }
+
         var headersOnTop = string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
             .OrderBy(y => y.Key)
             .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]")));
 
-        return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + parsedContent.Trim()).TrimEnd();
+        return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + formattedContent.Trim()).TrimEnd();
     }
 
     private static string? TryFormatAsJson(string? content)
