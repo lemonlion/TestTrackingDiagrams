@@ -83,18 +83,15 @@ public static partial class PlantUmlCreator
         var hasSetupTraces = hasActionStart && tracesForTest
             .Take(actionStartIndex)
             .Any(t => !t.IsOverrideStart && !t.IsOverrideEnd && !t.IsActionStart);
-        var setupPartitionOpen = false;
         var setupPartitionClosed = false;
+        var partitionLine = highlightSetup ? "partition #E2E2F0 Setup" : "partition Setup";
 
         foreach (var trace in tracesForTest)
         {
             if (trace.IsActionStart)
             {
-                if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
-                {
-                    builder.AppendLine("end");
-                    setupPartitionClosed = true;
-                }
+                builder.ClosePartition();
+                setupPartitionClosed = true;
                 continue;
             }
 
@@ -113,9 +110,9 @@ public static partial class PlantUmlCreator
 
             if (trace.IsOverrideStart)
             {
-                if (hasActionStart && setupPartitionOpen && !setupPartitionClosed)
+                if (hasActionStart && !setupPartitionClosed)
                 {
-                    builder.AppendLine("end");
+                    builder.ClosePartition();
                     setupPartitionClosed = true;
                 }
                 currentlyOverriding = true;
@@ -126,11 +123,8 @@ public static partial class PlantUmlCreator
             if (currentlyOverriding)
                 continue;
 
-            if (hasSetupTraces && !setupPartitionOpen && !setupPartitionClosed)
-            {
-                builder.AppendLine(highlightSetup ? "partition #E2E2F0 Setup" : "partition Setup");
-                setupPartitionOpen = true;
-            }
+            if (hasSetupTraces && !builder.HasOpenPartition && !setupPartitionClosed)
+                builder.OpenPartition(partitionLine);
 
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
@@ -377,10 +371,27 @@ public static partial class PlantUmlCreator
         private readonly List<PlantUmlResult> _results = [];
         private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1));
         private int _stepNumber = 1;
+        private string? _openPartitionLine;
 
         public void Append(string text) => _currentDiagram.Append(text);
         public void AppendLine(string text) => _currentDiagram.AppendLine(text);
         public void IncrementStep() => _stepNumber++;
+        public bool HasOpenPartition => _openPartitionLine != null;
+
+        public void OpenPartition(string partitionLine)
+        {
+            AppendLine(partitionLine);
+            _openPartitionLine = partitionLine;
+        }
+
+        public void ClosePartition()
+        {
+            if (_openPartitionLine != null)
+            {
+                AppendLine("end");
+                _openPartitionLine = null;
+            }
+        }
 
         public bool EncodedDiagramExceedsMaxLength =>
             _currentDiagram.Length > MaxEncodedDiagramLength
@@ -388,11 +399,21 @@ public static partial class PlantUmlCreator
 
         public void FinishAndStartNewDiagram()
         {
+            var partitionToReopen = _openPartitionLine;
+            if (_openPartitionLine != null)
+                AppendLine("end");
+
             AppendLine("@enduml");
             var plainText = _currentDiagram.ToString();
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plainText);
             _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
             _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber));
+
+            if (partitionToReopen != null)
+            {
+                AppendLine(partitionToReopen);
+                _openPartitionLine = partitionToReopen;
+            }
         }
 
         public PlantUmlResult[] GetResults() => [.. _results];

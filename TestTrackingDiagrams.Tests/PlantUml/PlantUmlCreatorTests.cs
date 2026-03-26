@@ -1701,6 +1701,125 @@ public class PlantUmlCreatorTests
         Assert.Equal(openCount, closeCount);
     }
 
+    [Fact]
+    public void Setup_partition_is_balanced_when_large_response_triggers_chunking_split()
+    {
+        // Large response body during setup triggers AppendResponseNoteContent chunking,
+        // which calls FinishAndStartNewDiagram directly. This reproduced the original
+        // bug where a bare "end" appeared in a later diagram without a matching "partition".
+        var largeBody = new string('X', 20_000);
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api", content: largeBody),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: true).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        Assert.True(diagrams.Count > 1, "Should produce multiple diagrams from large setup response");
+
+        foreach (var diagram in diagrams)
+            AssertBalancedPartitions(diagram.PlainText);
+    }
+
+    [Fact]
+    public void Setup_partition_continues_across_split_diagrams_when_still_in_setup()
+    {
+        // When setup traces span multiple diagrams, each diagram should contain
+        // a balanced partition open/close, and continuation diagrams should re-open it.
+        var largeBody = new string('Y', 20_000);
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup-1"),
+            MakeResponse(callerName: "User", serviceName: "Api", content: largeBody),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup-2"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: true).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        Assert.True(diagrams.Count > 1, "Should produce multiple diagrams");
+
+        // First diagram should open the partition
+        Assert.Contains("partition", diagrams.First().PlainText);
+
+        // All diagrams must have balanced partitions
+        foreach (var diagram in diagrams)
+            AssertBalancedPartitions(diagram.PlainText);
+
+        // The continuation diagram that still has setup-2 should also contain a partition
+        var setup2Diagram = diagrams.First(d => d.PlainText.Contains("/api/setup-2"));
+        Assert.Contains("partition", setup2Diagram.PlainText);
+    }
+
+    [Fact]
+    public void Action_traces_after_split_have_balanced_partitions_and_no_bare_end()
+    {
+        // After ActionStart, diagrams should not have unbalanced partition state.
+        // The action diagram may contain a partition close if it also has the
+        // final setup content, but it must be balanced.
+        var largeBody = new string('Z', 20_000);
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup"),
+            MakeResponse(callerName: "User", serviceName: "Api", content: largeBody),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: true).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        // Every diagram must have balanced partitions
+        foreach (var diagram in diagrams)
+            AssertBalancedPartitions(diagram.PlainText);
+
+        // The last diagram (with action content) must not have a bare "end" outside notes
+        var lastDiagram = diagrams.Last().PlainText;
+        Assert.Contains("/api/action", lastDiagram);
+        AssertBalancedPartitions(lastDiagram);
+    }
+
+    [Fact]
+    public void Setup_partition_is_balanced_when_encoded_length_triggers_split()
+    {
+        // Triggers the per-trace encoded-length split path (as opposed to response chunking).
+        var logs = new List<RequestResponseLog>();
+
+        for (var i = 0; i < 200; i++)
+        {
+            logs.Add(MakeRequest(callerName: "User", serviceName: "Api",
+                uri: "http://example.com/api/setup",
+                content: $"{{\"payload_{i}\": \"{new string('X', 300)}\"}}",
+                headers: [("X-Trace", $"trace-{i}-{new string('H', 100)}")]));
+            logs.Add(MakeResponse(callerName: "User", serviceName: "Api",
+                content: $"{{\"result_{i}\": \"{new string('Y', 300)}\"}}",
+                headers: [("X-Response", $"resp-{i}-{new string('R', 100)}")]));
+        }
+
+        logs.Add(MakeActionStart());
+        logs.Add(MakeRequest(callerName: "User", serviceName: "Api",
+            uri: "http://example.com/api/action"));
+        logs.Add(MakeResponse(callerName: "User", serviceName: "Api"));
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: true).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        Assert.True(diagrams.Count > 1, "Should produce multiple diagrams");
+
+        foreach (var diagram in diagrams)
+            AssertBalancedPartitions(diagram.PlainText);
+    }
+
     private static void AssertBalancedNotes(string plantUml)
     {
         var noteOpens = plantUml.Split('\n').Count(l => l.Trim().StartsWith("note "));
