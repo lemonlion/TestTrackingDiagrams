@@ -11,6 +11,8 @@ public static class ReportGenerator
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
             RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+            RequestMidFormattingProcessor = options.RequestResponseMidProcessor,
+            ResponseMidFormattingProcessor = options.RequestResponseMidProcessor,
             ExcludedHeaders = options.ExcludedHeaders,
             SeparateSetup = options.SeparateSetup,
             HighlightSetup = options.HighlightSetup,
