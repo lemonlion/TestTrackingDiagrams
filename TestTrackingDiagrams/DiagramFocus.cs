@@ -12,9 +12,19 @@ public static class DiagramFocus
         PendingRequestFocus.Value = new FocusHolder { Fields = fields.Select(ExtractPropertyName).ToArray() };
     }
 
+    public static void Request(params string[] fieldNames)
+    {
+        PendingRequestFocus.Value = new FocusHolder { Fields = fieldNames };
+    }
+
     public static void Response<T>(params Expression<Func<T, object?>>[] fields)
     {
         PendingResponseFocus.Value = new FocusHolder { Fields = fields.Select(ExtractPropertyName).ToArray() };
+    }
+
+    public static void Response(params string[] fieldNames)
+    {
+        PendingResponseFocus.Value = new FocusHolder { Fields = fieldNames };
     }
 
     internal static string[]? ConsumePendingRequestFocus()

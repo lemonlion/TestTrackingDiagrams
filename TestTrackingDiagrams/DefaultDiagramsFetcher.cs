@@ -22,6 +22,8 @@ public static class DefaultDiagramsFetcher
                 responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
                 requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
                 responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
+                requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
+                responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
                 excludedHeaders: options.ExcludedHeaders.ToArray(),
                 separateSetup: options.SeparateSetup,
                 highlightSetup: options.HighlightSetup,
