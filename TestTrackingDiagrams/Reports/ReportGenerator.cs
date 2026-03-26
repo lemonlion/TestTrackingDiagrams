@@ -70,7 +70,7 @@ public static class ReportGenerator
                                  if (!scenario)
                                     scenario = document.getElementsByClassName('scenario');
                                  
-                                 for (i = 0; i < feature.length; i++)
+                                 for (let i = 0; i < feature.length; i++)
                                     feature[i].style.opacity = '0.5';
                              
                                  if (searchTimeoutId)
@@ -86,59 +86,71 @@ public static class ReportGenerator
                                  input = input.toLowerCase().trim();
                              
                                  let searchTokens = parseSearchTokensIncludingQuotes(input);
-                                 console.log("tokens: " + searchTokens);
-                                 for (j = 0; j < searchTokens.length; j++)
-                                     console.log("searchTokens[" + j + "]: " + searchTokens[j]);
                              
-                                 let feature = document.getElementsByClassName('feature');
-                                 let scenario = document.getElementsByClassName('scenario');
+                                 let features = document.getElementsByClassName('feature');
+                                 let scenarios = document.getElementsByClassName('scenario');
                              
-                                 for (i = 0; i < feature.length; i++) {
-                                     let tokenMiss = false;
-                                     for (j = 0; j < searchTokens.length; j++) {
-                                         if (!(feature[i].textContent.toLowerCase().includes(searchTokens[j]))) {
-                                             tokenMiss = true;
+                                 if (searchTokens.length === 0) {
+                                     for (let i = 0; i < features.length; i++) {
+                                         features[i].style.display = '';
+                                         features[i].style.opacity = '';
+                                     }
+                                     for (let i = 0; i < scenarios.length; i++) {
+                                         scenarios[i].style.display = '';
+                                     }
+                                     return;
+                                 }
+                             
+                                 let visibleScenarioCount = 0;
+                                 let lastVisibleScenario = null;
+                             
+                                 for (let i = 0; i < features.length; i++) {
+                                     let featureMatch = true;
+                                     for (let j = 0; j < searchTokens.length; j++) {
+                                         if (!(features[i].textContent.toLowerCase().includes(searchTokens[j]))) {
+                                             featureMatch = false;
                                              break;
                                          }
                                      }
                              
-                                     feature[i].style.display = tokenMiss ? "none" : "";
-                                 }
-                             
-                                 for (i = 0; i < scenario.length; i++) {
-                                     let tokenMiss = false;
-                                     for (j = 0; j < searchTokens.length; j++) {
-                                         if (!(scenario[i].textContent.toLowerCase().includes(searchTokens[j]))) {
-                                             tokenMiss = true;
-                                             break;
+                                     if (featureMatch) {
+                                         features[i].style.display = '';
+                                         features[i].open = true;
+                                         let childScenarios = features[i].querySelectorAll('.scenario');
+                                         for (let k = 0; k < childScenarios.length; k++) {
+                                             childScenarios[k].style.display = '';
+                                             visibleScenarioCount++;
+                                             lastVisibleScenario = childScenarios[k];
                                          }
+                                     } else {
+                                         features[i].style.display = 'none';
                                      }
-                             
-                                     scenario[i].style.display = tokenMiss ? "none" : "";
                                  }
                              
-                                 for (i = 0; i < feature.length; i++) { feature[i].style.opacity = ''; }
+                                 if (visibleScenarioCount === 1 && lastVisibleScenario) {
+                                     lastVisibleScenario.open = true;
+                                 }
+                             
+                                 for (let i = 0; i < features.length; i++) { features[i].style.opacity = ''; }
                              }
                              
                              function parseSearchTokensIncludingQuotes(str) {
-                                 let quoteTokens = str.match(/"(.*?)"/);
-                                 quoteTokens = quoteTokens?.slice(1, quoteTokens.length) ?? [];
-                                 console.log("Number of quoteTokens: " + quoteTokens.length);
+                                 let quoteTokens = [];
+                                 for (let match of str.matchAll(/"(.*?)"/g)) {
+                                     quoteTokens.push(match[1]);
+                                 }
                              
-                                 if (quoteTokens == null)
-                                     quoteTokens = [];
-                             
-                                 for (i = 0; i < quoteTokens.length; i++)
-                                     str = str.replace('\"' + quoteTokens[i] + '\"', '');
+                                 for (let i = 0; i < quoteTokens.length; i++)
+                                     str = str.replace('"' + quoteTokens[i] + '"', '');
                              
                                  let simpleTokens = [];
                                  let rawWords = str.trim().split(" ");
-                                 for (i = 0; i < rawWords.length; i++) {
+                                 for (let i = 0; i < rawWords.length; i++) {
                                      let token = rawWords[i].trim();
                                      simpleTokens.push(token);
                                  }
                              
-                                 tokens = quoteTokens.concat(simpleTokens);
+                                 let tokens = quoteTokens.concat(simpleTokens);
                                  tokens = tokens.filter(x => x !== "");
                              
                                  return tokens;
