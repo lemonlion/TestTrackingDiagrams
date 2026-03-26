@@ -129,7 +129,7 @@ public class Stylesheets
                     width: 25em;
                 }
                 
-                #filters {
+                .filters {
                     margin-left: 1em;
                 }
                 
