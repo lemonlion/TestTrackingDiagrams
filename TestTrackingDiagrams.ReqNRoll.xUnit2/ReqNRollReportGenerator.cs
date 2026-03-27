@@ -24,10 +24,14 @@ public static class ReqNRollReportGenerator
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
             RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
             ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+            RequestMidFormattingProcessor = options.RequestResponseMidProcessor,
+            ResponseMidFormattingProcessor = options.RequestResponseMidProcessor,
             ExcludedHeaders = options.ExcludedHeaders,
             SeparateSetup = options.SeparateSetup,
             HighlightSetup = options.HighlightSetup,
-            LazyLoadDiagramImages = options.LazyLoadDiagramImages
+            LazyLoadDiagramImages = options.LazyLoadDiagramImages,
+            FocusEmphasis = options.FocusEmphasis,
+            FocusDeEmphasis = options.FocusDeEmphasis
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

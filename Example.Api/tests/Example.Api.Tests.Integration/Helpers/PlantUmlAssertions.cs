@@ -23,18 +23,22 @@ public static class PlantUmlAssertions
 
     public static void AssertContainsFocusMarkup(string plantUml, string fieldName, FocusEmphasis emphasis)
     {
-        // Find lines containing the field name and verify emphasis markup
+        // Find lines containing the field name and verify at least one has the expected emphasis markup.
+        // The same field name may appear in multiple notes (e.g. GET response + POST request body),
+        // and only the note with DiagramFocus applied will have markup.
         var lines = GetLinesContaining(plantUml, fieldName);
         Assert.NotEmpty(lines);
 
-        foreach (var line in lines)
+        bool HasExpectedMarkup(string line)
         {
-            if (emphasis.HasFlag(FocusEmphasis.Bold))
-                Assert.Contains("<b>", line);
-
-            if (emphasis.HasFlag(FocusEmphasis.Colored))
-                Assert.Contains("<color:blue>", line);
+            if (emphasis.HasFlag(FocusEmphasis.Bold) && !line.Contains("<b>"))
+                return false;
+            if (emphasis.HasFlag(FocusEmphasis.Colored) && !line.Contains("<color:blue>"))
+                return false;
+            return true;
         }
+
+        Assert.Contains(lines, line => HasExpectedMarkup(line));
     }
 
     public static void AssertContainsDeEmphasisMarkup(string plantUml, string fieldName, FocusDeEmphasis deEmphasis)
@@ -42,28 +46,39 @@ public static class PlantUmlAssertions
         var lines = GetLinesContaining(plantUml, fieldName);
         Assert.NotEmpty(lines);
 
-        foreach (var line in lines)
+        bool HasExpectedMarkup(string line)
         {
-            if (deEmphasis.HasFlag(FocusDeEmphasis.LightGray))
-                Assert.Contains("<color:lightgray>", line);
-
-            if (deEmphasis.HasFlag(FocusDeEmphasis.SmallerText))
-                Assert.Contains("<size:9>", line);
+            if (deEmphasis.HasFlag(FocusDeEmphasis.LightGray) && !line.Contains("<color:lightgray>"))
+                return false;
+            if (deEmphasis.HasFlag(FocusDeEmphasis.SmallerText) && !line.Contains("<size:9>"))
+                return false;
+            return true;
         }
+
+        Assert.Contains(lines, line => HasExpectedMarkup(line));
     }
 
     public static void AssertHiddenDeEmphasis(string plantUml, string fieldName)
     {
-        // When Hidden, the non-focused field should not appear — replaced by "..."
-        var lines = GetLinesContaining(plantUml, fieldName);
-        Assert.Empty(lines);
-        Assert.Contains("...", plantUml);
+        // When Hidden, the non-focused field should be replaced by "..." in focused notes.
+        // The field may still appear in non-focused notes (e.g. GET response notes).
+        var noteBlocks = ExtractNoteBlocks(plantUml);
+
+        // At least one note block should contain "..." (indicates hidden fields)
+        var hiddenNotes = noteBlocks.Where(n => n.Contains("...")).ToArray();
+        Assert.NotEmpty(hiddenNotes);
+
+        // The field name should not appear in any note block that has "..." markers
+        foreach (var note in hiddenNotes)
+        {
+            Assert.DoesNotContain($"\"{fieldName}\"", note, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     public static void AssertContainsSetupPartition(string plantUml, bool highlighted)
     {
         if (highlighted)
-            Assert.Contains("partition Setup #E2E2F0", plantUml);
+            Assert.Contains("partition #E2E2F0 Setup", plantUml);
         else
             Assert.Matches(@"partition Setup\s", plantUml);
     }

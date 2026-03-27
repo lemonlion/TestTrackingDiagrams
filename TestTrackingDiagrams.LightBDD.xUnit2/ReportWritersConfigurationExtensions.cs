@@ -14,9 +14,13 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
                 RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
                 ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+                RequestMidFormattingProcessor = options.RequestResponseMidProcessor,
+                ResponseMidFormattingProcessor = options.RequestResponseMidProcessor,
                 ExcludedHeaders = options.ExcludedHeaders,
                 SeparateSetup = options.SeparateSetup,
-                HighlightSetup = options.HighlightSetup
+                HighlightSetup = options.HighlightSetup,
+                FocusEmphasis = options.FocusEmphasis,
+                FocusDeEmphasis = options.FocusDeEmphasis
             };
             var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(fetcherOptions);
             var reportsFilePath = options.ReportsFolderPath.Trim().TrimEnd('/');

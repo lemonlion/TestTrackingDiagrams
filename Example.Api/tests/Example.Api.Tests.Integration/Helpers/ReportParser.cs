@@ -1,3 +1,4 @@
+using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
 
@@ -29,7 +30,7 @@ public static class ReportParser
         using var document = await context.OpenAsync(req => req.Content(html));
 
         return document.QuerySelectorAll("div.raw-plantuml pre")
-            .Select(el => el.TextContent.Trim())
+            .Select(el => WebUtility.HtmlDecode(el.InnerHtml).Trim())
             .Where(s => s.Length > 0)
             .ToArray();
     }
@@ -43,11 +44,12 @@ public static class ReportParser
 
         var results = new List<ParsedScenario>();
 
-        foreach (var scenario in document.QuerySelectorAll("details.scenario"))
+        foreach (var scenario in document.QuerySelectorAll("details.scenario, div.scenario"))
         {
-            var h3 = scenario.QuerySelector("summary.h3");
+            var h3 = scenario.QuerySelector("summary.h3") ?? scenario.QuerySelector("h3");
             var name = h3?.TextContent.Replace("Happy Path", "").Trim() ?? "";
-            var isHappyPath = scenario.ClassList.Contains("happy-path");
+            var isHappyPath = scenario.ClassList.Contains("happy-path")
+                          || scenario.QuerySelector("span.label")?.TextContent.Contains("Happy Path", StringComparison.OrdinalIgnoreCase) == true;
 
             var plantUmlSources = scenario.QuerySelectorAll("div.raw-plantuml pre")
                 .Select(el => el.TextContent.Trim())

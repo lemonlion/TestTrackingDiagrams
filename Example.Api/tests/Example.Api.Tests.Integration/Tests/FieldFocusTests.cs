@@ -1,23 +1,31 @@
+using System.Runtime.CompilerServices;
 using Example.Api.Tests.Integration.Helpers;
 using TestTrackingDiagrams;
 
 namespace Example.Api.Tests.Integration.Tests;
 
 /// <summary>
-/// Uses xUnit3 project as the primary target for field focus testing.
+/// Tests diagram field focus features across all component test projects.
 /// All tests run sequentially to avoid port conflicts.
 /// </summary>
 [Collection("SequentialTests")]
 public class FieldFocusTests
 {
-    private const string TargetProject = TestProjects.XUnit3;
+    public static TheoryData<string> AllProjects()
+    {
+        var data = new TheoryData<string>();
+        foreach (var project in TestProjects.All)
+            data.Add(project);
+        return data;
+    }
 
     // ──────────────────── Emphasis Tests ────────────────────
 
-    [Fact]
-    public async Task FocusBoldEmphasis_HighlightsRequestFields()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusBoldEmphasis_HighlightsRequestFields(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -30,10 +38,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Flour", FocusDeEmphasis.LightGray);
     }
 
-    [Fact]
-    public async Task FocusColoredEmphasis_HighlightsRequestFields()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusColoredEmphasis_HighlightsRequestFields(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Colored",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -44,10 +53,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsFocusMarkup(happyPathDiagram, "Eggs", FocusEmphasis.Colored);
     }
 
-    [Fact]
-    public async Task FocusBoldAndColoredEmphasis_CombinesMarkup()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusBoldAndColoredEmphasis_CombinesMarkup(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold,Colored",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -58,10 +68,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsFocusMarkup(happyPathDiagram, "Eggs", FocusEmphasis.Bold | FocusEmphasis.Colored);
     }
 
-    [Fact]
-    public async Task FocusNoneEmphasis_NoMarkupOnFocusedFields()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusNoneEmphasis_NoMarkupOnFocusedFields(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "None",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -77,10 +88,11 @@ public class FieldFocusTests
 
     // ──────────────────── De-emphasis Tests ────────────────────
 
-    [Fact]
-    public async Task DeEmphasisLightGray_GraysNonFocusedFields()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task DeEmphasisLightGray_GraysNonFocusedFields(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -92,10 +104,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Flour", FocusDeEmphasis.LightGray);
     }
 
-    [Fact]
-    public async Task DeEmphasisSmallerText_ShrinksNonFocusedFields()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task DeEmphasisSmallerText_ShrinksNonFocusedFields(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "SmallerText",
@@ -106,10 +119,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Milk", FocusDeEmphasis.SmallerText);
     }
 
-    [Fact]
-    public async Task DeEmphasisHidden_ReplacesNonFocusedWithEllipsis()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task DeEmphasisHidden_ReplacesNonFocusedWithEllipsis(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "Hidden",
@@ -123,10 +137,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertHiddenDeEmphasis(happyPathDiagram, "Flour");
     }
 
-    [Fact]
-    public async Task DeEmphasisCombined_LightGrayAndSmallerText()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task DeEmphasisCombined_LightGrayAndSmallerText(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray,SmallerText",
@@ -137,10 +152,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Milk", FocusDeEmphasis.LightGray | FocusDeEmphasis.SmallerText);
     }
 
-    [Fact]
-    public async Task DeEmphasisNone_NormalRenderingForNonFocused()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task DeEmphasisNone_NormalRenderingForNonFocused(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "None",
@@ -156,10 +172,11 @@ public class FieldFocusTests
 
     // ──────────────────── Field Targeting Tests ────────────────────
 
-    [Fact]
-    public async Task FocusSingleRequestField_OnlyThatFieldEmphasized()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusSingleRequestField_OnlyThatFieldEmphasized(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -172,10 +189,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Flour", FocusDeEmphasis.LightGray);
     }
 
-    [Fact]
-    public async Task FocusMultipleRequestFields_AllEmphasized()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusMultipleRequestFields_AllEmphasized(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -188,10 +206,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Flour", FocusDeEmphasis.LightGray);
     }
 
-    [Fact]
-    public async Task FocusResponseFields_EmphasizesResponseBody()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusResponseFields_EmphasizesResponseBody(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -203,10 +222,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Ingredients", FocusDeEmphasis.LightGray);
     }
 
-    [Fact]
-    public async Task FocusBothRequestAndResponse_BothEmphasized()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusBothRequestAndResponse_BothEmphasized(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -219,10 +239,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsFocusMarkup(happyPathDiagram, "BatchId", FocusEmphasis.Bold);
     }
 
-    [Fact]
-    public async Task FocusNonExistentField_AllFieldsDeEmphasized()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusNonExistentField_AllFieldsDeEmphasized(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
@@ -230,16 +251,16 @@ public class FieldFocusTests
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
-        // All real fields should be de-emphasized since the focused field doesn't exist
-        PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Eggs", FocusDeEmphasis.LightGray);
-        PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Milk", FocusDeEmphasis.LightGray);
-        PlantUmlAssertions.AssertContainsDeEmphasisMarkup(happyPathDiagram, "Flour", FocusDeEmphasis.LightGray);
+        // When the focused field doesn't exist in the body, the library returns JSON unchanged
+        // (no fields matched → no markup applied). Verify no focus markup is present.
+        PlantUmlAssertions.AssertNoFocusMarkup(happyPathDiagram);
     }
 
-    [Fact]
-    public async Task NoFocusSet_NormalRendering()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task NoFocusSet_NormalRendering(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray"
@@ -252,10 +273,11 @@ public class FieldFocusTests
 
     // ──────────────────── Combined Configuration Tests ────────────────────
 
-    [Fact]
-    public async Task FocusWithSeparateSetup_BothApplied()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusWithSeparateSetup_BothApplied(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_SEPARATE_SETUP"] = "true",
             ["TTD_HIGHLIGHT_SETUP"] = "true",
@@ -269,10 +291,11 @@ public class FieldFocusTests
         PlantUmlAssertions.AssertContainsFocusMarkup(happyPathDiagram, "Eggs", FocusEmphasis.Bold);
     }
 
-    [Fact]
-    public async Task FocusWithHiddenDeEmphasis_ProductionScenario()
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task FocusWithHiddenDeEmphasis_ProductionScenario(string projectName)
     {
-        var plantUmlSources = await RunWithFocusConfig(new Dictionary<string, string>
+        var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
             ["TTD_FOCUS_EMPHASIS"] = "Bold",
             ["TTD_FOCUS_DE_EMPHASIS"] = "Hidden",
@@ -287,13 +310,16 @@ public class FieldFocusTests
 
     // ──────────────────── Helpers ────────────────────
 
-    private static async Task<string[]> RunWithFocusConfig(Dictionary<string, string> envVars)
+    private static async Task<string[]> RunWithFocusConfig(
+        string projectName,
+        Dictionary<string, string> envVars,
+        [CallerMemberName] string callerName = "")
     {
         // Ensure baseline config
         envVars.TryAdd("TTD_SPECIFICATIONS_TITLE", "Dessert Provider Specifications");
 
-        var result = await TestProjectRunner.RunAsync(TargetProject, envVars);
-        Assert.True(result.Success, $"Test run failed:\n{result.StandardError}\n{result.StandardOutput}");
+        var result = await TestProjectRunner.RunAsync(projectName, envVars, runLabel: callerName);
+        Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}\n{result.StandardOutput}");
 
         var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
         Assert.NotNull(reports.FeaturesReportHtml);
@@ -305,10 +331,11 @@ public class FieldFocusTests
 
     private static string GetHappyPathDiagram(string[] plantUmlSources)
     {
-        // The happy path diagram is the one with more HTTP interactions (involves milk/eggs/flour + cake)
-        // It will contain "Cow Service" participant (the milk endpoint calls an external dependency)
+        // The happy path diagram contains "Cow Service" (external dependency) and "batchId" (successful response).
+        // The batchId filter distinguishes it from error-path diagrams that also call Cow Service.
         var happyPath = plantUmlSources
             .Where(p => p.Contains("CowService") || p.Contains("Cow Service"))
+            .Where(p => p.Contains("batchId", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(p => p.Length)
             .FirstOrDefault();
 

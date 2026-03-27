@@ -79,7 +79,7 @@ public class ReportGenerationTests
         // The happy path diagram involves the Cow Service (milk call)
         var happyPathDiagram = plantUmlSources.First(p => p.Contains("Cow Service", StringComparison.OrdinalIgnoreCase));
         PlantUmlAssertions.AssertContainsParticipants(happyPathDiagram, "Dessert Provider", "Cow Service");
-        PlantUmlAssertions.AssertContainsSequenceArrow(happyPathDiagram, "DessertProvider", "CowService");
+        PlantUmlAssertions.AssertContainsSequenceArrow(happyPathDiagram, "dessertProvider", "cowService");
     }
 
     [Theory]

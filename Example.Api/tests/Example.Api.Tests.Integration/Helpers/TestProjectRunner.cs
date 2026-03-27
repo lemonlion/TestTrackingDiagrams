@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Example.Api.Tests.Integration.Helpers;
@@ -14,10 +15,14 @@ public static class TestProjectRunner
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(120);
 
+    private static readonly string ArchivedReportsRoot =
+        Path.Combine(TestProjects.SolutionRoot, "TestResults", "ArchivedReports");
+
     public static async Task<TestProjectRunResult> RunAsync(
         string projectName,
         Dictionary<string, string>? environmentVariables = null,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        [CallerMemberName] string runLabel = "")
     {
         var projectPath = TestProjects.GetProjectPath(projectName);
         var reportsFolderPath = TestProjects.GetReportsFolderPath(projectName);
@@ -66,11 +71,33 @@ public static class TestProjectRunner
             return new TestProjectRunResult(false, stdout.ToString(), $"Process timed out after {effectiveTimeout.TotalSeconds}s", reportsFolderPath, -1);
         }
 
+        ArchiveReports(reportsFolderPath, projectName, runLabel);
+
         return new TestProjectRunResult(
             process.ExitCode == 0,
             stdout.ToString(),
             stderr.ToString(),
             reportsFolderPath,
             process.ExitCode);
+    }
+
+    private static void ArchiveReports(string reportsFolderPath, string projectName, string runLabel)
+    {
+        if (!Directory.Exists(reportsFolderPath))
+            return;
+
+        // Short project name for the folder: strip the common prefix
+        var shortName = projectName.Replace("Example.Api.Tests.Component.", "");
+        var archiveDir = Path.Combine(ArchivedReportsRoot, shortName);
+        Directory.CreateDirectory(archiveDir);
+
+        foreach (var sourceFile in Directory.GetFiles(reportsFolderPath))
+        {
+            var fileName = Path.GetFileNameWithoutExtension(sourceFile);
+            var ext = Path.GetExtension(sourceFile);
+            var label = string.IsNullOrEmpty(runLabel) ? "" : $".{runLabel}";
+            var destFile = Path.Combine(archiveDir, $"{fileName}{label}{ext}");
+            File.Copy(sourceFile, destFile, overwrite: true);
+        }
     }
 }
