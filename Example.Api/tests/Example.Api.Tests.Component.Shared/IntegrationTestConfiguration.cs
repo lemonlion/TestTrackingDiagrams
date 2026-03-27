@@ -32,6 +32,9 @@ public static class IntegrationTestConfiguration
         if (TryGetCsv("TTD_EXCLUDED_HEADERS") is { } excludedHeaders)
             options.ExcludedHeaders = excludedHeaders;
 
+        if (TryGetEnv("TTD_PLANTUML_SERVER_BASE_URL") is { } plantUmlServerBaseUrl)
+            options.PlantUmlServerBaseUrl = plantUmlServerBaseUrl;
+
         return options;
     }
 

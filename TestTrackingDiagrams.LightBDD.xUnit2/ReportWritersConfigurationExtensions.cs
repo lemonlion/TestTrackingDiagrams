@@ -19,6 +19,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 ExcludedHeaders = options.ExcludedHeaders,
                 SeparateSetup = options.SeparateSetup,
                 HighlightSetup = options.HighlightSetup,
+                LazyLoadDiagramImages = options.LazyLoadDiagramImages,
                 FocusEmphasis = options.FocusEmphasis,
                 FocusDeEmphasis = options.FocusDeEmphasis
             };

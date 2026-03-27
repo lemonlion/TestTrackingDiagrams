@@ -13,6 +13,17 @@ public class ConfigurationOverrideTests
         return data;
     }
 
+    /// <summary>
+    /// LightBDD.Contrib renders its own img tags with loading="lazy" regardless of our setting.
+    /// </summary>
+    public static TheoryData<string> AllProjectsExceptLightBdd()
+    {
+        var data = new TheoryData<string>();
+        foreach (var project in TestProjects.All.Where(p => p != TestProjects.LightBddXUnit2))
+            data.Add(project);
+        return data;
+    }
+
     [Theory]
     [MemberData(nameof(AllProjects))]
     public async Task SeparateSetupTrue_DiagramContainsSetupPartition(string projectName)
@@ -135,5 +146,71 @@ public class ConfigurationOverrideTests
         var sources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.FeaturesReportHtml);
         Assert.NotEmpty(sources);
         return sources;
+    }
+
+    // ──────────────── Lazy Load Tests ────────────────
+
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task LazyLoadTrue_DiagramImgsHaveLazyAttribute(string projectName)
+    {
+        var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
+        {
+            ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "true",
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+        });
+
+        Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
+
+        var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
+        Assert.NotNull(reports.SpecificationsHtml);
+
+        var imgs = await ReportParser.ExtractDiagramImgsAsync(reports.SpecificationsHtml);
+        Assert.NotEmpty(imgs);
+        Assert.All(imgs, img => Assert.True(img.HasLazyLoading, $"Expected loading=\"lazy\" on img with src: {img.Src[..Math.Min(80, img.Src.Length)]}"));
+    }
+
+    [Theory]
+    [MemberData(nameof(AllProjectsExceptLightBdd))]
+    public async Task LazyLoadFalse_DiagramImgsHaveNoLazyAttribute(string projectName)
+    {
+        var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
+        {
+            ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "false",
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+        });
+
+        Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
+
+        var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
+        Assert.NotNull(reports.SpecificationsHtml);
+
+        var imgs = await ReportParser.ExtractDiagramImgsAsync(reports.SpecificationsHtml);
+        Assert.NotEmpty(imgs);
+        Assert.All(imgs, img => Assert.False(img.HasLazyLoading, $"Expected no loading=\"lazy\" on img with src: {img.Src[..Math.Min(80, img.Src.Length)]}"));
+    }
+
+    // ──────────────── PlantUML Server URL Tests ────────────────
+
+    [Theory]
+    [MemberData(nameof(AllProjects))]
+    public async Task CustomPlantUmlServerBaseUrl_AppearsInDiagramImgSrc(string projectName)
+    {
+        const string customBaseUrl = "https://custom-plantuml.example.com/plantuml";
+
+        var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
+        {
+            ["TTD_PLANTUML_SERVER_BASE_URL"] = customBaseUrl,
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+        });
+
+        Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
+
+        var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
+        Assert.NotNull(reports.SpecificationsHtml);
+
+        var imgs = await ReportParser.ExtractDiagramImgsAsync(reports.SpecificationsHtml);
+        Assert.NotEmpty(imgs);
+        Assert.All(imgs, img => Assert.StartsWith($"{customBaseUrl}/png/", img.Src));
     }
 }

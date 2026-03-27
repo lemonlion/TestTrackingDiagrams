@@ -73,4 +73,21 @@ public static class ReportParser
 
     public static async Task<string> ReadYamlAsync(string yamlFilePath) =>
         await File.ReadAllTextAsync(yamlFilePath);
+
+    public record DiagramImgInfo(string Src, bool HasLazyLoading);
+
+    public static async Task<DiagramImgInfo[]> ExtractDiagramImgsAsync(string htmlFilePath)
+    {
+        var html = await File.ReadAllTextAsync(htmlFilePath);
+        var config = Configuration.Default;
+        using var context = BrowsingContext.New(config);
+        using var document = await context.OpenAsync(req => req.Content(html));
+
+        return document.QuerySelectorAll("details.example img, details.example-diagrams img")
+            .Select(img => new DiagramImgInfo(
+                img.GetAttribute("src") ?? "",
+                img.GetAttribute("loading") == "lazy"))
+            .Where(d => d.Src.Length > 0)
+            .ToArray();
+    }
 }
