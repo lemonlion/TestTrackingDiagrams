@@ -35,6 +35,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                     {
                         o.Title = options.SpecificationsTitle;
                         o.ExampleDiagramsAsCode = diagramsFetcher;
+                        o.LazyLoadDiagramImages = options.LazyLoadDiagramImages;
                     });
                     if(options.HtmlSpecificationsCustomStyleSheet is not null)
                         formatter.WithCustomCss(options.HtmlSpecificationsCustomStyleSheet);
@@ -53,7 +54,8 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 {
                     formatter.Options = new HtmlReportAdvancedOptions
                     {
-                        ExampleDiagramsAsCode = diagramsFetcher
+                        ExampleDiagramsAsCode = diagramsFetcher,
+                        LazyLoadDiagramImages = options.LazyLoadDiagramImages
                     };
                 });
         }

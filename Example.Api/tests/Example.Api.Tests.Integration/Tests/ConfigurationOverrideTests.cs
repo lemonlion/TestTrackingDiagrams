@@ -13,17 +13,6 @@ public class ConfigurationOverrideTests
         return data;
     }
 
-    /// <summary>
-    /// LightBDD.Contrib renders its own img tags with loading="lazy" regardless of our setting.
-    /// </summary>
-    public static TheoryData<string> AllProjectsExceptLightBdd()
-    {
-        var data = new TheoryData<string>();
-        foreach (var project in TestProjects.All.Where(p => p != TestProjects.LightBddXUnit2))
-            data.Add(project);
-        return data;
-    }
-
     [Theory]
     [MemberData(nameof(AllProjects))]
     public async Task SeparateSetupTrue_DiagramContainsSetupPartition(string projectName)
@@ -171,7 +160,7 @@ public class ConfigurationOverrideTests
     }
 
     [Theory]
-    [MemberData(nameof(AllProjectsExceptLightBdd))]
+    [MemberData(nameof(AllProjects))]
     public async Task LazyLoadFalse_DiagramImgsHaveNoLazyAttribute(string projectName)
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
