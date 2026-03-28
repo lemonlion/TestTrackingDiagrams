@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Humanizer;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
 
@@ -18,6 +18,8 @@ public static partial class PlantUmlCreator
     private const int MaxResponseNoteChunkLength = 15_000;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
+
+    private static readonly ConcurrentDictionary<string, string> AliasCache = new();
 
     public static IEnumerable<PlantUmlForTest> GetPlantUmlImageTagsPerTestId(
         IEnumerable<RequestResponseLog>? requestResponses,
@@ -40,7 +42,10 @@ public static partial class PlantUmlCreator
 
         var requestsResponseByTraceIdAndTest = requestResponses?.GroupBy(x => x.TestId);
 
-        var plantUmlPerTestName = requestsResponseByTraceIdAndTest?.Select(testTraces =>
+        var plantUmlPerTestName = requestsResponseByTraceIdAndTest?
+            .AsParallel()
+            .AsOrdered()
+            .Select(testTraces =>
         {
             var traces = testTraces.ToList();
             var testName = testTraces.First().TestName;
@@ -62,7 +67,7 @@ public static partial class PlantUmlCreator
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
 
-        return plantUmlPerTestName ?? [];
+        return plantUmlPerTestName?.AsEnumerable() ?? [];
     }
 
     private static PlantUmlResult[] CreatePlantUml(
@@ -307,7 +312,7 @@ public static partial class PlantUmlCreator
 
     private static string SanitizePlantUmlAlias(string name)
     {
-        return SanitizeAliasRegex().Replace(name.Camelize(), "_");
+        return AliasCache.GetOrAdd(name, n => SanitizeAliasRegex().Replace(n.Camelize(), "_"));
     }
 
     private static string FormatNoteContent(
@@ -347,12 +352,18 @@ public static partial class PlantUmlCreator
         return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + formattedContent.Trim()).TrimEnd();
     }
 
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+
     private static string? TryFormatAsJson(string? content)
     {
         if (content is null || (!content.StartsWith('{') && !content.StartsWith('[')))
             return null;
 
-        try { return JsonNode.Parse(content)!.ToString(); }
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            return JsonSerializer.Serialize(doc.RootElement, IndentedJsonOptions);
+        }
         catch (JsonException) { return null; }
     }
 
@@ -384,6 +395,8 @@ public static partial class PlantUmlCreator
         private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1));
         private int _stepNumber = 1;
         private string? _openPartitionLine;
+        private string? _cachedEncoded;
+        private int _lengthAtLastEncode;
 
         public void Append(string text) => _currentDiagram.Append(text);
         public void AppendLine(string text) => _currentDiagram.AppendLine(text);
@@ -405,9 +418,22 @@ public static partial class PlantUmlCreator
             }
         }
 
-        public bool EncodedDiagramExceedsMaxLength =>
-            _currentDiagram.Length > MaxEncodedDiagramLength
-            && PlantUmlTextEncoder.Encode(_currentDiagram.ToString()).Length > MaxEncodedDiagramLength;
+        public bool EncodedDiagramExceedsMaxLength
+        {
+            get
+            {
+                if (_currentDiagram.Length <= MaxEncodedDiagramLength)
+                    return false;
+
+                // Only re-encode when the diagram has grown meaningfully since the last check
+                if (_cachedEncoded is not null && _currentDiagram.Length - _lengthAtLastEncode < 200)
+                    return _cachedEncoded.Length > MaxEncodedDiagramLength;
+
+                _cachedEncoded = PlantUmlTextEncoder.Encode(_currentDiagram.ToString());
+                _lengthAtLastEncode = _currentDiagram.Length;
+                return _cachedEncoded.Length > MaxEncodedDiagramLength;
+            }
+        }
 
         public void FinishAndStartNewDiagram()
         {
@@ -418,6 +444,8 @@ public static partial class PlantUmlCreator
             AppendLine("@enduml");
             var plainText = _currentDiagram.ToString();
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plainText);
+            _cachedEncoded = null;
+            _lengthAtLastEncode = 0;
             _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
             _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber));
 

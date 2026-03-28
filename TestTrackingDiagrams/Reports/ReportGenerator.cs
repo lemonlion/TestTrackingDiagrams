@@ -22,9 +22,11 @@ public static class ReportGenerator
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages);
-        GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages);
-        GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true);
+        Parallel.Invoke(
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages),
+            () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
+        );
     }
 
     public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
@@ -178,7 +180,8 @@ public static class ReportGenerator
                         <body>
                     """;
 
-        var body = $"<h1>{title}</h1>";
+        var body = new StringBuilder();
+        body.Append($"<h1>{title}</h1>");
 
         if (includeTestRunData)
         {
@@ -189,7 +192,7 @@ public static class ReportGenerator
             var failedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Failed).ToArray();
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
-            body += $"""
+            body.Append($"""
                     <div class="test-execution-summary">
                         <h2>Test Execution Summary</h2>
                         <table>
@@ -203,37 +206,39 @@ public static class ReportGenerator
                     </div>
                     
                     <h2>Features Summary</h2>
-                    """;
+                    """);
         }
 
-        body += $"""
+        body.Append($"""
                  <div class="filters">
                     <label for="toggle-happy-paths">Show Only Happy Paths</label>
                     <input id="toggle-happy-paths" type="checkbox" onchange="toggleHappyPaths(this.checked)" />
                     <div><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
                  </div>
-                 """;
+                 """);
+
+        var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
 
         foreach (var feature in features)
         {
-            body += $"""
+            body.Append($"""
                      <details class="feature">
                         <summary class="h2">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
-                     """;
+                     """);
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
 
             foreach (var scenario in orderedScenarios)
             {
                 var failed = scenario.Result == ScenarioResult.Failed;
-                body += $"""
+                body.Append($"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}">
                             <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
-                         """;
+                         """);
 
                 if (failed)
                 {
-                    body += $"""
+                    body.Append($"""
                               <details class="failure-result" open>
                                  <summary class="h4">Failure Result</summary>
                                  <pre>
@@ -242,23 +247,23 @@ public static class ReportGenerator
                               {scenario.ErrorStackTrace}
                                  </pre>
                               </details>
-                              """;
+                              """);
                 }
 
-                var diagramsForTest = diagrams.Where(x => x.TestRuntimeId == scenario.Id).ToArray();
+                var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
 
 
                 if (diagramsForTest.Length > 0)
                 {
-                    body += """
+                    body.Append("""
                             <details class="example-diagrams" open>
                             <summary class="h4">Sequence Diagrams</summary>
-                            """;
+                            """);
 
                     var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
                     foreach (var diagram in diagramsForTest)
                     {
-                        body += $"""
+                        body.Append($"""
                                  <details class="example">
                                     <summary class="example-image">
                                         <img{lazyLoadAttr} src="{diagram.ImgSrc}">
@@ -268,14 +273,14 @@ public static class ReportGenerator
                                         <pre>{diagram.CodeBehind}</pre>
                                      </div>
                                  </details>
-                                 """;
+                                 """);
                     }
-                    body += "</details>";
+                    body.Append("</details>");
 
                 }
-                body += "</details>";
+                body.Append("</details>");
             }
-            body += "</details>";
+            body.Append("</details>");
         }
 
         html += body;
