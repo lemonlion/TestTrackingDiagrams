@@ -108,6 +108,14 @@ public partial class Cake_Feature : BaseFixture
     #region When
     private async Task The_request_is_sent_to_the_cake_post_endpoint()
     {
+        // When run by the integration test project, field focus and setup separation are configured via environment variables.
+        // Otherwise, no focus is applied — keeping this as a clean example for users.
+        if (IntegrationTestConfiguration.IsIntegrationTestMode)
+        {
+            TrackingDiagramOverride.StartAction();
+            IntegrationTestConfiguration.ApplyDiagramFocus();
+        }
+
         _cakeResponseMessage = await Client.PostAsJsonAsync("cake", _cakeRequest);
     }
 

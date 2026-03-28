@@ -14,9 +14,14 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
                 RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
                 ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
+                RequestMidFormattingProcessor = options.RequestResponseMidProcessor,
+                ResponseMidFormattingProcessor = options.RequestResponseMidProcessor,
                 ExcludedHeaders = options.ExcludedHeaders,
                 SeparateSetup = options.SeparateSetup,
-                HighlightSetup = options.HighlightSetup
+                HighlightSetup = options.HighlightSetup,
+                LazyLoadDiagramImages = options.LazyLoadDiagramImages,
+                FocusEmphasis = options.FocusEmphasis,
+                FocusDeEmphasis = options.FocusDeEmphasis
             };
             var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(fetcherOptions);
             var reportsFilePath = options.ReportsFolderPath.Trim().TrimEnd('/');
@@ -30,6 +35,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                     {
                         o.Title = options.SpecificationsTitle;
                         o.ExampleDiagramsAsCode = diagramsFetcher;
+                        o.LazyLoadDiagramImages = options.LazyLoadDiagramImages;
                     });
                     if(options.HtmlSpecificationsCustomStyleSheet is not null)
                         formatter.WithCustomCss(options.HtmlSpecificationsCustomStyleSheet);
@@ -48,7 +54,8 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 {
                     formatter.Options = new HtmlReportAdvancedOptions
                     {
-                        ExampleDiagramsAsCode = diagramsFetcher
+                        ExampleDiagramsAsCode = diagramsFetcher,
+                        LazyLoadDiagramImages = options.LazyLoadDiagramImages
                     };
                 });
         }

@@ -24,12 +24,17 @@ internal class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
     {
         var testAssembly = Assembly.GetAssembly(typeof(ConfiguredLightBddScopeAttribute))!;
 
-        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(testAssembly,
-            new ReportConfigurationOptions
+        // When run by the integration test project, configuration is provided via environment variables.
+        // Otherwise, the hardcoded values below serve as a readable example for users.
+        var reportOptions = IntegrationTestConfiguration.IsIntegrationTestMode
+            ? IntegrationTestConfiguration.GetReportConfigurationOptions()
+            : new ReportConfigurationOptions
             {
                 SpecificationsTitle = "Dessert Provider Specifications",
                 SeparateSetup = true,
-            });
+            };
+
+        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(testAssembly, reportOptions);
 
         // To stop the output repeating the step name for each step
         configuration.ProgressNotifierConfiguration().Clear().Append(new ConfigurableProgressNotifier());

@@ -1,0 +1,39 @@
+﻿namespace LightBDD.Contrib.ReportingEnhancements.Reports
+{
+    public enum Html5Tag
+    {
+        Section,
+        Article,
+        H1,
+        Table,
+        Input,
+        Div,
+        Tr,
+        Th,
+        Td,
+        Span,
+        A,
+        Tbody,
+        H3,
+        H4,
+        Label,
+        Html,
+        Head,
+        Meta,
+        Link,
+        Title,
+        Style,
+        Script,
+        Body,
+        Thead,
+        H2,
+        Hr,
+        Tfoot,
+        Code,
+        Details,
+        Summary,
+        Br,
+        Img,
+        Pre
+    }
+}

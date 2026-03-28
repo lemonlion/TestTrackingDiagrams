@@ -30,12 +30,17 @@ public class TestRun : DiagrammedTestRun
         EndRunTime = DateTime.UtcNow;
         DisposeHttpFakes();
 
-        NUnitReportGenerator.CreateStandardReportsWithDiagrams(TestContexts, StartRunTime, EndRunTime,
-            new ReportConfigurationOptions
+        // When run by the integration test project, configuration is provided via environment variables.
+        // Otherwise, the hardcoded values below serve as a readable example for users.
+        var reportOptions = IntegrationTestConfiguration.IsIntegrationTestMode
+            ? IntegrationTestConfiguration.GetReportConfigurationOptions()
+            : new ReportConfigurationOptions
             {
                 SpecificationsTitle = "Dessert Provider Specifications",
                 SeparateSetup = true,
-            });
+            };
+
+        NUnitReportGenerator.CreateStandardReportsWithDiagrams(TestContexts, StartRunTime, EndRunTime, reportOptions);
 
     }
 

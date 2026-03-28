@@ -58,11 +58,17 @@ public class BDDfyTestSetup : IAsyncLifetime
     {
         BDDfyScenarioCollector.EndRunTime = DateTime.UtcNow;
 
-        BDDfyReportGenerator.CreateStandardReportsWithDiagrams(new ReportConfigurationOptions
-        {
-            SpecificationsTitle = "Dessert Provider Specifications",
-            SeparateSetup = true,
-        });
+        // When run by the integration test project, configuration is provided via environment variables.
+        // Otherwise, the hardcoded values below serve as a readable example for users.
+        var reportOptions = IntegrationTestConfiguration.IsIntegrationTestMode
+            ? IntegrationTestConfiguration.GetReportConfigurationOptions()
+            : new ReportConfigurationOptions
+            {
+                SpecificationsTitle = "Dessert Provider Specifications",
+                SeparateSetup = true,
+            };
+
+        BDDfyReportGenerator.CreateStandardReportsWithDiagrams(reportOptions);
 
         DisposeHttpFakes();
         _factory?.Dispose();

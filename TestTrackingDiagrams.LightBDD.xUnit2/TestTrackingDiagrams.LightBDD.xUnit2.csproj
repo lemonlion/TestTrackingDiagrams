@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LightBDD.Contrib.ReportingEnhancements" Version="1.5.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LightBDD.Contrib.ReportingEnhancements\LightBDD.Contrib.ReportingEnhancements.csproj" />
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
   </ItemGroup>
 
