@@ -40,6 +40,7 @@ public static class JsonFocusFormatter
         var annotations = new LineType[lines.Length];
         var currentFocusState = LineType.Structural;
         var nestingDepth = 0;
+        var stateSetAtDepth = 0;
 
         for (var i = 0; i < lines.Length; i++)
         {
@@ -55,17 +56,23 @@ public static class JsonFocusFormatter
                 }
             }
 
-            // Detect top-level property start
-            if (nestingDepth == 0 && trimmed.StartsWith('"'))
+            // Detect property start at any depth
+            if (trimmed.StartsWith('"'))
             {
                 var propertyName = ExtractPropertyName(trimmed);
-                if (propertyName is not null && focusSet.Contains(propertyName))
+                if (propertyName is not null)
                 {
-                    currentFocusState = LineType.Focused;
-                }
-                else
-                {
-                    currentFocusState = LineType.NonFocused;
+                    if (focusSet.Contains(propertyName))
+                    {
+                        currentFocusState = LineType.Focused;
+                        stateSetAtDepth = nestingDepth;
+                    }
+                    else if (nestingDepth <= stateSetAtDepth)
+                    {
+                        currentFocusState = LineType.NonFocused;
+                        stateSetAtDepth = nestingDepth;
+                    }
+                    // else: deeper non-matching property inherits parent focus state
                 }
             }
 

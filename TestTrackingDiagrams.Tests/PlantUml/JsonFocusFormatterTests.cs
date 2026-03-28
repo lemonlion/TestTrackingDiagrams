@@ -325,4 +325,56 @@ public class JsonFocusFormatterTests
         Assert.Contains("\"city\": \"NYC\"", result);
         Assert.DoesNotContain("\"name\"", result);
     }
+
+    // ─── Wrapped / nested focus (envelope responses) ────────────
+
+    [Fact]
+    public void Focuses_properties_inside_wrapper_object_with_array()
+    {
+        var json = PrettyPrint("""{"offers":[{"approvalStatus":"Preapproved","eligibility":100,"sourceId":"ABC"}],"status":"Success"}""");
+
+        var result = JsonFocusFormatter.FormatWithFocus(json, ["approvalStatus", "eligibility"], FocusEmphasis.Bold, FocusDeEmphasis.LightGray);
+
+        Assert.Contains("<b>\"approvalStatus\": \"Preapproved\",</b>", result);
+        Assert.Contains("<b>\"eligibility\": 100,</b>", result);
+        Assert.Contains("<color:lightgray>\"sourceId\": \"ABC\"</color>", result);
+        Assert.Contains("<color:lightgray>\"status\": \"Success\"</color>", result);
+    }
+
+    [Fact]
+    public void Focuses_properties_inside_multiple_array_elements()
+    {
+        var json = PrettyPrint("""{"data":[{"name":"Alice","age":30},{"name":"Bob","age":25}]}""");
+
+        var result = JsonFocusFormatter.FormatWithFocus(json, ["name"], FocusEmphasis.Bold, FocusDeEmphasis.LightGray);
+
+        Assert.Contains("<b>\"name\": \"Alice\",</b>", result);
+        Assert.Contains("<b>\"name\": \"Bob\",</b>", result);
+        Assert.DoesNotContain("<b>\"age\"", result);
+    }
+
+    [Fact]
+    public void Hidden_deemphasis_with_wrapped_array_shows_focused_fields()
+    {
+        var json = PrettyPrint("""{"offers":[{"approvalStatus":"Preapproved","eligibility":100,"sourceId":"ABC"}],"status":"Success"}""");
+
+        var result = JsonFocusFormatter.FormatWithFocus(json, ["approvalStatus", "eligibility"], FocusEmphasis.Bold, FocusDeEmphasis.Hidden);
+
+        Assert.Contains("<b>\"approvalStatus\": \"Preapproved\",</b>", result);
+        Assert.Contains("<b>\"eligibility\": 100</b>", result);
+        Assert.DoesNotContain("\"sourceId\"", result);
+        Assert.DoesNotContain("\"status\"", result);
+    }
+
+    [Fact]
+    public void Focused_property_inside_nested_object_inherits_to_children()
+    {
+        var json = PrettyPrint("""{"wrapper":{"target":{"street":"123","city":"NYC"},"other":"value"}}""");
+
+        var result = JsonFocusFormatter.FormatWithFocus(json, ["target"], FocusEmphasis.Bold, FocusDeEmphasis.None);
+
+        Assert.Contains("<b>\"target\":", result);
+        Assert.Contains("<b>\"street\": \"123\"", result);
+        Assert.Contains("<b>\"city\": \"NYC\"</b>", result);
+    }
 }
