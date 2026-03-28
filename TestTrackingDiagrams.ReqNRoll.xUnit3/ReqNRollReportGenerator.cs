@@ -35,9 +35,11 @@ public static class ReqNRollReportGenerator
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages);
-        GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages);
-        GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true);
+        Parallel.Invoke(
+            () => GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages),
+            () => GenerateGherkinHtmlReport(diagrams, features, scenarioArray, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages),
+            () => GenerateGherkinYamlSpecs(features, scenarioArray, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, generateBlankOnFailedTests: true)
+        );
 
         ReqNRollReportEnhancer.RegisterForEnhancement(fetcherOptions);
     }
@@ -207,7 +209,8 @@ public static class ReqNRollReportGenerator
                         <body>
                     """;
 
-        var body = $"<h1>{WebUtility.HtmlEncode(title)}</h1>";
+        var body = new StringBuilder();
+        body.Append($"<h1>{WebUtility.HtmlEncode(title)}</h1>");
 
         if (includeTestRunData)
         {
@@ -218,7 +221,7 @@ public static class ReqNRollReportGenerator
             var failedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Failed).ToArray();
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
-            body += $"""
+            body.Append($"""
                     <div class="test-execution-summary">
                         <h2>Test Execution Summary</h2>
                         <table>
@@ -232,29 +235,31 @@ public static class ReqNRollReportGenerator
                     </div>
 
                     <h2>Features Summary</h2>
-                    """;
+                    """);
         }
 
-        body += $"""
+        body.Append($"""
                  <div class="filters">
                     <label for="toggle-happy-paths">Show Only Happy Paths</label>
                     <input id="toggle-happy-paths" type="checkbox" onchange="toggleHappyPaths(this.checked)" />
                     <div><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
                  </div>
-                 """;
+                 """);
+
+        var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
 
         foreach (var feature in features)
         {
             var featureDescription = allScenarios.FirstOrDefault(s => s.FeatureTitle == feature.DisplayName)?.FeatureDescription;
 
-            body += $"""
+            body.Append($"""
                      <details class="feature">
                         <summary class="h2">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
-                     """;
+                     """);
 
             if (!string.IsNullOrWhiteSpace(featureDescription))
             {
-                body += $"""<div class="feature-description">{WebUtility.HtmlEncode(featureDescription)}</div>""";
+                body.Append($"""<div class="feature-description">{WebUtility.HtmlEncode(featureDescription)}</div>""");
             }
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
@@ -262,25 +267,25 @@ public static class ReqNRollReportGenerator
             foreach (var scenario in orderedScenarios)
             {
                 var failed = scenario.Result == ScenarioResult.Failed;
-                body += $"""
+                body.Append($"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}">
                             <summary class="h3{(failed ? " failed" : "")}">{WebUtility.HtmlEncode(scenario.DisplayName)}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
-                         """;
+                         """);
 
                 // Gherkin steps
                 if (scenarioLookup.TryGetValue(scenario.Id, out var scenarioInfo) && scenarioInfo.Steps.Count > 0)
                 {
-                    body += """<ul class="gherkin-steps">""";
+                    body.Append("""<ul class="gherkin-steps">""");
                     foreach (var step in scenarioInfo.Steps)
                     {
-                        body += $"""<li><span class="keyword">{WebUtility.HtmlEncode(step.Keyword)}</span> {WebUtility.HtmlEncode(step.Text)}</li>""";
+                        body.Append($"""<li><span class="keyword">{WebUtility.HtmlEncode(step.Keyword)}</span> {WebUtility.HtmlEncode(step.Text)}</li>""");
                     }
-                    body += "</ul>";
+                    body.Append("</ul>");
                 }
 
                 if (failed)
                 {
-                    body += $"""
+                    body.Append($"""
                               <details class="failure-result" open>
                                  <summary class="h4">Failure Result</summary>
                                  <pre>
@@ -289,22 +294,22 @@ public static class ReqNRollReportGenerator
                               {WebUtility.HtmlEncode(scenario.ErrorStackTrace)}
                                  </pre>
                               </details>
-                              """;
+                              """);
                 }
 
-                var diagramsForTest = diagrams.Where(x => x.TestRuntimeId == scenario.Id).ToArray();
+                var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
 
                 if (diagramsForTest.Length > 0)
                 {
-                    body += """
+                    body.Append("""
                             <details class="example-diagrams" open>
                             <summary class="h4">Sequence Diagrams</summary>
-                            """;
+                            """);
 
                     var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
                     foreach (var diagram in diagramsForTest)
                     {
-                        body += $"""
+                        body.Append($"""
                                  <details class="example">
                                     <summary class="example-image">
                                         <img{lazyLoadAttr} src="{diagram.ImgSrc}">
@@ -314,13 +319,13 @@ public static class ReqNRollReportGenerator
                                         <pre>{WebUtility.HtmlEncode(diagram.CodeBehind)}</pre>
                                      </div>
                                  </details>
-                                 """;
+                                 """);
                     }
-                    body += "</details>";
+                    body.Append("</details>");
                 }
-                body += "</details>";
+                body.Append("</details>");
             }
-            body += "</details>";
+            body.Append("</details>");
         }
 
         html += body;
