@@ -48,7 +48,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.xUnit3" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.xUnit3" Version="1.22.9" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit.v3" Version="1.0.1" />
@@ -350,6 +350,54 @@ TrackingDiagramOverride.StartAction();
 | `CallingServiceName` | Display name for the service making outgoing HTTP calls |
 | `FixedNameForReceivingService` | Display name for the service receiving requests |
 | `PortsToServiceNames` | Dictionary mapping port numbers to friendly service names. Unmapped ports appear as `localhost_80`, `localhost_5001`, etc. |
+
+---
+
+## Faking Downstream Dependencies (Correctly)
+
+When your SUT calls downstream HTTP services, you need those calls to flow through `TestTrackingMessageHandler` so diagrams show proper HTTP arrows with methods, status codes, headers, and bodies. **Do not** mock the service client interface and use `MessageTracker` to manually log the interaction — this produces event-style (blue) arrows that are misleading for HTTP calls.
+
+There are several approaches to faking dependencies while keeping proper HTTP tracking:
+
+### Option A: In-Memory Fake APIs
+
+Spin up lightweight `WebApplicationFactory` instances that serve canned responses. This is the approach used in the [Example.Api](../Example.Api/) project. Map their ports in `PortsToServiceNames`.
+
+### Option B: JustEat HttpClient Interception
+
+[JustEat.HttpClientInterception](https://github.com/justeattakeaway/httpclient-interception) intercepts requests at the handler level — no server needed. Chain `TestTrackingMessageHandler` as the outer handler with the interception handler as the inner handler:
+
+```csharp
+var interceptionOptions = new HttpClientInterceptionOptions();
+
+new HttpRequestInterceptionBuilder()
+    .Requests().ForGet().ForHttps().ForHost("downstream.example.com")
+    .ForPath("api/data")
+    .Responds().WithJsonContent(new { id = 1 }).WithStatus(HttpStatusCode.OK)
+    .RegisterWith(interceptionOptions);
+
+builder.ConfigureTestServices(services =>
+{
+    services.ConfigureHttpClientDefaults(httpClientBuilder =>
+        httpClientBuilder.ConfigurePrimaryHttpMessageHandler(sp =>
+            new TestTrackingMessageHandler(
+                new XUnitTestTrackingMessageHandlerOptions
+                {
+                    CallingServiceName = "My API",
+                    PortsToServiceNames = { { 443, "Downstream Service" } }
+                },
+                sp.GetRequiredService<IHttpContextAccessor>())
+            {
+                InnerHandler = interceptionOptions.CreateHttpMessageHandler()
+            }));
+});
+```
+
+### Option C: WireMock.Net
+
+[WireMock.Net](https://github.com/WireMock-Net/WireMock.Net) runs a real HTTP server on a random port. Map the port in `PortsToServiceNames` — tracking happens automatically since it's real HTTP.
+
+> **Why not MessageTracker?** `MessageTracker` is designed for non-HTTP interactions (Kafka, RabbitMQ, EventGrid, etc.). Using it for HTTP calls produces blue event-style notes with no HTTP method, no status code, and no headers — even if you set `protocol: "HTTP"`. See the [Tracking Dependencies wiki page](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Tracking-Dependencies#faking-dependencies-getting-proper-http-tracking) for a full comparison of approaches.
 
 ---
 

@@ -49,7 +49,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.22.2" />
+    <PackageReference Include="TestTrackingDiagrams.LightBDD.xUnit2" Version="1.22.9" />
     <PackageReference Include="LightBDD.XUnit2" Version="3.10.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -324,6 +324,19 @@ Passed to `CreateStandardReportsWithDiagrams`:
 | `CallingServiceName` | Display name for the service making outgoing HTTP calls |
 | `FixedNameForReceivingService` | Display name for the service receiving requests (your SUT) |
 | `PortsToServiceNames` | Dictionary mapping port numbers to friendly service names. Unmapped ports appear as `localhost_80`, `localhost_5001`, etc. |
+
+---
+
+## Faking Downstream Dependencies (Correctly)
+
+When your SUT calls downstream HTTP services, those calls must flow through `TestTrackingMessageHandler` to produce proper HTTP-style diagram arrows (with method, status code, headers, body). **Do not** mock service client interfaces and use `MessageTracker` to manually log HTTP interactions — this produces event-style (blue) arrows that are misleading.
+
+Recommended approaches:
+- **In-memory fake APIs** — `WebApplicationFactory` instances that serve canned responses (see [Example.Api](../Example.Api/))
+- **[JustEat HttpClient Interception](https://github.com/justeattakeaway/httpclient-interception)** — handler-level interception, chain with `TestTrackingMessageHandler`
+- **[WireMock.Net](https://github.com/WireMock-Net/WireMock.Net)** — real HTTP server on a random port, map in `PortsToServiceNames`
+
+See the [Tracking Dependencies wiki page](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Tracking-Dependencies#faking-dependencies-getting-proper-http-tracking) for detailed examples of each approach.
 
 ---
 

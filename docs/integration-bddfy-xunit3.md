@@ -63,6 +63,7 @@ Your `<ItemGroup>` should look like this:
 
 ```xml
 <ItemGroup>
+    <PackageReference Include="TestTrackingDiagrams.BDDfy.xUnit3" Version="1.22.9" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="TestStack.BDDfy" Version="8.0.1.3" />
@@ -311,6 +312,19 @@ The integration uses three coordinated components:
 3. **`DiagramEnhancingBatchProcessor`** — A BDDfy `IBatchProcessor` that runs after all tests complete. It reads BDDfy's native HTML report and injects sequence diagram images next to each scenario.
 
 4. **`BDDfyReportGenerator`** — Called in the assembly fixture's `DisposeAsync`, generates the three standard TestTrackingDiagrams reports with BDDfy step data and diagrams.
+
+---
+
+## Faking Downstream Dependencies (Correctly)
+
+When your SUT calls downstream HTTP services, those calls must flow through `TestTrackingMessageHandler` to produce proper HTTP-style diagram arrows (with method, status code, headers, body). **Do not** mock service client interfaces and use `MessageTracker` to manually log HTTP interactions — this produces event-style (blue) arrows that are misleading.
+
+Recommended approaches:
+- **In-memory fake APIs** — `WebApplicationFactory` instances that serve canned responses (see [Example.Api](../Example.Api/))
+- **[JustEat HttpClient Interception](https://github.com/justeattakeaway/httpclient-interception)** — handler-level interception, chain with `TestTrackingMessageHandler`
+- **[WireMock.Net](https://github.com/WireMock-Net/WireMock.Net)** — real HTTP server on a random port, map in `PortsToServiceNames`
+
+See the [Tracking Dependencies wiki page](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Tracking-Dependencies#faking-dependencies-getting-proper-http-tracking) for detailed examples of each approach.
 
 ---
 
