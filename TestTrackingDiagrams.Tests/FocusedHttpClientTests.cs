@@ -246,6 +246,68 @@ public class FocusedHttpClientTests : IDisposable
         Assert.Equal("Amount", fields[0]);
     }
 
+    // ─── ApplyFocus bridge ──────────────────────────────────────
+
+    [Fact]
+    public void ApplyFocus_returns_underlying_HttpClient()
+    {
+        var returned = _httpClient.WithDiagramFocus()
+            .OnRequest<SampleRequest>(x => x.Name)
+            .ApplyFocus();
+
+        Assert.Same(_httpClient, returned);
+    }
+
+    [Fact]
+    public void ApplyFocus_sets_request_and_response_focus()
+    {
+        _ = _httpClient.WithDiagramFocus()
+            .OnRequest<SampleRequest>(x => x.Name, x => x.Age)
+            .OnResponse<SampleResponse>(x => x.Status)
+            .ApplyFocus();
+
+        var requestFields = DiagramFocus.ConsumePendingRequestFocus();
+        var responseFields = DiagramFocus.ConsumePendingResponseFocus();
+
+        Assert.NotNull(requestFields);
+        Assert.Equal(2, requestFields.Length);
+        Assert.Contains("Name", requestFields);
+        Assert.Contains("Age", requestFields);
+
+        Assert.NotNull(responseFields);
+        Assert.Single(responseFields);
+        Assert.Equal("Status", responseFields[0]);
+    }
+
+    [Fact]
+    public void ApplyFocus_with_only_response_does_not_set_request()
+    {
+        _ = _httpClient.WithDiagramFocus()
+            .OnResponse<SampleResponse>(x => x.Id)
+            .ApplyFocus();
+
+        Assert.Null(DiagramFocus.ConsumePendingRequestFocus());
+        Assert.NotNull(DiagramFocus.ConsumePendingResponseFocus());
+    }
+
+    [Fact]
+    public async Task ApplyFocus_allows_chaining_with_custom_extensions()
+    {
+        // Simulates: httpClient.WithDiagramFocus().OnRequest<T>(...).ApplyFocus().CustomExtension()
+        var client = _httpClient.WithDiagramFocus()
+            .OnRequest<SampleRequest>(x => x.Name)
+            .ApplyFocus();
+
+        // Verify focus was set, then call a method on the returned HttpClient
+        var fields = DiagramFocus.ConsumePendingRequestFocus();
+        Assert.NotNull(fields);
+        Assert.Equal("Name", fields[0]);
+
+        // The returned client is a real HttpClient we can call methods on
+        var response = await client.GetAsync("http://localhost/test");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
     // ─── Handler that doesn't consume DiagramFocus ──────────────
 
     private sealed class NoOpHandler : HttpMessageHandler
