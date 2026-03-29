@@ -51,7 +51,7 @@ public static class DiagramFocus
         PendingResponseFocus.Value = null!;
     }
 
-    private static string ExtractPropertyName<T>(Expression<Func<T, object?>> expression)
+    internal static string ExtractPropertyName<T>(Expression<Func<T, object?>> expression)
     {
         return expression.Body switch
         {
