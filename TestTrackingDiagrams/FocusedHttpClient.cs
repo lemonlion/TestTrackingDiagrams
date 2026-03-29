@@ -45,13 +45,13 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.SendAsync(request, cancellationToken);
     }
 
     public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.SendAsync(request, completionOption, cancellationToken);
     }
 
@@ -59,25 +59,25 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> GetAsync(string? requestUri, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.GetAsync(requestUri, cancellationToken);
     }
 
     public Task<HttpResponseMessage> GetAsync(Uri? requestUri, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.GetAsync(requestUri, cancellationToken);
     }
 
     public Task<T?> GetFromJsonAsync<T>(string? requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.GetFromJsonAsync<T>(requestUri, options, cancellationToken);
     }
 
     public Task<T?> GetFromJsonAsync<T>(Uri? requestUri, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.GetFromJsonAsync<T>(requestUri, options, cancellationToken);
     }
 
@@ -85,25 +85,25 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> PostAsync(string? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PostAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PostAsync(Uri? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PostAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PostAsJsonAsync<TValue>(string? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PostAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PostAsJsonAsync<TValue>(Uri? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PostAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
@@ -111,25 +111,25 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> PutAsync(string? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PutAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PutAsync(Uri? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PutAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PutAsJsonAsync<TValue>(string? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PutAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PutAsJsonAsync<TValue>(Uri? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PutAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
@@ -137,25 +137,25 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> PatchAsync(string? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PatchAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PatchAsync(Uri? requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PatchAsync(requestUri, content, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PatchAsJsonAsync<TValue>(string? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PatchAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
     public Task<HttpResponseMessage> PatchAsJsonAsync<TValue>(Uri? requestUri, TValue value, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.PatchAsJsonAsync(requestUri, value, options, cancellationToken);
     }
 
@@ -163,19 +163,27 @@ public sealed class FocusedHttpClient
 
     public Task<HttpResponseMessage> DeleteAsync(string? requestUri, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.DeleteAsync(requestUri, cancellationToken);
     }
 
     public Task<HttpResponseMessage> DeleteAsync(Uri? requestUri, CancellationToken cancellationToken = default)
     {
-        ApplyFocus();
+        SetFocusState();
         return _httpClient.DeleteAsync(requestUri, cancellationToken);
+    }
+
+    // ─── Bridge for custom HttpClient extensions ─────────────────
+
+    public HttpClient ApplyFocus()
+    {
+        SetFocusState();
+        return _httpClient;
     }
 
     // ─── Internals ──────────────────────────────────────────────
 
-    private void ApplyFocus()
+    private void SetFocusState()
     {
         if (_requestFields is { Length: > 0 })
             DiagramFocus.Request(_requestFields);
