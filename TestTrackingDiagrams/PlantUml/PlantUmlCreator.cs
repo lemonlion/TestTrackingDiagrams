@@ -36,7 +36,8 @@ public static partial class PlantUmlCreator
         bool highlightSetup = true,
         bool lazyLoadImages = true,
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
-        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray)
+        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
+        string? plantUmlTheme = null)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -62,7 +63,8 @@ public static partial class PlantUmlCreator
                 separateSetup,
                 highlightSetup,
                 focusEmphasis,
-                focusDeEmphasis);
+                focusDeEmphasis,
+                plantUmlTheme);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -83,9 +85,10 @@ public static partial class PlantUmlCreator
         bool separateSetup,
         bool highlightSetup,
         FocusEmphasis focusEmphasis,
-        FocusDeEmphasis focusDeEmphasis)
+        FocusDeEmphasis focusDeEmphasis,
+        string? plantUmlTheme)
     {
-        var builder = new DiagramBuilder(tracesForTest);
+        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme);
         var lastTrace = tracesForTest[^1];
 
         var currentlyOverriding = false;
@@ -242,13 +245,14 @@ public static partial class PlantUmlCreator
         }
     }
 
-    private static string CreatePlantUmlPrefix(List<RequestResponseLog> tracesForTest, int stepNumber)
+    private static string CreatePlantUmlPrefix(List<RequestResponseLog> tracesForTest, int stepNumber, string? plantUmlTheme = null)
     {
         var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
+        var themeDirective = !string.IsNullOrWhiteSpace(plantUmlTheme) ? $"!theme {plantUmlTheme}\n" : "";
         return $"""
 
                 @startuml
-                !pragma teoz true
+                {themeDirective}!pragma teoz true
                 {AddEventStyling(tracesForTest)}
                 skinparam wrapWidth {MaxLineWidth}
                 !function $color($value)
@@ -389,10 +393,10 @@ public static partial class PlantUmlCreator
         return value.ChunksUpTo(100).Select(x => $"$color(gray){x}");
     }
 
-    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest)
+    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest, string? plantUmlTheme = null)
     {
         private readonly List<PlantUmlResult> _results = [];
-        private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1));
+        private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1, plantUmlTheme));
         private int _stepNumber = 1;
         private string? _openPartitionLine;
         private string? _cachedEncoded;
@@ -447,7 +451,7 @@ public static partial class PlantUmlCreator
             _cachedEncoded = null;
             _lengthAtLastEncode = 0;
             _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
-            _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber));
+            _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber, plantUmlTheme));
 
             if (partitionToReopen != null)
             {

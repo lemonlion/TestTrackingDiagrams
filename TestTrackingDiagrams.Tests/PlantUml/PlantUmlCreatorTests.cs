@@ -2150,4 +2150,78 @@ public class PlantUmlCreatorTests
         Assert.DoesNotContain("<color:blue>", plantUml);
         Assert.Contains("\"name\": \"Alice\"", plantUml);
     }
+
+    // ─── PlantUML theme ─────────────────────────────────────────
+
+    [Fact]
+    public void Theme_directive_is_included_when_theme_is_specified()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: "spacelab").ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("!theme spacelab", plantUml);
+    }
+
+    [Fact]
+    public void Theme_directive_appears_after_startuml_and_before_pragma()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: "cerulean").ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        var themeIndex = plantUml.IndexOf("!theme cerulean");
+        var startUmlIndex = plantUml.IndexOf("@startuml");
+        var pragmaIndex = plantUml.IndexOf("!pragma teoz true");
+
+        Assert.True(themeIndex > startUmlIndex, "Theme should appear after @startuml");
+        Assert.True(themeIndex < pragmaIndex, "Theme should appear before !pragma");
+    }
+
+    [Fact]
+    public void No_theme_directive_when_theme_is_null()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: null).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.DoesNotContain("!theme", plantUml);
+    }
+
+    [Fact]
+    public void No_theme_directive_when_theme_is_empty_string()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: "").ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.DoesNotContain("!theme", plantUml);
+    }
+
+    [Fact]
+    public void No_theme_directive_when_theme_is_whitespace()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: "   ").ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.DoesNotContain("!theme", plantUml);
+    }
+
+    [Fact]
+    public void Theme_is_included_in_all_diagrams_when_response_is_split()
+    {
+        var largeBody = new string('A', 20_000);
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: largeBody)
+        };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, plantUmlTheme: "materia").ToList();
+        var plantUmls = results.Single().PlantUmls.ToList();
+
+        Assert.True(plantUmls.Count > 1, "Should have multiple diagrams");
+        foreach (var diagram in plantUmls)
+            Assert.Contains("!theme materia", diagram.PlainText);
+    }
 }

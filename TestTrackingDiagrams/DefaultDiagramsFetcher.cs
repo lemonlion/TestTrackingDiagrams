@@ -29,7 +29,8 @@ public static class DefaultDiagramsFetcher
                 highlightSetup: options.HighlightSetup,
                 lazyLoadImages: options.LazyLoadDiagramImages,
                 focusEmphasis: options.FocusEmphasis,
-                focusDeEmphasis: options.FocusDeEmphasis).ToArray();
+                focusDeEmphasis: options.FocusDeEmphasis,
+                plantUmlTheme: options.PlantUmlTheme).ToArray();
             return _diagrams = perTestId
                 .SelectMany(test => test.PlantUmls.Select(plantUml =>
                     new DiagramAsCode(test.TestId,
