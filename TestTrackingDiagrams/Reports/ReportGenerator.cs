@@ -18,7 +18,8 @@ public static class ReportGenerator
             HighlightSetup = options.HighlightSetup,
             LazyLoadDiagramImages = options.LazyLoadDiagramImages,
             FocusEmphasis = options.FocusEmphasis,
-            FocusDeEmphasis = options.FocusDeEmphasis
+            FocusDeEmphasis = options.FocusDeEmphasis,
+            PlantUmlTheme = options.PlantUmlTheme
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

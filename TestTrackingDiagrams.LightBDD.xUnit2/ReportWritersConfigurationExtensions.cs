@@ -21,7 +21,8 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 HighlightSetup = options.HighlightSetup,
                 LazyLoadDiagramImages = options.LazyLoadDiagramImages,
                 FocusEmphasis = options.FocusEmphasis,
-                FocusDeEmphasis = options.FocusDeEmphasis
+                FocusDeEmphasis = options.FocusDeEmphasis,
+                PlantUmlTheme = options.PlantUmlTheme
             };
             var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(fetcherOptions);
             var reportsFilePath = options.ReportsFolderPath.Trim().TrimEnd('/');

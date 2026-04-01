@@ -17,4 +17,5 @@ public record ReportConfigurationOptions
     public bool LazyLoadDiagramImages { get; set; } = true;
     public FocusEmphasis FocusEmphasis { get; set; } = FocusEmphasis.Bold;
     public FocusDeEmphasis FocusDeEmphasis { get; set; } = FocusDeEmphasis.LightGray;
+    public string? PlantUmlTheme { get; set; }
 }
