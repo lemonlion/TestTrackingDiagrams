@@ -68,6 +68,8 @@ In **Summarised** mode, `Other` operations (SDK metadata) are silently skipped �
 
 If you use [`CosmosDB.InMemoryEmulator`](https://github.com/lemonlion/CosmosDB.InMemoryEmulator) with the `UseInMemoryCosmosDB()` DI extension, use `WithHttpMessageHandlerWrapper` to insert the tracking handler:
 
+> **Requires** CosmosDB.InMemoryEmulator **2.0.5** or later (the version that added `WithHttpMessageHandlerWrapper`).
+
 ```csharp
 builder.ConfigureTestServices(services =>
 {
@@ -81,7 +83,13 @@ builder.ConfigureTestServices(services =>
                     ServiceName = "CosmosDB",
                     CallingServiceName = "My API",
                     Verbosity = CosmosTrackingVerbosity.Detailed,
-                    CurrentTestInfoFetcher = () => /* your test info fetcher */
+                    CurrentTestInfoFetcher = () =>
+                    {
+                        var test = TestContext.Current.Test;
+                        return test is not null
+                            ? (test.TestDisplayName, test.UniqueID)
+                            : ("Unknown", "unknown");
+                    }
                 },
                 fakeHandler)));
 });
@@ -95,9 +103,9 @@ CosmosClient → CosmosTrackingMessageHandler → FakeCosmosHandler → InMemory
 
 The tracking handler intercepts and logs every operation, then forwards the request to `FakeCosmosHandler` which serves in-memory responses.
 
-### Option B: With `CosmosDB.InMemoryEmulator` (manual wiring)
+### Option B: With `CosmosDB.InMemoryEmulator` (single container, manual wiring)
 
-If you use `FakeCosmosHandler` directly (Pattern 6 / manual wiring):
+If you use `FakeCosmosHandler` directly with a single container:
 
 ```csharp
 var inMemoryContainer = new InMemoryContainer("orders", "/customerId");
@@ -108,7 +116,13 @@ var trackingOptions = new CosmosTrackingMessageHandlerOptions
     ServiceName = "CosmosDB",
     CallingServiceName = "My API",
     Verbosity = CosmosTrackingVerbosity.Detailed,
-    CurrentTestInfoFetcher = () => /* your test info fetcher */
+    CurrentTestInfoFetcher = () =>
+    {
+        var test = TestContext.Current.Test;
+        return test is not null
+            ? (test.TestDisplayName, test.UniqueID)
+            : ("Unknown", "unknown");
+    }
 };
 
 var client = new CosmosClient(
@@ -121,7 +135,54 @@ var client = new CosmosClient(
     });
 ```
 
-### Option C: With `CosmosClientOptions` extension (real Cosmos or emulator)
+### Option C: With `CosmosDB.InMemoryEmulator` (multi-container router)
+
+For codebases with multiple Cosmos containers, use `FakeCosmosHandler.CreateRouter()`. Wrap the **router** with the tracking handler:
+
+```csharp
+var partitionKeys = new Dictionary<string, string>
+{
+    ["orders"] = "/customerId",
+    ["customers"] = "/id",
+    ["products"] = "/categoryId",
+};
+
+var handlers = new Dictionary<string, FakeCosmosHandler>();
+
+foreach (var (name, partitionKeyPath) in partitionKeys)
+{
+    var container = new InMemoryContainer(name, partitionKeyPath);
+    handlers[name] = new FakeCosmosHandler(container);
+}
+
+var router = FakeCosmosHandler.CreateRouter(handlers);
+
+var trackingHandler = new CosmosTrackingMessageHandler(
+    new CosmosTrackingMessageHandlerOptions
+    {
+        ServiceName = "CosmosDB",
+        CallingServiceName = "My API",
+        Verbosity = CosmosTrackingVerbosity.Detailed,
+        CurrentTestInfoFetcher = () =>
+        {
+            var test = TestContext.Current.Test;
+            return test is not null
+                ? (test.TestDisplayName, test.UniqueID)
+                : ("Unknown", "unknown");
+        }
+    },
+    router);
+
+var client = new CosmosClient(
+    "AccountEndpoint=https://localhost:9999/;AccountKey=dGVzdGtleQ==;",
+    new CosmosClientOptions
+    {
+        ConnectionMode = ConnectionMode.Gateway,
+        HttpClientFactory = () => new HttpClient(trackingHandler)
+    });
+```
+
+### Option D: With `CosmosClientOptions` extension (real Cosmos or emulator)
 
 For use against a real Cosmos DB instance or the Microsoft Cosmos DB Emulator:
 
@@ -131,7 +192,13 @@ var trackingOptions = new CosmosTrackingMessageHandlerOptions
     ServiceName = "CosmosDB",
     CallingServiceName = "My API",
     Verbosity = CosmosTrackingVerbosity.Detailed,
-    CurrentTestInfoFetcher = () => /* your test info fetcher */
+    CurrentTestInfoFetcher = () =>
+    {
+        var test = TestContext.Current.Test;
+        return test is not null
+            ? (test.TestDisplayName, test.UniqueID)
+            : ("Unknown", "unknown");
+    }
 };
 
 var clientOptions = new CosmosClientOptions();
@@ -178,10 +245,14 @@ The `CurrentTestInfoFetcher` delegate must return the current test's name and un
 ```csharp
 CurrentTestInfoFetcher = () =>
 {
-    var ctx = TestContext.Current;
-    return (ctx.Test.TestDisplayName, ctx.Test.UniqueID);
+    var test = TestContext.Current.Test;
+    return test is not null
+        ? (test.TestDisplayName, test.UniqueID)
+        : ("Unknown", "unknown");
 }
 ```
+
+> **Why the null guard?** `TestContext.Current.Test` is `null` outside of test execution (e.g. during startup). Without the guard, projects with `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` get CS8602.
 
 **xUnit v2 (with TestTrackingDiagrams.xUnit2):**
 ```csharp
