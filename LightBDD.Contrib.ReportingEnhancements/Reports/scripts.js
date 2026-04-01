@@ -242,19 +242,12 @@ function toggleDiagrams(showDiagrams) {
     Array.from(document.querySelectorAll('details.example-diagrams')).forEach((element) => element.toggleAttribute('open', showDiagrams));
 }
 
-var feature;
-var scenario;
 var searchTimeoutId;
-document.addEventListener("DOMContentLoaded", function (event) {
-    feature = document.getElementsByClassName('feature');
-    scenario = document.getElementsByClassName('scenario');
-});
 
 function search_scenarios() {
-    console.log("called search_scenarios");
-    if (!feature) feature = document.getElementsByClassName('feature');
-    if (!scenario) scenario = document.getElementsByClassName('scenario');
-    for (i = 0; i < feature.length; i++) { feature[i].style.opacity = '0.5'; }
+    let features = document.getElementsByClassName('feature');
+    for (let i = 0; i < features.length; i++)
+        features[i].style.opacity = '0.5';
 
     if (searchTimeoutId)
         clearTimeout(searchTimeoutId);
@@ -265,72 +258,107 @@ function search_scenarios() {
 }
 
 function run_search_scenarios() {
-    console.log("called run_search_scenarios");
-
     let input = document.getElementById('searchbar').value;
     input = input.toLowerCase().trim();
-    console.log("input: " + input);
-
-    if (input !== '') {
-        checkAll('toggleF', true);
-        document.getElementById('toggleFeatures').checked = true;
-    }
 
     let searchTokens = parseSearchTokensIncludingQuotes(input);
-    console.log("tokens: " + searchTokens);
-    for (j = 0; j < searchTokens.length; j++)
-        console.log("searchTokens[" + j + "]: " + searchTokens[j]);
 
-    let feature = document.getElementsByClassName('feature');
-    let scenario = document.getElementsByClassName('scenario');
+    let features = document.getElementsByClassName('feature');
+    let scenarios = document.getElementsByClassName('scenario');
 
-    for (i = 0; i < feature.length; i++) {
-        let tokenMiss = false;
-        for (j = 0; j < searchTokens.length; j++) {
-            if (!(feature[i].textContent.toLowerCase().includes(searchTokens[j]))) {
-                tokenMiss = true;
+    // Clear previous search state
+    for (let i = 0; i < scenarios.length; i++) {
+        scenarios[i].classList.remove('search-hidden');
+    }
+    for (let i = 0; i < features.length; i++) {
+        features[i].classList.remove('search-hidden');
+        features[i].style.opacity = '';
+    }
+
+    // Also clear open state on scenario toggles that search may have set
+    var searchExpandedToggles = document.querySelectorAll('.toggleS.search-expanded');
+    searchExpandedToggles.asQueryable().do(function(t) {
+        t.checked = false;
+        t.classList.remove('search-expanded');
+    });
+
+    // Close any diagram details that search opened
+    document.querySelectorAll('details.example-diagrams.search-opened').asQueryable().do(function(d) {
+        d.removeAttribute('open');
+        d.classList.remove('search-opened');
+    });
+
+    if (searchTokens.length === 0) {
+        applyFilter();
+        return;
+    }
+
+    // Match at the scenario level
+    let matchingScenarios = [];
+    for (let i = 0; i < scenarios.length; i++) {
+        let text = scenarios[i].textContent.toLowerCase();
+        let allMatch = true;
+        for (let j = 0; j < searchTokens.length; j++) {
+            if (!text.includes(searchTokens[j])) {
+                allMatch = false;
                 break;
             }
         }
-
-        feature[i].style.display = tokenMiss ? "none" : "";
+        if (allMatch) {
+            matchingScenarios.push(scenarios[i]);
+        } else {
+            scenarios[i].classList.add('search-hidden');
+        }
     }
 
-    for (i = 0; i < scenario.length; i++) {
-        let tokenMiss = false;
-        for (j = 0; j < searchTokens.length; j++) {
-            if (!(scenario[i].textContent.toLowerCase().includes(searchTokens[j]))) {
-                tokenMiss = true;
+    // Single match: expand scenario with diagrams
+    if (matchingScenarios.length === 1) {
+        let s = matchingScenarios[0];
+        let toggle = s.querySelector('.toggleS');
+        if (toggle && !toggle.checked) {
+            toggle.checked = true;
+            toggle.classList.add('search-expanded');
+        }
+        let diagrams = s.querySelector('details.example-diagrams');
+        if (diagrams && !diagrams.hasAttribute('open')) {
+            diagrams.setAttribute('open', '');
+            diagrams.classList.add('search-opened');
+        }
+    }
+
+    // Hide features with no visible scenarios
+    for (let i = 0; i < features.length; i++) {
+        let childScenarios = features[i].querySelectorAll('.scenario');
+        let hasVisible = false;
+        for (let k = 0; k < childScenarios.length; k++) {
+            if (!childScenarios[k].classList.contains('search-hidden')) {
+                hasVisible = true;
                 break;
             }
         }
-
-        scenario[i].style.display = tokenMiss ? "none" : "";
+        if (!hasVisible) {
+            features[i].classList.add('search-hidden');
+        }
     }
-
-    for (i = 0; i < feature.length; i++) { feature[i].style.opacity = ''; }
 }
 
 function parseSearchTokensIncludingQuotes(str) {
-    let quoteTokens = str.match(/"(.*?)"/);
-    quoteTokens = quoteTokens?.slice(1, quoteTokens.length) ?? [];
-    console.log("Number of quoteTokens: " + quoteTokens.length);
-
-    if (quoteTokens == null)
-        quoteTokens = [];
-
-    for (i = 0; i < quoteTokens.length; i++)
-        str = str.replace('\"' + quoteTokens[i] + '\"', '');
-
-    let simpleTokens = [];
-    let rawWords = str.trim().split(" ");
-    for (i = 0; i < rawWords.length; i++) {
-        let token = rawWords[i].trim();
-        simpleTokens.push(token);
+    let quoteTokens = [];
+    for (let match of str.matchAll(/"(.*?)"/g)) {
+        let phrase = match[1].trim();
+        if (phrase.length > 0) quoteTokens.push(phrase);
     }
 
-    tokens = quoteTokens.concat(simpleTokens);
-    tokens = tokens.filter(x => x !== "");
+    let remaining = str.replace(/"(.*?)"/g, '').trim();
 
-    return tokens;
+    let simpleTokens = [];
+    if (remaining.length > 0) {
+        let rawWords = remaining.split(/\s+/);
+        for (let i = 0; i < rawWords.length; i++) {
+            let token = rawWords[i].trim();
+            if (token.length > 0) simpleTokens.push(token);
+        }
+    }
+
+    return quoteTokens.concat(simpleTokens);
 }

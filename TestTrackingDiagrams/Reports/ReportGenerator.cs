@@ -62,20 +62,12 @@ public static class ReportGenerator
                                        }
                                        """;
         var searchFunction = """
-                             var feature;
-                             var scenario;
                              var searchTimeoutId;
                              
                              function search_scenarios() {
-
-                                 if (!feature)
-                                    feature = document.getElementsByClassName('feature');
-                                    
-                                 if (!scenario)
-                                    scenario = document.getElementsByClassName('scenario');
-                                 
-                                 for (let i = 0; i < feature.length; i++)
-                                    feature[i].style.opacity = '0.5';
+                                 let features = document.getElementsByClassName('feature');
+                                 for (let i = 0; i < features.length; i++)
+                                     features[i].style.opacity = '0.5';
                              
                                  if (searchTimeoutId)
                                      clearTimeout(searchTimeoutId);
@@ -94,70 +86,82 @@ public static class ReportGenerator
                                  let features = document.getElementsByClassName('feature');
                                  let scenarios = document.getElementsByClassName('scenario');
                              
-                                 if (searchTokens.length === 0) {
-                                     for (let i = 0; i < features.length; i++) {
-                                         features[i].style.display = '';
-                                         features[i].style.opacity = '';
-                                     }
-                                     for (let i = 0; i < scenarios.length; i++) {
-                                         scenarios[i].style.display = '';
-                                     }
-                                     return;
+                                 // Clear previous search state
+                                 for (let i = 0; i < scenarios.length; i++) {
+                                     scenarios[i].classList.remove('search-hidden');
+                                     scenarios[i].removeAttribute('open');
+                                 }
+                                 for (let i = 0; i < features.length; i++) {
+                                     features[i].classList.remove('search-hidden');
+                                     features[i].style.opacity = '';
                                  }
                              
-                                 let visibleScenarioCount = 0;
-                                 let lastVisibleScenario = null;
+                                 if (searchTokens.length === 0)
+                                     return;
                              
-                                 for (let i = 0; i < features.length; i++) {
-                                     let featureMatch = true;
+                                 // Match at the scenario level
+                                 let matchingScenarios = [];
+                                 for (let i = 0; i < scenarios.length; i++) {
+                                     let text = scenarios[i].textContent.toLowerCase();
+                                     let allMatch = true;
                                      for (let j = 0; j < searchTokens.length; j++) {
-                                         if (!(features[i].textContent.toLowerCase().includes(searchTokens[j]))) {
-                                             featureMatch = false;
+                                         if (!text.includes(searchTokens[j])) {
+                                             allMatch = false;
                                              break;
                                          }
                                      }
-                             
-                                     if (featureMatch) {
-                                         features[i].style.display = '';
-                                         features[i].open = true;
-                                         let childScenarios = features[i].querySelectorAll('.scenario');
-                                         for (let k = 0; k < childScenarios.length; k++) {
-                                             childScenarios[k].style.display = '';
-                                             visibleScenarioCount++;
-                                             lastVisibleScenario = childScenarios[k];
-                                         }
+                                     if (allMatch) {
+                                         matchingScenarios.push(scenarios[i]);
                                      } else {
-                                         features[i].style.display = 'none';
+                                         scenarios[i].classList.add('search-hidden');
                                      }
                                  }
                              
-                                 if (visibleScenarioCount === 1 && lastVisibleScenario) {
-                                     lastVisibleScenario.open = true;
+                                 // Single match: expand scenario with diagrams
+                                 if (matchingScenarios.length === 1) {
+                                     let s = matchingScenarios[0];
+                                     s.setAttribute('open', '');
+                                     let diagrams = s.querySelector('details.example-diagrams');
+                                     if (diagrams) diagrams.setAttribute('open', '');
+                                     let rawPuml = s.querySelector('details.example');
+                                     if (rawPuml) rawPuml.removeAttribute('open');
                                  }
                              
-                                 for (let i = 0; i < features.length; i++) { features[i].style.opacity = ''; }
+                                 // Hide features with no visible scenarios
+                                 for (let i = 0; i < features.length; i++) {
+                                     let childScenarios = features[i].querySelectorAll('.scenario');
+                                     let hasVisible = false;
+                                     for (let k = 0; k < childScenarios.length; k++) {
+                                         if (!childScenarios[k].classList.contains('search-hidden')) {
+                                             hasVisible = true;
+                                             break;
+                                         }
+                                     }
+                                     if (!hasVisible) {
+                                         features[i].classList.add('search-hidden');
+                                     }
+                                 }
                              }
                              
                              function parseSearchTokensIncludingQuotes(str) {
                                  let quoteTokens = [];
                                  for (let match of str.matchAll(/"(.*?)"/g)) {
-                                     quoteTokens.push(match[1]);
+                                     let phrase = match[1].trim();
+                                     if (phrase.length > 0) quoteTokens.push(phrase);
                                  }
                              
-                                 for (let i = 0; i < quoteTokens.length; i++)
-                                     str = str.replace('"' + quoteTokens[i] + '"', '');
+                                 let remaining = str.replace(/"(.*?)"/g, '').trim();
                              
                                  let simpleTokens = [];
-                                 let rawWords = str.trim().split(" ");
-                                 for (let i = 0; i < rawWords.length; i++) {
-                                     let token = rawWords[i].trim();
-                                     simpleTokens.push(token);
+                                 if (remaining.length > 0) {
+                                     let rawWords = remaining.split(/\s+/);
+                                     for (let i = 0; i < rawWords.length; i++) {
+                                         let token = rawWords[i].trim();
+                                         if (token.length > 0) simpleTokens.push(token);
+                                     }
                                  }
                              
-                                 let tokens = quoteTokens.concat(simpleTokens);
-                                 tokens = tokens.filter(x => x !== "");
-                             
-                                 return tokens;
+                                 return quoteTokens.concat(simpleTokens);
                              }
                              """;
 

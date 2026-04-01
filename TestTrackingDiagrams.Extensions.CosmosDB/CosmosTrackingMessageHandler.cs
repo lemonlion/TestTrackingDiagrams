@@ -1,0 +1,148 @@
+using TestTrackingDiagrams.Tracking;
+
+namespace TestTrackingDiagrams.Extensions.CosmosDB;
+
+public class CosmosTrackingMessageHandler : DelegatingHandler
+{
+    private readonly CosmosTrackingMessageHandlerOptions _options;
+
+    public CosmosTrackingMessageHandler(CosmosTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    {
+        _options = options;
+        InnerHandler = innerHandler ?? new HttpClientHandler();
+    }
+
+    protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return SendAsync(request, cancellationToken).GetAwaiter().GetResult();
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var cosmosOp = CosmosOperationClassifier.Classify(request);
+
+        // Skip internal/metadata operations when in Summarised mode
+        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        if (testInfo is null)
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var requestResponseId = Guid.NewGuid();
+        var traceId = Guid.NewGuid();
+
+        var label = CosmosOperationClassifier.GetDiagramLabel(cosmosOp, _options.Verbosity);
+
+        var requestContent = await GetRequestContent(request, cosmosOp, cancellationToken);
+        var requestHeaders = GetFilteredHeaders(request);
+
+        // Use the label as the "method" for Detailed/Summarised, or the real HTTP method for Raw
+        OneOf<HttpMethod, string> method = _options.Verbosity == CosmosTrackingVerbosity.Raw
+            ? request.Method
+            : label;
+
+        var requestUri = _options.Verbosity == CosmosTrackingVerbosity.Raw
+            ? request.RequestUri!
+            : BuildCleanUri(request.RequestUri!, cosmosOp);
+
+        RequestResponseLogger.Log(new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            method,
+            requestContent,
+            requestUri,
+            requestHeaders,
+            _options.ServiceName,
+            _options.CallingServiceName,
+            RequestResponseType.Request,
+            traceId,
+            requestResponseId,
+            false
+        ));
+
+        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var responseContent = await GetResponseContent(response, cancellationToken);
+        var responseHeaders = GetFilteredHeaders(response);
+
+        RequestResponseLogger.Log(new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            method,
+            responseContent,
+            requestUri,
+            responseHeaders,
+            _options.ServiceName,
+            _options.CallingServiceName,
+            RequestResponseType.Response,
+            traceId,
+            requestResponseId,
+            false,
+            response.StatusCode
+        ));
+
+        return response;
+    }
+
+    private async Task<string?> GetRequestContent(HttpRequestMessage request, CosmosOperationInfo op, CancellationToken ct)
+    {
+        if (request.Content is null)
+            return null;
+
+        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+            return op.QueryText;
+
+        var content = await request.Content.ReadAsStringAsync(ct);
+
+        if (_options.Verbosity == CosmosTrackingVerbosity.Detailed && op.Operation == CosmosOperation.Query)
+            return op.QueryText;
+
+        return content;
+    }
+
+    private async Task<string?> GetResponseContent(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+            return null;
+
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    {
+        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+            return [];
+
+        return request.Headers
+            .Where(h => !_options.ExcludedHeaders.Contains(h.Key))
+            .SelectMany(h => h.Value.Select(v => (h.Key, (string?)v)))
+            .ToArray();
+    }
+
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    {
+        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+            return [];
+
+        return response.Headers
+            .Where(h => !_options.ExcludedHeaders.Contains(h.Key))
+            .SelectMany(h => h.Value.Select(v => (h.Key, (string?)v)))
+            .ToArray();
+    }
+
+    private static Uri BuildCleanUri(Uri originalUri, CosmosOperationInfo op)
+    {
+        // For Detailed/Summarised mode, show a clean path instead of the _rid-encoded URL
+        var parts = new List<string>();
+        if (op.DatabaseName is not null) parts.Add($"dbs/{op.DatabaseName}");
+        if (op.CollectionName is not null) parts.Add($"colls/{op.CollectionName}");
+
+        if (parts.Count == 0)
+            return originalUri;
+
+        var cleanPath = "/" + string.Join("/", parts);
+        var builder = new UriBuilder(originalUri) { Path = cleanPath };
+        return builder.Uri;
+    }
+}
