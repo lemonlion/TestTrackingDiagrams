@@ -44,7 +44,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler
 
         var requestUri = _options.Verbosity == CosmosTrackingVerbosity.Raw
             ? request.RequestUri!
-            : BuildCleanUri(request.RequestUri!, cosmosOp);
+            : BuildCleanUri(request.RequestUri!, cosmosOp, _options.Verbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -131,18 +131,28 @@ public class CosmosTrackingMessageHandler : DelegatingHandler
             .ToArray();
     }
 
-    private static Uri BuildCleanUri(Uri originalUri, CosmosOperationInfo op)
+    private static Uri BuildCleanUri(Uri originalUri, CosmosOperationInfo op, CosmosTrackingVerbosity verbosity)
     {
-        // For Detailed/Summarised mode, show a clean path instead of the _rid-encoded URL
-        var parts = new List<string>();
-        if (op.DatabaseName is not null) parts.Add($"dbs/{op.DatabaseName}");
-        if (op.CollectionName is not null) parts.Add($"colls/{op.CollectionName}");
-
-        if (parts.Count == 0)
+        if (op.CollectionName is null)
             return originalUri;
 
+        if (verbosity == CosmosTrackingVerbosity.Summarised)
+        {
+            var builder = new UriBuilder(originalUri) { Path = $"/{op.CollectionName}" };
+            return builder.Uri;
+        }
+
+        // Detailed: /colls/{coll} with optional resource path, no db prefix
+        var parts = new List<string> { $"colls/{op.CollectionName}" };
+
+        if (op.DocumentId is not null)
+        {
+            var resourceType = op.Operation == CosmosOperation.ExecStoredProc ? "sprocs" : "docs";
+            parts.Add($"{resourceType}/{op.DocumentId}");
+        }
+
         var cleanPath = "/" + string.Join("/", parts);
-        var builder = new UriBuilder(originalUri) { Path = cleanPath };
-        return builder.Uri;
+        var uriBuilder = new UriBuilder(originalUri) { Path = cleanPath };
+        return uriBuilder.Uri;
     }
 }

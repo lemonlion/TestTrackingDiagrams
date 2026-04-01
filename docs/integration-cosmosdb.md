@@ -4,7 +4,7 @@
 
 ## Overview
 
-The `TestTrackingDiagrams.Extensions.CosmosDB` package adds Cosmos DB operation tracking to your test diagrams. Instead of showing raw HTTP requests like `POST /dbs/abc123/colls/xyz789/docs`, your sequence diagrams show classified operations like `Create Document [orders]` or `Query [orders]: SELECT * FROM c WHERE c.status = 'active'`.
+The `TestTrackingDiagrams.Extensions.CosmosDB` package adds Cosmos DB operation tracking to your test diagrams. Instead of showing raw HTTP requests like `POST /dbs/abc123/colls/xyz789/docs`, your sequence diagrams show classified operations like `Read: /colls/orders/docs/order-1` or `Query: /orders`.
 
 The extension works by inserting a `CosmosTrackingMessageHandler` (a `DelegatingHandler`) into the Cosmos SDK's HTTP pipeline. It classifies each HTTP request into a Cosmos operation (Create, Read, Query, Upsert, etc.) using the HTTP method, URL path, and headers, then logs it to `RequestResponseLogger` with a human-readable label.
 
@@ -33,8 +33,8 @@ The extension supports three verbosity levels that control how much detail appea
 | Level | Method shown | URI shown | Headers | Request body | Response body |
 |---|---|---|---|---|---|
 | **Raw** | HTTP method (`POST`, `GET`, etc.) | Full SDK URI (with `_rid`-encoded paths) | All except excluded set | Full JSON | Full JSON |
-| **Detailed** | Classified label (`Create Document [orders]`) | Clean path (`/dbs/mydb/colls/orders`) | Filtered (noisy Cosmos headers excluded) | SQL text for queries, full JSON for others | Full JSON |
-| **Summarised** | Classified label (`Create Document [orders]`) | Clean path (`/dbs/mydb/colls/orders`) | None | SQL text for queries only | None |
+| **Detailed** | Classified operation (`Read`) | Clean path without database (`/colls/orders/docs/order-1`) | Filtered (noisy Cosmos headers excluded) | SQL text for queries, full JSON for others | Full JSON |
+| **Summarised** | Classified operation (`Read`) | Collection name only (`/orders`) | None | SQL text for queries only | None |
 
 The default is **Detailed**.
 
@@ -280,9 +280,9 @@ Examples of how the same operation appears at each verbosity level:
 
 | Operation | Raw | Detailed | Summarised |
 |---|---|---|---|
-| Create a document | `POST` | `Create Document [orders]` | `Create Document [orders]` |
-| Read a document | `GET` | `Read Document [orders]` | `Read Document [orders]` |
-| Query documents | `POST` | `Query [orders]: SELECT * FROM c WHERE c.status = 'active'` | `Query [orders]: SELECT * FROM c WHERE c.status = 'active'` |
+| Create a document | `POST` | `Create` | `Create` |
+| Read a document | `GET` | `Read` | `Read` |
+| Query documents | `POST` | `Query` | `Query` |
 | SDK metadata | `GET` | `GET` (shown as raw) | *(skipped — not shown)* |
 
 ---

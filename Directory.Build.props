@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>1.24.3</Version>
+    <Version>1.24.4</Version>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

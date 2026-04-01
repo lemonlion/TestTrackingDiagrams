@@ -64,17 +64,7 @@ public static partial class CosmosOperationClassifier
     {
         return verbosity switch
         {
-            CosmosTrackingVerbosity.Summarised => op.Operation.ToString(),
-
-            CosmosTrackingVerbosity.Detailed => op.Operation switch
-            {
-                CosmosOperation.Query => $"Query [{op.CollectionName}]",
-                CosmosOperation.ExecStoredProc => $"ExecSproc [{op.DocumentId}]",
-                CosmosOperation.List => $"List [{op.CollectionName}]",
-                _ when op.DocumentId is not null => $"{op.Operation} [{op.CollectionName}/{op.DocumentId}]",
-                _ when op.CollectionName is not null => $"{op.Operation} [{op.CollectionName}]",
-                _ => op.Operation.ToString()
-            },
+            CosmosTrackingVerbosity.Summarised or CosmosTrackingVerbosity.Detailed => op.Operation.ToString(),
 
             // Raw: fall through to the standard method + path used by the base handler
             _ => null!

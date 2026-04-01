@@ -152,7 +152,7 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
-        Assert.Equal("Create [orders]", log.Method.Value?.ToString());
+        Assert.Equal("Create", log.Method.Value?.ToString());
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
-        Assert.Equal("Read [orders/order-1]", log.Method.Value?.ToString());
+        Assert.Equal("Read", log.Method.Value?.ToString());
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         await invoker.SendAsync(MakeQueryRequest(), CancellationToken.None);
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
-        Assert.Equal("Query [orders]", log.Method.Value?.ToString());
+        Assert.Equal("Query", log.Method.Value?.ToString());
         Assert.Equal("SELECT * FROM c WHERE c.status = 'active'", log.Content);
     }
 
@@ -318,15 +318,36 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
     // ─── URI cleaning ─────────────────────────────────────────
 
     [Fact]
-    public async Task Detailed_UsesCleanUri()
+    public async Task Detailed_Create_UsesCleanUri_WithoutDb()
     {
         using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
 
         await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
-        Assert.Contains("/dbs/mydb/colls/orders", log.Uri.AbsolutePath);
-        Assert.DoesNotContain("docs", log.Uri.AbsolutePath);
+        Assert.Equal("/colls/orders", log.Uri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task Detailed_Read_IncludesDocPathInUri()
+    {
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("/colls/orders/docs/order-1", log.Uri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task Summarised_UsesCollectionNameOnlyAsPath()
+    {
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Summarised));
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("/orders", log.Uri.AbsolutePath);
     }
 
     [Fact]
