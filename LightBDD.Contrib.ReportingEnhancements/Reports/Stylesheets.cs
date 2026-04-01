@@ -6,6 +6,10 @@ public static class Stylesheets
         @"
             .hide {
                 display: none;
+            }
+            
+            .search-hidden {
+                display: none !important;
             }";
 
 

@@ -152,5 +152,9 @@ public class Stylesheets
                     color: rgb(110, 110, 110);
                     float: right;
                 }
+                
+                .search-hidden {
+                    display: none !important;
+                }
         """;
 }
