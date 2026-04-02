@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
     <Title>Test Tracking Diagrams PlantUML IKVM</Title>
     <Description>Local PlantUML rendering via IKVM for TestTrackingDiagrams. Generates diagrams without requiring a remote PlantUML server.</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>

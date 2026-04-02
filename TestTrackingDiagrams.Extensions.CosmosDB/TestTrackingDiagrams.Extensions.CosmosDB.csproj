@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
     <Title>Test Tracking Diagrams CosmosDB Extension</Title>
     <Description>CosmosDB extensions for tracking Cosmos DB operations in your tests and converting them into diagrams.</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
