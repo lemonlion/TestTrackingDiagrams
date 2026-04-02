@@ -506,7 +506,35 @@ public class ComponentDiagramGeneratorTests
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
 
-        Assert.Contains("!include <C4/C4_Component>", result);
+        Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", result);
+        Assert.DoesNotContain("C4_Component", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_DefaultLabel_UsesHyphenNotEmDash()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 5, 3)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("HTTP: GET - 5 calls across 3 tests", result);
+        Assert.DoesNotContain("\u2014", result); // no em-dash
+    }
+
+    [Fact]
+    public void GeneratePlantUml_StartsWithStartuml()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.StartsWith("@startuml", result.TrimStart());
     }
 
     // ═══════════════════════════════════════════════════════════

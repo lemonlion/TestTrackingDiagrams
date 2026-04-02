@@ -45,7 +45,7 @@ public static partial class ComponentDiagramGenerator
         var sb = new StringBuilder();
 
         sb.AppendLine("@startuml");
-        sb.AppendLine("!include <C4/C4_Component>");
+        sb.AppendLine("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml");
 
         if (!string.IsNullOrWhiteSpace(options.PlantUmlTheme))
             sb.AppendLine($"!theme {options.PlantUmlTheme}");
@@ -87,7 +87,7 @@ public static partial class ComponentDiagramGenerator
                 var methodsPart = rel.Protocol == "HTTP"
                     ? $"HTTP: {string.Join(", ", rel.Methods.OrderBy(m => m))}"
                     : $"{rel.Protocol}: {string.Join(", ", rel.Methods.OrderBy(m => m))}";
-                label = $"{methodsPart} — {rel.CallCount} calls across {rel.TestCount} tests";
+                label = $"{methodsPart} - {rel.CallCount} calls across {rel.TestCount} tests";
             }
 
             sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\")");

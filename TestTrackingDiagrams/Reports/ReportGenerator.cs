@@ -40,7 +40,10 @@ public static class ReportGenerator
         {
             actions.Add(() => ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-                options.ComponentDiagramOptions));
+                options.ComponentDiagramOptions,
+                options.PlantUmlServerBaseUrl,
+                options.PlantUmlImageFormat,
+                options.LocalDiagramRenderer));
         }
 
         Parallel.Invoke(actions.ToArray());

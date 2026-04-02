@@ -110,4 +110,86 @@ public class ComponentDiagramReportTests : IDisposable
         Assert.Contains("PaymentService", puml);
         Assert.Contains("Rel(", puml);
     }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HtmlContainsImageTag()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("<img src=", html);
+        Assert.Contains("plantuml.com/plantuml", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HtmlEncodesPlantUmlSource()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        // The URL-based include should render correctly in browser (no angle brackets to escape)
+        Assert.Contains("C4_Context.puml", html);
+        Assert.DoesNotContain("<C4/", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ServerUrl_ContainsEncodedPlantUml()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, options, plantUmlServerBaseUrl: "https://plantuml.com/plantuml", imageFormat: PlantUmlImageFormat.Svg);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("plantuml.com/plantuml/svg/", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PngFormat_UsesPngUrl()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, options, imageFormat: PlantUmlImageFormat.Png);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("plantuml.com/plantuml/png/", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_LocalRenderer_UsesRenderedImage()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+        var fakeImageBytes = "fake-image-data"u8.ToArray();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, options,
+            imageFormat: PlantUmlImageFormat.Base64Png,
+            localDiagramRenderer: (_, _) => fakeImageBytes);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("data:image/png;base64,", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PumlFile_UsesC4Context()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+
+        var puml = File.ReadAllText(result.PumlFilePath);
+        Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", puml);
+        Assert.DoesNotContain("C4_Component", puml);
+    }
 }
