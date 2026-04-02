@@ -18,4 +18,5 @@ public record ReportConfigurationOptions
     public FocusEmphasis FocusEmphasis { get; set; } = FocusEmphasis.Bold;
     public FocusDeEmphasis FocusDeEmphasis { get; set; } = FocusDeEmphasis.LightGray;
     public string? PlantUmlTheme { get; set; }
+    public PlantUmlImageFormat PlantUmlImageFormat { get; set; } = PlantUmlImageFormat.Png;
 }

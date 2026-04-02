@@ -19,7 +19,8 @@ public static class ReportGenerator
             LazyLoadDiagramImages = options.LazyLoadDiagramImages,
             FocusEmphasis = options.FocusEmphasis,
             FocusDeEmphasis = options.FocusDeEmphasis,
-            PlantUmlTheme = options.PlantUmlTheme
+            PlantUmlTheme = options.PlantUmlTheme,
+            PlantUmlImageFormat = options.PlantUmlImageFormat
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

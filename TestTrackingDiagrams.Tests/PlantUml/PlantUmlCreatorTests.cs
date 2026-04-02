@@ -2224,4 +2224,32 @@ public class PlantUmlCreatorTests
         foreach (var diagram in plantUmls)
             Assert.Contains("!theme materia", diagram.PlainText);
     }
+
+    // ─── PlantUML image format ──────────────────────────────────
+
+    [Fact]
+    public void Default_image_format_is_png()
+    {
+        Assert.Equal(PlantUmlImageFormat.Png, new ReportConfigurationOptions().PlantUmlImageFormat);
+        Assert.Equal(PlantUmlImageFormat.Png, new DiagramsFetcherOptions().PlantUmlImageFormat);
+    }
+
+    [Fact]
+    public void Image_format_enum_has_png_and_svg()
+    {
+        Assert.True(Enum.IsDefined(typeof(PlantUmlImageFormat), PlantUmlImageFormat.Png));
+        Assert.True(Enum.IsDefined(typeof(PlantUmlImageFormat), PlantUmlImageFormat.Svg));
+    }
+
+    [Fact]
+    public void Image_tags_use_svg_url_when_server_url_contains_svg()
+    {
+        var logs = new[] { MakeRequest() };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs, plantUmlServerRendererUrl: "https://plantuml.com/plantuml/svg").ToList();
+        var imageTag = results.Single().ImageTags.First();
+
+        Assert.Contains("/svg/", imageTag);
+        Assert.DoesNotContain("/png/", imageTag);
+    }
 }
