@@ -20,7 +20,9 @@ public static class ReportGenerator
             FocusEmphasis = options.FocusEmphasis,
             FocusDeEmphasis = options.FocusDeEmphasis,
             PlantUmlTheme = options.PlantUmlTheme,
-            PlantUmlImageFormat = options.PlantUmlImageFormat
+            PlantUmlImageFormat = options.PlantUmlImageFormat,
+            LocalDiagramRenderer = options.LocalDiagramRenderer,
+            LocalDiagramImageDirectory = options.LocalDiagramImageDirectory
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

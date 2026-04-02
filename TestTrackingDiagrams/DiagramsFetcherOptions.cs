@@ -17,4 +17,6 @@ public record DiagramsFetcherOptions
     public FocusDeEmphasis FocusDeEmphasis { get; set; } = FocusDeEmphasis.LightGray;
     public string? PlantUmlTheme { get; set; }
     public PlantUmlImageFormat PlantUmlImageFormat { get; set; } = PlantUmlImageFormat.Png;
+    public Func<string, PlantUmlImageFormat, byte[]>? LocalDiagramRenderer { get; set; }
+    public string? LocalDiagramImageDirectory { get; set; }
 }
