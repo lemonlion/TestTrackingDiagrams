@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Mermaid;
 
+[Collection("DiagramsFetcher")]
 public class MermaidDiagramFetcherTests : IDisposable
 {
     private static readonly FieldInfo DiagramsField =

@@ -44,6 +44,24 @@ public static class ReportGenerator
         }
 
         Parallel.Invoke(actions.ToArray());
+
+        if (options.WriteCiSummary)
+        {
+            var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams);
+
+            var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "CiSummary.md"), markdown);
+
+            var ciEnvironment = CiEnvironmentDetector.Detect();
+            CiSummaryWriter.Write(markdown, ciEnvironment);
+
+            if (options.WriteCiSummaryInteractiveHtml)
+            {
+                var interactiveHtml = CiSummaryInteractiveHtmlGenerator.GenerateHtml(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams);
+                File.WriteAllText(Path.Combine(directory, "CiSummaryInteractive.html"), interactiveHtml);
+            }
+        }
     }
 
     public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,

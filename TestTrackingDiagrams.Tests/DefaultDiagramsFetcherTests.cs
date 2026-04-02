@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests;
 
+[Collection("DiagramsFetcher")]
 public class DefaultDiagramsFetcherTests : IDisposable
 {
     private static readonly FieldInfo DiagramsField =
