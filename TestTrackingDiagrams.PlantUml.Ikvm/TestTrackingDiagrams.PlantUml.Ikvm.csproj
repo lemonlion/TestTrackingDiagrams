@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Title>Test Tracking Diagrams PlantUML IKVM</Title>
+    <Description>Local PlantUML rendering via IKVM for TestTrackingDiagrams. Generates diagrams without requiring a remote PlantUML server.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IKVM" Version="8.9.1" />
+    <PackageReference Include="IKVM.Image" Version="8.9.1" />
+    <PackageReference Include="IKVM.Image.JDK" Version="8.9.1" />
+    <PackageReference Include="IKVM.Image.JRE" Version="8.9.1" />
+    <PackageReference Include="IKVM.MSBuild" Version="8.9.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <IkvmReference Include="PlantUml\plantuml-mit-1.2024.6.jar">
+      <Debug>true</Debug>
+    </IkvmReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+
+</Project>

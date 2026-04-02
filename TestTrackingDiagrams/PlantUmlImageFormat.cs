@@ -3,5 +3,7 @@ namespace TestTrackingDiagrams;
 public enum PlantUmlImageFormat
 {
     Png,
-    Svg
+    Svg,
+    Base64Png,
+    Base64Svg
 }
