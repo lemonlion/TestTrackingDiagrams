@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using TestTrackingDiagrams.ComponentDiagram;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
 
@@ -26,11 +28,21 @@ public static class ReportGenerator
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
-        Parallel.Invoke(
+        var actions = new List<Action>
+        {
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages),
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
-        );
+        };
+
+        if (options.GenerateComponentDiagram)
+        {
+            actions.Add(() => ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+                RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
+                options.ComponentDiagramOptions));
+        }
+
+        Parallel.Invoke(actions.ToArray());
     }
 
     public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,

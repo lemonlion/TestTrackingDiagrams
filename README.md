@@ -12,6 +12,7 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [How It Works](#how-it-works)
 - [Use Cases](#use-cases)
 - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
+- [Component Diagrams (C4-style)](#component-diagrams)
 - [Supported Frameworks & NuGet Packages](#supported-frameworks)
 - [Recommended BDD Framework](#recommended-bdd)
 - [Documentation](#documentation)
@@ -122,6 +123,64 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 
 ---
 
+## <a name="component-diagrams"></a>Component Diagrams (C4-style) [↑](#top)
+
+In addition to per-test sequence diagrams, TestTrackingDiagrams can **aggregate all tracked interactions across your entire test suite** to auto-generate a C4-style component diagram. This diagram shows every discovered participant (services, event brokers, databases) and their relationships — giving you a high-level architecture overview derived directly from real test traffic.
+
+This is an **opt-in** feature. Enable it by setting `GenerateComponentDiagram = true` on your `ReportConfigurationOptions`:
+
+```csharp
+var options = new ReportConfigurationOptions
+{
+    GenerateComponentDiagram = true,
+    ComponentDiagramOptions = new ComponentDiagramOptions
+    {
+        Title = "My Service Architecture",
+        // Optional: filter out participants you don't want in the diagram
+        ParticipantFilter = name => name != "InternalHelper"
+    }
+};
+```
+
+### Output
+
+When enabled, two additional files are generated alongside your existing reports:
+
+| File | Description |
+|------|-------------|
+| `ComponentDiagram.puml` | Raw PlantUML C4 source — version-controllable, diffable |
+| `ComponentDiagram.html` | Standalone HTML page with the PlantUML source for easy viewing |
+
+### Example Output
+
+```plantuml
+@startuml
+!include <C4/C4_Component>
+
+title My Service Architecture
+
+Person(webApp, "WebApp")
+System(orderService, "OrderService")
+System(paymentService, "PaymentService")
+System(kafka, "Kafka")
+
+Rel(webApp, orderService, "HTTP: GET, POST — 14 calls across 8 tests")
+Rel(orderService, paymentService, "HTTP: POST — 6 calls across 4 tests")
+Rel(orderService, kafka, "Publish: Publish — 3 calls across 2 tests")
+
+@enduml
+```
+
+**How participants are classified:**
+- A participant that **only appears as a caller** (never called by another service) is rendered as a `Person()` — typically your test client
+- All other participants are rendered as `System()` — your SUT, its dependencies, event brokers, databases, etc.
+
+**Relationship labels** show the protocol, distinct HTTP methods used, total call count, and how many tests exercised the relationship.
+
+For full configuration details (custom titles, themes, label formatters, participant filters), see the [Component Diagrams](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams) wiki page.
+
+---
+
 ## <a name="supported-frameworks"></a>Supported Frameworks & NuGet Packages [↑](#top)
 
 | Framework | Package | Test Runner | NuGet |
@@ -176,5 +235,6 @@ Key pages:
 - [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
 - [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
 - [Report Configuration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Report-Configuration)
+- [Component Diagrams (C4-style)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams)
 - [API Reference](https://github.com/lemonlion/TestTrackingDiagrams/wiki/API-Reference)
 - [Example Project](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Example-Project)
