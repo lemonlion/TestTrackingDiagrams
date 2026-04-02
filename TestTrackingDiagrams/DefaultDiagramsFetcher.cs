@@ -34,7 +34,7 @@ public static class DefaultDiagramsFetcher
             return _diagrams = perTestId
                 .SelectMany(test => test.PlantUmls.Select(plantUml =>
                     new DiagramAsCode(test.TestId,
-                        $"{options.PlantUmlServerBaseUrl}/png/{plantUml.PlantUmlEncoded}",
+                        $"{options.PlantUmlServerBaseUrl}/{options.PlantUmlImageFormat.ToString().ToLowerInvariant()}/{plantUml.PlantUmlEncoded}",
                         plantUml.PlainText)))
                 .ToArray();
         };
