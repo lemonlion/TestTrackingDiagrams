@@ -1,4 +1,5 @@
-﻿using TestTrackingDiagrams.PlantUml;
+﻿using TestTrackingDiagrams.Mermaid;
+using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
@@ -16,6 +17,9 @@ public static class DefaultDiagramsFetcher
 
         return () =>
         {
+            if (options.DiagramFormat == DiagramFormat.Mermaid)
+                return _diagrams = GetMermaidDiagrams(options);
+
             var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
                 requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
@@ -94,6 +98,28 @@ public static class DefaultDiagramsFetcher
 
                 return new DiagramAsCode(test.TestId, imgSrc, plantUml.PlainText);
             }))
+            .ToArray();
+    }
+
+    private static DiagramAsCode[] GetMermaidDiagrams(DiagramsFetcherOptions options)
+    {
+        var perTestId = MermaidCreator.GetMermaidDiagramsPerTestId(
+            RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
+            requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
+            responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
+            requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
+            responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
+            requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
+            responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
+            excludedHeaders: options.ExcludedHeaders.ToArray(),
+            separateSetup: options.SeparateSetup,
+            highlightSetup: options.HighlightSetup,
+            focusEmphasis: options.FocusEmphasis,
+            focusDeEmphasis: options.FocusDeEmphasis).ToArray();
+
+        return perTestId
+            .SelectMany(test => test.Diagrams.Select(diagram =>
+                new DiagramAsCode(test.TestId, string.Empty, diagram)))
             .ToArray();
     }
 

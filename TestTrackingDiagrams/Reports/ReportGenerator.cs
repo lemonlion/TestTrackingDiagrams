@@ -22,13 +22,14 @@ public static class ReportGenerator
             PlantUmlTheme = options.PlantUmlTheme,
             PlantUmlImageFormat = options.PlantUmlImageFormat,
             LocalDiagramRenderer = options.LocalDiagramRenderer,
-            LocalDiagramImageDirectory = options.LocalDiagramImageDirectory
+            LocalDiagramImageDirectory = options.LocalDiagramImageDirectory,
+            DiagramFormat = options.DiagramFormat
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
         Parallel.Invoke(
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
         );
     }
@@ -42,7 +43,8 @@ public static class ReportGenerator
         string title,
         bool includeTestRunData,
         bool generateBlankOnFailedTests = false,
-        bool lazyLoadImages = true)
+        bool lazyLoadImages = true,
+        DiagramFormat diagramFormat = DiagramFormat.PlantUml)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -174,6 +176,16 @@ public static class ReportGenerator
                                  {stylesheet}
                                  """;
 
+        var isMermaid = diagramFormat == DiagramFormat.Mermaid;
+        var mermaidScript = isMermaid
+            ? """
+              <script type="module">
+                  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+                  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+              </script>
+              """
+            : "";
+
         var html = $$"""
                     <html>
                         <head>
@@ -184,6 +196,7 @@ public static class ReportGenerator
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
                             </script>
+                            {{mermaidScript}}
                         </head>
                         <body>
                     """;
@@ -269,19 +282,37 @@ public static class ReportGenerator
                             """);
 
                     var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
+                    var rawLabel = isMermaid ? "Raw Mermaid" : "Raw Plant UML";
                     foreach (var diagram in diagramsForTest)
                     {
-                        body.Append($"""
-                                 <details class="example">
-                                    <summary class="example-image">
-                                        <img{lazyLoadAttr} src="{diagram.ImgSrc}">
-                                    </summary>
-                                    <div class="raw-plantuml">
-                                        <h4>Raw Plant UML</h4>
-                                        <pre>{diagram.CodeBehind}</pre>
-                                     </div>
-                                 </details>
-                                 """);
+                        if (isMermaid)
+                        {
+                            body.Append($"""
+                                     <details class="example">
+                                        <summary class="example-image">
+                                            <pre class="mermaid">{diagram.CodeBehind}</pre>
+                                        </summary>
+                                        <div class="raw-plantuml">
+                                            <h4>{rawLabel}</h4>
+                                            <pre>{diagram.CodeBehind}</pre>
+                                         </div>
+                                     </details>
+                                     """);
+                        }
+                        else
+                        {
+                            body.Append($"""
+                                     <details class="example">
+                                        <summary class="example-image">
+                                            <img{lazyLoadAttr} src="{diagram.ImgSrc}">
+                                        </summary>
+                                        <div class="raw-plantuml">
+                                            <h4>{rawLabel}</h4>
+                                            <pre>{diagram.CodeBehind}</pre>
+                                         </div>
+                                     </details>
+                                     """);
+                        }
                     }
                     body.Append("</details>");
 
