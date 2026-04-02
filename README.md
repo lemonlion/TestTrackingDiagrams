@@ -140,6 +140,7 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 | Extension | Package | Description | NuGet |
 |---|---|---|---|
 | **CosmosDB** | `TestTrackingDiagrams.Extensions.CosmosDB` | Tracks Azure Cosmos DB SDK operations with classified labels (Create, Read, Query, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.CosmosDB)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.CosmosDB) |
+| **EF Core Relational** | `TestTrackingDiagrams.Extensions.EfCore.Relational` | Tracks SQL operations from any EF Core relational provider (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, Spanner) with classified labels and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.EfCore.Relational)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.EfCore.Relational) |
 | **PlantUML IKVM** | `TestTrackingDiagrams.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.PlantUml.Ikvm)](https://www.nuget.org/packages/TestTrackingDiagrams.PlantUml.Ikvm) |
 
 All packages from 1.23.X onwards target **.NET 10.0** .
@@ -169,6 +170,7 @@ Key pages:
 - [Quick Start (xUnit)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit))
 - [Framework Integration Guides](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Framework-Integration-Guides)
 - [CosmosDB Extension](docs/integration-cosmosdb.md)
+- [EF Core Relational Extension](docs/integration-efcore-relational.md)
 - [PlantUML IKVM (Local Rendering)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-PlantUML-IKVM)
 - [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
 - [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
