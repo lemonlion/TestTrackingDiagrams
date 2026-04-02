@@ -29,4 +29,7 @@ public record ReportConfigurationOptions
     public bool WriteCiSummary { get; set; }
     public int MaxCiSummaryDiagrams { get; set; } = 10;
     public bool WriteCiSummaryInteractiveHtml { get; set; }
+    public bool PublishCiArtifacts { get; set; }
+    public string CiArtifactName { get; set; } = "TestReports";
+    public int CiArtifactRetentionDays { get; set; } = 1;
 }

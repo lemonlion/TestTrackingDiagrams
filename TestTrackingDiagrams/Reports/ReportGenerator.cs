@@ -65,6 +65,19 @@ public static class ReportGenerator
                 File.WriteAllText(Path.Combine(directory, "CiSummaryInteractive.html"), interactiveHtml);
             }
         }
+
+        if (options.PublishCiArtifacts)
+        {
+            var ciEnv = CiEnvironmentDetector.Detect();
+            var reportsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+            if (Directory.Exists(reportsDirectory))
+            {
+                var reportFiles = Directory.GetFiles(reportsDirectory)
+                    .Where(f => f.EndsWith(".html") || f.EndsWith(".yml") || f.EndsWith(".md"))
+                    .ToArray();
+                CiArtifactPublisher.Publish(reportFiles, ciEnv, options.CiArtifactName, options.CiArtifactRetentionDays);
+            }
+        }
     }
 
     public static string GenerateHtmlReport(DefaultDiagramsFetcher.DiagramAsCode[] diagrams,

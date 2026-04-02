@@ -111,6 +111,10 @@ New team members can browse the HTML reports to quickly understand how the syste
 
 Enable `WriteCiSummary = true` on your `ReportConfigurationOptions` to surface test results and sequence diagrams directly in your **GitHub Actions job summary** or **Azure DevOps build summary**. The summary includes a pass/fail table, and when tests fail, the failed scenarios are shown with error messages, stack traces, and their sequence diagrams — giving you immediate visual context without downloading artifacts. When all tests pass, diagrams for the first N scenarios are shown as a quick validation. An optional interactive HTML artifact (`WriteCiSummaryInteractiveHtml = true`) renders diagrams client-side using the PlantUML JS engine with no server dependency. See the [CI Summary Integration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/CI-Summary-Integration) wiki page for full details.
 
+### CI artifact upload
+
+Enable `PublishCiArtifacts = true` to automatically publish generated report files as CI artifacts. On **Azure DevOps**, reports are uploaded directly via `##vso[artifact.upload]` logging commands during test execution — no additional pipeline configuration needed. On **GitHub Actions**, the library writes the reports directory path and retention days to `$GITHUB_OUTPUT` so you can add a single `upload-artifact` step to your workflow. Artifact retention defaults to 1 day (`CiArtifactRetentionDays`). See the [CI Artifact Upload](https://github.com/lemonlion/TestTrackingDiagrams/wiki/CI-Artifact-Upload) wiki page for configuration and workflow examples.
+
 ---
 
 ## <a name="deterministic-vs-ai"></a>Deterministic vs AI-Generated Diagrams [↑](#top)

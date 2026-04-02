@@ -14,6 +14,12 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public ReportGeneratorCiSummaryTests()
     {
         DiagramsField.SetValue(null, null);
+
+        var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
+        if (File.Exists(ciSummaryPath)) File.Delete(ciSummaryPath);
+
+        var interactivePath = Path.Combine(_reportsDir, "CiSummaryInteractive.html");
+        if (File.Exists(interactivePath)) File.Delete(interactivePath);
     }
 
     public void Dispose()
