@@ -1,7 +1,11 @@
-﻿namespace TestTrackingDiagrams;
+﻿using TestTrackingDiagrams.ComponentDiagram;
+
+namespace TestTrackingDiagrams;
 
 public record ReportConfigurationOptions
 {
+    public bool GenerateComponentDiagram { get; set; }
+    public ComponentDiagramOptions? ComponentDiagramOptions { get; set; }
     public string PlantUmlServerBaseUrl { get; set; } = "https://plantuml.com/plantuml";
     public Func<string, string>? RequestResponsePostProcessor { get; set; }
     public Func<string, string>? RequestResponseMidProcessor { get; set; }
