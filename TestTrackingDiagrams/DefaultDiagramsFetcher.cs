@@ -20,6 +20,9 @@ public static class DefaultDiagramsFetcher
             if (options.DiagramFormat == DiagramFormat.Mermaid)
                 return _diagrams = GetMermaidDiagrams(options);
 
+            if (options.DiagramFormat == DiagramFormat.PlantUmlBrowser)
+                return _diagrams = GetPlantUmlBrowserDiagrams(options);
+
             var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
                 requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
@@ -98,6 +101,30 @@ public static class DefaultDiagramsFetcher
 
                 return new DiagramAsCode(test.TestId, imgSrc, plantUml.PlainText);
             }))
+            .ToArray();
+    }
+
+    private static DiagramAsCode[] GetPlantUmlBrowserDiagrams(DiagramsFetcherOptions options)
+    {
+        var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
+            requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
+            responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
+            requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
+            responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
+            requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
+            responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
+            excludedHeaders: options.ExcludedHeaders.ToArray(),
+            separateSetup: options.SeparateSetup,
+            highlightSetup: options.HighlightSetup,
+            lazyLoadImages: false,
+            focusEmphasis: options.FocusEmphasis,
+            focusDeEmphasis: options.FocusDeEmphasis,
+            plantUmlTheme: options.PlantUmlTheme).ToArray();
+
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+                new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText)))
             .ToArray();
     }
 

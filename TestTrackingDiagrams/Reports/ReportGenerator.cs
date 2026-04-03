@@ -223,11 +223,38 @@ public static class ReportGenerator
                                  """;
 
         var isMermaid = diagramFormat == DiagramFormat.Mermaid;
+        var isPlantUmlBrowser = diagramFormat == DiagramFormat.PlantUmlBrowser;
         var mermaidScript = isMermaid
             ? """
               <script type="module">
                   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
                   mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+              </script>
+              """
+            : "";
+        var plantUmlBrowserScript = isPlantUmlBrowser
+            ? """
+              <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
+              <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
+              <script>
+                  plantumlLoad();
+                  document.addEventListener('DOMContentLoaded', function() {
+                      var observer = new IntersectionObserver(function(entries) {
+                          entries.forEach(function(entry) {
+                              if (!entry.isIntersecting) return;
+                              var el = entry.target;
+                              if (el.dataset.rendered) return;
+                              el.dataset.rendered = '1';
+                              observer.unobserve(el);
+                              var source = el.getAttribute('data-plantuml');
+                              var lines = source.split('\n');
+                              window.plantuml.render(lines, el.id);
+                          });
+                      }, { rootMargin: '200px' });
+                      document.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                          observer.observe(el);
+                      });
+                  });
               </script>
               """
             : "";
@@ -243,6 +270,7 @@ public static class ReportGenerator
                                 {{searchFunction}}
                             </script>
                             {{mermaidScript}}
+                            {{plantUmlBrowserScript}}
                         </head>
                         <body>
                     """;
@@ -285,6 +313,7 @@ public static class ReportGenerator
                  """);
 
         var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
+        var plantUmlBrowserCounter = 0;
 
         foreach (var feature in features)
         {
@@ -337,6 +366,22 @@ public static class ReportGenerator
                                      <details class="example">
                                         <summary class="example-image">
                                             <pre class="mermaid">{diagram.CodeBehind}</pre>
+                                        </summary>
+                                        <div class="raw-plantuml">
+                                            <h4>{rawLabel}</h4>
+                                            <pre>{diagram.CodeBehind}</pre>
+                                         </div>
+                                     </details>
+                                     """);
+                        }
+                        else if (isPlantUmlBrowser)
+                        {
+                            var diagramId = $"puml-{plantUmlBrowserCounter++}";
+                            var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                            body.Append($"""
+                                     <details class="example">
+                                        <summary class="example-image">
+                                            <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}">Loading diagram...</div>
                                         </summary>
                                         <div class="raw-plantuml">
                                             <h4>{rawLabel}</h4>

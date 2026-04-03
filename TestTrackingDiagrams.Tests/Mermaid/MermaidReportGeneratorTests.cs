@@ -114,4 +114,58 @@ public class MermaidReportGeneratorTests
         Assert.Contains("<img", content);
         Assert.DoesNotContain("<pre class=\"mermaid\">", content);
     }
+
+    [Fact]
+    public void PlantUml_report_does_not_contain_plantuml_browser_scripts()
+    {
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakePlantUmlDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "PlantUmlNoBrowserScript.html", "Test", true,
+            diagramFormat: DiagramFormat.PlantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("plantuml-browser", content);
+        Assert.DoesNotContain("viz-global.js", content);
+        Assert.DoesNotContain("IntersectionObserver", content);
+    }
+
+    [Fact]
+    public void PlantUml_report_does_not_contain_mermaid_script()
+    {
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakePlantUmlDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "PlantUmlNoMermaidScript.html", "Test", true,
+            diagramFormat: DiagramFormat.PlantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("mermaid.initialize", content);
+    }
+
+    [Fact]
+    public void Mermaid_report_does_not_contain_plantuml_browser_scripts()
+    {
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeMermaidDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "MermaidNoBrowserScript.html", "Test", true,
+            diagramFormat: DiagramFormat.Mermaid);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("plantuml-browser", content);
+        Assert.DoesNotContain("viz-global.js", content);
+        Assert.DoesNotContain("IntersectionObserver", content);
+    }
+
+    [Fact]
+    public void DiagramFormat_enum_has_exactly_three_values()
+    {
+        var values = Enum.GetValues<DiagramFormat>();
+
+        Assert.Equal(3, values.Length);
+        Assert.Contains(DiagramFormat.PlantUml, values);
+        Assert.Contains(DiagramFormat.Mermaid, values);
+        Assert.Contains(DiagramFormat.PlantUmlBrowser, values);
+    }
 }
