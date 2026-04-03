@@ -9,12 +9,14 @@ public static class ComponentDiagramReportGenerator
 
     public static ComponentDiagramResult GenerateComponentDiagramReport(
         IEnumerable<RequestResponseLog> logs,
-        ComponentDiagramOptions? options = null,
-        string plantUmlServerBaseUrl = "https://plantuml.com/plantuml",
-        PlantUmlImageFormat imageFormat = PlantUmlImageFormat.Svg,
-        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer = null)
+        ReportConfigurationOptions reportOptions)
     {
-        options ??= new ComponentDiagramOptions();
+        var options = reportOptions.ComponentDiagramOptions ?? new ComponentDiagramOptions();
+        var plantUmlServerBaseUrl = reportOptions.PlantUmlServerBaseUrl;
+        var imageFormat = reportOptions.PlantUmlImageFormat;
+        var localDiagramRenderer = reportOptions.PlantUmlRendering == PlantUmlRendering.Local
+            ? reportOptions.LocalDiagramRenderer
+            : null;
 
         var relationships = ComponentDiagramGenerator.ExtractRelationships(logs, options.ParticipantFilter);
         var plantUml = ComponentDiagramGenerator.GeneratePlantUml(relationships, options);

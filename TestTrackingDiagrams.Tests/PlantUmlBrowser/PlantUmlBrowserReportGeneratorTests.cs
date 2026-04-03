@@ -36,7 +36,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserScripts.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("plantuml.github.io/plantuml/js-plantuml/plantuml.js", content);
@@ -50,7 +50,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserObserver.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("IntersectionObserver", content);
@@ -63,7 +63,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserData.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("data-plantuml=", content);
@@ -78,7 +78,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserNoImg.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("<img", content);
@@ -91,7 +91,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserNoMermaid.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("mermaid", content);
@@ -104,7 +104,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserRawLabel.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("Raw Plant UML", content);
@@ -136,7 +136,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserIds.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("id=\"puml-0\"", content);
@@ -156,7 +156,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagrams, MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserEncode.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("data-plantuml=\"", content);
@@ -173,7 +173,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserPlaceholder.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("Loading diagram...", content);
@@ -186,7 +186,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserDCL.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("DOMContentLoaded", content);
@@ -199,7 +199,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserLoad.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("plantumlLoad()", content);
@@ -212,7 +212,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserRender.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("window.plantuml.render", content);
@@ -225,7 +225,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserMargin.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("rootMargin: '200px'", content);
@@ -238,7 +238,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserGuard.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("dataset.rendered", content);
@@ -253,7 +253,7 @@ public class PlantUmlBrowserReportGeneratorTests
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserNoLazy.html", "Test", true,
             lazyLoadImages: true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("loading=\"lazy\"", content);
@@ -285,7 +285,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserMulti.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.Contains("id=\"puml-0\"", content);
@@ -300,7 +300,7 @@ public class PlantUmlBrowserReportGeneratorTests
             Array.Empty<DefaultDiagramsFetcher.DiagramAsCode>(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserNoDiagrams.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("data-plantuml=", content);
@@ -315,7 +315,7 @@ public class PlantUmlBrowserReportGeneratorTests
             MakePlantUmlBrowserDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBrowserNewlines.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUmlBrowser);
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
         // Newlines (\n) are not HTML-encoded, so they survive in the attribute

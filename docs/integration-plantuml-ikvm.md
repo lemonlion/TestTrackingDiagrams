@@ -13,6 +13,7 @@ dotnet add package TestTrackingDiagrams.PlantUml.Ikvm
 ```csharp
 new ReportConfigurationOptions
 {
+    PlantUmlRendering = PlantUmlRendering.Local,
     PlantUmlImageFormat = PlantUmlImageFormat.Base64Png,
     LocalDiagramRenderer = IkvmPlantUmlRenderer.Render
 }
@@ -24,6 +25,7 @@ new ReportConfigurationOptions
 var reportsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
 new ReportConfigurationOptions
 {
+    PlantUmlRendering = PlantUmlRendering.Local,
     PlantUmlImageFormat = PlantUmlImageFormat.Png,
     LocalDiagramRenderer = IkvmPlantUmlRenderer.Render,
     LocalDiagramImageDirectory = Path.Combine(reportsDir, "images")

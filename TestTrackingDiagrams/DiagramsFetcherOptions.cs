@@ -20,4 +20,5 @@ public record DiagramsFetcherOptions
     public Func<string, PlantUmlImageFormat, byte[]>? LocalDiagramRenderer { get; set; }
     public string? LocalDiagramImageDirectory { get; set; }
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
+    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
 }

@@ -25,14 +25,15 @@ public static class ReportGenerator
             PlantUmlImageFormat = options.PlantUmlImageFormat,
             LocalDiagramRenderer = options.LocalDiagramRenderer,
             LocalDiagramImageDirectory = options.LocalDiagramImageDirectory,
-            DiagramFormat = options.DiagramFormat
+            DiagramFormat = options.DiagramFormat,
+            PlantUmlRendering = options.PlantUmlRendering
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
         };
 
@@ -40,10 +41,7 @@ public static class ReportGenerator
         {
             actions.Add(() => ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-                options.ComponentDiagramOptions,
-                options.PlantUmlServerBaseUrl,
-                options.PlantUmlImageFormat,
-                options.LocalDiagramRenderer));
+                options));
         }
 
         Parallel.Invoke(actions.ToArray());
@@ -90,7 +88,8 @@ public static class ReportGenerator
         bool includeTestRunData,
         bool generateBlankOnFailedTests = false,
         bool lazyLoadImages = true,
-        DiagramFormat diagramFormat = DiagramFormat.PlantUml)
+        DiagramFormat diagramFormat = DiagramFormat.PlantUml,
+        PlantUmlRendering plantUmlRendering = PlantUmlRendering.Server)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -223,7 +222,7 @@ public static class ReportGenerator
                                  """;
 
         var isMermaid = diagramFormat == DiagramFormat.Mermaid;
-        var isPlantUmlBrowser = diagramFormat == DiagramFormat.PlantUmlBrowser;
+        var isPlantUmlBrowser = !isMermaid && plantUmlRendering == PlantUmlRendering.BrowserJs;
         var mermaidScript = isMermaid
             ? """
               <script type="module">

@@ -159,13 +159,23 @@ public class MermaidReportGeneratorTests
     }
 
     [Fact]
-    public void DiagramFormat_enum_has_exactly_three_values()
+    public void DiagramFormat_enum_has_exactly_two_values()
     {
         var values = Enum.GetValues<DiagramFormat>();
 
-        Assert.Equal(3, values.Length);
+        Assert.Equal(2, values.Length);
         Assert.Contains(DiagramFormat.PlantUml, values);
         Assert.Contains(DiagramFormat.Mermaid, values);
-        Assert.Contains(DiagramFormat.PlantUmlBrowser, values);
+    }
+
+    [Fact]
+    public void PlantUmlRendering_enum_has_exactly_three_values()
+    {
+        var values = Enum.GetValues<PlantUmlRendering>();
+
+        Assert.Equal(3, values.Length);
+        Assert.Contains(PlantUmlRendering.Server, values);
+        Assert.Contains(PlantUmlRendering.BrowserJs, values);
+        Assert.Contains(PlantUmlRendering.Local, values);
     }
 }

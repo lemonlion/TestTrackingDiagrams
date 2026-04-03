@@ -44,7 +44,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
@@ -58,7 +58,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
@@ -72,7 +72,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
@@ -86,7 +86,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
@@ -114,7 +114,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
 
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser,
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs,
             RequestPreFormattingProcessor = c => c.Replace("password123", "REDACTED")
         });
         var diagrams = fetcher();
@@ -144,7 +144,7 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
 
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUmlBrowser,
+            DiagramFormat = DiagramFormat.PlantUml, PlantUmlRendering = PlantUmlRendering.BrowserJs,
             ExcludedHeaders = ["Authorization"]
         });
         var diagrams = fetcher();

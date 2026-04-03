@@ -20,40 +20,61 @@ public static class DefaultDiagramsFetcher
             if (options.DiagramFormat == DiagramFormat.Mermaid)
                 return _diagrams = GetMermaidDiagrams(options);
 
-            if (options.DiagramFormat == DiagramFormat.PlantUmlBrowser)
-                return _diagrams = GetPlantUmlBrowserDiagrams(options);
-
-            var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
-                RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-                requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
-                responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
-                requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
-                responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
-                requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
-                responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
-                excludedHeaders: options.ExcludedHeaders.ToArray(),
-                separateSetup: options.SeparateSetup,
-                highlightSetup: options.HighlightSetup,
-                lazyLoadImages: options.LazyLoadDiagramImages,
-                focusEmphasis: options.FocusEmphasis,
-                focusDeEmphasis: options.FocusDeEmphasis,
-                plantUmlTheme: options.PlantUmlTheme).ToArray();
-
-            if (options.LocalDiagramRenderer is not null)
-                return _diagrams = RenderLocally(perTestId, options);
-
-            if (options.PlantUmlImageFormat is PlantUmlImageFormat.Base64Png or PlantUmlImageFormat.Base64Svg)
-                throw new InvalidOperationException(
-                    $"PlantUmlImageFormat.{options.PlantUmlImageFormat} requires a LocalDiagramRenderer to be configured. " +
-                    "Install the TestTrackingDiagrams.PlantUml.Ikvm package and use IkvmPlantUmlRenderer.Render.");
-
-            return _diagrams = perTestId
-                .SelectMany(test => test.PlantUmls.Select(plantUml =>
-                    new DiagramAsCode(test.TestId,
-                        $"{options.PlantUmlServerBaseUrl}/{options.PlantUmlImageFormat.ToString().ToLowerInvariant()}/{plantUml.PlantUmlEncoded}",
-                        plantUml.PlainText)))
-                .ToArray();
+            return _diagrams = options.PlantUmlRendering switch
+            {
+                PlantUmlRendering.BrowserJs => GetPlantUmlBrowserDiagrams(options),
+                PlantUmlRendering.Local => GetLocallyRenderedDiagrams(options),
+                _ => GetServerRenderedDiagrams(options)
+            };
         };
+    }
+
+    private static DiagramAsCode[] GetServerRenderedDiagrams(DiagramsFetcherOptions options)
+    {
+        if (options.PlantUmlImageFormat is PlantUmlImageFormat.Base64Png or PlantUmlImageFormat.Base64Svg)
+            throw new InvalidOperationException(
+                $"PlantUmlImageFormat.{options.PlantUmlImageFormat} requires PlantUmlRendering.Local to be configured. " +
+                "Install the TestTrackingDiagrams.PlantUml.Ikvm package and use IkvmPlantUmlRenderer.Render.");
+
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: options.LazyLoadDiagramImages);
+
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+                new DiagramAsCode(test.TestId,
+                    $"{options.PlantUmlServerBaseUrl}/{options.PlantUmlImageFormat.ToString().ToLowerInvariant()}/{plantUml.PlantUmlEncoded}",
+                    plantUml.PlainText)))
+            .ToArray();
+    }
+
+    private static DiagramAsCode[] GetLocallyRenderedDiagrams(DiagramsFetcherOptions options)
+    {
+        if (options.LocalDiagramRenderer is null)
+            throw new InvalidOperationException(
+                "PlantUmlRendering.Local requires a LocalDiagramRenderer to be configured. " +
+                "Install the TestTrackingDiagrams.PlantUml.Ikvm package and set LocalDiagramRenderer = IkvmPlantUmlRenderer.Render.");
+
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: options.LazyLoadDiagramImages);
+
+        return RenderLocally(perTestId, options);
+    }
+
+    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages)
+    {
+        return PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
+            requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
+            responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
+            requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
+            responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
+            requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
+            responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
+            excludedHeaders: options.ExcludedHeaders.ToArray(),
+            separateSetup: options.SeparateSetup,
+            highlightSetup: options.HighlightSetup,
+            lazyLoadImages: lazyLoadImages,
+            focusEmphasis: options.FocusEmphasis,
+            focusDeEmphasis: options.FocusDeEmphasis,
+            plantUmlTheme: options.PlantUmlTheme).ToArray();
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)
@@ -106,21 +127,7 @@ public static class DefaultDiagramsFetcher
 
     private static DiagramAsCode[] GetPlantUmlBrowserDiagrams(DiagramsFetcherOptions options)
     {
-        var perTestId = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
-            RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-            requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
-            responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
-            requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
-            responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
-            requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
-            responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
-            excludedHeaders: options.ExcludedHeaders.ToArray(),
-            separateSetup: options.SeparateSetup,
-            highlightSetup: options.HighlightSetup,
-            lazyLoadImages: false,
-            focusEmphasis: options.FocusEmphasis,
-            focusDeEmphasis: options.FocusDeEmphasis,
-            plantUmlTheme: options.PlantUmlTheme).ToArray();
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: false);
 
         return perTestId
             .SelectMany(test => test.PlantUmls.Select(plantUml =>

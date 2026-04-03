@@ -45,6 +45,7 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Base64Png,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) => [0x89, 0x50, 0x4E, 0x47] // PNG magic bytes
         });
         var diagrams = fetcher();
@@ -60,6 +61,7 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Base64Svg,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) => "<svg></svg>"u8.ToArray()
         });
         var diagrams = fetcher();
@@ -76,6 +78,7 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Png,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) => [0x89, 0x50, 0x4E, 0x47],
             LocalDiagramImageDirectory = imagesDir
         });
@@ -100,6 +103,7 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Svg,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) => "<svg></svg>"u8.ToArray(),
             LocalDiagramImageDirectory = imagesDir
         });
@@ -124,6 +128,7 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Base64Png,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) =>
             {
                 capturedPlantUml = plantUml;
@@ -168,9 +173,23 @@ public class LocalDiagramRenderingTests : IDisposable
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
             PlantUmlImageFormat = PlantUmlImageFormat.Png,
+            PlantUmlRendering = PlantUmlRendering.Local,
             LocalDiagramRenderer = (plantUml, format) => [0x89, 0x50, 0x4E, 0x47]
         });
 
         Assert.Throws<InvalidOperationException>(() => fetcher());
+    }
+
+    [Fact]
+    public void Local_rendering_without_delegate_throws()
+    {
+        SeedLog();
+        var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
+        {
+            PlantUmlRendering = PlantUmlRendering.Local
+        });
+
+        var ex = Assert.Throws<InvalidOperationException>(() => fetcher());
+        Assert.Contains("PlantUmlRendering.Local requires a LocalDiagramRenderer", ex.Message);
     }
 }

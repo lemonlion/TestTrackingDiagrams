@@ -26,6 +26,7 @@ public record ReportConfigurationOptions
     public Func<string, PlantUmlImageFormat, byte[]>? LocalDiagramRenderer { get; set; }
     public string? LocalDiagramImageDirectory { get; set; }
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
+    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
     public bool WriteCiSummary { get; set; }
     public int MaxCiSummaryDiagrams { get; set; } = 10;
     public bool WriteCiSummaryInteractiveHtml { get; set; }

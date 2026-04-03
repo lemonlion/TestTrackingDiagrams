@@ -43,7 +43,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         Assert.True(File.Exists(result.PumlFilePath));
         var content = File.ReadAllText(result.PumlFilePath);
@@ -58,7 +58,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         Assert.True(File.Exists(result.HtmlFilePath));
         var content = File.ReadAllText(result.HtmlFilePath);
@@ -72,7 +72,7 @@ public class ComponentDiagramReportTests : IDisposable
     {
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport([], options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport([], new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         Assert.True(File.Exists(result.PumlFilePath));
         Assert.True(File.Exists(result.HtmlFilePath));
@@ -84,7 +84,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions { FileName = "MyDiagram" };
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         Assert.Contains("MyDiagram.puml", result.PumlFilePath);
         Assert.Contains("MyDiagram.html", result.HtmlFilePath);
@@ -100,7 +100,7 @@ public class ComponentDiagramReportTests : IDisposable
         };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var puml = File.ReadAllText(result.PumlFilePath);
         Assert.Contains("Person(", puml);
@@ -117,7 +117,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("<img src=", html);
@@ -130,7 +130,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         // The URL-based include should render correctly in browser (no angle brackets to escape)
@@ -145,7 +145,7 @@ public class ComponentDiagramReportTests : IDisposable
         var options = new ComponentDiagramOptions();
 
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
-            logs, options, plantUmlServerBaseUrl: "https://plantuml.com/plantuml", imageFormat: PlantUmlImageFormat.Svg);
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlServerBaseUrl = "https://plantuml.com/plantuml", PlantUmlImageFormat = PlantUmlImageFormat.Svg });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("plantuml.com/plantuml/svg/", html);
@@ -158,7 +158,7 @@ public class ComponentDiagramReportTests : IDisposable
         var options = new ComponentDiagramOptions();
 
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
-            logs, options, imageFormat: PlantUmlImageFormat.Png);
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlImageFormat = PlantUmlImageFormat.Png });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("plantuml.com/plantuml/png/", html);
@@ -172,9 +172,13 @@ public class ComponentDiagramReportTests : IDisposable
         var fakeImageBytes = "fake-image-data"u8.ToArray();
 
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
-            logs, options,
-            imageFormat: PlantUmlImageFormat.Base64Png,
-            localDiagramRenderer: (_, _) => fakeImageBytes);
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = options,
+                PlantUmlImageFormat = PlantUmlImageFormat.Base64Png,
+                PlantUmlRendering = PlantUmlRendering.Local,
+                LocalDiagramRenderer = (_, _) => fakeImageBytes
+            });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("data:image/png;base64,", html);
@@ -186,7 +190,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, options);
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var puml = File.ReadAllText(result.PumlFilePath);
         Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", puml);

@@ -33,7 +33,11 @@ public static class ReqNRollReportGenerator
             FocusEmphasis = options.FocusEmphasis,
             FocusDeEmphasis = options.FocusDeEmphasis,
             PlantUmlTheme = options.PlantUmlTheme,
-            PlantUmlImageFormat = options.PlantUmlImageFormat
+            PlantUmlImageFormat = options.PlantUmlImageFormat,
+            DiagramFormat = options.DiagramFormat,
+            PlantUmlRendering = options.PlantUmlRendering,
+            LocalDiagramRenderer = options.LocalDiagramRenderer,
+            LocalDiagramImageDirectory = options.LocalDiagramImageDirectory
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
