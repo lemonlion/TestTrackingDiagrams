@@ -27,8 +27,8 @@ public static class CiSummaryInteractiveHtmlGenerator
             <html>
             <head>
                 <meta charset="utf-8">
-                <script src="https://cdn.jsdelivr.net/gh/nickes/plantuml-js@latest/viz-global.js"></script>
-                <script src="https://cdn.jsdelivr.net/gh/nickes/plantuml-js@latest/plantuml.js"></script>
+                <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
+                <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
                 <style>
                     body { font-family: sans-serif; margin: 2em; }
                     table { border-collapse: collapse; margin-bottom: 1em; }
@@ -101,11 +101,20 @@ public static class CiSummaryInteractiveHtmlGenerator
         sb.AppendLine("""
             <script>
                 plantumlLoad();
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (!entry.isIntersecting) return;
+                        var el = entry.target;
+                        if (el.dataset.rendered) return;
+                        el.dataset.rendered = '1';
+                        observer.unobserve(el);
+                        var source = el.getAttribute('data-source');
+                        var lines = source.split('\n');
+                        plantuml.render(lines, el.id);
+                    });
+                }, { rootMargin: '200px' });
                 document.querySelectorAll('.plantuml-diagram').forEach(function(el) {
-                    var targetId = el.id;
-                    var source = el.getAttribute('data-source');
-                    var lines = source.split('\\n');
-                    plantuml.render(lines, targetId);
+                    observer.observe(el);
                 });
             </script>
             </body>

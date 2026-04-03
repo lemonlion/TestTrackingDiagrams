@@ -3,5 +3,6 @@ namespace TestTrackingDiagrams;
 public enum DiagramFormat
 {
     PlantUml,
-    Mermaid
+    Mermaid,
+    PlantUmlBrowser
 }

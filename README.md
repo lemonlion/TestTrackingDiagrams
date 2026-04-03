@@ -211,6 +211,7 @@ For full configuration details (custom titles, themes, label formatters, partici
 |---|---|---|---|
 | **CosmosDB** | `TestTrackingDiagrams.Extensions.CosmosDB` | Tracks Azure Cosmos DB SDK operations with classified labels (Create, Read, Query, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.CosmosDB)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.CosmosDB) |
 | **EF Core Relational** | `TestTrackingDiagrams.Extensions.EfCore.Relational` | Tracks SQL operations from any EF Core relational provider (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, Spanner) with classified labels and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.EfCore.Relational)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.EfCore.Relational) |
+| **Redis** | `TestTrackingDiagrams.Extensions.Redis` | Tracks StackExchange.Redis operations with cache hit/miss visualization, classified labels (Get, Set, Delete, Hash, List, Set, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.Redis)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.Redis) |
 | **PlantUML IKVM** | `TestTrackingDiagrams.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.PlantUml.Ikvm)](https://www.nuget.org/packages/TestTrackingDiagrams.PlantUml.Ikvm) |
 
 All packages from 1.23.X onwards target **.NET 10.0** .
@@ -242,6 +243,7 @@ Key pages:
 - [Mermaid Output](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Mermaid-Output)
 - [CosmosDB Extension](docs/integration-cosmosdb.md)
 - [EF Core Relational Extension](docs/integration-efcore-relational.md)
+- [Redis Extension](docs/integration-redis.md)
 - [PlantUML IKVM (Local Rendering)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-PlantUML-IKVM)
 - [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
 - [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
