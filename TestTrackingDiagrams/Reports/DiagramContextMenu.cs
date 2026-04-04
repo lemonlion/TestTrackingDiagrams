@@ -90,7 +90,6 @@ public static class DiagramContextMenu
         <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
         <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
         <script>
-            window.PLANTUML_LIMIT_SIZE = 8192;
             plantumlLoad();
             document.addEventListener('DOMContentLoaded', function() {
                 var renderQueue = [];
@@ -102,11 +101,42 @@ public static class DiagramContextMenu
                     var lines = item.source.split('\n');
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
+                        bindIflowLinks(item.el);
                         rendering = false;
                         processQueue();
                     });
                     mo.observe(item.el, { childList: true, subtree: true });
-                    window.plantuml.render(lines, item.el.id);
+                    try {
+                        window.plantuml.render(lines, item.el.id);
+                    } catch(e) {
+                        mo.disconnect();
+                        rendering = false;
+                        var msg = (e && e.message) ? e.message : String(e);
+                        if (msg.indexOf('too large') >= 0) {
+                            item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
+                                + '<strong>Diagram too large for client-side rendering.</strong><br>'
+                                + 'Use <code>PlantUmlRendering.Server</code> or <code>PlantUmlRendering.Local</code> for large diagrams.'
+                                + '<details style="margin-top:0.5em"><summary>Raw PlantUML</summary><pre style="white-space:pre-wrap">'
+                                + item.source.replace(/</g,'&lt;') + '</pre></details></div>';
+                        } else {
+                            item.el.textContent = 'Render error: ' + msg;
+                        }
+                        processQueue();
+                    }
+                }
+                window._iflowBindLinks = function(container) { bindIflowLinks(container); };
+                function bindIflowLinks(container) {
+                    if (!container) return;
+                    container.querySelectorAll('a').forEach(function(a) {
+                        var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
+                        if (href.indexOf('#iflow-') !== 0) return;
+                        a.style.cursor = 'pointer';
+                        a.addEventListener('click', function(ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (window._iflowShowPopup) window._iflowShowPopup(href.substring(1));
+                        });
+                    });
                 }
                 var observer = new IntersectionObserver(function(entries) {
                     entries.forEach(function(entry) {
@@ -327,8 +357,13 @@ public static class DiagramContextMenu
 
                     if (window.plantuml && diagramDiv.querySelector('.plantuml-browser')) {
                         diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                            var lines = el.getAttribute('data-plantuml').split('\n');
-                            window.plantuml.render(lines, el.id);
+                            try {
+                                var lines = el.getAttribute('data-plantuml').split('\n');
+                                window.plantuml.render(lines, el.id);
+                            } catch(e) {
+                                el.textContent = 'Activity diagram too large for browser rendering. Use CallTree style instead.';
+                                el.style.color = '#c00';
+                            }
                         });
                     }
                 } else {
@@ -347,15 +382,25 @@ public static class DiagramContextMenu
                 document.body.appendChild(overlay);
             }
 
+            // Expose for direct binding from the render script
+            window._iflowShowPopup = showPopup;
+
+            // Fallback: document-level click handler (capture phase for SVG compatibility)
             document.addEventListener('click', function(e) {
-                var link = e.target.closest('a');
-                if (!link) return;
-                var href = link.getAttribute('xlink:href') || link.getAttribute('href') || '';
-                if (!href.startsWith('#iflow-')) return;
-                e.preventDefault();
-                e.stopPropagation();
-                showPopup(href.substring(1));
-            });
+                var el = e.target;
+                while (el && el !== document) {
+                    if (el.localName === 'a') {
+                        var href = el.getAttribute('xlink:href') || el.getAttribute('href') || '';
+                        if (href.indexOf('#iflow-') === 0) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            showPopup(href.substring(1));
+                            return;
+                        }
+                    }
+                    el = el.parentNode;
+                }
+            }, true);
 
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
