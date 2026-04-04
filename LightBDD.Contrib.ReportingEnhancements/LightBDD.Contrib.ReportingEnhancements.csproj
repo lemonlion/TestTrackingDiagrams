@@ -25,4 +25,8 @@
     <PackageReference Include="LightBDD.Framework" Version="3.10.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+
 </Project>

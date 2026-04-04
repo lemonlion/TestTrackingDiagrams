@@ -1,4 +1,5 @@
 using System.Text;
+using TestTrackingDiagrams.PlantUml;
 
 namespace TestTrackingDiagrams.Reports;
 
@@ -9,7 +10,11 @@ public static class CiSummaryGenerator
         DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
         DateTime startRunTime,
         DateTime endRunTime,
-        int maxDiagrams = 10)
+        int maxDiagrams = 10,
+        DiagramFormat diagramFormat = DiagramFormat.PlantUml,
+        PlantUmlRendering ciSummaryPlantUmlRendering = PlantUmlRendering.Server,
+        string plantUmlServerBaseUrl = "https://plantuml.com/plantuml",
+        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer = null)
     {
         var sb = new StringBuilder();
         var allScenarios = features.SelectMany(f => f.Scenarios).ToArray();
@@ -36,9 +41,9 @@ public static class CiSummaryGenerator
         var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
 
         if (hasFailed)
-            AppendFailedScenarios(sb, features, diagramsByTestId, failed, maxDiagrams);
+            AppendFailedScenarios(sb, features, diagramsByTestId, failed, maxDiagrams, diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
         else
-            AppendPassedDiagrams(sb, features, diagramsByTestId, total, maxDiagrams);
+            AppendPassedDiagrams(sb, features, diagramsByTestId, total, maxDiagrams, diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
 
         return sb.ToString();
     }
@@ -48,7 +53,11 @@ public static class CiSummaryGenerator
         Feature[] features,
         ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
         int totalFailed,
-        int maxDiagrams)
+        int maxDiagrams,
+        DiagramFormat diagramFormat,
+        PlantUmlRendering ciSummaryPlantUmlRendering,
+        string plantUmlServerBaseUrl,
+        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
     {
         sb.AppendLine($"## ❌ Failed Scenarios ({totalFailed})");
         sb.AppendLine();
@@ -82,7 +91,7 @@ public static class CiSummaryGenerator
                     sb.AppendLine();
                 }
 
-                AppendDiagramImages(sb, diagramsByTestId[scenario.Id]);
+                AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
                 shown++;
             }
             if (shown >= maxDiagrams) break;
@@ -101,7 +110,11 @@ public static class CiSummaryGenerator
         Feature[] features,
         ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
         int totalScenarios,
-        int maxDiagrams)
+        int maxDiagrams,
+        DiagramFormat diagramFormat,
+        PlantUmlRendering ciSummaryPlantUmlRendering,
+        string plantUmlServerBaseUrl,
+        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
     {
         var scenariosWithDiagrams = features
             .SelectMany(f => f.Scenarios.Select(s => (Feature: f, Scenario: s)))
@@ -120,7 +133,7 @@ public static class CiSummaryGenerator
 
             sb.AppendLine($"### {EscapeMarkdown(feature.DisplayName)} — {EscapeMarkdown(scenario.DisplayName)}");
             sb.AppendLine();
-            AppendDiagramImages(sb, diagramsByTestId[scenario.Id]);
+            AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
             shown++;
         }
 
@@ -132,12 +145,49 @@ public static class CiSummaryGenerator
         }
     }
 
-    private static void AppendDiagramImages(StringBuilder sb, IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> diagrams)
+    private static void AppendDiagramImages(
+        StringBuilder sb,
+        IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> diagrams,
+        DiagramFormat diagramFormat,
+        PlantUmlRendering ciSummaryPlantUmlRendering,
+        string plantUmlServerBaseUrl,
+        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
     {
         foreach (var diagram in diagrams)
         {
-            sb.AppendLine($"![diagram]({diagram.ImgSrc})");
-            sb.AppendLine();
+            if (diagramFormat == DiagramFormat.Mermaid)
+            {
+                sb.AppendLine("```mermaid");
+                sb.AppendLine(diagram.CodeBehind);
+                sb.AppendLine("```");
+                sb.AppendLine();
+            }
+            else if (ciSummaryPlantUmlRendering == PlantUmlRendering.Local)
+            {
+                if (localDiagramRenderer is null)
+                    throw new InvalidOperationException(
+                        "CiSummaryPlantUmlRendering.Local requires a LocalDiagramRenderer to be configured. " +
+                        "Install the TestTrackingDiagrams.PlantUml.Ikvm package and set LocalDiagramRenderer = IkvmPlantUmlRenderer.Render.");
+
+                var imageBytes = localDiagramRenderer(diagram.CodeBehind, PlantUmlImageFormat.Svg);
+                var base64 = Convert.ToBase64String(imageBytes);
+                sb.AppendLine($"![diagram](data:image/svg+xml;base64,{base64})");
+                sb.AppendLine();
+            }
+            else
+            {
+                // Server rendering (default, also fallback for BrowserJs)
+                if (!string.IsNullOrEmpty(diagram.ImgSrc))
+                {
+                    sb.AppendLine($"![diagram]({diagram.ImgSrc})");
+                }
+                else
+                {
+                    var encoded = PlantUmlTextEncoder.Encode(diagram.CodeBehind);
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
+                }
+                sb.AppendLine();
+            }
         }
     }
 

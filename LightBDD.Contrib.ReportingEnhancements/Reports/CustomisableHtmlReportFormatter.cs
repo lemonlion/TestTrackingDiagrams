@@ -56,7 +56,9 @@ public class CustomisableHtmlReportFormatter : IReportFormatter
             StepsHiddenInitially = Options.StepsHiddenInitially,
             FormatResult = Options.FormatResult,
             TreatScenariosAsPassed = Options.TreatScenariosAsPassed,
-            LazyLoadDiagramImages = Options.LazyLoadDiagramImages
+            LazyLoadDiagramImages = Options.LazyLoadDiagramImages,
+            DiagramFormat = Options.DiagramFormat,
+            PlantUmlRendering = Options.PlantUmlRendering
 };
         writer.Write(_options);
     }

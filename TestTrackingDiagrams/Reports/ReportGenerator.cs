@@ -48,7 +48,8 @@ public static class ReportGenerator
 
         if (options.WriteCiSummary)
         {
-            var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams);
+            var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams,
+                options.DiagramFormat, options.CiSummaryPlantUmlRendering, options.PlantUmlServerBaseUrl, options.LocalDiagramRenderer);
 
             var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
             Directory.CreateDirectory(directory);
@@ -59,8 +60,8 @@ public static class ReportGenerator
 
             if (options.WriteCiSummaryInteractiveHtml)
             {
-                var interactiveHtml = CiSummaryInteractiveHtmlGenerator.GenerateHtml(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams);
-                File.WriteAllText(Path.Combine(directory, "CiSummaryInteractive.html"), interactiveHtml);
+                var ciFeatures = FilterFeaturesForCiSummary(features, diagrams, options.MaxCiSummaryDiagrams);
+                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering);
             }
         }
 
@@ -223,46 +224,18 @@ public static class ReportGenerator
 
         var isMermaid = diagramFormat == DiagramFormat.Mermaid;
         var isPlantUmlBrowser = !isMermaid && plantUmlRendering == PlantUmlRendering.BrowserJs;
-        var mermaidScript = isMermaid
-            ? """
-              <script type="module">
-                  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-                  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
-              </script>
-              """
-            : "";
-        var plantUmlBrowserScript = isPlantUmlBrowser
-            ? """
-              <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
-              <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
-              <script>
-                  plantumlLoad();
-                  document.addEventListener('DOMContentLoaded', function() {
-                      var observer = new IntersectionObserver(function(entries) {
-                          entries.forEach(function(entry) {
-                              if (!entry.isIntersecting) return;
-                              var el = entry.target;
-                              if (el.dataset.rendered) return;
-                              el.dataset.rendered = '1';
-                              observer.unobserve(el);
-                              var source = el.getAttribute('data-plantuml');
-                              var lines = source.split('\n');
-                              window.plantuml.render(lines, el.id);
-                          });
-                      }, { rootMargin: '200px' });
-                      document.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                          observer.observe(el);
-                      });
-                  });
-              </script>
-              """
-            : "";
+        var hasBrowserDiagrams = isMermaid || isPlantUmlBrowser;
+        var mermaidScript = isMermaid ? DiagramContextMenu.GetMermaidScript() : "";
+        var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
+        var contextMenuScript = hasBrowserDiagrams ? DiagramContextMenu.GetContextMenuScript() : "";
+        var contextMenuStyles = hasBrowserDiagrams ? DiagramContextMenu.GetStyles() : "";
 
         var html = $$"""
                     <html>
                         <head>
                             <style>
                                 {{combinedStylesheet}}
+                                {{contextMenuStyles}}
                             </style>
                             <script>
                                 {{toggleHappyPathsFunction}}
@@ -270,6 +243,7 @@ public static class ReportGenerator
                             </script>
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
+                            {{contextMenuScript}}
                         </head>
                         <body>
                     """;
@@ -361,16 +335,9 @@ public static class ReportGenerator
                     {
                         if (isMermaid)
                         {
+                            var mermaidEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
                             body.Append($"""
-                                     <details class="example">
-                                        <summary class="example-image">
-                                            <pre class="mermaid">{diagram.CodeBehind}</pre>
-                                        </summary>
-                                        <div class="raw-plantuml">
-                                            <h4>{rawLabel}</h4>
-                                            <pre>{diagram.CodeBehind}</pre>
-                                         </div>
-                                     </details>
+                                     <pre class="mermaid" data-mermaid-source="{mermaidEncoded}" data-diagram-type="mermaid">{diagram.CodeBehind}</pre>
                                      """);
                         }
                         else if (isPlantUmlBrowser)
@@ -378,15 +345,7 @@ public static class ReportGenerator
                             var diagramId = $"puml-{plantUmlBrowserCounter++}";
                             var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
                             body.Append($"""
-                                     <details class="example">
-                                        <summary class="example-image">
-                                            <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}">Loading diagram...</div>
-                                        </summary>
-                                        <div class="raw-plantuml">
-                                            <h4>{rawLabel}</h4>
-                                            <pre>{diagram.CodeBehind}</pre>
-                                         </div>
-                                     </details>
+                                     <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}" data-diagram-type="plantuml">Loading diagram...</div>
                                      """);
                         }
                         else
@@ -473,5 +432,44 @@ public static class ReportGenerator
         var filePath = Path.Combine(directory, fileName);
         File.WriteAllText(filePath, text);
         return filePath;
+    }
+
+    private static Feature[] FilterFeaturesForCiSummary(Feature[] features, DefaultDiagramsFetcher.DiagramAsCode[] diagrams, int maxDiagrams)
+    {
+        var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
+        var hasFailed = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ScenarioResult.Failed);
+
+        if (hasFailed)
+        {
+            var shown = 0;
+            var filtered = new List<Feature>();
+            foreach (var feature in features)
+            {
+                var failedScenarios = feature.Scenarios.Where(s => s.Result == ScenarioResult.Failed).ToArray();
+                if (failedScenarios.Length == 0) continue;
+                var taken = failedScenarios.Take(maxDiagrams - shown).ToArray();
+                filtered.Add(feature with { Scenarios = taken });
+                shown += taken.Length;
+                if (shown >= maxDiagrams) break;
+            }
+            return filtered.ToArray();
+        }
+
+        {
+            var shown = 0;
+            var filtered = new List<Feature>();
+            foreach (var feature in features)
+            {
+                var scenariosWithDiagrams = feature.Scenarios
+                    .Where(s => diagramsByTestId[s.Id].Any())
+                    .Take(maxDiagrams - shown)
+                    .ToArray();
+                if (scenariosWithDiagrams.Length == 0) continue;
+                filtered.Add(feature with { Scenarios = scenariosWithDiagrams });
+                shown += scenariosWithDiagrams.Length;
+                if (shown >= maxDiagrams) break;
+            }
+            return filtered.ToArray();
+        }
     }
 }

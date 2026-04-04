@@ -42,6 +42,9 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                         o.Title = options.SpecificationsTitle;
                         o.ExampleDiagramsAsCode = diagramsFetcher;
                         o.LazyLoadDiagramImages = options.LazyLoadDiagramImages;
+                        o.DiagramFormat = options.DiagramFormat;
+                        o.PlantUmlRendering = options.PlantUmlRendering;
+                        o.DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML";
                     });
                     if(options.HtmlSpecificationsCustomStyleSheet is not null)
                         formatter.WithCustomCss(options.HtmlSpecificationsCustomStyleSheet);
@@ -61,7 +64,10 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                     formatter.Options = new HtmlReportAdvancedOptions
                     {
                         ExampleDiagramsAsCode = diagramsFetcher,
-                        LazyLoadDiagramImages = options.LazyLoadDiagramImages
+                        LazyLoadDiagramImages = options.LazyLoadDiagramImages,
+                        DiagramFormat = options.DiagramFormat,
+                        PlantUmlRendering = options.PlantUmlRendering,
+                        DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML"
                     };
                 });
         }

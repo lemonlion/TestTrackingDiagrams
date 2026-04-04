@@ -45,7 +45,7 @@ public class MermaidReportGeneratorTests
             diagramFormat: DiagramFormat.Mermaid);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("<pre class=\"mermaid\">", content);
+        Assert.Contains("<pre class=\"mermaid\"", content);
     }
 
     [Fact]
@@ -72,11 +72,12 @@ public class MermaidReportGeneratorTests
             diagramFormat: DiagramFormat.Mermaid);
 
         var content = File.ReadAllText(html);
-        Assert.DoesNotContain("<img", content);
+        Assert.DoesNotContain("<img src=\"http", content);
+        Assert.DoesNotContain("<img loading=", content);
     }
 
     [Fact]
-    public void Mermaid_report_shows_raw_mermaid_label()
+    public void Mermaid_report_contains_data_mermaid_source_attribute()
     {
         var html = ReportGenerator.GenerateHtmlReport(
             MakeMermaidDiagrams(), MakeFeatures(),
@@ -85,7 +86,8 @@ public class MermaidReportGeneratorTests
             diagramFormat: DiagramFormat.Mermaid);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("Raw Mermaid", content);
+        Assert.Contains("data-mermaid-source=", content);
+        Assert.Contains("data-diagram-type=\"mermaid\"", content);
     }
 
     [Fact]
@@ -153,7 +155,7 @@ public class MermaidReportGeneratorTests
             diagramFormat: DiagramFormat.Mermaid);
 
         var content = File.ReadAllText(html);
-        Assert.DoesNotContain("plantuml-browser", content);
+        Assert.DoesNotContain("<div class=\"plantuml-browser\"", content);
         Assert.DoesNotContain("viz-global.js", content);
         Assert.DoesNotContain("IntersectionObserver", content);
     }

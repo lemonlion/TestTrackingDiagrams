@@ -1,5 +1,6 @@
 ﻿using LightBDD.Core.Results;
 using System.Reflection;
+using TestTrackingDiagrams;
 
 namespace LightBDD.Contrib.ReportingEnhancements.Reports;
 
@@ -23,6 +24,8 @@ public class HtmlReportAdvancedOptions
     public bool FormatResult { get; set; }
     public Func<IScenarioResult, bool>? TreatScenariosAsPassed { get; set; }
     public bool LazyLoadDiagramImages { get; set; } = true;
+    public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
+    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
 
     public HtmlReportAdvancedOptions SetOnlyCreateReportOnFullTestRun(Assembly testAssembly)
     {

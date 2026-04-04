@@ -81,7 +81,8 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.DoesNotContain("<img", content);
+        Assert.DoesNotContain("<img src=\"http", content);
+        Assert.DoesNotContain("<img loading=", content);
     }
 
     [Fact]
@@ -94,7 +95,9 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.DoesNotContain("mermaid", content);
+        Assert.DoesNotContain("<pre class=\"mermaid\"", content);
+        Assert.DoesNotContain("mermaid.initialize", content);
+        Assert.DoesNotContain("cdn.jsdelivr.net", content);
     }
 
     [Fact]
@@ -107,7 +110,8 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("Raw Plant UML", content);
+        Assert.Contains("data-plantuml=", content);
+        Assert.Contains("data-diagram-type=\"plantuml\"", content);
     }
 
     [Fact]

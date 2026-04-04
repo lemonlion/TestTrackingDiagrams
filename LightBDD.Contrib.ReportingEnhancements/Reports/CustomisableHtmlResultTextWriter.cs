@@ -3,6 +3,8 @@ using LightBDD.Core.Execution;
 using LightBDD.Core.Formatting;
 using LightBDD.Core.Results;
 using LightBDD.Framework.Reporting;
+using TestTrackingDiagrams;
+using TestTrackingDiagrams.Reports;
 
 namespace LightBDD.Contrib.ReportingEnhancements.Reports
 {
@@ -24,6 +26,9 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
         public bool FormatResult { get; set; }
         public Func<IScenarioResult, bool>? TreatScenariosAsPassed { get; set; }
         public bool LazyLoadDiagramImages { get; set; } = true;
+        public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
+        public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+        private int _plantUmlBrowserCounter;
 
         public CustomisableHtmlResultTextWriter(Stream outputStream, IFeatureResult[] features) : base(outputStream, 
             features,
@@ -50,18 +55,38 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             bodyContent.Add(_html.Tag(Html5Tag.Div).Class("footer").Content(Html.Text("Generated with "), _html.Tag(Html5Tag.A).Content("LightBDD v" + GetLightBddVersion()).Href("https://github.com/LightBDD/LightBDD")));
             bodyContent.Add(_html.Tag(Html5Tag.Script).Content("initialize();", false, false));
 
+            var isPlantUmlBrowser = DiagramFormat == DiagramFormat.PlantUml && PlantUmlRendering == PlantUmlRendering.BrowserJs;
+            var isMermaid = DiagramFormat == DiagramFormat.Mermaid;
+            var needsContextMenu = isPlantUmlBrowser || isMermaid;
+
+            var headContent = new List<IHtmlNode>
+            {
+                _html.Tag(Html5Tag.Meta).Attribute(Html5Attribute.Charset, "UTF-8"),
+                _html.Tag(Html5Tag.Meta).Attribute(Html5Attribute.Name, "viewport").Attribute(Html5Attribute.Content, "width=device-width, initial-scale=1"),
+                GetFavicon(options.CustomFavicon),
+                _html.Tag(Html5Tag.Title).Content("Summary"),
+                _html.Tag(Html5Tag.Style).Content(EmbedCssImages(options), false, false),
+                _html.Tag(Html5Tag.Style).Content(_styles, false, false),
+                _html.Tag(Html5Tag.Style).Content(options.CssContent, false, false).SkipEmpty(),
+                _html.Tag(Html5Tag.Script).Content(_scripts, false, false)
+            };
+
+            if (needsContextMenu)
+                headContent.Add(_html.Tag(Html5Tag.Style).Content(DiagramContextMenu.GetStyles(), false, false));
+
+            if (isPlantUmlBrowser)
+                headContent.Add(Html.Text(DiagramContextMenu.GetPlantUmlBrowserRenderScript()));
+
+            if (isMermaid)
+                headContent.Add(Html.Text(DiagramContextMenu.GetMermaidScript()));
+
+            if (needsContextMenu)
+                headContent.Add(Html.Text(DiagramContextMenu.GetContextMenuScript()));
+
             _writer
                 .WriteTag(Html.Text("<!DOCTYPE HTML>"))
                 .WriteTag(_html.Tag(Html5Tag.Html).Attribute("lang", "en").Content(
-                    _html.Tag(Html5Tag.Head).Content(
-                        _html.Tag(Html5Tag.Meta).Attribute(Html5Attribute.Charset, "UTF-8"),
-                        _html.Tag(Html5Tag.Meta).Attribute(Html5Attribute.Name, "viewport").Attribute(Html5Attribute.Content, "width=device-width, initial-scale=1"),
-                        GetFavicon(options.CustomFavicon),
-                        _html.Tag(Html5Tag.Title).Content("Summary"),
-                        _html.Tag(Html5Tag.Style).Content(EmbedCssImages(options), false, false),
-                        _html.Tag(Html5Tag.Style).Content(_styles, false, false),
-                        _html.Tag(Html5Tag.Style).Content(options.CssContent, false, false).SkipEmpty(),
-                        _html.Tag(Html5Tag.Script).Content(_scripts, false, false)),
+                    _html.Tag(Html5Tag.Head).Content(headContent),
                     _html.Tag(Html5Tag.Body).Content(bodyContent)));
         }
 
@@ -84,20 +109,41 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
                 if (diagrams.Length != 0)
                 {
                     var diagramNodes = new List<TagBuilder> { _html.Tag(Html5Tag.Summary).Content("Example Diagram").Class("h4") };
-                    diagramNodes.AddRange(diagrams.Select(diagram => 
-                        _html.Tag(Html5Tag.Details).Class("example").Content(
-                            _html.Tag(Html5Tag.Summary).Class("example-image").Content
-                            (
+                    var isPlantUmlBrowser = DiagramFormat == DiagramFormat.PlantUml && PlantUmlRendering == PlantUmlRendering.BrowserJs;
+                    var isMermaid = DiagramFormat == DiagramFormat.Mermaid;
+
+                    diagramNodes.AddRange(diagrams.Select(diagram =>
+                    {
+                        if (isMermaid)
+                        {
+                            return _html.Tag(Html5Tag.Pre).Class("mermaid")
+                                .Attribute("data-mermaid-source", diagram.CodeBehind)
+                                .Attribute("data-diagram-type", "mermaid")
+                                .Content(diagram.CodeBehind);
+                        }
+
+                        if (isPlantUmlBrowser)
+                        {
+                            var id = $"puml-{_plantUmlBrowserCounter++}";
+                            return _html.Tag(Html5Tag.Div).Class("plantuml-browser")
+                                .Id(id)
+                                .Attribute("data-plantuml", diagram.CodeBehind)
+                                .Attribute("data-diagram-type", "plantuml")
+                                .Content("Loading diagram...", escapeContent: false);
+                        }
+
+                        return _html.Tag(Html5Tag.Details).Class("example").Content(
+                            _html.Tag(Html5Tag.Summary).Class("example-image").Content(
                                 LazyLoadDiagramImages
                                     ? _html.Tag(Html5Tag.Img).Attribute(Html5Attribute.Src, diagram.ImgSrc).Attribute(Html5Attribute.Loading, "lazy")
                                     : _html.Tag(Html5Tag.Img).Attribute(Html5Attribute.Src, diagram.ImgSrc)
                             ),
-                            _html.Tag(Html5Tag.Div).Class("raw-plantuml").Content
-                            (
+                            _html.Tag(Html5Tag.Div).Class("raw-plantuml").Content(
                                 _html.Tag(Html5Tag.H4).Content(DiagramsAsCodeCodeBehindTitle),
                                 _html.Tag(Html5Tag.Pre).Content(diagram.CodeBehind)
                             )
-                    )));
+                        );
+                    }));
 
                     scenarioContent.Add(_html.Tag(Html5Tag.Details).Class("example-diagrams").Attribute("open", "").Content(diagramNodes));
                 }

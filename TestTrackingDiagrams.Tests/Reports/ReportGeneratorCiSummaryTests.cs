@@ -71,6 +71,7 @@ public class ReportGeneratorCiSummaryTests : IDisposable
         var interactivePath = Path.Combine(_reportsDir, "CiSummaryInteractive.html");
         Assert.True(File.Exists(interactivePath));
         var content = File.ReadAllText(interactivePath);
-        Assert.Contains("plantuml.js", content);
+        Assert.Contains("<html>", content);
+        Assert.Contains("CI Test Run Summary", content);
     }
 }

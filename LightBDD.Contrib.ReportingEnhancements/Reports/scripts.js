@@ -297,6 +297,15 @@ function run_search_scenarios() {
     let matchingScenarios = [];
     for (let i = 0; i < scenarios.length; i++) {
         let text = scenarios[i].textContent.toLowerCase();
+
+        // Also search diagram source from data attributes
+        let diagramEls = scenarios[i].querySelectorAll('[data-plantuml],[data-mermaid-source]');
+        for (let d = 0; d < diagramEls.length; d++) {
+            var src = diagramEls[d].getAttribute('data-plantuml')
+                   || diagramEls[d].getAttribute('data-mermaid-source');
+            if (src) text += ' ' + src.toLowerCase();
+        }
+
         let allMatch = true;
         for (let j = 0; j < searchTokens.length; j++) {
             if (!text.includes(searchTokens[j])) {
