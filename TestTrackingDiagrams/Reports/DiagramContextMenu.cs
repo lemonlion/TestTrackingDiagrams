@@ -94,26 +94,26 @@ public static class DiagramContextMenu
         <script>
             plantumlLoad();
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('[iflow] DOMContentLoaded, setting up render queue');
                 var renderQueue = [];
                 var rendering = false;
+                function extractIflowMap(source) {
+                    var map = {};
+                    var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
+                    var m;
+                    while ((m = re.exec(source)) !== null) {
+                        var label = m[2].split('\\n')[0].trim();
+                        map[label] = m[1];
+                    }
+                    return map;
+                }
                 function processQueue() {
                     if (rendering || renderQueue.length === 0) return;
                     rendering = true;
                     var item = renderQueue.shift();
                     var lines = item.source.split('\n');
-                    console.log('[iflow] Rendering', item.el.id, '(' + lines.length + ' lines)');
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
-                        console.log('[iflow] MO fired for', item.el.id);
-                        var anchors = item.el.querySelectorAll('a');
-                        console.log('[iflow] Found', anchors.length, '<a> elements after render');
-                        anchors.forEach(function(a, i) {
-                            var attrs = [];
-                            for (var j = 0; j < a.attributes.length; j++) attrs.push(a.attributes[j].name + '=' + a.attributes[j].value);
-                            console.log('[iflow]   <a>[' + i + ']:', attrs.join(', '));
-                        });
-                        bindIflowLinks(item.el);
+                        bindIflowLinks(item.el, item.source);
                         rendering = false;
                         processQueue();
                     });
@@ -124,7 +124,6 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         rendering = false;
                         var msg = (e && e.message) ? e.message : String(e);
-                        console.error('[iflow] Render error:', msg);
                         if (msg.indexOf('too large') >= 0) {
                             item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
                                 + '<strong>Diagram too large for client-side rendering.</strong><br>'
@@ -137,28 +136,43 @@ public static class DiagramContextMenu
                         processQueue();
                     }
                 }
-                window._iflowBindLinks = function(container) { bindIflowLinks(container); };
-                function bindIflowLinks(container) {
-                    if (!container) { console.warn('[iflow] bindIflowLinks: container is null'); return; }
-                    var anchors = container.querySelectorAll('a');
-                    console.log('[iflow] bindIflowLinks:', anchors.length, '<a> elements in', container.id);
-                    anchors.forEach(function(a, i) {
+                window._iflowBindLinks = function(container, source) { bindIflowLinks(container, source); };
+                function bindIflowLinks(container, source) {
+                    if (!container) return;
+                    var bound = 0;
+                    container.querySelectorAll('a').forEach(function(a) {
                         var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
-                        console.log('[iflow]   [' + i + '] href=' + href, 'match=' + (href.indexOf('#iflow-') === 0));
                         if (href.indexOf('#iflow-') !== 0) return;
                         a.style.cursor = 'pointer';
                         a.addEventListener('click', function(ev) {
-                            console.log('[iflow] CLICK on', href);
                             ev.preventDefault();
                             ev.stopPropagation();
-                            if (window._iflowShowPopup) {
-                                console.log('[iflow] Calling _iflowShowPopup', href.substring(1));
-                                window._iflowShowPopup(href.substring(1));
-                            } else {
-                                console.error('[iflow] _iflowShowPopup is NOT defined!');
-                            }
+                            if (window._iflowShowPopup) window._iflowShowPopup(href.substring(1));
                         });
-                        console.log('[iflow]   Bound click handler for', href);
+                        bound++;
+                    });
+                    if (bound > 0) return;
+                    if (!source) return;
+                    var iflowMap = extractIflowMap(source);
+                    var labels = Object.keys(iflowMap);
+                    if (labels.length === 0) return;
+                    container.querySelectorAll('text').forEach(function(textEl) {
+                        var txt = textEl.textContent.replace(/\s+/g, ' ').trim();
+                        if (!txt) return;
+                        for (var i = 0; i < labels.length; i++) {
+                            if (txt === labels[i]) {
+                                var segId = iflowMap[labels[i]];
+                                textEl.style.cursor = 'pointer';
+                                textEl.style.pointerEvents = 'all';
+                                textEl.addEventListener('click', function(ev) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    if (window._iflowShowPopup) window._iflowShowPopup(segId);
+                                });
+                                bound++;
+                                break;
+                            }
+                        }
                     });
                 }
                 var observer = new IntersectionObserver(function(entries) {
@@ -350,13 +364,8 @@ public static class DiagramContextMenu
         <script>
         (function() {
             var iflowData = window.__iflowSegments || {};
-            console.log('[iflow-popup] Loaded. Segment keys:', Object.keys(iflowData).length);
-            if (Object.keys(iflowData).length > 0) {
-                console.log('[iflow-popup] First 5 keys:', Object.keys(iflowData).slice(0,5));
-            }
 
             function showPopup(segmentId) {
-                console.log('[iflow-popup] showPopup called with:', segmentId);
                 var existing = document.querySelector('.iflow-overlay');
                 if (existing) existing.remove();
 
@@ -413,17 +422,13 @@ public static class DiagramContextMenu
             // Expose for direct binding from the render script
             window._iflowShowPopup = showPopup;
 
-            // Fallback: document-level click handler (capture phase for SVG compatibility)
+            // Fallback: document-level click handler (capture phase for IKVM/server SVG compatibility)
             document.addEventListener('click', function(e) {
                 var el = e.target;
-                console.log('[iflow-popup] CAPTURE click on:', el.localName, 'ns:', el.namespaceURI);
-                var depth = 0;
                 while (el && el !== document) {
                     if (el.localName === 'a') {
                         var href = el.getAttribute('xlink:href') || el.getAttribute('href') || '';
-                        console.log('[iflow-popup]   Found <a> at depth', depth, 'href:', href);
                         if (href.indexOf('#iflow-') === 0) {
-                            console.log('[iflow-popup]   MATCH! Calling showPopup');
                             e.preventDefault();
                             e.stopPropagation();
                             showPopup(href.substring(1));
@@ -431,9 +436,7 @@ public static class DiagramContextMenu
                         }
                     }
                     el = el.parentNode;
-                    depth++;
                 }
-                console.log('[iflow-popup]   No iflow <a> in ancestry (depth:', depth, ')');
             }, true);
 
             document.addEventListener('keydown', function(e) {

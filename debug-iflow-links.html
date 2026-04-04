@@ -90,34 +90,22 @@ B --> A: [[#iflow-test-123-res Response]]
                 var allAnchors = el.querySelectorAll('a');
                 log('Total <a> elements found: ' + allAnchors.length);
 
-                allAnchors.forEach(function(a, i) {
-                    var xlinkHref = a.getAttribute('xlink:href');
-                    var href = a.getAttribute('href');
-                    var xlinkNS = a.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
-                    var localName = a.localName;
-                    var tagName = a.tagName;
-                    var ns = a.namespaceURI;
-                    log('  <a>[' + i + ']: localName=' + localName +
-                        ', tagName=' + tagName +
-                        ', ns=' + ns +
-                        ', href=' + JSON.stringify(href) +
-                        ', xlink:href=' + JSON.stringify(xlinkHref) +
-                        ', xlinkNS=' + JSON.stringify(xlinkNS));
-
-                    // List all attributes
+                // Dump ALL <text> elements (this is what TeaVM actually produces)
+                var allText = el.querySelectorAll('text');
+                log('Total <text> elements found: ' + allText.length);
+                allText.forEach(function(t, i) {
                     var attrs = [];
-                    for (var j = 0; j < a.attributes.length; j++) {
-                        var attr = a.attributes[j];
-                        attrs.push(attr.name + '=' + JSON.stringify(attr.value));
-                    }
-                    log('    attrs: ' + attrs.join(', '));
-
-                    // Check children
-                    log('    children: ' + a.innerHTML.substring(0, 150));
+                    for (var j = 0; j < t.attributes.length; j++) attrs.push(t.attributes[j].name + '=' + JSON.stringify(t.attributes[j].value));
+                    log('  <text>[' + i + ']: "' + t.textContent + '"  attrs: ' + attrs.join(', '));
                 });
 
-                // Try binding click handlers (same logic as DiagramContextMenu)
-                bindIflowLinks(el);
+                // Dump raw SVG (first 2000 chars)
+                log('--- RAW SVG (first 2000 chars) ---');
+                log(el.innerHTML.substring(0, 2000));
+                log('--- END SVG ---');
+
+                // Try the NEW text-matching approach
+                bindIflowLinks(el, source);
             });
             mo.observe(el, { childList: true, subtree: true });
 
@@ -129,45 +117,80 @@ B --> A: [[#iflow-test-123-res Response]]
             }
         });
 
-        // bindIflowLinks - same as DiagramContextMenu
-        function bindIflowLinks(container) {
+        // NEW: Extract iflow label→segmentId map from PlantUML source
+        function extractIflowMap(source) {
+            var map = {};
+            var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
+            var m;
+            while ((m = re.exec(source)) !== null) {
+                var label = m[2].replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+                map[label] = m[1]; // label → segmentId (without #)
+                log('  Extracted: "' + label + '" → ' + m[1], 'log-info');
+            }
+            return map;
+        }
+
+        // NEW: bindIflowLinks - works with both <a>-based (IKVM) and <text>-based (TeaVM) SVGs
+        function bindIflowLinks(container, source) {
             if (!container) { log('bindIflowLinks: container is null!', 'log-error'); return; }
-            var anchors = container.querySelectorAll('a');
-            log('bindIflowLinks: found ' + anchors.length + ' <a> elements');
 
-            anchors.forEach(function(a, i) {
+            // Try 1: <a> elements (IKVM/server rendering)
+            var bound = 0;
+            container.querySelectorAll('a').forEach(function(a) {
                 var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
-                log('  bindIflowLinks[' + i + ']: href=' + JSON.stringify(href) +
-                    ', startsWithIflow=' + (href.indexOf('#iflow-') === 0));
-
-                if (href.indexOf('#iflow-') !== 0) {
-                    log('  SKIPPED (not #iflow-)', 'log-warn');
-                    return;
-                }
-
+                if (href.indexOf('#iflow-') !== 0) return;
                 a.style.cursor = 'pointer';
                 a.addEventListener('click', function(ev) {
-                    log('DIRECT CLICK HANDLER FIRED for ' + href, 'log-success');
+                    log('CLICK (via <a>) on ' + href, 'log-success');
                     ev.preventDefault();
                     ev.stopPropagation();
-                    var segmentId = href.substring(1);
-                    log('  Looking up segment: ' + segmentId);
-                    if (window._iflowShowPopup) {
-                        log('  Calling _iflowShowPopup(' + segmentId + ')');
-                        window._iflowShowPopup(segmentId);
-                    } else {
-                        log('  WARNING: window._iflowShowPopup is NOT defined!', 'log-error');
-                    }
+                    if (window._iflowShowPopup) window._iflowShowPopup(href.substring(1));
                 });
-                log('  Bound click handler for ' + href, 'log-success');
+                bound++;
+            });
+            if (bound > 0) {
+                log('Bound ' + bound + ' <a>-based iflow links (server rendering)', 'log-success');
+                return;
+            }
+
+            // Try 2: text-matching (TeaVM/browser rendering)
+            log('No <a> elements found — trying text-matching approach', 'log-warn');
+            if (!source) { log('No source provided, cannot text-match', 'log-error'); return; }
+
+            var iflowMap = extractIflowMap(source);
+            var labels = Object.keys(iflowMap);
+            if (labels.length === 0) { log('No iflow links found in source', 'log-warn'); return; }
+            log('Found ' + labels.length + ' iflow labels to match', 'log-info');
+
+            container.querySelectorAll('text').forEach(function(textEl) {
+                var txt = textEl.textContent.replace(/\s+/g, ' ').trim();
+                if (!txt) return;
+                for (var i = 0; i < labels.length; i++) {
+                    if (txt === labels[i]) {
+                        var segId = iflowMap[labels[i]];
+                        textEl.style.cursor = 'pointer';
+                        textEl.style.pointerEvents = 'all';
+                        textEl.addEventListener('click', function(ev) {
+                            log('CLICK (via <text> match) on ' + segId, 'log-success');
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (window._iflowShowPopup) window._iflowShowPopup(segId);
+                        });
+                        log('  MATCHED <text> "' + txt + '" → ' + segId, 'log-success');
+                        break;
+                    }
+                }
             });
         }
 
-        // Capture-phase fallback handler (same as GetInternalFlowPopupScript)
+        // Capture-phase fallback — updated for <text> elements too
         document.addEventListener('click', function(e) {
             var el = e.target;
             log('CAPTURE click on: ' + el.localName + ' (ns=' + el.namespaceURI + ')', 'log-info');
 
+            // If it's a <text> element, don't walk up looking for <a> —
+            // the direct handler on the <text> should have fired.
+            // This fallback only matters for <a>-based rendering.
             var depth = 0;
             while (el && el !== document && depth < 20) {
                 if (el.localName === 'a') {
