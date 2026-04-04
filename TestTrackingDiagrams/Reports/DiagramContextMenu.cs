@@ -90,6 +90,7 @@ public static class DiagramContextMenu
         <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
         <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
         <script>
+            window.PLANTUML_LIMIT_SIZE = 8192;
             plantumlLoad();
             document.addEventListener('DOMContentLoaded', function() {
                 var renderQueue = [];
