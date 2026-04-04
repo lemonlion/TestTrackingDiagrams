@@ -39,8 +39,8 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("plantuml.github.io/plantuml/js-plantuml/plantuml.js", content);
-        Assert.Contains("plantuml.github.io/plantuml/js-plantuml/viz-global.js", content);
+        Assert.Contains("cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/plantuml.js", content);
+        Assert.Contains("cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/viz-global.js", content);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class PlantUmlBrowserReportGeneratorTests
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("<pre class=\"mermaid\"", content);
         Assert.DoesNotContain("mermaid.initialize", content);
-        Assert.DoesNotContain("cdn.jsdelivr.net", content);
+        Assert.DoesNotContain("cdn.jsdelivr.net/npm/mermaid", content);
     }
 
     [Fact]

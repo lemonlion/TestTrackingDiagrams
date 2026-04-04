@@ -86,45 +86,14 @@ public static class DiagramContextMenu
         }
         """;
 
-    public static string GetPlantUmlBrowserRenderScript() => """
-        <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
+    private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched";
+
+    public static string GetPlantUmlBrowserRenderScript() => $$"""
+        <script src="{{PlantUmlJsCdnBase}}/viz-global.js"></script>
+        <script src="{{PlantUmlJsCdnBase}}/plantuml.js"></script>
         <script>
-        (function() {
-            var pumlUrl = 'https://plantuml.github.io/plantuml/js-plantuml/plantuml.js';
-
-            // Fetch plantuml.js, patch the hardcoded 4096px size limit, then load
-            fetch(pumlUrl)
-                .then(function(r) { return r.text(); })
-                .then(function(code) {
-                    // The TeaVM-compiled PlantUML engine has two hardcoded 4096.0 comparisons
-                    // for max width and height. Replace both with 65536.0.
-                    var patched = code.replace(/<=4096\.0\)/g, '<=65536.0)');
-                    var blob = new Blob([patched], { type: 'application/javascript' });
-                    var url = URL.createObjectURL(blob);
-                    return new Promise(function(resolve, reject) {
-                        var s = document.createElement('script');
-                        s.onload = function() { URL.revokeObjectURL(url); resolve(); };
-                        s.onerror = function() { URL.revokeObjectURL(url); reject(); };
-                        s.src = url;
-                        document.head.appendChild(s);
-                    });
-                })
-                .catch(function() {
-                    // Fallback: load unpatched (subject to 4096px limit)
-                    return new Promise(function(resolve) {
-                        var s = document.createElement('script');
-                        s.onload = resolve;
-                        s.onerror = resolve;
-                        s.src = pumlUrl;
-                        document.head.appendChild(s);
-                    });
-                })
-                .then(function() {
-                    if (typeof plantumlLoad === 'function') plantumlLoad();
-                    initRendering();
-                });
-
-            function initRendering() {
+            plantumlLoad();
+            document.addEventListener('DOMContentLoaded', function() {
                 var renderQueue = [];
                 var rendering = false;
                 function processQueue() {
@@ -171,29 +140,21 @@ public static class DiagramContextMenu
                         });
                     });
                 }
-                function startObserving() {
-                    var observer = new IntersectionObserver(function(entries) {
-                        entries.forEach(function(entry) {
-                            if (!entry.isIntersecting) return;
-                            var el = entry.target;
-                            if (el.dataset.rendered) return;
-                            el.dataset.rendered = '1';
-                            observer.unobserve(el);
-                            renderQueue.push({ el: el, source: el.getAttribute('data-plantuml') });
-                            processQueue();
-                        });
-                    }, { rootMargin: '200px' });
-                    document.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                        observer.observe(el);
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (!entry.isIntersecting) return;
+                        var el = entry.target;
+                        if (el.dataset.rendered) return;
+                        el.dataset.rendered = '1';
+                        observer.unobserve(el);
+                        renderQueue.push({ el: el, source: el.getAttribute('data-plantuml') });
+                        processQueue();
                     });
-                }
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', startObserving);
-                } else {
-                    startObserving();
-                }
-            }
-        })();
+                }, { rootMargin: '200px' });
+                document.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                    observer.observe(el);
+                });
+            });
         </script>
         """;
 
