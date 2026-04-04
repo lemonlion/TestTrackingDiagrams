@@ -34,6 +34,13 @@ public static class InternalFlowSegmentBuilder
             for (var i = 0; i < orderedLogs.Length; i++)
             {
                 var log = orderedLogs[i];
+
+                // Only create segments for request entries — response entries
+                // represent the instant the response arrives and contain no
+                // internal processing spans.
+                if (log.Type != RequestResponseType.Request)
+                    continue;
+
                 var segmentStart = log.Timestamp!.Value;
                 var segmentEnd = i + 1 < orderedLogs.Length
                     ? orderedLogs[i + 1].Timestamp!.Value
@@ -45,9 +52,7 @@ public static class InternalFlowSegmentBuilder
                     .OrderBy(s => s.StartTimeUtc)
                     .ToArray();
 
-                var segmentKey = log.Type == RequestResponseType.Request
-                    ? $"iflow-{log.RequestResponseId}"
-                    : $"iflow-{log.RequestResponseId}-res";
+                var segmentKey = $"iflow-{log.RequestResponseId}";
 
                 segments[segmentKey] = new InternalFlowSegment(
                     log.RequestResponseId,

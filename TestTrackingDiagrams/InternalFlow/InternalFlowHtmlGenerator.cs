@@ -15,7 +15,9 @@ public static class InternalFlowHtmlGenerator
     /// </summary>
     public static string GenerateSegmentDataScript(
         Dictionary<string, InternalFlowSegment> segments,
-        InternalFlowDiagramStyle diagramStyle)
+        InternalFlowDiagramStyle diagramStyle,
+        bool showFlameChart = false,
+        InternalFlowFlameChartPosition flameChartPosition = InternalFlowFlameChartPosition.BehindWithToggle)
     {
         var data = new Dictionary<string, object>();
 
@@ -23,12 +25,30 @@ public static class InternalFlowHtmlGenerator
         {
             if (segment.Spans.Length > 0)
             {
-                var content = diagramStyle switch
+                var mainContent = diagramStyle switch
                 {
                     InternalFlowDiagramStyle.CallTree => InternalFlowRenderer.RenderCallTree(segment),
                     InternalFlowDiagramStyle.ActivityDiagram => RenderActivityDiagramHtml(segment),
                     _ => RenderActivityDiagramHtml(segment)
                 };
+
+                var content = mainContent;
+                if (showFlameChart)
+                {
+                    var flameHtml = InternalFlowRenderer.RenderFlameChart(segment);
+                    content = flameChartPosition switch
+                    {
+                        InternalFlowFlameChartPosition.Underneath =>
+                            mainContent + "<hr style=\"margin:12px 0\">" + flameHtml,
+                        _ => // BehindWithToggle
+                            "<div class=\"iflow-toggle\">"
+                            + "<button class=\"iflow-toggle-btn iflow-toggle-active\" data-target=\"main\">Activity</button>"
+                            + "<button class=\"iflow-toggle-btn\" data-target=\"flame\">Flame Chart</button>"
+                            + "</div>"
+                            + "<div class=\"iflow-view iflow-view-main\">" + mainContent + "</div>"
+                            + "<div class=\"iflow-view iflow-view-flame\" style=\"display:none\">" + flameHtml + "</div>"
+                    };
+                }
 
                 data[key] = new
                 {

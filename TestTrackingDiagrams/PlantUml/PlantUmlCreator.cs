@@ -243,8 +243,6 @@ public static partial class PlantUmlCreator
                 status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
 
             var responseLabel = status ?? "";
-            if (internalFlowTracking)
-                responseLabel = $"[[#iflow-{trace!.RequestResponseId}-res {responseLabel}]]";
 
             builder.AppendLine($"{serviceShortName} --> {callerShortName}: {responseLabel}");
 

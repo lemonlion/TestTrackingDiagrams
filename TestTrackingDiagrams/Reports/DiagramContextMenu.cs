@@ -84,6 +84,51 @@ public static class DiagramContextMenu
         .iflow-popup .iflow-diagram {
             min-height: 60px;
         }
+        .iflow-call-tree {
+            list-style: none;
+            padding-left: 0;
+            font: 13px/1.6 monospace;
+        }
+        .iflow-call-tree ul {
+            list-style: none;
+            padding-left: 20px;
+            border-left: 1px solid #ddd;
+        }
+        .iflow-call-tree li { padding: 2px 0; }
+        .iflow-source { color: #888; font-size: 11px; }
+        .iflow-duration { color: #666; font-size: 12px; }
+        .iflow-toggle { margin-bottom: 8px; }
+        .iflow-toggle-btn {
+            padding: 4px 14px;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+        .iflow-toggle-btn:hover { background: #e8f0fe; }
+        .iflow-toggle-active { background: #4285f4; color: #fff; border-color: #4285f4; }
+        .iflow-toggle-active:hover { background: #3367d6; }
+        .iflow-flame { padding: 4px 0; }
+        .iflow-flame-bar {
+            position: relative;
+            height: 22px;
+            border-radius: 3px;
+            margin: 1px 0;
+            overflow: hidden;
+            font: 11px/22px -apple-system, 'Segoe UI', sans-serif;
+            color: #333;
+            cursor: default;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        .iflow-flame-label {
+            padding: 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
         """;
 
     private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched";
@@ -413,6 +458,25 @@ public static class DiagramContextMenu
                 }
 
                 overlay.appendChild(popup);
+
+                // Wire up toggle buttons if present
+                var toggleBtns = popup.querySelectorAll('.iflow-toggle-btn');
+                if (toggleBtns.length) {
+                    toggleBtns.forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var view = btn.getAttribute('data-view');
+                            var container = popup.querySelector('.iflow-diagram');
+                            if (!container) return;
+                            toggleBtns.forEach(function(b) { b.classList.remove('iflow-toggle-active'); });
+                            btn.classList.add('iflow-toggle-active');
+                            var main = container.querySelector('.iflow-view-main');
+                            var flame = container.querySelector('.iflow-view-flame');
+                            if (main) main.style.display = view === 'main' ? '' : 'none';
+                            if (flame) flame.style.display = view === 'flame' ? '' : 'none';
+                        });
+                    });
+                }
+
                 overlay.addEventListener('click', function(e) {
                     if (e.target === overlay) overlay.remove();
                 });

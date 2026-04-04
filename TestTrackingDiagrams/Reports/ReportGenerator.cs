@@ -537,6 +537,8 @@ public static class ReportGenerator
 
         return InternalFlowHtmlGenerator.GenerateSegmentDataScript(
             segments,
-            options.InternalFlowDiagramStyle);
+            options.InternalFlowDiagramStyle,
+            options.InternalFlowShowFlameChart,
+            options.InternalFlowFlameChartPosition);
     }
 }
