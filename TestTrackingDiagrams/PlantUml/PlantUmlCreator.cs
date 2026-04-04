@@ -295,7 +295,28 @@ public static partial class PlantUmlCreator
         var actorDefined = false;
         var currentPlayers = new HashSet<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false }))
+        var relevantTraces = tracesForTest
+            .Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false })
+            .ToList();
+
+        // Find the pure caller (appears as CallerName but never as ServiceName) and declare it first
+        var allServiceNames = new HashSet<string>(relevantTraces.Select(t => t.ServiceName));
+        var pureCaller = relevantTraces
+            .Select(t => t.CallerName)
+            .FirstOrDefault(c => !allServiceNames.Contains(c));
+
+        if (pureCaller != null)
+        {
+            var pureCallerAlias = SanitizePlantUmlAlias(pureCaller);
+            currentPlayers.Add(pureCallerAlias);
+            sb.Append("actor \"")
+                .Append(pureCaller)
+                .Append("\" as ")
+                .AppendLine(pureCallerAlias);
+            actorDefined = true;
+        }
+
+        foreach (var trace in relevantTraces)
         {
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);

@@ -241,7 +241,28 @@ public static partial class MermaidCreator
         var actorDefined = false;
         var currentPlayers = new HashSet<string>();
 
-        foreach (var trace in tracesForTest.Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false }))
+        var relevantTraces = tracesForTest
+            .Where(x => x is { IsOverrideStart: false, IsOverrideEnd: false, IsActionStart: false })
+            .ToList();
+
+        // Find the pure caller (appears as CallerName but never as ServiceName) and declare it first
+        var allServiceNames = new HashSet<string>(relevantTraces.Select(t => t.ServiceName));
+        var pureCaller = relevantTraces
+            .Select(t => t.CallerName)
+            .FirstOrDefault(c => !allServiceNames.Contains(c));
+
+        if (pureCaller != null)
+        {
+            var pureCallerAlias = SanitizeAlias(pureCaller);
+            currentPlayers.Add(pureCallerAlias);
+            sb.Append("actor ")
+                .Append(pureCallerAlias)
+                .Append(" as ")
+                .AppendLine(pureCaller);
+            actorDefined = true;
+        }
+
+        foreach (var trace in relevantTraces)
         {
             var serviceAlias = SanitizeAlias(trace.ServiceName);
             var callerAlias = SanitizeAlias(trace.CallerName);
