@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using TestTrackingDiagrams.Constants;
 
@@ -107,7 +108,10 @@ public class TestTrackingMessageHandler : DelegatingHandler
             requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
         )
         {
-            FocusFields = requestFocusFields
+            FocusFields = requestFocusFields,
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString()
         });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -131,7 +135,10 @@ public class TestTrackingMessageHandler : DelegatingHandler
             response.StatusCode
             )
         {
-            FocusFields = responseFocusFields
+            FocusFields = responseFocusFields,
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString()
         });
 
         return response;

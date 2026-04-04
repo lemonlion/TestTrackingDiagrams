@@ -51,6 +51,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extens
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Redis", "TestTrackingDiagrams.Tests.Redis\TestTrackingDiagrams.Tests.Redis.csproj", "{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.OpenTelemetry", "TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj", "{F636ED8D-472F-4354-AAD6-2EAA045AC976}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -349,6 +351,18 @@ Global
 		{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}.Release|x64.Build.0 = Release|Any CPU
 		{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}.Release|x86.ActiveCfg = Release|Any CPU
 		{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}.Release|x86.Build.0 = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|x64.Build.0 = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Debug|x86.Build.0 = Debug|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x64.ActiveCfg = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x64.Build.0 = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x86.ActiveCfg = Release|Any CPU
+		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

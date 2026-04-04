@@ -37,7 +37,8 @@ public static partial class PlantUmlCreator
         bool lazyLoadImages = true,
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
-        string? plantUmlTheme = null)
+        string? plantUmlTheme = null,
+        bool internalFlowTracking = false)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -64,7 +65,8 @@ public static partial class PlantUmlCreator
                 highlightSetup,
                 focusEmphasis,
                 focusDeEmphasis,
-                plantUmlTheme);
+                plantUmlTheme,
+                internalFlowTracking);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -86,7 +88,8 @@ public static partial class PlantUmlCreator
         bool highlightSetup,
         FocusEmphasis focusEmphasis,
         FocusDeEmphasis focusDeEmphasis,
-        string? plantUmlTheme)
+        string? plantUmlTheme,
+        bool internalFlowTracking)
     {
         var builder = new DiagramBuilder(tracesForTest, plantUmlTheme);
         var lastTrace = tracesForTest[^1];
@@ -160,7 +163,11 @@ public static partial class PlantUmlCreator
                     if (pathAndQuery.Length > maxUrlLength)
                         pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
 
-                    builder.AppendLine($"{callerShortName} -> {serviceShortName}: {trace.Method.Value}: {pathAndQuery}");
+                    var requestLabel = $"{trace.Method.Value}: {pathAndQuery}";
+                    if (internalFlowTracking)
+                        requestLabel = $"[[#iflow-{trace.RequestResponseId} {requestLabel}]]";
+
+                    builder.AppendLine($"{callerShortName} -> {serviceShortName}: {requestLabel}");
 
                     if (!string.IsNullOrEmpty(noteContent))
                     {
@@ -181,7 +188,7 @@ public static partial class PlantUmlCreator
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);
 
-                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName);
+                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName, internalFlowTracking);
                     break;
                 }
             }
@@ -204,7 +211,8 @@ public static partial class PlantUmlCreator
         string noteContent,
         RequestResponseLog trace,
         string serviceShortName,
-        string callerShortName)
+        string callerShortName,
+        bool internalFlowTracking = false)
     {
         var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
         var suffix = Environment.NewLine + "..Continued On Next Diagram..";
@@ -222,7 +230,7 @@ public static partial class PlantUmlCreator
                 if (!isFirst) chunk = prefix + chunk;
                 if (!isLast) chunk += suffix;
 
-                AppendResponseNoteContent(builder, chunk, trace, serviceShortName, callerShortName);
+                AppendResponseNoteContent(builder, chunk, trace, serviceShortName, callerShortName, internalFlowTracking);
 
                 if (!isLast)
                     builder.FinishAndStartNewDiagram();
@@ -234,7 +242,11 @@ public static partial class PlantUmlCreator
             if (trace?.StatusCode?.Value as HttpStatusCode? == (HttpStatusCode)302)
                 status += " (Redirect)"; // The name of 302 'Found' is a bit ambiguous, so we make it clearer for the reader
 
-            builder.AppendLine($"{serviceShortName} --> {callerShortName}: {status}");
+            var responseLabel = status ?? "";
+            if (internalFlowTracking)
+                responseLabel = $"[[#iflow-{trace!.RequestResponseId}-res {responseLabel}]]";
+
+            builder.AppendLine($"{serviceShortName} --> {callerShortName}: {responseLabel}");
 
             if (!string.IsNullOrEmpty(noteContent))
             {

@@ -29,6 +29,63 @@ public static class DiagramContextMenu
         }
         """;
 
+    public static string GetInlineSvgStyles() => """
+        .plantuml-inline-svg svg {
+            max-width: 100%;
+            height: auto;
+        }
+        """;
+
+    public static string GetInternalFlowPopupStyles() => """
+        .iflow-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .iflow-popup {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+            font: 14px/1.5 -apple-system, 'Segoe UI', sans-serif;
+        }
+        .iflow-popup-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            background: none;
+            border: none;
+            padding: 4px 8px;
+        }
+        .iflow-popup-close:hover {
+            color: #000;
+        }
+        .iflow-popup h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #333;
+        }
+        .iflow-popup .iflow-no-data {
+            color: #888;
+            font-style: italic;
+            padding: 20px 0;
+        }
+        .iflow-popup .iflow-diagram {
+            min-height: 60px;
+        }
+        """;
+
     public static string GetPlantUmlBrowserRenderScript() => """
         <script src="https://plantuml.github.io/plantuml/js-plantuml/viz-global.js"></script>
         <script src="https://plantuml.github.io/plantuml/js-plantuml/plantuml.js"></script>
@@ -83,8 +140,7 @@ public static class DiagramContextMenu
 
             function findDiagramContainer(el) {
                 while (el) {
-                    if (el.classList && (el.classList.contains('plantuml-browser') || el.classList.contains('mermaid')))
-                        return el;
+                    if (el.dataset && el.dataset.diagramType) return el;
                     el = el.parentElement;
                 }
                 return null;
@@ -232,6 +288,80 @@ public static class DiagramContextMenu
                 if (e.key === 'Escape') closeMenu();
             });
             document.addEventListener('scroll', closeMenu, true);
+        })();
+        </script>
+        """;
+
+    public static string GetInternalFlowPopupScript() => """
+        <script>
+        (function() {
+            var iflowData = window.__iflowSegments || {};
+
+            function showPopup(segmentId) {
+                var existing = document.querySelector('.iflow-overlay');
+                if (existing) existing.remove();
+
+                var overlay = document.createElement('div');
+                overlay.className = 'iflow-overlay';
+
+                var popup = document.createElement('div');
+                popup.className = 'iflow-popup';
+
+                var closeBtn = document.createElement('button');
+                closeBtn.className = 'iflow-popup-close';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.onclick = function() { overlay.remove(); };
+                popup.appendChild(closeBtn);
+
+                var segment = iflowData[segmentId];
+                if (segment && segment.content) {
+                    var header = document.createElement('h3');
+                    header.textContent = segment.title || 'Internal Flow';
+                    popup.appendChild(header);
+
+                    var diagramDiv = document.createElement('div');
+                    diagramDiv.className = 'iflow-diagram';
+                    diagramDiv.innerHTML = segment.content;
+                    popup.appendChild(diagramDiv);
+
+                    if (window.plantuml && diagramDiv.querySelector('.plantuml-browser')) {
+                        diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                            var lines = el.getAttribute('data-plantuml').split('\n');
+                            window.plantuml.render(lines, el.id);
+                        });
+                    }
+                } else {
+                    var noData = document.createElement('div');
+                    noData.className = 'iflow-no-data';
+                    noData.textContent = segment && segment.message
+                        ? segment.message
+                        : 'No internal flow data available for this segment.';
+                    popup.appendChild(noData);
+                }
+
+                overlay.appendChild(popup);
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) overlay.remove();
+                });
+                document.body.appendChild(overlay);
+            }
+
+            document.addEventListener('click', function(e) {
+                var link = e.target.closest('a');
+                if (!link) return;
+                var href = link.getAttribute('xlink:href') || link.getAttribute('href') || '';
+                if (!href.startsWith('#iflow-')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                showPopup(href.substring(1));
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    var overlay = document.querySelector('.iflow-overlay');
+                    if (overlay) overlay.remove();
+                }
+            });
         })();
         </script>
         """;

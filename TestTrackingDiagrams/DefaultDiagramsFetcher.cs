@@ -1,4 +1,5 @@
-﻿using TestTrackingDiagrams.Mermaid;
+﻿using System.Text;
+using TestTrackingDiagrams.Mermaid;
 using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Tracking;
 
@@ -36,6 +37,9 @@ public static class DefaultDiagramsFetcher
                 $"PlantUmlImageFormat.{options.PlantUmlImageFormat} requires PlantUmlRendering.Local to be configured. " +
                 "Install the TestTrackingDiagrams.PlantUml.Ikvm package and use IkvmPlantUmlRenderer.Render.");
 
+        if (options.InlineSvgRendering)
+            return GetServerRenderedInlineSvgDiagrams(options);
+
         var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: options.LazyLoadDiagramImages);
 
         return perTestId
@@ -43,6 +47,21 @@ public static class DefaultDiagramsFetcher
                 new DiagramAsCode(test.TestId,
                     $"{options.PlantUmlServerBaseUrl}/{options.PlantUmlImageFormat.ToString().ToLowerInvariant()}/{plantUml.PlantUmlEncoded}",
                     plantUml.PlainText)))
+            .ToArray();
+    }
+
+    private static DiagramAsCode[] GetServerRenderedInlineSvgDiagrams(DiagramsFetcherOptions options)
+    {
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: false);
+        using var httpClient = new HttpClient();
+
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+            {
+                var svgUrl = $"{options.PlantUmlServerBaseUrl}/svg/{plantUml.PlantUmlEncoded}";
+                var svgContent = httpClient.GetStringAsync(svgUrl).GetAwaiter().GetResult();
+                return new DiagramAsCode(test.TestId, StripXmlDeclaration(svgContent), plantUml.PlainText);
+            }))
             .ToArray();
     }
 
@@ -54,6 +73,9 @@ public static class DefaultDiagramsFetcher
                 "Install the TestTrackingDiagrams.PlantUml.Ikvm package and set LocalDiagramRenderer = IkvmPlantUmlRenderer.Render.");
 
         var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: options.LazyLoadDiagramImages);
+
+        if (options.InlineSvgRendering)
+            return RenderLocallyAsInlineSvg(perTestId, options);
 
         return RenderLocally(perTestId, options);
     }
@@ -74,7 +96,8 @@ public static class DefaultDiagramsFetcher
             lazyLoadImages: lazyLoadImages,
             focusEmphasis: options.FocusEmphasis,
             focusDeEmphasis: options.FocusDeEmphasis,
-            plantUmlTheme: options.PlantUmlTheme).ToArray();
+            plantUmlTheme: options.PlantUmlTheme,
+            internalFlowTracking: options.InternalFlowTracking).ToArray();
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)
@@ -133,6 +156,29 @@ public static class DefaultDiagramsFetcher
             .SelectMany(test => test.PlantUmls.Select(plantUml =>
                 new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText)))
             .ToArray();
+    }
+
+    private static DiagramAsCode[] RenderLocallyAsInlineSvg(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)
+    {
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+            {
+                var imageBytes = options.LocalDiagramRenderer!(plantUml.PlainText, PlantUmlImageFormat.Svg);
+                var svgContent = Encoding.UTF8.GetString(imageBytes);
+                return new DiagramAsCode(test.TestId, StripXmlDeclaration(svgContent), plantUml.PlainText);
+            }))
+            .ToArray();
+    }
+
+    private static string StripXmlDeclaration(string svg)
+    {
+        if (svg.StartsWith("<?xml", StringComparison.Ordinal))
+        {
+            var end = svg.IndexOf("?>", StringComparison.Ordinal);
+            if (end >= 0)
+                svg = svg[(end + 2)..].TrimStart();
+        }
+        return svg;
     }
 
     private static DiagramAsCode[] GetMermaidDiagrams(DiagramsFetcherOptions options)

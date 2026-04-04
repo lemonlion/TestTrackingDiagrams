@@ -1,5 +1,7 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using TestTrackingDiagrams.ComponentDiagram;
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
@@ -8,6 +10,15 @@ public static class ReportGenerator
 {
     public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
     {
+        if (options.InternalFlowTracking && options.DiagramFormat == DiagramFormat.PlantUml)
+        {
+            if (options.PlantUmlRendering is PlantUmlRendering.Server or PlantUmlRendering.Local)
+            {
+                options.InlineSvgRendering = true;
+                options.PlantUmlImageFormat = PlantUmlImageFormat.Svg;
+            }
+        }
+
         var fetcherOptions = new DiagramsFetcherOptions
         {
             PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
@@ -26,14 +37,22 @@ public static class ReportGenerator
             LocalDiagramRenderer = options.LocalDiagramRenderer,
             LocalDiagramImageDirectory = options.LocalDiagramImageDirectory,
             DiagramFormat = options.DiagramFormat,
-            PlantUmlRendering = options.PlantUmlRendering
+            PlantUmlRendering = options.PlantUmlRendering,
+            InlineSvgRendering = options.InlineSvgRendering,
+            InternalFlowTracking = options.InternalFlowTracking
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
+        var internalFlowDataScript = "";
+        if (options.InternalFlowTracking)
+        {
+            internalFlowDataScript = BuildInternalFlowDataScript(options);
+        }
+
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
         };
 
@@ -61,7 +80,7 @@ public static class ReportGenerator
             if (options.WriteCiSummaryInteractiveHtml)
             {
                 var ciFeatures = FilterFeaturesForCiSummary(features, diagrams, options.MaxCiSummaryDiagrams);
-                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering);
+                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript);
             }
         }
 
@@ -90,7 +109,10 @@ public static class ReportGenerator
         bool generateBlankOnFailedTests = false,
         bool lazyLoadImages = true,
         DiagramFormat diagramFormat = DiagramFormat.PlantUml,
-        PlantUmlRendering plantUmlRendering = PlantUmlRendering.Server)
+        PlantUmlRendering plantUmlRendering = PlantUmlRendering.Server,
+        bool inlineSvgRendering = false,
+        bool internalFlowTracking = false,
+        string internalFlowDataScript = "")
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -224,11 +246,15 @@ public static class ReportGenerator
 
         var isMermaid = diagramFormat == DiagramFormat.Mermaid;
         var isPlantUmlBrowser = !isMermaid && plantUmlRendering == PlantUmlRendering.BrowserJs;
-        var hasBrowserDiagrams = isMermaid || isPlantUmlBrowser;
+        var isInlineSvg = !isMermaid && !isPlantUmlBrowser && inlineSvgRendering;
+        var hasInteractiveDiagrams = isMermaid || isPlantUmlBrowser || isInlineSvg;
         var mermaidScript = isMermaid ? DiagramContextMenu.GetMermaidScript() : "";
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
-        var contextMenuScript = hasBrowserDiagrams ? DiagramContextMenu.GetContextMenuScript() : "";
-        var contextMenuStyles = hasBrowserDiagrams ? DiagramContextMenu.GetStyles() : "";
+        var contextMenuScript = hasInteractiveDiagrams ? DiagramContextMenu.GetContextMenuScript() : "";
+        var contextMenuStyles = hasInteractiveDiagrams ? DiagramContextMenu.GetStyles() : "";
+        var inlineSvgStyles = isInlineSvg ? DiagramContextMenu.GetInlineSvgStyles() : "";
+        var internalFlowPopupStyles = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupStyles() : "";
+        var internalFlowPopupScript = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupScript() : "";
 
         var html = $$"""
                     <html>
@@ -236,6 +262,8 @@ public static class ReportGenerator
                             <style>
                                 {{combinedStylesheet}}
                                 {{contextMenuStyles}}
+                                {{inlineSvgStyles}}
+                                {{internalFlowPopupStyles}}
                             </style>
                             <script>
                                 {{toggleHappyPathsFunction}}
@@ -244,6 +272,8 @@ public static class ReportGenerator
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
                             {{contextMenuScript}}
+                            {{internalFlowDataScript}}
+                            {{internalFlowPopupScript}}
                         </head>
                         <body>
                     """;
@@ -346,6 +376,13 @@ public static class ReportGenerator
                             var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
                             body.Append($"""
                                      <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}" data-diagram-type="plantuml">Loading diagram...</div>
+                                     """);
+                        }
+                        else if (isInlineSvg)
+                        {
+                            var sourceEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                            body.Append($"""
+                                     <div class="plantuml-inline-svg" data-plantuml="{sourceEncoded}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
                                      """);
                         }
                         else
@@ -471,5 +508,22 @@ public static class ReportGenerator
             }
             return filtered.ToArray();
         }
+    }
+
+    private static string BuildInternalFlowDataScript(ReportConfigurationOptions options)
+    {
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(x => !(x?.TrackingIgnore ?? true))
+            .ToArray();
+
+        var spans = InternalFlowSpanCollector.CollectSpans(
+            options.InternalFlowSpanGranularity,
+            options.InternalFlowActivitySources);
+
+        var segments = InternalFlowSegmentBuilder.BuildSegments(logs, spans);
+
+        return InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+            segments,
+            options.InternalFlowDiagramStyle);
     }
 }

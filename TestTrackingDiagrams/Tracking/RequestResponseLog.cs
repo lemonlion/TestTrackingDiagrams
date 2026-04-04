@@ -23,6 +23,9 @@ public record RequestResponseLog(
     public bool IsActionStart { get; set; }
     public string? PlantUml { get; set; }
     public string[]? FocusFields { get; set; }
+    public DateTimeOffset? Timestamp { get; set; }
+    public string? ActivitySpanId { get; set; }
+    public string? ActivityTraceId { get; set; }
 };
 
 public enum RequestResponseType

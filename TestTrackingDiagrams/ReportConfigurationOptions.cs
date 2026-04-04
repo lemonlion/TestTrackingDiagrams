@@ -27,6 +27,19 @@ public record ReportConfigurationOptions
     public string? LocalDiagramImageDirectory { get; set; }
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
     public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+    public bool InlineSvgRendering { get; set; }
+    public bool InternalFlowTracking { get; set; }
+    public InternalFlowDisplay InternalFlowDisplay { get; set; } = InternalFlowDisplay.Popup;
+    public InternalFlowTrigger InternalFlowTrigger { get; set; } = InternalFlowTrigger.Click;
+    public InternalFlowDiagramStyle InternalFlowDiagramStyle { get; set; } = InternalFlowDiagramStyle.ActivityDiagram;
+    public InternalFlowSpanGranularity InternalFlowSpanGranularity { get; set; } = InternalFlowSpanGranularity.AutoInstrumentation;
+    public string[]? InternalFlowActivitySources { get; set; }
+    public InternalFlowNoDataBehavior InternalFlowNoDataBehavior { get; set; } = InternalFlowNoDataBehavior.ShowMessage;
+    public bool InternalFlowShowFlameChart { get; set; }
+    public InternalFlowFlameChartPosition InternalFlowFlameChartPosition { get; set; } = InternalFlowFlameChartPosition.BehindWithToggle;
+    public InternalFlowContentStrategy InternalFlowContentStrategy { get; set; } = InternalFlowContentStrategy.Embedded;
+    public string InternalFlowFragmentsFolderName { get; set; } = "spans";
+    public string? InternalFlowPopupCustomStyleSheet { get; set; }
     public bool WriteCiSummary { get; set; }
     public int MaxCiSummaryDiagrams { get; set; } = 10;
     public bool WriteCiSummaryInteractiveHtml { get; set; }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Constants;
@@ -57,7 +58,12 @@ public class MessageTracker
             requestResponseId,
             false,
             MetaType: RequestResponseMetaType.Event
-        ));
+        )
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString()
+        });
 
         return requestResponseId;
     }
@@ -92,7 +98,12 @@ public class MessageTracker
             false,
             "Responded",
             MetaType: RequestResponseMetaType.Event
-        ));
+        )
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString()
+        });
     }
 
     private (string TestName, string TestId, Guid TraceId) GetTestInfo()
