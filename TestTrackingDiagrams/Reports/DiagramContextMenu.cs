@@ -94,6 +94,7 @@ public static class DiagramContextMenu
         <script>
             plantumlLoad();
             document.addEventListener('DOMContentLoaded', function() {
+                console.log('[iflow] DOMContentLoaded, setting up render queue');
                 var renderQueue = [];
                 var rendering = false;
                 function processQueue() {
@@ -101,8 +102,17 @@ public static class DiagramContextMenu
                     rendering = true;
                     var item = renderQueue.shift();
                     var lines = item.source.split('\n');
+                    console.log('[iflow] Rendering', item.el.id, '(' + lines.length + ' lines)');
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
+                        console.log('[iflow] MO fired for', item.el.id);
+                        var anchors = item.el.querySelectorAll('a');
+                        console.log('[iflow] Found', anchors.length, '<a> elements after render');
+                        anchors.forEach(function(a, i) {
+                            var attrs = [];
+                            for (var j = 0; j < a.attributes.length; j++) attrs.push(a.attributes[j].name + '=' + a.attributes[j].value);
+                            console.log('[iflow]   <a>[' + i + ']:', attrs.join(', '));
+                        });
                         bindIflowLinks(item.el);
                         rendering = false;
                         processQueue();
@@ -114,6 +124,7 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         rendering = false;
                         var msg = (e && e.message) ? e.message : String(e);
+                        console.error('[iflow] Render error:', msg);
                         if (msg.indexOf('too large') >= 0) {
                             item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
                                 + '<strong>Diagram too large for client-side rendering.</strong><br>'
@@ -128,16 +139,26 @@ public static class DiagramContextMenu
                 }
                 window._iflowBindLinks = function(container) { bindIflowLinks(container); };
                 function bindIflowLinks(container) {
-                    if (!container) return;
-                    container.querySelectorAll('a').forEach(function(a) {
+                    if (!container) { console.warn('[iflow] bindIflowLinks: container is null'); return; }
+                    var anchors = container.querySelectorAll('a');
+                    console.log('[iflow] bindIflowLinks:', anchors.length, '<a> elements in', container.id);
+                    anchors.forEach(function(a, i) {
                         var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
+                        console.log('[iflow]   [' + i + '] href=' + href, 'match=' + (href.indexOf('#iflow-') === 0));
                         if (href.indexOf('#iflow-') !== 0) return;
                         a.style.cursor = 'pointer';
                         a.addEventListener('click', function(ev) {
+                            console.log('[iflow] CLICK on', href);
                             ev.preventDefault();
                             ev.stopPropagation();
-                            if (window._iflowShowPopup) window._iflowShowPopup(href.substring(1));
+                            if (window._iflowShowPopup) {
+                                console.log('[iflow] Calling _iflowShowPopup', href.substring(1));
+                                window._iflowShowPopup(href.substring(1));
+                            } else {
+                                console.error('[iflow] _iflowShowPopup is NOT defined!');
+                            }
                         });
+                        console.log('[iflow]   Bound click handler for', href);
                     });
                 }
                 var observer = new IntersectionObserver(function(entries) {
@@ -329,8 +350,13 @@ public static class DiagramContextMenu
         <script>
         (function() {
             var iflowData = window.__iflowSegments || {};
+            console.log('[iflow-popup] Loaded. Segment keys:', Object.keys(iflowData).length);
+            if (Object.keys(iflowData).length > 0) {
+                console.log('[iflow-popup] First 5 keys:', Object.keys(iflowData).slice(0,5));
+            }
 
             function showPopup(segmentId) {
+                console.log('[iflow-popup] showPopup called with:', segmentId);
                 var existing = document.querySelector('.iflow-overlay');
                 if (existing) existing.remove();
 
@@ -390,10 +416,14 @@ public static class DiagramContextMenu
             // Fallback: document-level click handler (capture phase for SVG compatibility)
             document.addEventListener('click', function(e) {
                 var el = e.target;
+                console.log('[iflow-popup] CAPTURE click on:', el.localName, 'ns:', el.namespaceURI);
+                var depth = 0;
                 while (el && el !== document) {
                     if (el.localName === 'a') {
                         var href = el.getAttribute('xlink:href') || el.getAttribute('href') || '';
+                        console.log('[iflow-popup]   Found <a> at depth', depth, 'href:', href);
                         if (href.indexOf('#iflow-') === 0) {
+                            console.log('[iflow-popup]   MATCH! Calling showPopup');
                             e.preventDefault();
                             e.stopPropagation();
                             showPopup(href.substring(1));
@@ -401,7 +431,9 @@ public static class DiagramContextMenu
                         }
                     }
                     el = el.parentNode;
+                    depth++;
                 }
+                console.log('[iflow-popup]   No iflow <a> in ancestry (depth:', depth, ')');
             }, true);
 
             document.addEventListener('keydown', function(e) {

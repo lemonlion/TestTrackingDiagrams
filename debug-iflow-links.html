@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug: iflow link click test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #log { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 4px; font-family: monospace; font-size: 13px; white-space: pre-wrap; min-height: 200px; max-height: 400px; overflow-y: auto; margin-top: 16px; }
+        .log-info { color: #9cdcfe; }
+        .log-warn { color: #dcdcaa; }
+        .log-error { color: #f44747; }
+        .log-success { color: #6a9955; }
+        h2 { margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <h1>iflow link click debug test</h1>
+    <p>This page renders a PlantUML sequence diagram with <code>[[#iflow-xxx]]</code> link syntax using the TeaVM BrowserJS engine, then tests whether click handlers work.</p>
+
+    <h2>1. Rendered Diagram</h2>
+    <div id="puml-test" class="plantuml-browser" data-plantuml="@startuml
+participant A
+participant B
+A -> B: [[#iflow-test-123 Click me]]
+B --> A: [[#iflow-test-123-res Response]]
+@enduml" data-diagram-type="plantuml">Loading...</div>
+
+    <h2>2. Debug Log</h2>
+    <div id="log"></div>
+
+    <!-- Fake iflow segment data -->
+    <script>
+        window.__iflowSegments = {
+            "iflow-test-123": {
+                title: "Test Internal Flow (3 spans)",
+                content: "<div style='padding:10px'>This is the popup content for iflow-test-123</div>"
+            },
+            "iflow-test-123-res": {
+                title: "Test Response Flow",
+                content: "<div style='padding:10px'>This is the popup content for iflow-test-123-res</div>"
+            }
+        };
+    </script>
+
+    <!-- Debug logger -->
+    <script>
+        var logDiv = document.getElementById('log');
+        function log(msg, cls) {
+            var line = document.createElement('div');
+            line.className = cls || 'log-info';
+            line.textContent = '[' + new Date().toISOString().substr(11,12) + '] ' + msg;
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+    </script>
+
+    <!-- Load patched PlantUML JS -->
+    <script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/viz-global.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/plantuml.js"></script>
+
+    <script>
+        log('PlantUML JS loaded, calling plantumlLoad()...');
+        plantumlLoad();
+        log('plantumlLoad() completed.');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOMContentLoaded fired');
+
+            var el = document.getElementById('puml-test');
+            var source = el.getAttribute('data-plantuml');
+            log('Source PlantUML: ' + source.substring(0, 100) + '...');
+
+            // Render
+            var lines = source.split('\n');
+            log('Rendering diagram (' + lines.length + ' lines)...');
+
+            var mo = new MutationObserver(function(mutations) {
+                mo.disconnect();
+                log('MutationObserver fired! ' + mutations.length + ' mutation(s)', 'log-success');
+
+                // Inspect rendered SVG
+                var svg = el.querySelector('svg');
+                if (svg) {
+                    log('SVG found: ' + svg.outerHTML.length + ' chars', 'log-success');
+                } else {
+                    log('NO SVG FOUND in container!', 'log-error');
+                }
+
+                // Find all <a> elements
+                var allAnchors = el.querySelectorAll('a');
+                log('Total <a> elements found: ' + allAnchors.length);
+
+                allAnchors.forEach(function(a, i) {
+                    var xlinkHref = a.getAttribute('xlink:href');
+                    var href = a.getAttribute('href');
+                    var xlinkNS = a.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+                    var localName = a.localName;
+                    var tagName = a.tagName;
+                    var ns = a.namespaceURI;
+                    log('  <a>[' + i + ']: localName=' + localName +
+                        ', tagName=' + tagName +
+                        ', ns=' + ns +
+                        ', href=' + JSON.stringify(href) +
+                        ', xlink:href=' + JSON.stringify(xlinkHref) +
+                        ', xlinkNS=' + JSON.stringify(xlinkNS));
+
+                    // List all attributes
+                    var attrs = [];
+                    for (var j = 0; j < a.attributes.length; j++) {
+                        var attr = a.attributes[j];
+                        attrs.push(attr.name + '=' + JSON.stringify(attr.value));
+                    }
+                    log('    attrs: ' + attrs.join(', '));
+
+                    // Check children
+                    log('    children: ' + a.innerHTML.substring(0, 150));
+                });
+
+                // Try binding click handlers (same logic as DiagramContextMenu)
+                bindIflowLinks(el);
+            });
+            mo.observe(el, { childList: true, subtree: true });
+
+            try {
+                window.plantuml.render(lines, el.id);
+                log('plantuml.render() called (async, waiting for MO)');
+            } catch(e) {
+                log('RENDER ERROR: ' + e.message, 'log-error');
+            }
+        });
+
+        // bindIflowLinks - same as DiagramContextMenu
+        function bindIflowLinks(container) {
+            if (!container) { log('bindIflowLinks: container is null!', 'log-error'); return; }
+            var anchors = container.querySelectorAll('a');
+            log('bindIflowLinks: found ' + anchors.length + ' <a> elements');
+
+            anchors.forEach(function(a, i) {
+                var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
+                log('  bindIflowLinks[' + i + ']: href=' + JSON.stringify(href) +
+                    ', startsWithIflow=' + (href.indexOf('#iflow-') === 0));
+
+                if (href.indexOf('#iflow-') !== 0) {
+                    log('  SKIPPED (not #iflow-)', 'log-warn');
+                    return;
+                }
+
+                a.style.cursor = 'pointer';
+                a.addEventListener('click', function(ev) {
+                    log('DIRECT CLICK HANDLER FIRED for ' + href, 'log-success');
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    var segmentId = href.substring(1);
+                    log('  Looking up segment: ' + segmentId);
+                    if (window._iflowShowPopup) {
+                        log('  Calling _iflowShowPopup(' + segmentId + ')');
+                        window._iflowShowPopup(segmentId);
+                    } else {
+                        log('  WARNING: window._iflowShowPopup is NOT defined!', 'log-error');
+                    }
+                });
+                log('  Bound click handler for ' + href, 'log-success');
+            });
+        }
+
+        // Capture-phase fallback handler (same as GetInternalFlowPopupScript)
+        document.addEventListener('click', function(e) {
+            var el = e.target;
+            log('CAPTURE click on: ' + el.localName + ' (ns=' + el.namespaceURI + ')', 'log-info');
+
+            var depth = 0;
+            while (el && el !== document && depth < 20) {
+                if (el.localName === 'a') {
+                    var href = el.getAttribute('xlink:href') || el.getAttribute('href') || '';
+                    log('  Found <a> at depth ' + depth + ': href=' + JSON.stringify(href));
+                    if (href.indexOf('#iflow-') === 0) {
+                        log('  CAPTURE HANDLER: iflow link matched!', 'log-success');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showPopup(href.substring(1));
+                        return;
+                    }
+                }
+                el = el.parentNode;
+                depth++;
+            }
+            log('  No iflow link found in ancestry (walked ' + depth + ' levels)', 'log-warn');
+        }, true);
+
+        // Popup function
+        function showPopup(segmentId) {
+            log('showPopup called with: ' + segmentId, 'log-success');
+            var data = window.__iflowSegments || {};
+            var segment = data[segmentId];
+            if (segment) {
+                log('  Segment found! title=' + segment.title, 'log-success');
+                alert('POPUP WOULD SHOW:\n\nTitle: ' + segment.title + '\nContent: ' + (segment.content || '').substring(0, 100));
+            } else {
+                log('  Segment NOT found in __iflowSegments!', 'log-error');
+                log('  Available keys: ' + Object.keys(data).join(', '));
+                alert('Segment "' + segmentId + '" not found!');
+            }
+        }
+        window._iflowShowPopup = showPopup;
+    </script>
+</body>
+</html>
