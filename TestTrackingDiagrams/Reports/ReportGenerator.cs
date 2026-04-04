@@ -168,6 +168,10 @@ public static class ReportGenerator
                                  for (let i = 0; i < features.length; i++) {
                                      features[i].classList.remove('search-hidden');
                                      features[i].style.opacity = '';
+                                     if (features[i].classList.contains('search-opened')) {
+                                         features[i].removeAttribute('open');
+                                         features[i].classList.remove('search-opened');
+                                     }
                                  }
                              
                                  if (searchTokens.length === 0)
@@ -177,6 +181,12 @@ public static class ReportGenerator
                                  let matchingScenarios = [];
                                  for (let i = 0; i < scenarios.length; i++) {
                                      let text = scenarios[i].textContent.toLowerCase();
+                                     let diagramEls = scenarios[i].querySelectorAll('[data-plantuml],[data-mermaid-source]');
+                                     for (let d = 0; d < diagramEls.length; d++) {
+                                         var src = diagramEls[d].getAttribute('data-plantuml')
+                                                || diagramEls[d].getAttribute('data-mermaid-source');
+                                         if (src) text += ' ' + src.toLowerCase();
+                                     }
                                      let allMatch = true;
                                      for (let j = 0; j < searchTokens.length; j++) {
                                          if (!text.includes(searchTokens[j])) {
@@ -201,7 +211,7 @@ public static class ReportGenerator
                                      if (rawPuml) rawPuml.removeAttribute('open');
                                  }
                              
-                                 // Hide features with no visible scenarios
+                                 // Hide features with no visible scenarios, open features with matches
                                  for (let i = 0; i < features.length; i++) {
                                      let childScenarios = features[i].querySelectorAll('.scenario');
                                      let hasVisible = false;
@@ -213,6 +223,9 @@ public static class ReportGenerator
                                      }
                                      if (!hasVisible) {
                                          features[i].classList.add('search-hidden');
+                                     } else if (!features[i].hasAttribute('open')) {
+                                         features[i].setAttribute('open', '');
+                                         features[i].classList.add('search-opened');
                                      }
                                  }
                              }

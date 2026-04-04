@@ -89,6 +89,16 @@ public static class SearchFunction
         foreach (var scenario in allScenarios)
             scenario.RemoveAttribute("open");
 
+        // Close features that were opened by a previous search
+        foreach (var feature in allFeatures)
+        {
+            if (feature.ClassList.Contains("search-opened"))
+            {
+                feature.RemoveAttribute("open");
+                feature.ClassList.Remove("search-opened");
+            }
+        }
+
         // If search is empty, just clear and return (other filters remain)
         if (tokens.Length == 0)
         {
@@ -129,7 +139,7 @@ public static class SearchFunction
         }
         // Multiple matches: leave retracted (default state, no 'open' attribute)
 
-        // Hide features that have no visible scenarios
+        // Hide features that have no visible scenarios, open features with matches
         foreach (var feature in allFeatures)
         {
             var featureScenarios = feature.QuerySelectorAll(".scenario");
@@ -138,6 +148,11 @@ public static class SearchFunction
             if (!hasVisible)
             {
                 feature.ClassList.Add(SearchHiddenClass);
+            }
+            else if (!feature.HasAttribute("open"))
+            {
+                feature.SetAttribute("open", "");
+                feature.ClassList.Add("search-opened");
             }
         }
 

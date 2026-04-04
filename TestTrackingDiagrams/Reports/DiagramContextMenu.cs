@@ -366,14 +366,4 @@ public static class DiagramContextMenu
         })();
         </script>
         """;
-
-    public const string SearchExtensionJs = """
-                                    // Also search diagram source from data attributes
-                                    let diagramEls = scenarios[i].querySelectorAll('[data-plantuml],[data-mermaid-source]');
-                                    for (let d = 0; d < diagramEls.length; d++) {
-                                        var src = diagramEls[d].getAttribute('data-plantuml')
-                                               || diagramEls[d].getAttribute('data-mermaid-source');
-                                        if (src) text += ' ' + src.toLowerCase();
-                                    }
-                                    """;
 }
