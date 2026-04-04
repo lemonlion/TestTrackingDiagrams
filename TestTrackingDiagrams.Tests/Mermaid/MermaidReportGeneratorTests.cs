@@ -97,7 +97,8 @@ public class MermaidReportGeneratorTests
             MakePlantUmlDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlBackcompat.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUml);
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.Server);
 
         var content = File.ReadAllText(html);
         Assert.Contains("<img", content);
@@ -113,7 +114,7 @@ public class MermaidReportGeneratorTests
             null, "DefaultFormat.html", "Test", true);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("<img", content);
+        Assert.Contains("plantuml-browser", content);
         Assert.DoesNotContain("<pre class=\"mermaid\">", content);
     }
 
@@ -124,7 +125,8 @@ public class MermaidReportGeneratorTests
             MakePlantUmlDiagrams(), MakeFeatures(),
             DateTime.UtcNow, DateTime.UtcNow,
             null, "PlantUmlNoBrowserScript.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUml);
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.Server);
 
         var content = File.ReadAllText(html);
         Assert.DoesNotContain("plantuml-browser", content);

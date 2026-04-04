@@ -42,7 +42,10 @@ public class DefaultDiagramsFetcherTests : IDisposable
     public void Default_options_produce_png_url()
     {
         var testId = SeedLog();
-        var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions());
+        var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
+        {
+            PlantUmlRendering = PlantUmlRendering.Server
+        });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
 
@@ -55,7 +58,8 @@ public class DefaultDiagramsFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            PlantUmlImageFormat = PlantUmlImageFormat.Svg
+            PlantUmlImageFormat = PlantUmlImageFormat.Svg,
+            PlantUmlRendering = PlantUmlRendering.Server
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
@@ -70,7 +74,8 @@ public class DefaultDiagramsFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            PlantUmlImageFormat = PlantUmlImageFormat.Png
+            PlantUmlImageFormat = PlantUmlImageFormat.Png,
+            PlantUmlRendering = PlantUmlRendering.Server
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);

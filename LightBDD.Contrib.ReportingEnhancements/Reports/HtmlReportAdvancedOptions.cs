@@ -25,7 +25,7 @@ public class HtmlReportAdvancedOptions
     public Func<IScenarioResult, bool>? TreatScenariosAsPassed { get; set; }
     public bool LazyLoadDiagramImages { get; set; } = true;
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
-    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
 
     public HtmlReportAdvancedOptions SetOnlyCreateReportOnFullTestRun(Assembly testAssembly)
     {

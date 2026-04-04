@@ -27,7 +27,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
         public Func<IScenarioResult, bool>? TreatScenariosAsPassed { get; set; }
         public bool LazyLoadDiagramImages { get; set; } = true;
         public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
-        public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+        public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
         private int _plantUmlBrowserCounter;
 
         public CustomisableHtmlResultTextWriter(Stream outputStream, IFeatureResult[] features) : base(outputStream, 

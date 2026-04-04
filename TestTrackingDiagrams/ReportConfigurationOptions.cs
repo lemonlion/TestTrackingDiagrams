@@ -26,7 +26,7 @@ public record ReportConfigurationOptions
     public Func<string, PlantUmlImageFormat, byte[]>? LocalDiagramRenderer { get; set; }
     public string? LocalDiagramImageDirectory { get; set; }
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
-    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+    public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
     public bool InlineSvgRendering { get; set; }
     public bool InternalFlowTracking { get; set; }
     public InternalFlowDisplay InternalFlowDisplay { get; set; } = InternalFlowDisplay.Popup;
@@ -43,7 +43,7 @@ public record ReportConfigurationOptions
     public bool WriteCiSummary { get; set; }
     public int MaxCiSummaryDiagrams { get; set; } = 10;
     public bool WriteCiSummaryInteractiveHtml { get; set; }
-    public PlantUmlRendering CiSummaryPlantUmlRendering { get; set; } = PlantUmlRendering.Server;
+    public PlantUmlRendering CiSummaryPlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
     public bool PublishCiArtifacts { get; set; }
     public string CiArtifactName { get; set; } = "TestReports";
     public int CiArtifactRetentionDays { get; set; } = 1;

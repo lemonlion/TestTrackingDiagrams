@@ -12,7 +12,7 @@ public static class CiSummaryGenerator
         DateTime endRunTime,
         int maxDiagrams = 10,
         DiagramFormat diagramFormat = DiagramFormat.PlantUml,
-        PlantUmlRendering ciSummaryPlantUmlRendering = PlantUmlRendering.Server,
+        PlantUmlRendering ciSummaryPlantUmlRendering = PlantUmlRendering.BrowserJs,
         string plantUmlServerBaseUrl = "https://plantuml.com/plantuml",
         Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer = null)
     {

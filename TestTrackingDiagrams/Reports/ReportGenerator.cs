@@ -109,7 +109,7 @@ public static class ReportGenerator
         bool generateBlankOnFailedTests = false,
         bool lazyLoadImages = true,
         DiagramFormat diagramFormat = DiagramFormat.PlantUml,
-        PlantUmlRendering plantUmlRendering = PlantUmlRendering.Server,
+        PlantUmlRendering plantUmlRendering = PlantUmlRendering.BrowserJs,
         bool inlineSvgRendering = false,
         bool internalFlowTracking = false,
         string internalFlowDataScript = "")

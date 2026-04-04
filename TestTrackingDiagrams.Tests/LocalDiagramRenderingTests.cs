@@ -148,7 +148,8 @@ public class LocalDiagramRenderingTests : IDisposable
         SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            PlantUmlImageFormat = PlantUmlImageFormat.Base64Png
+            PlantUmlImageFormat = PlantUmlImageFormat.Base64Png,
+            PlantUmlRendering = PlantUmlRendering.Local
         });
 
         Assert.Throws<InvalidOperationException>(() => fetcher());
@@ -160,7 +161,8 @@ public class LocalDiagramRenderingTests : IDisposable
         SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            PlantUmlImageFormat = PlantUmlImageFormat.Base64Svg
+            PlantUmlImageFormat = PlantUmlImageFormat.Base64Svg,
+            PlantUmlRendering = PlantUmlRendering.Local
         });
 
         Assert.Throws<InvalidOperationException>(() => fetcher());

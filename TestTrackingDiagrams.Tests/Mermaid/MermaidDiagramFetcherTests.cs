@@ -80,7 +80,8 @@ public class MermaidDiagramFetcherTests : IDisposable
         var testId = SeedLog();
         var fetcher = DefaultDiagramsFetcher.GetDiagramsFetcher(new DiagramsFetcherOptions
         {
-            DiagramFormat = DiagramFormat.PlantUml
+            DiagramFormat = DiagramFormat.PlantUml,
+            PlantUmlRendering = PlantUmlRendering.Server
         });
         var diagrams = fetcher();
         var diagram = diagrams.Single(d => d.TestRuntimeId == testId);
