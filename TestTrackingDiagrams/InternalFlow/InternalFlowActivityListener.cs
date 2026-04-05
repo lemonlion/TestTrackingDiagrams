@@ -7,6 +7,11 @@ namespace TestTrackingDiagrams.InternalFlow;
 /// <see cref="Activity"/> spans into <see cref="InternalFlowSpanStore"/>
 /// without interfering with the SUT's existing OpenTelemetry configuration.
 /// <para>
+/// Subscribes to ALL <see cref="ActivitySource"/>s to capture spans from
+/// custom application sources (not just well-known auto-instrumentation).
+/// Display-time filtering is handled by <see cref="InternalFlowSpanCollector"/>.
+/// </para>
+/// <para>
 /// Uses <see cref="ActivitySamplingResult.AllData"/> (not <c>AllDataAndRecorded</c>)
 /// so that the <see cref="Activity.Recorded"/> flag remains <c>false</c> —
 /// existing OTel exporters that check <c>Recorded</c> will skip these activities.
@@ -21,17 +26,11 @@ public sealed class InternalFlowActivityListener : IDisposable
 
     public InternalFlowActivityListener(params string[] additionalActivitySources)
     {
-        var subscribedSources = new HashSet<string>(
-            InternalFlowSpanCollector.WellKnownAutoInstrumentationSources,
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var source in additionalActivitySources)
-            subscribedSources.Add(source);
-
         _listener = new ActivityListener
         {
-            ShouldListenTo = activitySource => subscribedSources.Contains(activitySource.Name),
+            ShouldListenTo = _ => true,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllData,
             ActivityStopped = InternalFlowSpanStore.Add
         };
 

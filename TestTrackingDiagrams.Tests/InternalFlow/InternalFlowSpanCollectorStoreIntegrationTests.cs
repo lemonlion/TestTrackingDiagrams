@@ -43,20 +43,30 @@ public class InternalFlowSpanCollectorStoreIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void AutoInstrumentation_filters_to_well_known_sources()
+    public void AutoInstrumentation_includes_custom_spans_sharing_trace_with_well_known()
     {
         using var wellKnown = new ActivitySource("Microsoft.AspNetCore");
         var opName = $"aspnet-{Guid.NewGuid():N}";
         using var a1 = wellKnown.StartActivity(opName)!;
+        var wellKnownTraceId = a1.TraceId;
         a1.Stop();
         InternalFlowSpanStore.Add(a1);
 
-        using var custom = _source.StartActivity("custom-op")!;
+        // A custom source span with the SAME TraceId (child of well-known)
+        var childContext = new ActivityContext(wellKnownTraceId, a1.SpanId, ActivityTraceFlags.None);
+        using var custom = _source.StartActivity("custom-child", ActivityKind.Internal, childContext)!;
         custom.Stop();
         InternalFlowSpanStore.Add(custom);
 
+        // A custom source span with a DIFFERENT TraceId (unrelated)
+        var unrelatedOpName = $"unrelated-{Guid.NewGuid():N}";
+        using var unrelated = _source.StartActivity(unrelatedOpName)!;
+        unrelated.Stop();
+        InternalFlowSpanStore.Add(unrelated);
+
         var collected = InternalFlowSpanCollector.CollectSpans(InternalFlowSpanGranularity.AutoInstrumentation);
         Assert.Contains(collected, s => s.DisplayName == opName);
-        Assert.DoesNotContain(collected, s => s.Source.Name == _sourceName);
+        Assert.Contains(collected, s => s.DisplayName == "custom-child");
+        Assert.DoesNotContain(collected, s => s.DisplayName == unrelatedOpName);
     }
 }

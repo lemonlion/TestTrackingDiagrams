@@ -51,9 +51,20 @@ public static class InternalFlowSpanCollector
 
     private static Activity[] FilterByAutoInstrumentation(Activity[] spans)
     {
+        // Find TraceIds that contain at least one well-known auto-instrumentation span.
+        // Then include ALL spans with those TraceIds — this captures child spans from
+        // custom application ActivitySources (e.g. "MyApp.Services") that are part of
+        // the same trace as a well-known server or client span.
+        var wellKnownTraceIds = new HashSet<string>();
+        foreach (var span in spans)
+        {
+            if (!string.IsNullOrEmpty(span.Source.Name) &&
+                WellKnownAutoInstrumentationSources.Contains(span.Source.Name))
+                wellKnownTraceIds.Add(span.TraceId.ToString());
+        }
+
         return spans
-            .Where(s => !string.IsNullOrEmpty(s.Source.Name) &&
-                        WellKnownAutoInstrumentationSources.Contains(s.Source.Name))
+            .Where(s => wellKnownTraceIds.Contains(s.TraceId.ToString()))
             .ToArray();
     }
 

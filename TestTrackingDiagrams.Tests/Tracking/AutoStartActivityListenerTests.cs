@@ -54,7 +54,7 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public void Does_not_capture_unregistered_source_via_auto_start()
+    public void Auto_started_listener_captures_any_source()
     {
         var unknownSource = $"Unknown.{Guid.NewGuid():N}";
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
@@ -63,7 +63,7 @@ public class AutoStartActivityListenerTests
         using var activity = source.StartActivity("unknown-op");
         activity?.Stop();
 
-        Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
             s => s.Source.Name == unknownSource);
     }
 

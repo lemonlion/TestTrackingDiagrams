@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Constants;
@@ -1315,5 +1316,79 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             Content = new StringContent(body)
         };
+    }
+
+    // ─── traceparent propagation ────────────────────────────────
+
+    [Fact]
+    public async Task Injects_traceparent_header_when_no_activity_current()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        Activity.Current = null; // ensure no ambient activity
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        Assert.True(_innerHandler.CapturedRequest!.Headers.Contains("traceparent"));
+        var traceparent = _innerHandler.CapturedRequest.Headers.GetValues("traceparent").Single();
+        Assert.Matches(@"^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$", traceparent);
+    }
+
+    [Fact]
+    public async Task Traceparent_uses_existing_activity_current_when_present()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        using var existingActivity = new Activity("ExistingTest");
+        existingActivity.SetIdFormat(ActivityIdFormat.W3C);
+        existingActivity.Start();
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var traceparent = _innerHandler.CapturedRequest!.Headers.GetValues("traceparent").Single();
+        Assert.Contains(existingActivity.TraceId.ToString(), traceparent);
+
+        existingActivity.Stop();
+    }
+
+    [Fact]
+    public async Task Does_not_inject_traceparent_when_already_present()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        var request = MakeGetRequest();
+        request.Headers.TryAddWithoutValidation("traceparent", "00-aaaabbbbccccddddaaaabbbbccccdddd-1122334455667788-01");
+
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var traceparent = _innerHandler.CapturedRequest!.Headers.GetValues("traceparent").Single();
+        Assert.Equal("00-aaaabbbbccccddddaaaabbbbccccdddd-1122334455667788-01", traceparent);
+    }
+
+    [Fact]
+    public async Task ActivityTraceId_is_recorded_in_request_log()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        Activity.Current = null;
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.ActivityTraceId);
+        Assert.Matches(@"^[0-9a-f]{32}$", requestLog.ActivityTraceId);
+    }
+
+    [Fact]
+    public async Task Traceparent_trace_id_matches_logged_activity_trace_id()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        Activity.Current = null;
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var traceparent = _innerHandler.CapturedRequest!.Headers.GetValues("traceparent").Single();
+        var traceparentTraceId = traceparent.Split('-')[1];
+
+        var logs = GetLogsFromThisTest();
+        var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal(traceparentTraceId, requestLog.ActivityTraceId);
     }
 }

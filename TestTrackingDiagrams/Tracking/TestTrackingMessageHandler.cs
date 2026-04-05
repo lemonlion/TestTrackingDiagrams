@@ -46,6 +46,24 @@ public class TestTrackingMessageHandler : DelegatingHandler
 
         var requestResponseId = Guid.NewGuid();
 
+        // Ensure trace context propagation for in-process (TestServer) scenarios.
+        // Without this, the server generates a new TraceId for each request,
+        // and InternalFlowSegmentBuilder cannot correlate spans.
+        Activity? requestActivity = null;
+        if (Activity.Current == null)
+        {
+            requestActivity = new Activity("TestTrackingDiagrams.Request");
+            requestActivity.SetIdFormat(ActivityIdFormat.W3C);
+            requestActivity.Start();
+        }
+        if (Activity.Current != null && !request.Headers.Contains("traceparent"))
+        {
+            var current = Activity.Current;
+            var flags = current.Recorded ? "01" : "00";
+            request.Headers.TryAddWithoutValidation("traceparent",
+                $"00-{current.TraceId}-{current.SpanId}-{flags}");
+        }
+
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
         var requestHeaders = request.Headers.SelectMany(x => x.Value.Select(value => (x.Key, (string?)value))).ToArray();
 
@@ -142,6 +160,9 @@ public class TestTrackingMessageHandler : DelegatingHandler
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
             ActivityTraceId = Activity.Current?.TraceId.ToString()
         });
+
+        requestActivity?.Stop();
+        requestActivity?.Dispose();
 
         return response;
     }
