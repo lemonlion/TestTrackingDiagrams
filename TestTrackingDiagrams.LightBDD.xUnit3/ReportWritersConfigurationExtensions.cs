@@ -3,6 +3,7 @@ using System.Reflection;
 using LightBDD.Contrib.ReportingEnhancements.Reports;
 using LightBDD.Framework.Configuration;
 using TestTrackingDiagrams.InternalFlow;
+using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD.xUnit3
@@ -94,11 +95,13 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
 
             var perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
 
-            advancedOptions.InternalFlowDataScript = InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+            advancedOptions.InternalFlowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(options.InternalFlowHasDataBehavior)
+                + InternalFlowHtmlGenerator.GenerateSegmentDataScript(
                 perBoundarySegments,
                 options.InternalFlowDiagramStyle,
                 options.InternalFlowShowFlameChart,
-                options.InternalFlowFlameChartPosition);
+                options.InternalFlowFlameChartPosition,
+                options.InternalFlowNoDataBehavior);
 
             if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
             {

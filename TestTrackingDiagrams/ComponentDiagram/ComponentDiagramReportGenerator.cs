@@ -52,7 +52,8 @@ public static class ComponentDiagramReportGenerator
         var imgSrc = GetImageSource(plantUml, plantUmlServerBaseUrl, imageFormat, localDiagramRenderer, directory, options.FileName);
         var html = GenerateHtml(plantUml, options.Title, imgSrc, imageFormat,
             relationships, relationshipFlows, systemSegment, wholeTestSegments,
-            options.RelationshipFlowStyle);
+            options.RelationshipFlowStyle,
+            reportOptions.InternalFlowHasDataBehavior);
         var htmlPath = Path.Combine(directory, $"{options.FileName}.html");
         File.WriteAllText(htmlPath, html);
 
@@ -108,7 +109,8 @@ public static class ComponentDiagramReportGenerator
         Dictionary<string, RelationshipFlowData>? relationshipFlows,
         InternalFlowSegment? systemSegment,
         Dictionary<string, InternalFlowSegment>? wholeTestSegments,
-        InternalFlowDiagramStyle flowStyle)
+        InternalFlowDiagramStyle flowStyle,
+        InternalFlowHasDataBehavior hasDataBehavior = InternalFlowHasDataBehavior.ShowLinkOnHover)
     {
         var imgTag = $"""<img src="{imgSrc}" alt="{title}" style="max-width: 100%;" />""";
         var encodedPlantUml = System.Net.WebUtility.HtmlEncode(plantUml);
@@ -198,7 +200,8 @@ public static class ComponentDiagramReportGenerator
             if (popupData.Count > 0)
             {
                 var json = JsonSerializer.Serialize(popupData, new JsonSerializerOptions { WriteIndented = false });
-                flowDataScript = $"<script>window.__iflowSegments = {json};</script>";
+                flowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(hasDataBehavior)
+                    + $"<script>window.__iflowSegments = {json};</script>";
             }
         }
 

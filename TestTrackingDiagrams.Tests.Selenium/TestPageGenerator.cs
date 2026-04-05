@@ -59,10 +59,12 @@ public static class TestPageGenerator
             ? InternalFlowDiagramStyle.CallTree
             : InternalFlowDiagramStyle.ActivityDiagram;
 
-        var segmentScript = InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+        var segmentScript = DiagramContextMenu.GetInternalFlowConfigScript(InternalFlowHasDataBehavior.ShowLinkOnHover)
+            + InternalFlowHtmlGenerator.GenerateSegmentDataScript(
             segments, diagramStyle,
             showFlameChart: includeToggle,
-            flameChartPosition: InternalFlowFlameChartPosition.BehindWithToggle);
+            flameChartPosition: InternalFlowFlameChartPosition.BehindWithToggle,
+            noDataBehavior: includeEmptySegment ? InternalFlowNoDataBehavior.ShowMessage : InternalFlowNoDataBehavior.HideLink);
 
         var styles = DiagramContextMenu.GetInternalFlowPopupStyles();
         var popupScript = DiagramContextMenu.GetInternalFlowPopupScript();
@@ -232,7 +234,8 @@ public static class TestPageGenerator
 
         var json = System.Text.Json.JsonSerializer.Serialize(popupData,
             new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
-        var dataScript = $"<script>window.__iflowSegments = {json};</script>";
+        var dataScript = DiagramContextMenu.GetInternalFlowConfigScript(InternalFlowHasDataBehavior.ShowLinkOnHover)
+            + $"<script>window.__iflowSegments = {json};</script>";
 
         var styles = DiagramContextMenu.GetInternalFlowPopupStyles();
         var plantUmlBrowserScript = DiagramContextMenu.GetPlantUmlBrowserRenderScript();

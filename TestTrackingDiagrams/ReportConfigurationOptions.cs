@@ -33,7 +33,8 @@ public record ReportConfigurationOptions
     public InternalFlowDiagramStyle InternalFlowDiagramStyle { get; set; } = InternalFlowDiagramStyle.ActivityDiagram;
     public InternalFlowSpanGranularity InternalFlowSpanGranularity { get; set; } = InternalFlowSpanGranularity.AutoInstrumentation;
     public string[]? InternalFlowActivitySources { get; set; }
-    public InternalFlowNoDataBehavior InternalFlowNoDataBehavior { get; set; } = InternalFlowNoDataBehavior.ShowMessage;
+    public InternalFlowNoDataBehavior InternalFlowNoDataBehavior { get; set; } = InternalFlowNoDataBehavior.HideLink;
+    public InternalFlowHasDataBehavior InternalFlowHasDataBehavior { get; set; } = InternalFlowHasDataBehavior.ShowLinkOnHover;
     public bool InternalFlowShowFlameChart { get; set; } = true;
     public InternalFlowFlameChartPosition InternalFlowFlameChartPosition { get; set; } = InternalFlowFlameChartPosition.BehindWithToggle;
     public InternalFlowContentStrategy InternalFlowContentStrategy { get; set; } = InternalFlowContentStrategy.Embedded;

@@ -18,7 +18,8 @@ public static class InternalFlowHtmlGenerator
         Dictionary<string, InternalFlowSegment> segments,
         InternalFlowDiagramStyle diagramStyle,
         bool showFlameChart = false,
-        InternalFlowFlameChartPosition flameChartPosition = InternalFlowFlameChartPosition.BehindWithToggle)
+        InternalFlowFlameChartPosition flameChartPosition = InternalFlowFlameChartPosition.BehindWithToggle,
+        InternalFlowNoDataBehavior noDataBehavior = InternalFlowNoDataBehavior.HideLink)
     {
         var data = new Dictionary<string, object>();
 
@@ -73,6 +74,9 @@ public static class InternalFlowHtmlGenerator
             }
             else
             {
+                if (noDataBehavior == InternalFlowNoDataBehavior.HideLink)
+                    continue;
+
                 data[key] = new
                 {
                     message = "No internal activity captured for this segment."

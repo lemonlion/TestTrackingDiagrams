@@ -151,7 +151,12 @@ public static class DiagramContextMenu
         .iflow-rel-summary-table th { text-align: left; padding: 4px 8px; border-bottom: 2px solid #ddd; color: #555; }
         .iflow-rel-summary-table td { padding: 4px 8px; border-bottom: 1px solid #eee; cursor: pointer; }
         .iflow-rel-summary-table tr:hover td { background: #f0f4ff; }
+        svg a.iflow-link-hover, svg text.iflow-link-hover { cursor: default; }
+        svg a.iflow-link-hover:hover, svg text.iflow-link-hover:hover { cursor: pointer; }
         """;
+
+    public static string GetInternalFlowConfigScript(InternalFlowHasDataBehavior hasDataBehavior) =>
+        $"<script>window.__iflowConfig = {{ hasDataBehavior: '{(hasDataBehavior == InternalFlowHasDataBehavior.ShowLinkOnHover ? "showLinkOnHover" : "showLink")}' }};</script>";
 
     private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched";
 
@@ -206,15 +211,24 @@ public static class DiagramContextMenu
                 window._iflowBindLinks = function(container, source) { bindIflowLinks(container, source); };
                 function bindIflowLinks(container, source) {
                     if (!container) return;
+                    var iflowData = window.__iflowSegments || {};
+                    var config = window.__iflowConfig || {};
+                    var hoverOnly = config.hasDataBehavior === 'showLinkOnHover';
                     var bound = 0;
                     container.querySelectorAll('a').forEach(function(a) {
                         var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
                         if (href.indexOf('#iflow-') !== 0) return;
-                        a.style.cursor = 'pointer';
+                        var segId = href.substring(1);
+                        if (!iflowData[segId]) return;
+                        if (hoverOnly) {
+                            a.classList.add('iflow-link-hover');
+                        } else {
+                            a.style.cursor = 'pointer';
+                        }
                         a.addEventListener('click', function(ev) {
                             ev.preventDefault();
                             ev.stopPropagation();
-                            if (window._iflowShowPopup) window._iflowShowPopup(href.substring(1));
+                            if (window._iflowShowPopup) window._iflowShowPopup(segId);
                         });
                         bound++;
                     });
@@ -229,8 +243,13 @@ public static class DiagramContextMenu
                         for (var i = 0; i < labels.length; i++) {
                             if (txt === labels[i]) {
                                 var segId = iflowMap[labels[i]];
-                                textEl.style.cursor = 'pointer';
+                                if (!iflowData[segId]) break;
                                 textEl.style.pointerEvents = 'all';
+                                if (hoverOnly) {
+                                    textEl.classList.add('iflow-link-hover');
+                                } else {
+                                    textEl.style.cursor = 'pointer';
+                                }
                                 textEl.addEventListener('click', function(ev) {
                                     ev.preventDefault();
                                     ev.stopPropagation();
@@ -382,6 +401,47 @@ public static class DiagramContextMenu
                 return document.createElement('hr');
             }
 
+            function extractCallerPayloads(source) {
+                if (!source) return '';
+                var lines = source.split('\n');
+                var callerAlias = null;
+                for (var i = 0; i < lines.length; i++) {
+                    var m = lines[i].match(/^\s*actor\s+"[^"]*"\s+as\s+(\S+)/);
+                    if (m) { callerAlias = m[1]; break; }
+                }
+                if (!callerAlias) return '';
+                var payloads = [];
+                var inNote = false;
+                var noteLines = [];
+                var afterCallerRequest = false;
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    if (!inNote) {
+                        if (line.match(new RegExp('^\\s*' + callerAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+->\\s+'))) {
+                            afterCallerRequest = true;
+                        } else if (line.match(/^\s*\S+\s+-->\s+/)) {
+                            afterCallerRequest = false;
+                        }
+                        if (afterCallerRequest && line.match(/^\s*note\s+left/)) {
+                            inNote = true;
+                            noteLines = [];
+                        }
+                    } else {
+                        if (line.match(/^\s*end\s+note/)) {
+                            inNote = false;
+                            afterCallerRequest = false;
+                            var body = noteLines
+                                .filter(function(l) { return !l.match(/^\s*\$color\(gray\)\[/); })
+                                .join('\n').trim();
+                            if (body) payloads.push(body);
+                        } else {
+                            noteLines.push(line);
+                        }
+                    }
+                }
+                return payloads.join('\n\n');
+            }
+
             function showToast(message) {
                 var existing = document.querySelector('.diagram-ctx-toast');
                 if (existing) existing.remove();
@@ -412,6 +472,14 @@ public static class DiagramContextMenu
 
                 menu = document.createElement('div');
                 menu.className = 'diagram-ctx-menu';
+
+                var selectedText = (window.getSelection() || '').toString().trim();
+                if (selectedText) {
+                    menu.appendChild(createMenuItem('Copy Highlighted Text', function() {
+                        navigator.clipboard.writeText(selectedText);
+                    }));
+                    menu.appendChild(createSeparator());
+                }
 
                 if (svg) {
                     // Full SVG menu
@@ -502,6 +570,16 @@ public static class DiagramContextMenu
                             }, 'image/png');
                         });
                     }));
+                }
+
+                if (source && diagramType === 'plantuml') {
+                    var payloads = extractCallerPayloads(source);
+                    if (payloads) {
+                        menu.appendChild(createMenuItem('Copy All Caller Request Payloads', function() {
+                            navigator.clipboard.writeText(payloads);
+                            showToast('Copied ' + payloads.split('\n\n').length + ' request payload(s)');
+                        }));
+                    }
                 }
 
                 menu.appendChild(createSeparator());

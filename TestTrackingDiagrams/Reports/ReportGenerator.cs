@@ -59,11 +59,13 @@ public static class ReportGenerator
 
             perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
 
-            internalFlowDataScript = InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+            internalFlowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(options.InternalFlowHasDataBehavior)
+                + InternalFlowHtmlGenerator.GenerateSegmentDataScript(
                 perBoundarySegments,
                 options.InternalFlowDiagramStyle,
                 options.InternalFlowShowFlameChart,
-                options.InternalFlowFlameChartPosition);
+                options.InternalFlowFlameChartPosition,
+                options.InternalFlowNoDataBehavior);
 
             if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
             {
