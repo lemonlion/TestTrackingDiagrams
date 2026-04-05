@@ -526,7 +526,17 @@ public static class ReportGenerator
         var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
         Directory.CreateDirectory(directory);
         var filePath = Path.Combine(directory, fileName);
-        File.WriteAllText(filePath, text);
+        try
+        {
+            File.WriteAllText(filePath, text);
+        }
+        catch (IOException)
+        {
+            var fallback = Path.Combine(directory,
+                Path.GetFileNameWithoutExtension(fileName) + "2" + Path.GetExtension(fileName));
+            File.WriteAllText(fallback, text);
+            return fallback;
+        }
         return filePath;
     }
 

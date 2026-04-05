@@ -10,7 +10,7 @@ public record ComponentDiagramOptions
     public string? PlantUmlTheme { get; set; }
     public Func<string, bool>? ParticipantFilter { get; set; }
     public Func<ComponentRelationship, string>? RelationshipLabelFormatter { get; set; }
-    public bool ShowRelationshipFlows { get; set; }
+    public bool ShowRelationshipFlows { get; set; } = true;
     public InternalFlowDiagramStyle RelationshipFlowStyle { get; set; } = InternalFlowDiagramStyle.ActivityDiagram;
-    public bool ShowSystemFlameChart { get; set; }
+    public bool ShowSystemFlameChart { get; set; } = true;
 }

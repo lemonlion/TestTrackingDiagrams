@@ -333,4 +333,18 @@ public class ComponentDiagramReportTests : IDisposable
         Assert.DoesNotContain("System Flow", html);
         Assert.DoesNotContain("__iflowSegments", html);
     }
+
+    [Fact]
+    public void ComponentDiagramOptions_ShowRelationshipFlows_DefaultsToTrue()
+    {
+        var options = new ComponentDiagramOptions();
+        Assert.True(options.ShowRelationshipFlows);
+    }
+
+    [Fact]
+    public void ComponentDiagramOptions_ShowSystemFlameChart_DefaultsToTrue()
+    {
+        var options = new ComponentDiagramOptions();
+        Assert.True(options.ShowSystemFlameChart);
+    }
 }
