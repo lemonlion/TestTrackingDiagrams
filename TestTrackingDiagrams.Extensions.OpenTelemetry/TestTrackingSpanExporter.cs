@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using OpenTelemetry;
+using TestTrackingDiagrams.InternalFlow;
 
 namespace TestTrackingDiagrams.Extensions.OpenTelemetry;
 
@@ -9,7 +10,7 @@ internal sealed class TestTrackingSpanExporter : BaseExporter<Activity>
     {
         foreach (var activity in batch)
         {
-            TestTrackingSpanStore.Add(activity);
+            InternalFlowSpanStore.Add(activity);
         }
 
         return ExportResult.Success;

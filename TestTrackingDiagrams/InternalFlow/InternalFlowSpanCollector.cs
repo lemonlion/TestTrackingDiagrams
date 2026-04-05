@@ -25,31 +25,15 @@ public static class InternalFlowSpanCollector
     ];
 
     /// <summary>
-    /// Collects spans, attempting to load from the OTel span store if available.
-    /// Falls back to an empty array when the Extensions.OpenTelemetry package
-    /// is not installed.
+    /// Collects spans from <see cref="InternalFlowSpanStore"/> and filters
+    /// them according to the specified granularity.
     /// </summary>
     public static Activity[] CollectSpans(
         InternalFlowSpanGranularity granularity = InternalFlowSpanGranularity.AutoInstrumentation,
         string[]? manualActivitySources = null)
     {
-        var spans = LoadSpansFromStore();
+        var spans = InternalFlowSpanStore.GetSpans();
         return FilterSpans(spans, granularity, manualActivitySources);
-    }
-
-    private static Activity[] LoadSpansFromStore()
-    {
-        var storeType = Type.GetType(
-            "TestTrackingDiagrams.Extensions.OpenTelemetry.TestTrackingSpanStore, TestTrackingDiagrams.Extensions.OpenTelemetry");
-
-        if (storeType is null)
-            return [];
-
-        var getSpansMethod = storeType.GetMethod("GetSpans");
-        if (getSpansMethod is null)
-            return [];
-
-        return getSpansMethod.Invoke(null, null) as Activity[] ?? [];
     }
 
     private static Activity[] FilterSpans(
