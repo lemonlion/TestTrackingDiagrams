@@ -42,8 +42,8 @@ public static class InternalFlowHtmlGenerator
                             mainContent + "<hr style=\"margin:12px 0\">" + flameHtml,
                         _ => // BehindWithToggle
                             "<div class=\"iflow-toggle\">"
-                            + "<button class=\"iflow-toggle-btn iflow-toggle-active\" data-target=\"main\">Activity</button>"
-                            + "<button class=\"iflow-toggle-btn\" data-target=\"flame\">Flame Chart</button>"
+                            + "<button class=\"iflow-toggle-btn iflow-toggle-active\" data-view=\"main\">Activity</button>"
+                            + "<button class=\"iflow-toggle-btn\" data-view=\"flame\">Flame Chart</button>"
                             + "</div>"
                             + "<div class=\"iflow-view iflow-view-main\">" + mainContent + "</div>"
                             + "<div class=\"iflow-view iflow-view-flame\" style=\"display:none\">" + flameHtml + "</div>"

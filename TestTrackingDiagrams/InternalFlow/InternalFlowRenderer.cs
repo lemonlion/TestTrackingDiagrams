@@ -80,9 +80,12 @@ public static class InternalFlowRenderer
         sb.AppendLine("</li>");
     }
 
-    private static List<SpanNode> BuildSpanTree(Activity[] spans)
+    internal static List<SpanNode> BuildSpanTree(Activity[] spans)
     {
-        var nodesById = spans.ToDictionary(s => s.SpanId.ToString(), s => new SpanNode(s));
+        var nodesById = new Dictionary<string, SpanNode>(spans.Length);
+        foreach (var span in spans)
+            nodesById.TryAdd(span.SpanId.ToString(), new SpanNode(span));
+
         var roots = new List<SpanNode>();
 
         foreach (var node in nodesById.Values)
@@ -154,7 +157,7 @@ public static class InternalFlowRenderer
             RenderFlameNode(sb, child, earliest, totalMs, depth + 1);
     }
 
-    private record SpanNode(Activity Span)
+    internal record SpanNode(Activity Span)
     {
         public List<SpanNode> Children { get; } = [];
     }
