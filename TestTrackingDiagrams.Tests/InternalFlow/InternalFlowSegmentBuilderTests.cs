@@ -493,4 +493,95 @@ public class InternalFlowSegmentBuilderTests : IDisposable
         Assert.Single(result);
         Assert.True(result.ContainsKey("iflow-test-test-1"));
     }
+
+    // ── Response-based time windows ──
+
+    [Fact]
+    public void BuildSegments_uses_matching_response_timestamp_as_segment_end()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        // Span at T+200ms — only within window if response timestamp (T+500ms) is used as end,
+        // NOT if next-log timestamp were used
+        var span = CreateSpan("during-processing", baseTime.UtcDateTime.AddMilliseconds(200),
+            TimeSpan.FromMilliseconds(5));
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(500), requestResponseId: reqId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+
+        Assert.Single(result);
+        Assert.Single(result[$"iflow-{reqId}"].Spans);
+        Assert.Equal("during-processing", result[$"iflow-{reqId}"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_outer_request_captures_spans_across_nested_sub_calls()
+    {
+        // Simulates: Caller→SUT at T0, SUT→ServiceA at T1, ServiceA→SUT at T2, SUT→Caller at T3
+        // The Caller→SUT segment should capture spans throughout the entire [T0, T3) window
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var outerReqId = Guid.NewGuid();
+        var innerReqId = Guid.NewGuid();
+
+        var earlySpan = CreateSpan("validation", baseTime.UtcDateTime.AddMilliseconds(5),
+            TimeSpan.FromMilliseconds(10));
+        var midSpan = CreateSpan("transform-response", baseTime.UtcDateTime.AddMilliseconds(250),
+            TimeSpan.FromMilliseconds(10));
+        var lateSpan = CreateSpan("finalize", baseTime.UtcDateTime.AddMilliseconds(450),
+            TimeSpan.FromMilliseconds(10));
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: outerReqId),
+            MakeRequest(timestamp: baseTime.AddMilliseconds(100), requestResponseId: innerReqId),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(200), requestResponseId: innerReqId),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(500), requestResponseId: outerReqId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [earlySpan, midSpan, lateSpan]);
+
+        // Outer segment should capture ALL three spans (full processing window)
+        var outerSegment = result[$"iflow-{outerReqId}"];
+        Assert.Equal(3, outerSegment.Spans.Length);
+        Assert.Equal("validation", outerSegment.Spans[0].OperationName);
+        Assert.Equal("transform-response", outerSegment.Spans[1].OperationName);
+        Assert.Equal("finalize", outerSegment.Spans[2].OperationName);
+
+        // Inner segment only captures spans during the sub-call window [T+100, T+200)
+        var innerSegment = result[$"iflow-{innerReqId}"];
+        Assert.Empty(innerSegment.Spans); // No spans start during the sub-call wait
+    }
+
+    [Fact]
+    public void BuildSegments_no_response_falls_back_to_next_log_timestamp()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+
+        var earlySpan = CreateSpan("early", baseTime.UtcDateTime.AddMilliseconds(10),
+            TimeSpan.FromMilliseconds(5));
+        var lateSpan = CreateSpan("late", baseTime.UtcDateTime.AddMilliseconds(510),
+            TimeSpan.FromMilliseconds(5));
+
+        // No response logs — falls back to next request's timestamp
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId1),
+            MakeRequest(timestamp: baseTime.AddMilliseconds(500), requestResponseId: reqId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [earlySpan, lateSpan]);
+
+        Assert.Single(result[$"iflow-{reqId1}"].Spans);
+        Assert.Equal("early", result[$"iflow-{reqId1}"].Spans[0].OperationName);
+        Assert.Single(result[$"iflow-{reqId2}"].Spans);
+        Assert.Equal("late", result[$"iflow-{reqId2}"].Spans[0].OperationName);
+    }
 }

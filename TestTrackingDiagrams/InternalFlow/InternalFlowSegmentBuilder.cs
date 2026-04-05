@@ -31,6 +31,15 @@ public static class InternalFlowSegmentBuilder
             var orderedLogs = testGroup.OrderBy(l => l.Timestamp!.Value).ToArray();
             var testSpans = FilterSpansByTestTraceIds(spans, orderedLogs);
 
+            // Build a lookup from RequestResponseId → response timestamp
+            // so each request segment can span to its matching response.
+            var responseTimestamps = new Dictionary<Guid, DateTimeOffset>();
+            foreach (var log in orderedLogs)
+            {
+                if (log.Type == RequestResponseType.Response && log.Timestamp.HasValue)
+                    responseTimestamps.TryAdd(log.RequestResponseId, log.Timestamp.Value);
+            }
+
             for (var i = 0; i < orderedLogs.Length; i++)
             {
                 var log = orderedLogs[i];
@@ -42,9 +51,18 @@ public static class InternalFlowSegmentBuilder
                     continue;
 
                 var segmentStart = log.Timestamp!.Value;
-                var segmentEnd = i + 1 < orderedLogs.Length
-                    ? orderedLogs[i + 1].Timestamp!.Value
-                    : segmentStart.AddSeconds(5);
+
+                // Use the matching response's timestamp as the segment end,
+                // so the segment covers the full processing window for this
+                // request (including all sub-calls and processing in between).
+                // Falls back to next log or +5s if no matching response exists.
+                DateTimeOffset segmentEnd;
+                if (responseTimestamps.TryGetValue(log.RequestResponseId, out var responseTs))
+                    segmentEnd = responseTs;
+                else if (i + 1 < orderedLogs.Length)
+                    segmentEnd = orderedLogs[i + 1].Timestamp!.Value;
+                else
+                    segmentEnd = segmentStart.AddSeconds(5);
 
                 var segmentSpans = testSpans
                     .Where(s => s.StartTimeUtc >= segmentStart.UtcDateTime &&
