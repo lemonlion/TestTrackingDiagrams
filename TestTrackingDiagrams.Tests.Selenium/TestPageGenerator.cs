@@ -64,6 +64,9 @@ public static class TestPageGenerator
 
         var styles = DiagramContextMenu.GetInternalFlowPopupStyles();
         var popupScript = DiagramContextMenu.GetInternalFlowPopupScript();
+        var plantUmlBrowserScript = diagramStyle == InternalFlowDiagramStyle.ActivityDiagram
+            ? DiagramContextMenu.GetPlantUmlBrowserRenderScript()
+            : "";
 
         parentSpan.Dispose();
         childSpan.Dispose();
@@ -73,7 +76,10 @@ public static class TestPageGenerator
             <html>
             <head>
                 <title>Selenium Test Page</title>
-                {{styles}}
+                <style>
+                    {{styles}}
+                </style>
+                {{plantUmlBrowserScript}}
                 <style>
                     body { font-family: sans-serif; padding: 20px; }
                     .test-trigger { padding: 10px 20px; cursor: pointer; margin: 5px; }

@@ -35,7 +35,7 @@ public record ReportConfigurationOptions
     public InternalFlowSpanGranularity InternalFlowSpanGranularity { get; set; } = InternalFlowSpanGranularity.AutoInstrumentation;
     public string[]? InternalFlowActivitySources { get; set; }
     public InternalFlowNoDataBehavior InternalFlowNoDataBehavior { get; set; } = InternalFlowNoDataBehavior.ShowMessage;
-    public bool InternalFlowShowFlameChart { get; set; }
+    public bool InternalFlowShowFlameChart { get; set; } = true;
     public InternalFlowFlameChartPosition InternalFlowFlameChartPosition { get; set; } = InternalFlowFlameChartPosition.BehindWithToggle;
     public InternalFlowContentStrategy InternalFlowContentStrategy { get; set; } = InternalFlowContentStrategy.Embedded;
     public string InternalFlowFragmentsFolderName { get; set; } = "spans";

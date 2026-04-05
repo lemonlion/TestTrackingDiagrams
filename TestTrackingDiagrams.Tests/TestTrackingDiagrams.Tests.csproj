@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+    <ProjectReference Include="..\TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

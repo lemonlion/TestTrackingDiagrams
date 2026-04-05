@@ -8,7 +8,7 @@ namespace TestTrackingDiagrams.InternalFlow;
 /// </summary>
 public static class InternalFlowSpanCollector
 {
-    private static readonly HashSet<string> WellKnownAutoInstrumentationSources =
+    public static readonly HashSet<string> WellKnownAutoInstrumentationSources =
     [
         "Microsoft.AspNetCore",
         "System.Net.Http",
