@@ -58,7 +58,10 @@ public class CustomisableHtmlReportFormatter : IReportFormatter
             TreatScenariosAsPassed = Options.TreatScenariosAsPassed,
             LazyLoadDiagramImages = Options.LazyLoadDiagramImages,
             DiagramFormat = Options.DiagramFormat,
-            PlantUmlRendering = Options.PlantUmlRendering
+            PlantUmlRendering = Options.PlantUmlRendering,
+            InternalFlowTracking = Options.InternalFlowTracking,
+            WholeTestFlowHtmlProvider = Options.WholeTestFlowHtmlProvider,
+            InternalFlowDataScript = Options.InternalFlowDataScript
 };
         writer.Write(_options);
     }

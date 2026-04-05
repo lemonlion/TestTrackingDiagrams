@@ -129,6 +129,28 @@ public static class DiagramContextMenu
             text-overflow: ellipsis;
             display: block;
         }
+        .iflow-boundary-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed rgba(0,0,0,0.3);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
+        .whole-test-flow { margin-top: 8px; }
+        .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
+        .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
+        .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
+        .iflow-sequential-tests { padding: 0; }
+        .iflow-rel-list { list-style: none; padding: 0; margin: 16px 0; }
+        .iflow-rel-list li { padding: 6px 12px; border: 1px solid #e0e0e0; border-radius: 4px; margin: 4px 0; cursor: pointer; font: 13px/1.5 -apple-system, 'Segoe UI', sans-serif; }
+        .iflow-rel-list li:hover { background: #f0f4ff; border-color: #4285f4; }
+        .iflow-rel-summary-table { width: 100%; border-collapse: collapse; font: 12px/1.5 -apple-system, 'Segoe UI', sans-serif; margin-top: 12px; }
+        .iflow-rel-summary-table th { text-align: left; padding: 4px 8px; border-bottom: 2px solid #ddd; color: #555; }
+        .iflow-rel-summary-table td { padding: 4px 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .iflow-rel-summary-table tr:hover td { background: #f0f4ff; }
         """;
 
     private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched";
@@ -510,6 +532,28 @@ public static class DiagramContextMenu
                 }
             });
         })();
+        </script>
+        """;
+
+    public static string GetToggleScript() => """
+        <script>
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest ? e.target.closest('.iflow-toggle-btn') : null;
+            if (!btn) return;
+            var toggle = btn.closest('.iflow-toggle');
+            if (!toggle) return;
+            var container = toggle.parentElement;
+            if (!container) return;
+            var view = btn.getAttribute('data-view');
+            toggle.querySelectorAll('.iflow-toggle-btn').forEach(function(b) {
+                b.classList.toggle('iflow-toggle-active', b === btn);
+            });
+            container.querySelectorAll('.iflow-view').forEach(function(v) {
+                v.style.display = 'none';
+            });
+            var target = container.querySelector('.iflow-view-' + view);
+            if (target) target.style.display = '';
+        });
         </script>
         """;
 }

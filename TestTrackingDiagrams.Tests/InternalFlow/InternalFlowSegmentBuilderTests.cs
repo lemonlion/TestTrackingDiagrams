@@ -345,4 +345,152 @@ public class InternalFlowSegmentBuilderTests : IDisposable
 
         Assert.Empty(result[$"iflow-{reqId}"].Spans);
     }
+
+    // ── BuildWholeTestSegments ──
+
+    [Fact]
+    public void BuildWholeTestSegments_no_spans_returns_empty()
+    {
+        var logs = new[] { MakeRequest(timestamp: DateTimeOffset.UtcNow) };
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, []);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_no_logs_returns_empty()
+    {
+        var span = CreateSpan("op", DateTime.UtcNow, TimeSpan.FromMilliseconds(10));
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments([], [span]);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_creates_one_segment_per_test()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        var span1 = CreateSpan("op1", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(50));
+        var span2 = CreateSpan("op2", baseTime.UtcDateTime.AddMilliseconds(100), TimeSpan.FromMilliseconds(50));
+
+        var logs = new[]
+        {
+            MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: null),
+            MakeRequest(testId: "test-1", timestamp: baseTime.AddMilliseconds(200), activityTraceId: null)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [span1, span2]);
+
+        Assert.Single(result);
+        Assert.True(result.ContainsKey("iflow-test-test-1"));
+        Assert.Equal(2, result["iflow-test-test-1"].Spans.Length);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_key_uses_iflow_test_prefix()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var span = CreateSpan("op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var logs = new[] { MakeRequest(testId: "my-test", timestamp: baseTime, activityTraceId: null) };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [span]);
+
+        Assert.True(result.ContainsKey("iflow-test-my-test"));
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_includes_all_spans_for_test()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var traceId = "0af7651916cd43dd8448eb211c80319c";
+
+        var span1 = CreateSpan("early", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5), traceId: traceId);
+        var span2 = CreateSpan("middle", baseTime.UtcDateTime.AddMilliseconds(500), TimeSpan.FromMilliseconds(5), traceId: traceId);
+        var span3 = CreateSpan("late", baseTime.UtcDateTime.AddSeconds(3), TimeSpan.FromMilliseconds(5), traceId: traceId);
+
+        var logs = new[]
+        {
+            MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: traceId),
+            MakeRequest(testId: "test-1", timestamp: baseTime.AddMilliseconds(400), activityTraceId: traceId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [span1, span2, span3]);
+
+        Assert.Equal(3, result["iflow-test-test-1"].Spans.Length);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_filters_by_trace_id()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var goodTraceId = "0af7651916cd43dd8448eb211c80319c";
+        var badTraceId = "aaaabbbbccccddddeeee111122223333";
+
+        var matching = CreateSpan("match", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5), traceId: goodTraceId);
+        var nonMatching = CreateSpan("no-match", baseTime.UtcDateTime.AddMilliseconds(20), TimeSpan.FromMilliseconds(5), traceId: badTraceId);
+
+        var logs = new[] { MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: goodTraceId) };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [matching, nonMatching]);
+
+        Assert.Single(result["iflow-test-test-1"].Spans);
+        Assert.Equal("match", result["iflow-test-test-1"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_multiple_tests_get_separate_segments()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        var span1 = CreateSpan("test1-op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var span2 = CreateSpan("test2-op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[]
+        {
+            MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: null),
+            MakeRequest(testId: "test-2", timestamp: baseTime, activityTraceId: null)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [span1, span2]);
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result.ContainsKey("iflow-test-test-1"));
+        Assert.True(result.ContainsKey("iflow-test-test-2"));
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_orders_spans_by_start_time()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        var late = CreateSpan("late", baseTime.UtcDateTime.AddMilliseconds(100), TimeSpan.FromMilliseconds(5));
+        var early = CreateSpan("early", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[] { MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: null) };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [late, early]);
+
+        Assert.Equal("early", result["iflow-test-test-1"].Spans[0].OperationName);
+        Assert.Equal("late", result["iflow-test-test-1"].Spans[1].OperationName);
+    }
+
+    [Fact]
+    public void BuildWholeTestSegments_empty_test_with_no_matching_spans_excluded()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var traceId1 = "0af7651916cd43dd8448eb211c80319c";
+        var traceId2 = "aaaabbbbccccddddeeee111122223333";
+
+        var span = CreateSpan("op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5), traceId: traceId1);
+
+        var logs = new[]
+        {
+            MakeRequest(testId: "test-1", timestamp: baseTime, activityTraceId: traceId1),
+            MakeRequest(testId: "test-2", timestamp: baseTime, activityTraceId: traceId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildWholeTestSegments(logs, [span]);
+
+        Assert.Single(result);
+        Assert.True(result.ContainsKey("iflow-test-test-1"));
+    }
 }

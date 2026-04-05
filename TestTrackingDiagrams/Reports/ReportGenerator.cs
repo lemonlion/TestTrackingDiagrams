@@ -44,15 +44,37 @@ public static class ReportGenerator
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
         var internalFlowDataScript = "";
+        Dictionary<string, InternalFlowSegment>? wholeTestSegments = null;
+        Dictionary<string, InternalFlowSegment>? perBoundarySegments = null;
+        RequestResponseLog[]? trackedLogs = null;
         if (options.InternalFlowTracking)
         {
-            internalFlowDataScript = BuildInternalFlowDataScript(options);
+            trackedLogs = RequestResponseLogger.RequestAndResponseLogs
+                .Where(x => !(x?.TrackingIgnore ?? true))
+                .ToArray();
+
+            var spans = InternalFlowSpanCollector.CollectSpans(
+                options.InternalFlowSpanGranularity,
+                options.InternalFlowActivitySources);
+
+            perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
+
+            internalFlowDataScript = InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+                perBoundarySegments,
+                options.InternalFlowDiagramStyle,
+                options.InternalFlowShowFlameChart,
+                options.InternalFlowFlameChartPosition);
+
+            if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
+            {
+                wholeTestSegments = InternalFlowSegmentBuilder.BuildWholeTestSegments(trackedLogs, spans);
+            }
         }
 
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", "Features Report", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
         };
 
@@ -60,7 +82,9 @@ public static class ReportGenerator
         {
             actions.Add(() => ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
                 RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-                options));
+                options,
+                perBoundarySegments: perBoundarySegments,
+                wholeTestSegments: wholeTestSegments));
         }
 
         Parallel.Invoke(actions.ToArray());
@@ -80,7 +104,7 @@ public static class ReportGenerator
             if (options.WriteCiSummaryInteractiveHtml)
             {
                 var ciFeatures = FilterFeaturesForCiSummary(features, diagrams, options.MaxCiSummaryDiagrams);
-                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript);
+                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization);
             }
         }
 
@@ -112,7 +136,10 @@ public static class ReportGenerator
         PlantUmlRendering plantUmlRendering = PlantUmlRendering.BrowserJs,
         bool inlineSvgRendering = false,
         bool internalFlowTracking = false,
-        string internalFlowDataScript = "")
+        string internalFlowDataScript = "",
+        Dictionary<string, InternalFlowSegment>? wholeTestSegments = null,
+        RequestResponseLog[]? trackedLogs = null,
+        WholeTestFlowVisualization wholeTestVisualization = WholeTestFlowVisualization.None)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -416,6 +443,21 @@ public static class ReportGenerator
                     body.Append("</details>");
 
                 }
+
+                if (wholeTestSegments is not null && wholeTestVisualization != WholeTestFlowVisualization.None)
+                {
+                    var boundaryLogs = trackedLogs?
+                        .Where(l => l.TestId == scenario.Id && l.Type == RequestResponseType.Request && l.Timestamp.HasValue)
+                        .OrderBy(l => l.Timestamp!.Value)
+                        .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
+                        .ToArray() ?? [];
+
+                    var wholeTestHtml = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+                        wholeTestSegments, scenario.Id, boundaryLogs, wholeTestVisualization);
+                    if (!string.IsNullOrEmpty(wholeTestHtml))
+                        body.Append(wholeTestHtml);
+                }
+
                 body.Append("</details>");
             }
             body.Append("</details>");
@@ -521,24 +563,5 @@ public static class ReportGenerator
             }
             return filtered.ToArray();
         }
-    }
-
-    private static string BuildInternalFlowDataScript(ReportConfigurationOptions options)
-    {
-        var logs = RequestResponseLogger.RequestAndResponseLogs
-            .Where(x => !(x?.TrackingIgnore ?? true))
-            .ToArray();
-
-        var spans = InternalFlowSpanCollector.CollectSpans(
-            options.InternalFlowSpanGranularity,
-            options.InternalFlowActivitySources);
-
-        var segments = InternalFlowSegmentBuilder.BuildSegments(logs, spans);
-
-        return InternalFlowHtmlGenerator.GenerateSegmentDataScript(
-            segments,
-            options.InternalFlowDiagramStyle,
-            options.InternalFlowShowFlameChart,
-            options.InternalFlowFlameChartPosition);
     }
 }

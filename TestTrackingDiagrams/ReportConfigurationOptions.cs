@@ -4,7 +4,6 @@ namespace TestTrackingDiagrams;
 
 public record ReportConfigurationOptions
 {
-    public bool GenerateComponentDiagram { get; set; }
     public ComponentDiagramOptions? ComponentDiagramOptions { get; set; }
     public string PlantUmlServerBaseUrl { get; set; } = "https://plantuml.com/plantuml";
     public Func<string, string>? RequestResponsePostProcessor { get; set; }
@@ -40,6 +39,8 @@ public record ReportConfigurationOptions
     public InternalFlowContentStrategy InternalFlowContentStrategy { get; set; } = InternalFlowContentStrategy.Embedded;
     public string InternalFlowFragmentsFolderName { get; set; } = "spans";
     public string? InternalFlowPopupCustomStyleSheet { get; set; }
+    public WholeTestFlowVisualization WholeTestFlowVisualization { get; set; } = WholeTestFlowVisualization.Both;
+    public bool GenerateComponentDiagram { get; set; } = true;
     public bool WriteCiSummary { get; set; }
     public int MaxCiSummaryDiagrams { get; set; } = 10;
     public bool WriteCiSummaryInteractiveHtml { get; set; }

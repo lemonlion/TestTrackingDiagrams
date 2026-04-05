@@ -232,4 +232,133 @@ public class InternalFlowRendererTests : IDisposable
 
         Assert.Contains("iflow-flame", result);
     }
+
+    // ── RenderFlameChartWithBoundaryMarkers ──
+
+    [Fact]
+    public void RenderFlameChartWithBoundaryMarkers_empty_spans_returns_empty()
+    {
+        var result = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(MakeSegment(), []);
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void RenderFlameChartWithBoundaryMarkers_includes_flame_bars()
+    {
+        var parent = CreateSpan("HTTP GET /api", duration: TimeSpan.FromMilliseconds(100));
+        var child = CreateSpan("DB Query", parent, duration: TimeSpan.FromMilliseconds(50));
+
+        var result = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(MakeSegment(parent, child), []);
+
+        Assert.Contains("iflow-flame", result);
+        Assert.Contains("iflow-flame-bar", result);
+        Assert.Contains("HTTP GET /api", result);
+        Assert.Contains("DB Query", result);
+    }
+
+    [Fact]
+    public void RenderFlameChartWithBoundaryMarkers_renders_boundary_markers()
+    {
+        var baseTime = DateTime.UtcNow;
+        var span = CreateSpan("op", duration: TimeSpan.FromMilliseconds(200));
+        span.SetStartTime(baseTime);
+        span.SetEndTime(baseTime + TimeSpan.FromMilliseconds(200));
+
+        var segment = MakeSegment(span);
+
+        var boundaryLogs = new[]
+        {
+            MakeBoundaryLog("GET /api/orders", new DateTimeOffset(baseTime.AddMilliseconds(50), TimeSpan.Zero)),
+            MakeBoundaryLog("POST /api/items", new DateTimeOffset(baseTime.AddMilliseconds(150), TimeSpan.Zero))
+        };
+
+        var result = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(segment, boundaryLogs);
+
+        Assert.Contains("iflow-boundary-marker", result);
+        Assert.Contains("GET /api/orders", result);
+        Assert.Contains("POST /api/items", result);
+    }
+
+    [Fact]
+    public void RenderFlameChartWithBoundaryMarkers_marker_uses_dashed_style()
+    {
+        var baseTime = DateTime.UtcNow;
+        var span = CreateSpan("op", duration: TimeSpan.FromMilliseconds(100));
+        span.SetStartTime(baseTime);
+        span.SetEndTime(baseTime + TimeSpan.FromMilliseconds(100));
+
+        var boundaryLogs = new[]
+        {
+            MakeBoundaryLog("GET /orders", new DateTimeOffset(baseTime.AddMilliseconds(50), TimeSpan.Zero))
+        };
+
+        var result = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(MakeSegment(span), boundaryLogs);
+
+        Assert.Contains("left:", result);
+        Assert.Contains("iflow-boundary-marker", result);
+    }
+
+    private static (string Label, DateTimeOffset Timestamp) MakeBoundaryLog(string label, DateTimeOffset timestamp)
+        => (label, timestamp);
+
+    // ── RenderGantt ──
+
+    [Fact]
+    public void RenderGantt_empty_spans_returns_empty()
+    {
+        var result = InternalFlowRenderer.RenderGantt(MakeSegment());
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void RenderGantt_produces_plantuml_gantt()
+    {
+        var parent = CreateSpan("HTTP GET /api", duration: TimeSpan.FromMilliseconds(100));
+        var child = CreateSpan("DB Query", parent, duration: TimeSpan.FromMilliseconds(50));
+
+        var result = InternalFlowRenderer.RenderGantt(MakeSegment(parent, child));
+
+        Assert.Contains("@startgantt", result);
+        Assert.Contains("@endgantt", result);
+        Assert.Contains("HTTP GET /api", result);
+        Assert.Contains("DB Query", result);
+    }
+
+    [Fact]
+    public void RenderGantt_shows_duration_in_tasks()
+    {
+        var span = CreateSpan("operation", duration: TimeSpan.FromMilliseconds(100));
+        var result = InternalFlowRenderer.RenderGantt(MakeSegment(span));
+
+        Assert.Contains("lasts", result);
+    }
+
+    // ── RenderSequentialTestFlameChart ──
+
+    [Fact]
+    public void RenderSequentialTestFlameChart_empty_input_returns_empty()
+    {
+        var result = InternalFlowRenderer.RenderSequentialTestFlameChart([]);
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void RenderSequentialTestFlameChart_renders_test_bands()
+    {
+        var span1 = CreateSpan("op1", duration: TimeSpan.FromMilliseconds(100));
+        var span2 = CreateSpan("op2", duration: TimeSpan.FromMilliseconds(50));
+
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test1"] = new(Guid.Empty, RequestResponseType.Request, "test1", null, null, [span1]),
+            ["iflow-test-test2"] = new(Guid.Empty, RequestResponseType.Request, "test2", null, null, [span2])
+        };
+
+        var result = InternalFlowRenderer.RenderSequentialTestFlameChart(segments);
+
+        Assert.Contains("iflow-flame", result);
+        Assert.Contains("iflow-test-band", result);
+        Assert.Contains("op1", result);
+        Assert.Contains("op2", result);
+    }
 }

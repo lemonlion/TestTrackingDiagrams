@@ -157,6 +157,125 @@ public static class InternalFlowRenderer
             RenderFlameNode(sb, child, earliest, totalMs, depth + 1);
     }
 
+    /// <summary>
+    /// Renders a flame chart with vertical dashed boundary markers at HTTP request timestamps.
+    /// </summary>
+    public static string RenderFlameChartWithBoundaryMarkers(
+        InternalFlowSegment segment,
+        (string Label, DateTimeOffset Timestamp)[] boundaryLogs)
+    {
+        if (segment.Spans.Length == 0)
+            return string.Empty;
+
+        var roots = BuildSpanTree(segment.Spans);
+        var earliest = segment.Spans.Min(s => s.StartTimeUtc);
+        var latest = segment.Spans.Max(s => s.StartTimeUtc + s.Duration);
+        var totalMs = (latest - earliest).TotalMilliseconds;
+        if (totalMs <= 0) totalMs = 1;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<div class=\"iflow-flame\" style=\"position:relative\">");
+
+        foreach (var (label, timestamp) in boundaryLogs)
+        {
+            var offsetMs = (timestamp.UtcDateTime - earliest).TotalMilliseconds;
+            if (offsetMs >= 0 && offsetMs <= totalMs)
+            {
+                var leftPct = (offsetMs / totalMs) * 100;
+                var encodedLabel = System.Net.WebUtility.HtmlEncode(label);
+                sb.Append($"<div class=\"iflow-boundary-marker\" style=\"left:{leftPct:F2}%\" ");
+                sb.AppendLine($"title=\"{encodedLabel}\"></div>");
+            }
+        }
+
+        foreach (var root in roots)
+            RenderFlameNode(sb, root, earliest, totalMs, 0);
+
+        sb.AppendLine("</div>");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Renders a PlantUML Gantt chart from the spans in a segment.
+    /// </summary>
+    public static string RenderGantt(InternalFlowSegment segment)
+    {
+        if (segment.Spans.Length == 0)
+            return string.Empty;
+
+        var roots = BuildSpanTree(segment.Spans);
+        var earliest = segment.Spans.Min(s => s.StartTimeUtc);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("@startgantt");
+        sb.AppendLine("printscale daily");
+        sb.AppendLine("hide footbox");
+
+        var taskIndex = 0;
+        foreach (var root in roots)
+            RenderGanttNode(sb, root, earliest, ref taskIndex);
+
+        sb.AppendLine("@endgantt");
+        return sb.ToString();
+    }
+
+    private static void RenderGanttNode(StringBuilder sb, SpanNode node, DateTime earliest, ref int taskIndex)
+    {
+        var name = EscapeGantt(node.Span.DisplayName ?? node.Span.OperationName);
+        var durationMs = node.Span.Duration.TotalMilliseconds;
+        var offsetMs = (node.Span.StartTimeUtc - earliest).TotalMilliseconds;
+        var durationDays = Math.Max(durationMs / 86400000.0, 0.001);
+
+        sb.AppendLine($"[{name} ({durationMs:F0}ms)] lasts {Math.Max(1, (int)Math.Ceiling(durationMs / 1000.0))} days");
+
+        taskIndex++;
+
+        foreach (var child in node.Children)
+            RenderGanttNode(sb, child, earliest, ref taskIndex);
+    }
+
+    private static string EscapeGantt(string text)
+    {
+        return text.Replace("[", "(").Replace("]", ")");
+    }
+
+    /// <summary>
+    /// Renders a sequential test flame chart where each test occupies its own
+    /// horizontal band with a label divider.
+    /// </summary>
+    public static string RenderSequentialTestFlameChart(
+        Dictionary<string, InternalFlowSegment> wholeTestSegments)
+    {
+        if (wholeTestSegments.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<div class=\"iflow-flame iflow-sequential-tests\">");
+
+        foreach (var (key, segment) in wholeTestSegments.OrderBy(kv => kv.Value.StartTime))
+        {
+            if (segment.Spans.Length == 0) continue;
+
+            var testId = System.Net.WebUtility.HtmlEncode(segment.TestId);
+            sb.AppendLine($"<div class=\"iflow-test-band\">");
+            sb.AppendLine($"<div class=\"iflow-test-band-label\">{testId}</div>");
+
+            var earliest = segment.Spans.Min(s => s.StartTimeUtc);
+            var latest = segment.Spans.Max(s => s.StartTimeUtc + s.Duration);
+            var totalMs = (latest - earliest).TotalMilliseconds;
+            if (totalMs <= 0) totalMs = 1;
+
+            var roots = BuildSpanTree(segment.Spans);
+            foreach (var root in roots)
+                RenderFlameNode(sb, root, earliest, totalMs, 0);
+
+            sb.AppendLine("</div>");
+        }
+
+        sb.AppendLine("</div>");
+        return sb.ToString();
+    }
+
     internal record SpanNode(Activity Span)
     {
         public List<SpanNode> Children { get; } = [];

@@ -67,6 +67,48 @@ public static class InternalFlowSegmentBuilder
         return segments;
     }
 
+    /// <summary>
+    /// Builds a single whole-test segment per TestId containing all spans for that test.
+    /// Keyed as "iflow-test-{TestId}". Tests with no matching spans are excluded.
+    /// </summary>
+    public static Dictionary<string, InternalFlowSegment> BuildWholeTestSegments(
+        RequestResponseLog[] logs,
+        Activity[] spans)
+    {
+        var segments = new Dictionary<string, InternalFlowSegment>();
+
+        if (spans.Length == 0 || logs.Length == 0)
+            return segments;
+
+        var logsByTest = logs
+            .Where(l => l.Timestamp.HasValue)
+            .GroupBy(l => l.TestId);
+
+        foreach (var testGroup in logsByTest)
+        {
+            var testLogs = testGroup.ToArray();
+            var testSpans = FilterSpansByTestTraceIds(spans, testLogs);
+
+            if (testSpans.Length == 0)
+                continue;
+
+            var orderedSpans = testSpans.OrderBy(s => s.StartTimeUtc).ToArray();
+            var startTime = orderedSpans.Min(s => s.StartTimeUtc);
+            var endTime = orderedSpans.Max(s => s.StartTimeUtc + s.Duration);
+
+            var segmentKey = $"iflow-test-{testGroup.Key}";
+            segments[segmentKey] = new InternalFlowSegment(
+                Guid.Empty,
+                RequestResponseType.Request,
+                testGroup.Key,
+                new DateTimeOffset(startTime, TimeSpan.Zero),
+                new DateTimeOffset(endTime, TimeSpan.Zero),
+                orderedSpans);
+        }
+
+        return segments;
+    }
+
     private static Activity[] FilterSpansByTestTraceIds(Activity[] allSpans, RequestResponseLog[] testLogs)
     {
         var testActivityTraceIds = testLogs

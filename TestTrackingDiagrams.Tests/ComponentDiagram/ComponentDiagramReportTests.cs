@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Net;
 using TestTrackingDiagrams.ComponentDiagram;
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 
@@ -20,7 +22,8 @@ public class ComponentDiagramReportTests : IDisposable
         string testId = "test-1",
         string callerName = "Caller",
         string serviceName = "OrderService",
-        string method = "GET")
+        string method = "GET",
+        Guid? requestResponseId = null)
     {
         return new RequestResponseLog(
             TestName: "Test",
@@ -33,7 +36,7 @@ public class ComponentDiagramReportTests : IDisposable
             CallerName: callerName,
             Type: RequestResponseType.Request,
             TraceId: Guid.NewGuid(),
-            RequestResponseId: Guid.NewGuid(),
+            RequestResponseId: requestResponseId ?? Guid.NewGuid(),
             TrackingIgnore: false);
     }
 
@@ -195,5 +198,139 @@ public class ComponentDiagramReportTests : IDisposable
         var puml = File.ReadAllText(result.PumlFilePath);
         Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", puml);
         Assert.DoesNotContain("C4_Component", puml);
+    }
+
+    // ── Relationship Flow Integration ──
+
+    private (Activity span, Dictionary<string, InternalFlowSegment> segments, RequestResponseLog[] logs) CreateFlowTestData(
+        string callerName = "WebApp", string serviceName = "OrderService")
+    {
+        var source = new ActivitySource("Tests.CompDiagram." + Guid.NewGuid().ToString("N")[..6]);
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        Activity.Current = null;
+        var span = source.StartActivity("DB Query")!;
+        span.SetStartTime(DateTime.UtcNow);
+        span.SetEndTime(DateTime.UtcNow.AddMilliseconds(50));
+
+        var reqId = Guid.NewGuid();
+        var logs = new[] { MakeRequest(callerName: callerName, serviceName: serviceName, requestResponseId: reqId) };
+
+        var perBoundarySegments = new Dictionary<string, InternalFlowSegment>
+        {
+            [$"iflow-req-{reqId}"] = new(reqId, RequestResponseType.Request, "test-1",
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMilliseconds(50), [span])
+        };
+
+        return (span, perBoundarySegments, logs);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ShowRelationshipFlows_RendersRelationshipList()
+    {
+        var (span, perBoundary, logs) = CreateFlowTestData();
+        using var _ = span;
+        var options = new ComponentDiagramOptions { ShowRelationshipFlows = true };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = options },
+            perBoundarySegments: perBoundary);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("iflow-rel-list", html);
+        Assert.Contains("WebApp", html);
+        Assert.Contains("OrderService", html);
+        Assert.Contains("_iflowShowPopup", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ShowRelationshipFlows_IncludesPopupInfrastructure()
+    {
+        var (span, perBoundary, logs) = CreateFlowTestData("API", "DB");
+        using var _ = span;
+        var options = new ComponentDiagramOptions { ShowRelationshipFlows = true };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = options },
+            perBoundarySegments: perBoundary);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("__iflowSegments", html);
+        Assert.Contains("iflow-popup", html);
+        Assert.Contains("iflow-overlay", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ShowRelationshipFlows_PopupDataContainsSummaryTable()
+    {
+        var (span, perBoundary, logs) = CreateFlowTestData("API", "DB");
+        using var _ = span;
+        var options = new ComponentDiagramOptions { ShowRelationshipFlows = true };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = options },
+            perBoundarySegments: perBoundary);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("iflow-rel-summary-table", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ShowSystemFlameChart_RendersSystemSection()
+    {
+        using var source = new ActivitySource("Tests.CompDiagram.System");
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        Activity.Current = null;
+        using var span = source.StartActivity("Process")!;
+        span.SetStartTime(DateTime.UtcNow);
+        span.SetEndTime(DateTime.UtcNow.AddMilliseconds(50));
+
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions { ShowSystemFlameChart = true };
+
+        var wholeTestSegments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = new(Guid.Empty, RequestResponseType.Request, "test-1",
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMilliseconds(50), [span])
+        };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = options },
+            wholeTestSegments: wholeTestSegments);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("System Flow", html);
+        Assert.Contains("iflow-sequential-tests", html);
+        Assert.Contains("iflow-toggle", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_NoFlows_DoesNotIncludeFlowSections()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("iflow-rel-list", html);
+        Assert.DoesNotContain("System Flow", html);
+        Assert.DoesNotContain("__iflowSegments", html);
     }
 }

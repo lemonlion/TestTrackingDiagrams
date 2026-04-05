@@ -28,6 +28,9 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
         public bool LazyLoadDiagramImages { get; set; } = true;
         public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
         public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
+        public Func<Guid, string>? WholeTestFlowHtmlProvider { get; set; }
+        public bool InternalFlowTracking { get; set; }
+        public string InternalFlowDataScript { get; set; } = "";
         private int _plantUmlBrowserCounter;
 
         public CustomisableHtmlResultTextWriter(Stream outputStream, IFeatureResult[] features) : base(outputStream, 
@@ -82,6 +85,17 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
 
             if (needsContextMenu)
                 headContent.Add(Html.Text(DiagramContextMenu.GetContextMenuScript()));
+
+            if (InternalFlowTracking)
+            {
+                headContent.Add(_html.Tag(Html5Tag.Style).Content(DiagramContextMenu.GetInternalFlowPopupStyles(), false, false));
+                headContent.Add(Html.Text(DiagramContextMenu.GetToggleScript()));
+
+                if (!string.IsNullOrEmpty(InternalFlowDataScript))
+                    headContent.Add(Html.Text(InternalFlowDataScript));
+
+                headContent.Add(Html.Text(DiagramContextMenu.GetInternalFlowPopupScript()));
+            }
 
             _writer
                 .WriteTag(Html.Text("<!DOCTYPE HTML>"))
@@ -147,6 +161,13 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
 
                     scenarioContent.Add(_html.Tag(Html5Tag.Details).Class("example-diagrams").Attribute("open", "").Content(diagramNodes));
                 }
+            }
+
+            if (WholeTestFlowHtmlProvider is not null)
+            {
+                var wholeTestHtml = WholeTestFlowHtmlProvider(scenario.Info.RuntimeId);
+                if (!string.IsNullOrEmpty(wholeTestHtml))
+                    scenarioContent.Add(Html.Text(wholeTestHtml));
             }
 
             var toggleId = $"toggle{featureIndex}_{scenarioIndex}";

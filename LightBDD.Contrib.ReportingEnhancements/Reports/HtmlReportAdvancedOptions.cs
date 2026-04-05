@@ -26,6 +26,9 @@ public class HtmlReportAdvancedOptions
     public bool LazyLoadDiagramImages { get; set; } = true;
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
     public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
+    public bool InternalFlowTracking { get; set; }
+    public Func<Guid, string>? WholeTestFlowHtmlProvider { get; set; }
+    public string InternalFlowDataScript { get; set; } = "";
 
     public HtmlReportAdvancedOptions SetOnlyCreateReportOnFullTestRun(Assembly testAssembly)
     {

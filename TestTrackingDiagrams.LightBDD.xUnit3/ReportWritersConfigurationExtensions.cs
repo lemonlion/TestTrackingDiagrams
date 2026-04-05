@@ -2,6 +2,8 @@ using LightBDD.Core.Configuration;
 using System.Reflection;
 using LightBDD.Contrib.ReportingEnhancements.Reports;
 using LightBDD.Framework.Configuration;
+using TestTrackingDiagrams.InternalFlow;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD.xUnit3
 {
@@ -45,6 +47,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                         o.DiagramFormat = options.DiagramFormat;
                         o.PlantUmlRendering = options.PlantUmlRendering;
                         o.DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML";
+                        ConfigureInternalFlow(o, options);
                     });
                     if(options.HtmlSpecificationsCustomStyleSheet is not null)
                         formatter.WithCustomCss(options.HtmlSpecificationsCustomStyleSheet);
@@ -61,7 +64,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                 .AddFileWriter<CustomisableHtmlReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
                 formatter =>
                 {
-                    formatter.Options = new HtmlReportAdvancedOptions
+                    var advancedOptions = new HtmlReportAdvancedOptions
                     {
                         ExampleDiagramsAsCode = diagramsFetcher,
                         LazyLoadDiagramImages = options.LazyLoadDiagramImages,
@@ -69,7 +72,51 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                         PlantUmlRendering = options.PlantUmlRendering,
                         DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML"
                     };
+                    ConfigureInternalFlow(advancedOptions, options);
+                    formatter.Options = advancedOptions;
                 });
+        }
+
+        private static void ConfigureInternalFlow(HtmlReportAdvancedOptions advancedOptions, ReportConfigurationOptions options)
+        {
+            if (!options.InternalFlowTracking)
+                return;
+
+            advancedOptions.InternalFlowTracking = true;
+
+            var trackedLogs = RequestResponseLogger.RequestAndResponseLogs
+                .Where(x => !(x?.TrackingIgnore ?? true))
+                .ToArray();
+
+            var spans = InternalFlowSpanCollector.CollectSpans(
+                options.InternalFlowSpanGranularity,
+                options.InternalFlowActivitySources);
+
+            var perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
+
+            advancedOptions.InternalFlowDataScript = InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+                perBoundarySegments,
+                options.InternalFlowDiagramStyle,
+                options.InternalFlowShowFlameChart,
+                options.InternalFlowFlameChartPosition);
+
+            if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
+            {
+                var wholeTestSegments = InternalFlowSegmentBuilder.BuildWholeTestSegments(trackedLogs, spans);
+
+                advancedOptions.WholeTestFlowHtmlProvider = testRuntimeId =>
+                {
+                    var testId = testRuntimeId.ToString();
+                    var boundaryLogs = trackedLogs
+                        .Where(l => l.TestId == testId && l.Type == RequestResponseType.Request && l.Timestamp.HasValue)
+                        .OrderBy(l => l.Timestamp!.Value)
+                        .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
+                        .ToArray();
+
+                    return InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+                        wholeTestSegments, testId, boundaryLogs, options.WholeTestFlowVisualization);
+                };
+            }
         }
     }
 }
