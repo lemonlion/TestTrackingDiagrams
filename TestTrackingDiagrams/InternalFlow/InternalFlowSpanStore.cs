@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace TestTrackingDiagrams.InternalFlow;
 
@@ -8,14 +9,25 @@ namespace TestTrackingDiagrams.InternalFlow;
 /// Both the <see cref="InternalFlowActivityListener"/> (BCL path) and
 /// the OTel SDK exporter (<c>TestTrackingSpanExporter</c>) write here.
 /// <see cref="InternalFlowSpanCollector"/> reads from here at report generation time.
+/// Deduplicates by reference identity — safe when both listener and exporter capture the same Activity.
 /// </summary>
 public static class InternalFlowSpanStore
 {
     private static readonly ConcurrentQueue<Activity> CollectedSpans = new();
+    private static readonly ConcurrentDictionary<Activity, byte> SeenSpans =
+        new(ReferenceEqualityComparer.Instance);
 
-    public static void Add(Activity activity) => CollectedSpans.Enqueue(activity);
+    public static void Add(Activity activity)
+    {
+        if (SeenSpans.TryAdd(activity, 0))
+            CollectedSpans.Enqueue(activity);
+    }
 
     public static Activity[] GetSpans() => CollectedSpans.ToArray();
 
-    public static void Clear() => CollectedSpans.Clear();
+    public static void Clear()
+    {
+        SeenSpans.Clear();
+        CollectedSpans.Clear();
+    }
 }

@@ -5,10 +5,10 @@ using TestTrackingDiagrams.InternalFlow;
 namespace TestTrackingDiagrams.Tests.InternalFlow;
 
 /// <summary>
-/// Tests for <c>AddOpenTelemetryForInternalFlowTracking</c> IServiceCollection extension.
+/// Tests for <c>AddActivityListenerForInternalFlowTracking</c> IServiceCollection extension.
 /// All assertions filter by unique source/operation name for parallel safety.
 /// </summary>
-public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
+public class AddActivityListenerForInternalFlowTrackingTests : IDisposable
 {
     private ServiceProvider? _provider;
 
@@ -28,7 +28,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     [Fact]
     public void Captures_spans_from_well_known_source()
     {
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking());
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking());
 
         var opName = $"GET-{Guid.NewGuid():N}";
         using var source = new ActivitySource("System.Net.Http");
@@ -42,7 +42,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     public void Captures_spans_from_additional_custom_source()
     {
         var sourceName = $"Custom.{Guid.NewGuid():N}";
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking(sourceName));
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking(sourceName));
 
         using var source = new ActivitySource(sourceName);
         using var activity = source.StartActivity("custom-operation");
@@ -56,7 +56,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     public void Does_not_capture_unregistered_source()
     {
         var sourceName = $"Unregistered.{Guid.NewGuid():N}";
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking());
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking());
 
         using var source = new ActivitySource(sourceName);
         using var activity = source.StartActivity("unregistered-op");
@@ -69,7 +69,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     public void Returns_service_collection_for_fluent_chaining()
     {
         var services = new ServiceCollection();
-        var result = services.AddOpenTelemetryForInternalFlowTracking();
+        var result = services.AddActivityListenerForInternalFlowTracking();
         Assert.Same(services, result);
     }
 
@@ -77,7 +77,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     public void Listener_captures_until_explicitly_disposed()
     {
         var sourceName = $"Lifecycle.{Guid.NewGuid():N}";
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking(sourceName));
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking(sourceName));
 
         using var source = new ActivitySource(sourceName);
 
@@ -110,7 +110,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     public void Non_invasive_listener_uses_AllData_sampling()
     {
         var sourceName = $"Sampling.{Guid.NewGuid():N}";
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking(sourceName));
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking(sourceName));
 
         using var source = new ActivitySource(sourceName);
         using var activity = source.StartActivity("non-invasive-op");
@@ -125,7 +125,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     [Fact]
     public void Works_without_any_otel_sdk_configuration()
     {
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking());
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking());
 
         var opName = $"EF-{Guid.NewGuid():N}";
         using var source = new ActivitySource("Microsoft.EntityFrameworkCore");
@@ -140,7 +140,7 @@ public class AddOpenTelemetryForInternalFlowTrackingTests : IDisposable
     {
         var name1 = $"Multi.A.{Guid.NewGuid():N}";
         var name2 = $"Multi.B.{Guid.NewGuid():N}";
-        BuildProvider(s => s.AddOpenTelemetryForInternalFlowTracking(name1, name2));
+        BuildProvider(s => s.AddActivityListenerForInternalFlowTracking(name1, name2));
 
         using var source1 = new ActivitySource(name1);
         using var source2 = new ActivitySource(name2);

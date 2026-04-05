@@ -28,7 +28,7 @@ public record ReportConfigurationOptions
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
     public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
     public bool InlineSvgRendering { get; set; }
-    public bool InternalFlowTracking { get; set; }
+    public bool InternalFlowTracking { get; set; } = true;
     public InternalFlowDisplay InternalFlowDisplay { get; set; } = InternalFlowDisplay.Popup;
     public InternalFlowTrigger InternalFlowTrigger { get; set; } = InternalFlowTrigger.Click;
     public InternalFlowDiagramStyle InternalFlowDiagramStyle { get; set; } = InternalFlowDiagramStyle.ActivityDiagram;

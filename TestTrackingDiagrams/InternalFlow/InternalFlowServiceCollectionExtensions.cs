@@ -6,7 +6,7 @@ public static class InternalFlowServiceCollectionExtensions
 {
     /// <summary>
     /// Registers a non-invasive <see cref="InternalFlowActivityListener"/> that
-    /// captures OpenTelemetry spans for internal flow diagram popups.
+    /// captures <see cref="System.Diagnostics.Activity"/> spans for internal flow diagram popups.
     /// <para>
     /// This uses a raw <see cref="System.Diagnostics.ActivityListener"/> (BCL)
     /// rather than the OTel SDK, so it works with or without an existing
@@ -14,9 +14,10 @@ public static class InternalFlowServiceCollectionExtensions
     /// sampling, exporters, or telemetry assertions.
     /// </para>
     /// <para>
-    /// All well-known auto-instrumentation sources (ASP.NET Core, HttpClient,
-    /// EF Core, Redis, Cosmos, etc.) are subscribed automatically.
-    /// Pass additional source names to capture custom <see cref="System.Diagnostics.ActivitySource"/>s.
+    /// <b>Note:</b> The <see cref="Tracking.TestTrackingMessageHandler"/> auto-starts a listener
+    /// for well-known sources automatically. This method is only needed if you want to register
+    /// additional custom <see cref="System.Diagnostics.ActivitySource"/>s via DI, or if you
+    /// need the listener started before any handler is constructed.
     /// </para>
     /// </summary>
     /// <param name="services">The service collection (typically from <c>ConfigureTestServices</c>).</param>
@@ -24,7 +25,7 @@ public static class InternalFlowServiceCollectionExtensions
     /// Optional custom activity source names to capture in addition to the
     /// well-known auto-instrumentation sources.
     /// </param>
-    public static IServiceCollection AddOpenTelemetryForInternalFlowTracking(
+    public static IServiceCollection AddActivityListenerForInternalFlowTracking(
         this IServiceCollection services,
         params string[] additionalActivitySources)
     {

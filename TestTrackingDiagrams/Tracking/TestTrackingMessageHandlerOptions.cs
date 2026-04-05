@@ -8,4 +8,5 @@ public record TestTrackingMessageHandlerOptions
     public IEnumerable<string> HeadersToForward { get; set; } = [];
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; } = null;
     public Func<string?>? CurrentStepTypeFetcher { get; set; } = null;
+    public string[]? InternalFlowActivitySources { get; set; }
 }

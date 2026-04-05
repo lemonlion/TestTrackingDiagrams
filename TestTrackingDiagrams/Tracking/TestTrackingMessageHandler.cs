@@ -26,6 +26,8 @@ public class TestTrackingMessageHandler : DelegatingHandler
         _httpContextAccessor = httpContextAccessor;
         _headersToForward = options.HeadersToForward;
         InnerHandler ??= new HttpClientHandler();
+
+        InternalFlow.InternalFlowActivityListener.EnsureStarted(options.InternalFlowActivitySources);
     }
 
     private static Func<int, string> GetPortTranslator(Dictionary<int, string> serviceNamesForEachPort)
