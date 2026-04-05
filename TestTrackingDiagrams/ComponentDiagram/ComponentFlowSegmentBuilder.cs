@@ -70,7 +70,8 @@ public static class ComponentFlowSegmentBuilder
 
             var testName = logs
                 .Where(l => l.CallerName == rel.Caller && l.ServiceName == rel.Service)
-                .ToDictionary(l => l.TestId, l => l.TestName);
+                .GroupBy(l => l.TestId)
+                .ToDictionary(g => g.Key, g => g.First().TestName);
 
             var summaries = testSpans
                 .Select(kv =>
