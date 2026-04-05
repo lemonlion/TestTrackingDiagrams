@@ -1,0 +1,348 @@
+using System.Diagnostics;
+using System.Net;
+using TestTrackingDiagrams.InternalFlow;
+using TestTrackingDiagrams.Tracking;
+
+namespace TestTrackingDiagrams.Tests.InternalFlow;
+
+public class InternalFlowSegmentBuilderTests : IDisposable
+{
+    private readonly ActivitySource _source = new("TestTrackingDiagrams.Tests.SegmentBuilder");
+    private readonly ActivityListener _listener;
+    private readonly List<Activity> _activities = [];
+
+    public InternalFlowSegmentBuilderTests()
+    {
+        _listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(_listener);
+    }
+
+    public void Dispose()
+    {
+        foreach (var a in _activities) a.Dispose();
+        _listener.Dispose();
+        _source.Dispose();
+    }
+
+    private Activity CreateSpan(string name, DateTime startUtc, TimeSpan duration, string? traceId = null)
+    {
+        Activity.Current = null;
+        var ctx = traceId != null
+            ? new ActivityContext(ActivityTraceId.CreateFromString(traceId), default, ActivityTraceFlags.Recorded)
+            : new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded);
+
+        var span = _source.StartActivity(name, ActivityKind.Internal, ctx)!;
+        span.SetStartTime(startUtc);
+        span.SetEndTime(startUtc + duration);
+        _activities.Add(span);
+        return span;
+    }
+
+    private static RequestResponseLog MakeRequest(
+        string testId = "test-1",
+        DateTimeOffset? timestamp = null,
+        Guid? requestResponseId = null,
+        string? activityTraceId = null)
+    {
+        return new RequestResponseLog(
+            TestName: "Test",
+            TestId: testId,
+            Method: HttpMethod.Get,
+            Content: null,
+            Uri: new Uri("http://sut/api/orders"),
+            Headers: [],
+            ServiceName: "OrderService",
+            CallerName: "Caller",
+            Type: RequestResponseType.Request,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: requestResponseId ?? Guid.NewGuid(),
+            TrackingIgnore: false)
+        {
+            Timestamp = timestamp,
+            ActivityTraceId = activityTraceId
+        };
+    }
+
+    private static RequestResponseLog MakeResponse(
+        string testId = "test-1",
+        DateTimeOffset? timestamp = null,
+        Guid? requestResponseId = null,
+        string? activityTraceId = null)
+    {
+        return new RequestResponseLog(
+            TestName: "Test",
+            TestId: testId,
+            Method: HttpMethod.Get,
+            Content: null,
+            Uri: new Uri("http://sut/api/orders"),
+            Headers: [],
+            ServiceName: "OrderService",
+            CallerName: "Caller",
+            Type: RequestResponseType.Response,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: requestResponseId ?? Guid.NewGuid(),
+            TrackingIgnore: false,
+            StatusCode: HttpStatusCode.OK)
+        {
+            Timestamp = timestamp,
+            ActivityTraceId = activityTraceId
+        };
+    }
+
+    // ── Empty inputs ──
+
+    [Fact]
+    public void BuildSegments_no_spans_returns_empty()
+    {
+        var logs = new[] { MakeRequest(timestamp: DateTimeOffset.UtcNow) };
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, []);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildSegments_no_logs_returns_empty()
+    {
+        var span = CreateSpan("op", DateTime.UtcNow, TimeSpan.FromMilliseconds(10));
+        var result = InternalFlowSegmentBuilder.BuildSegments([], [span]);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildSegments_logs_without_timestamps_returns_empty()
+    {
+        var span = CreateSpan("op", DateTime.UtcNow, TimeSpan.FromMilliseconds(10));
+        var logs = new[] { MakeRequest(timestamp: null) };
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+        Assert.Empty(result);
+    }
+
+    // ── Basic segment creation ──
+
+    [Fact]
+    public void BuildSegments_creates_segment_for_request_log()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        var span = CreateSpan("HTTP GET", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(50));
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+
+        Assert.Single(result);
+        Assert.True(result.ContainsKey($"iflow-{reqId}"));
+        Assert.Single(result[$"iflow-{reqId}"].Spans);
+    }
+
+    [Fact]
+    public void BuildSegments_skips_response_entries()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+        var resId = Guid.NewGuid();
+
+        var span = CreateSpan("op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(100), requestResponseId: resId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+
+        Assert.Single(result);
+        Assert.True(result.ContainsKey($"iflow-{reqId}"));
+        Assert.False(result.ContainsKey($"iflow-{resId}"));
+    }
+
+    // ── Time window logic ──
+
+    [Fact]
+    public void BuildSegments_assigns_spans_to_correct_time_windows()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+
+        var span1 = CreateSpan("early-op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var span2 = CreateSpan("late-op", baseTime.UtcDateTime.AddMilliseconds(510), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId1),
+            MakeRequest(timestamp: baseTime.AddMilliseconds(500), requestResponseId: reqId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span1, span2]);
+
+        Assert.Equal(2, result.Count);
+        Assert.Single(result[$"iflow-{reqId1}"].Spans);
+        Assert.Equal("early-op", result[$"iflow-{reqId1}"].Spans[0].OperationName);
+        Assert.Single(result[$"iflow-{reqId2}"].Spans);
+        Assert.Equal("late-op", result[$"iflow-{reqId2}"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_last_segment_uses_5_second_fallback_window()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        // Span within 5-second window
+        var spanInWindow = CreateSpan("in-window", baseTime.UtcDateTime.AddSeconds(2), TimeSpan.FromMilliseconds(5));
+        // Span outside 5-second window
+        var spanOutWindow = CreateSpan("out-window", baseTime.UtcDateTime.AddSeconds(6), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [spanInWindow, spanOutWindow]);
+
+        Assert.Single(result);
+        Assert.Single(result[$"iflow-{reqId}"].Spans);
+        Assert.Equal("in-window", result[$"iflow-{reqId}"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_span_exactly_at_segment_start_is_included()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        var span = CreateSpan("at-boundary", baseTime.UtcDateTime, TimeSpan.FromMilliseconds(5));
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+
+        Assert.Single(result[$"iflow-{reqId}"].Spans);
+    }
+
+    [Fact]
+    public void BuildSegments_span_exactly_at_segment_end_is_excluded()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+        var boundaryTime = baseTime.AddMilliseconds(500);
+
+        var span = CreateSpan("at-boundary", boundaryTime.UtcDateTime, TimeSpan.FromMilliseconds(5));
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId1),
+            MakeRequest(timestamp: boundaryTime, requestResponseId: reqId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span]);
+
+        // Span at boundary should be in second segment (>= start), not first (< end)
+        Assert.Empty(result[$"iflow-{reqId1}"].Spans);
+        Assert.Single(result[$"iflow-{reqId2}"].Spans);
+    }
+
+    // ── Trace ID filtering ──
+
+    [Fact]
+    public void BuildSegments_filters_spans_by_trace_id()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+        var goodTraceId = "0af7651916cd43dd8448eb211c80319c";
+        var badTraceId = "aaaabbbbccccddddeeee111122223333";
+
+        var matchingSpan = CreateSpan("matching", baseTime.UtcDateTime.AddMilliseconds(10),
+            TimeSpan.FromMilliseconds(5), traceId: goodTraceId);
+        var nonMatchingSpan = CreateSpan("non-matching", baseTime.UtcDateTime.AddMilliseconds(20),
+            TimeSpan.FromMilliseconds(5), traceId: badTraceId);
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId, activityTraceId: goodTraceId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [matchingSpan, nonMatchingSpan]);
+
+        Assert.Single(result[$"iflow-{reqId}"].Spans);
+        Assert.Equal("matching", result[$"iflow-{reqId}"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_null_trace_ids_returns_all_spans()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        var span1 = CreateSpan("op1", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var span2 = CreateSpan("op2", baseTime.UtcDateTime.AddMilliseconds(20), TimeSpan.FromMilliseconds(5));
+
+        // No ActivityTraceId set — should fall back to returning all spans
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId, activityTraceId: null) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span1, span2]);
+
+        Assert.Equal(2, result[$"iflow-{reqId}"].Spans.Length);
+    }
+
+    // ── Multi-test grouping ──
+
+    [Fact]
+    public void BuildSegments_groups_by_test_id()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+
+        var span1 = CreateSpan("test1-op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+        var span2 = CreateSpan("test2-op", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[]
+        {
+            MakeRequest(testId: "test-1", timestamp: baseTime, requestResponseId: reqId1, activityTraceId: null),
+            MakeRequest(testId: "test-2", timestamp: baseTime, requestResponseId: reqId2, activityTraceId: null)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span1, span2]);
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result.ContainsKey($"iflow-{reqId1}"));
+        Assert.True(result.ContainsKey($"iflow-{reqId2}"));
+    }
+
+    // ── Segment ordering ──
+
+    [Fact]
+    public void BuildSegments_orders_spans_by_start_time_within_segment()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        var lateSpan = CreateSpan("late", baseTime.UtcDateTime.AddMilliseconds(50), TimeSpan.FromMilliseconds(5));
+        var earlySpan = CreateSpan("early", baseTime.UtcDateTime.AddMilliseconds(10), TimeSpan.FromMilliseconds(5));
+
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [lateSpan, earlySpan]);
+
+        Assert.Equal(2, result[$"iflow-{reqId}"].Spans.Length);
+        Assert.Equal("early", result[$"iflow-{reqId}"].Spans[0].OperationName);
+        Assert.Equal("late", result[$"iflow-{reqId}"].Spans[1].OperationName);
+    }
+
+    // ── Edge case: span before first log ──
+
+    [Fact]
+    public void BuildSegments_span_before_first_log_is_excluded()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var reqId = Guid.NewGuid();
+
+        var earlySpan = CreateSpan("too-early", baseTime.UtcDateTime.AddMilliseconds(-100), TimeSpan.FromMilliseconds(5));
+        var logs = new[] { MakeRequest(timestamp: baseTime, requestResponseId: reqId) };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [earlySpan]);
+
+        Assert.Empty(result[$"iflow-{reqId}"].Spans);
+    }
+}

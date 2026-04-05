@@ -8,6 +8,9 @@ public class IflowPopupTests : IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
+    private static readonly string OutputDir = Path.Combine(
+        Path.GetDirectoryName(typeof(IflowPopupTests).Assembly.Location)!,
+        "SeleniumOutput");
 
     public IflowPopupTests()
     {
@@ -20,6 +23,7 @@ public class IflowPopupTests : IDisposable
         _driver = new ChromeDriver(options);
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-selenium-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
+        Directory.CreateDirectory(OutputDir);
     }
 
     public void Dispose()
@@ -29,10 +33,15 @@ public class IflowPopupTests : IDisposable
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 
-    private string ServePage(string html)
+    private string ServePage(string html, [System.Runtime.CompilerServices.CallerMemberName] string? testName = null)
     {
         var path = Path.Combine(_tempDir, "test.html");
         File.WriteAllText(path, html);
+
+        // Persist a copy to the output directory for manual inspection
+        var outputPath = Path.Combine(OutputDir, $"{testName}.html");
+        File.WriteAllText(outputPath, html);
+
         return new Uri(path).AbsoluteUri;
     }
 
