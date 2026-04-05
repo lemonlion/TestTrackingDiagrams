@@ -295,6 +295,8 @@ public static class ReportGenerator
         var inlineSvgStyles = isInlineSvg ? DiagramContextMenu.GetInlineSvgStyles() : "";
         var internalFlowPopupStyles = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupStyles() : "";
         var internalFlowPopupScript = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupScript() : "";
+        var flameChartRenderScript = internalFlowTracking ? DiagramContextMenu.GetFlameChartRenderScript() : "";
+        var toggleScript = internalFlowTracking ? DiagramContextMenu.GetToggleScript() : "";
 
         var html = $$"""
                     <html>
@@ -312,8 +314,10 @@ public static class ReportGenerator
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
                             {{contextMenuScript}}
+                            {{flameChartRenderScript}}
                             {{internalFlowDataScript}}
                             {{internalFlowPopupScript}}
+                            {{toggleScript}}
                         </head>
                         <body>
                     """;

@@ -72,6 +72,7 @@ public static class TestPageGenerator
 
         var contextMenuScript = includeContextMenu ? DiagramContextMenu.GetContextMenuScript() : "";
         var contextMenuStyles = includeContextMenu ? DiagramContextMenu.GetStyles() : "";
+        var flameChartRenderScript = includeToggle ? DiagramContextMenu.GetFlameChartRenderScript() : "";
 
         parentSpan.Dispose();
         childSpan.Dispose();
@@ -86,6 +87,7 @@ public static class TestPageGenerator
                     {{contextMenuStyles}}
                 </style>
                 {{plantUmlBrowserScript}}
+                {{flameChartRenderScript}}
                 {{contextMenuScript}}
                 <style>
                     body { font-family: sans-serif; padding: 20px; }
@@ -159,6 +161,9 @@ public static class TestPageGenerator
 
         var styles = DiagramContextMenu.GetInternalFlowPopupStyles();
         var toggleScript = DiagramContextMenu.GetToggleScript();
+        var flameChartRenderScript = visualization is WholeTestFlowVisualization.FlameChart or WholeTestFlowVisualization.Both
+            ? DiagramContextMenu.GetFlameChartRenderScript()
+            : "";
         var plantUmlBrowserScript = visualization is WholeTestFlowVisualization.ActivityDiagram or WholeTestFlowVisualization.Both
             ? DiagramContextMenu.GetPlantUmlBrowserRenderScript()
             : "";
@@ -175,6 +180,7 @@ public static class TestPageGenerator
                     {{styles}}
                 </style>
                 {{plantUmlBrowserScript}}
+                {{flameChartRenderScript}}
                 {{toggleScript}}
                 <style>
                     body { font-family: sans-serif; padding: 20px; }

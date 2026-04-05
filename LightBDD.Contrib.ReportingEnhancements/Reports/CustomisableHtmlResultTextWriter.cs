@@ -89,6 +89,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             if (InternalFlowTracking)
             {
                 headContent.Add(_html.Tag(Html5Tag.Style).Content(DiagramContextMenu.GetInternalFlowPopupStyles(), false, false));
+                headContent.Add(Html.Text(DiagramContextMenu.GetFlameChartRenderScript()));
                 headContent.Add(Html.Text(DiagramContextMenu.GetToggleScript()));
 
                 if (!string.IsNullOrEmpty(InternalFlowDataScript))

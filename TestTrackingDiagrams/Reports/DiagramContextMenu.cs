@@ -565,6 +565,11 @@ public static class DiagramContextMenu
                     diagramDiv.innerHTML = segment.content;
                     popup.appendChild(diagramDiv);
 
+                    // Render flame chart from data if available
+                    if (segment.flameData && window._renderPopupFlameCharts) {
+                        window._renderPopupFlameCharts(diagramDiv, segment.flameData);
+                    }
+
                     if (window.plantuml && diagramDiv.querySelector('.plantuml-browser')) {
                         diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
                             try {
@@ -658,8 +663,135 @@ public static class DiagramContextMenu
                 v.style.display = 'none';
             });
             var target = container.querySelector('.iflow-view-' + view);
-            if (target) target.style.display = '';
+            if (target) {
+                target.style.display = '';
+                window._renderFlameCharts(target);
+            }
         });
+        </script>
+        """;
+
+    /// <summary>
+    /// Client-side JavaScript that renders flame charts from compact JSON data.
+    /// Flame chart elements with a <c>data-flame</c> attribute or inside popups
+    /// with <c>flameData</c> are rendered on demand instead of being pre-rendered
+    /// as HTML on the server, dramatically reducing report file size.
+    /// </summary>
+    public static string GetFlameChartRenderScript() => """
+        <script>
+        (function() {
+            function renderFlameData(container, data) {
+                if (!data || !data.s || !data.f || data.f.length === 0) return;
+                if (container.dataset.flameRendered) return;
+                container.dataset.flameRendered = '1';
+
+                var sources = data.s;
+                var hasMarkers = data.m && data.m.length > 0;
+                if (hasMarkers) container.style.position = 'relative';
+
+                var html = [];
+                if (hasMarkers) {
+                    for (var mi = 0; mi < data.m.length; mi++) {
+                        var m = data.m[mi];
+                        html.push('<div class="iflow-boundary-marker" style="left:' + m[0].toFixed(2) + '%" title="' + escHtml(m[1]) + '"></div>');
+                    }
+                }
+                for (var i = 0; i < data.f.length; i++) {
+                    var sp = data.f[i];
+                    var srcIdx = sp[0], name = sp[1], leftPct = sp[2], widthPct = sp[3], depth = sp[4], durMs = sp[5];
+                    var source = sources[srcIdx];
+                    var hue = Math.abs(hashCode(source)) % 360;
+                    var lightness = 70 + Math.min(depth * 5, 20);
+                    var durText = durMs >= 1 ? ' (' + durMs + 'ms)' : '';
+                    html.push('<div class="iflow-flame-bar" style="margin-left:' + leftPct.toFixed(2)
+                        + '%;width:' + widthPct.toFixed(2) + '%;background:hsl(' + hue + ', 60%, ' + lightness + '%)" title="['
+                        + escHtml(source) + '] ' + escHtml(name) + durText + '"><span class="iflow-flame-label">'
+                        + escHtml(name) + durText + '</span></div>');
+                }
+                container.innerHTML = html.join('');
+            }
+
+            function renderSequentialFlameData(container, data) {
+                if (!data || !data.s || !data.b || data.b.length === 0) return;
+                if (container.dataset.flameRendered) return;
+                container.dataset.flameRendered = '1';
+                var sources = data.s;
+                var html = [];
+                for (var bi = 0; bi < data.b.length; bi++) {
+                    var band = data.b[bi];
+                    html.push('<div class="iflow-test-band"><div class="iflow-test-band-label">' + escHtml(band.id) + '</div>');
+                    for (var i = 0; i < band.f.length; i++) {
+                        var sp = band.f[i];
+                        var srcIdx = sp[0], name = sp[1], leftPct = sp[2], widthPct = sp[3], depth = sp[4], durMs = sp[5];
+                        var source = sources[srcIdx];
+                        var hue = Math.abs(hashCode(source)) % 360;
+                        var lightness = 70 + Math.min(depth * 5, 20);
+                        var durText = durMs >= 1 ? ' (' + durMs + 'ms)' : '';
+                        html.push('<div class="iflow-flame-bar" style="margin-left:' + leftPct.toFixed(2)
+                            + '%;width:' + widthPct.toFixed(2) + '%;background:hsl(' + hue + ', 60%, ' + lightness + '%)" title="['
+                            + escHtml(source) + '] ' + escHtml(name) + durText + '"><span class="iflow-flame-label">'
+                            + escHtml(name) + durText + '</span></div>');
+                    }
+                    html.push('</div>');
+                }
+                container.innerHTML = html.join('');
+            }
+
+            function escHtml(s) {
+                return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+            function hashCode(s) {
+                var h = 0;
+                for (var i = 0; i < s.length; i++) {
+                    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+                }
+                return h;
+            }
+
+            // Render all data-flame elements within a container (or document)
+            function renderFlameCharts(root) {
+                var els = (root || document).querySelectorAll('.iflow-flame[data-flame]');
+                for (var i = 0; i < els.length; i++) {
+                    if (els[i].dataset.flameRendered) continue;
+                    try {
+                        var data = JSON.parse(els[i].getAttribute('data-flame'));
+                        renderFlameData(els[i], data);
+                    } catch(e) {}
+                }
+                var seqEls = (root || document).querySelectorAll('.iflow-sequential-tests[data-flame]');
+                for (var i = 0; i < seqEls.length; i++) {
+                    if (seqEls[i].dataset.flameRendered) continue;
+                    try {
+                        var data = JSON.parse(seqEls[i].getAttribute('data-flame'));
+                        renderSequentialFlameData(seqEls[i], data);
+                    } catch(e) {}
+                }
+            }
+
+            // Render flame charts from flameData property in popup segments
+            function renderPopupFlameCharts(container, flameData) {
+                if (!flameData) return;
+                var el = container.querySelector('.iflow-flame[data-diagram-type="flamechart"]');
+                if (el) renderFlameData(el, flameData);
+            }
+
+            // Expose globally
+            window._renderFlameCharts = renderFlameCharts;
+            window._renderPopupFlameCharts = renderPopupFlameCharts;
+
+            // Auto-render visible data-flame elements on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                renderFlameCharts(document);
+
+                // Render on details expand
+                document.addEventListener('toggle', function(e) {
+                    if (e.target.tagName === 'DETAILS' && e.target.open) {
+                        renderFlameCharts(e.target);
+                    }
+                }, true);
+            });
+        })();
         </script>
         """;
 }

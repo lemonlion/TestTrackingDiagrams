@@ -110,6 +110,124 @@ public static class InternalFlowRenderer
     }
 
     /// <summary>
+    /// Returns compact flame chart data for client-side rendering.
+    /// </summary>
+    public static FlameChartData GetFlameChartData(InternalFlowSegment segment)
+    {
+        if (segment.Spans.Length == 0)
+            return FlameChartData.Empty;
+
+        var roots = BuildSpanTree(segment.Spans);
+        var earliest = segment.Spans.Min(s => s.StartTimeUtc);
+        var latest = segment.Spans.Max(s => s.StartTimeUtc + s.Duration);
+        var totalMs = (latest - earliest).TotalMilliseconds;
+        if (totalMs <= 0) totalMs = 1;
+
+        var sources = new List<string>();
+        var sourceIndex = new Dictionary<string, int>();
+        var spans = new List<object[]>();
+
+        void FlattenNode(SpanNode node, int depth)
+        {
+            var source = string.IsNullOrEmpty(node.Span.Source.Name) ? "Unknown" : node.Span.Source.Name;
+            if (!sourceIndex.TryGetValue(source, out var srcIdx))
+            {
+                srcIdx = sources.Count;
+                sourceIndex[source] = srcIdx;
+                sources.Add(source);
+            }
+
+            var offsetMs = (node.Span.StartTimeUtc - earliest).TotalMilliseconds;
+            var durationMs = node.Span.Duration.TotalMilliseconds;
+            var leftPct = Math.Round((offsetMs / totalMs) * 100, 2);
+            var widthPct = Math.Round(Math.Max((durationMs / totalMs) * 100, 0.5), 2);
+            var name = node.Span.DisplayName ?? node.Span.OperationName;
+            var durMs = durationMs >= 1 ? (int)Math.Round(durationMs) : 0;
+
+            // [srcIdx, name, leftPct, widthPct, depth, durationMs]
+            spans.Add([srcIdx, name, leftPct, widthPct, depth, durMs]);
+
+            foreach (var child in node.Children)
+                FlattenNode(child, depth + 1);
+        }
+
+        foreach (var root in roots)
+            FlattenNode(root, 0);
+
+        return new FlameChartData(sources.ToArray(), spans.ToArray());
+    }
+
+    /// <summary>
+    /// Returns compact flame chart data with boundary markers for client-side rendering.
+    /// </summary>
+    public static FlameChartData GetFlameChartDataWithMarkers(
+        InternalFlowSegment segment,
+        (string Label, DateTimeOffset Timestamp)[] boundaryLogs)
+    {
+        var data = GetFlameChartData(segment);
+        if (data == FlameChartData.Empty)
+            return data;
+
+        var earliest = segment.Spans.Min(s => s.StartTimeUtc);
+        var latest = segment.Spans.Max(s => s.StartTimeUtc + s.Duration);
+        var totalMs = (latest - earliest).TotalMilliseconds;
+        if (totalMs <= 0) totalMs = 1;
+
+        var markers = new List<object[]>();
+        foreach (var (label, timestamp) in boundaryLogs)
+        {
+            var offsetMs = (timestamp.UtcDateTime - earliest).TotalMilliseconds;
+            if (offsetMs >= 0 && offsetMs <= totalMs)
+            {
+                var leftPct = Math.Round((offsetMs / totalMs) * 100, 2);
+                markers.Add([leftPct, label]);
+            }
+        }
+
+        return new FlameChartData(data.Sources, data.Spans, markers.Count > 0 ? markers.ToArray() : null);
+    }
+
+    /// <summary>
+    /// Returns compact flame chart data for a sequential test flame chart.
+    /// </summary>
+    public static SequentialFlameChartData GetSequentialFlameChartData(
+        Dictionary<string, InternalFlowSegment> wholeTestSegments)
+    {
+        if (wholeTestSegments.Count == 0)
+            return SequentialFlameChartData.Empty;
+
+        var globalSources = new List<string>();
+        var globalSourceIndex = new Dictionary<string, int>();
+        var bands = new List<object>();
+
+        foreach (var (key, segment) in wholeTestSegments.OrderBy(kv => kv.Value.StartTime))
+        {
+            if (segment.Spans.Length == 0) continue;
+
+            var bandData = GetFlameChartData(segment);
+            // Remap source indices to global list
+            var localToGlobal = new int[bandData.Sources.Length];
+            for (var i = 0; i < bandData.Sources.Length; i++)
+            {
+                if (!globalSourceIndex.TryGetValue(bandData.Sources[i], out var gIdx))
+                {
+                    gIdx = globalSources.Count;
+                    globalSourceIndex[bandData.Sources[i]] = gIdx;
+                    globalSources.Add(bandData.Sources[i]);
+                }
+                localToGlobal[i] = gIdx;
+            }
+
+            var remappedSpans = bandData.Spans.Select(s =>
+                new object[] { localToGlobal[(int)s[0]], s[1], s[2], s[3], s[4], s[5] }).ToArray();
+
+            bands.Add(new { id = segment.TestId, f = remappedSpans });
+        }
+
+        return new SequentialFlameChartData(globalSources.ToArray(), bands.ToArray());
+    }
+
+    /// <summary>
     /// Renders a flame chart as HTML horizontal bars showing relative duration.
     /// Each bar's width is proportional to the span's duration relative to the
     /// total segment time window.
@@ -274,6 +392,23 @@ public static class InternalFlowRenderer
 
         sb.AppendLine("</div>");
         return sb.ToString();
+    }
+
+    /// <summary>Compact flame chart data for client-side rendering.</summary>
+    /// <param name="Sources">Deduplicated source/component names.</param>
+    /// <param name="Spans">Each element: [srcIdx, name, leftPct, widthPct, depth, durationMs].</param>
+    /// <param name="Markers">Optional boundary markers: [leftPct, label].</param>
+    public record FlameChartData(string[] Sources, object[][] Spans, object[][]? Markers = null)
+    {
+        public static readonly FlameChartData Empty = new([], []);
+    }
+
+    /// <summary>Compact sequential flame chart data for client-side rendering.</summary>
+    /// <param name="Sources">Global deduplicated source/component names.</param>
+    /// <param name="Bands">Each element: { id, f: [[srcIdx, name, leftPct, widthPct, depth, durationMs], ...] }.</param>
+    public record SequentialFlameChartData(string[] Sources, object[] Bands)
+    {
+        public static readonly SequentialFlameChartData Empty = new([], []);
     }
 
     internal record SpanNode(Activity Span)

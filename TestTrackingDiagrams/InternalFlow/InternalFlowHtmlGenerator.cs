@@ -34,28 +34,42 @@ public static class InternalFlowHtmlGenerator
                 };
 
                 var content = mainContent;
+                object? flameData = null;
                 if (showFlameChart)
                 {
-                    var flameHtml = InternalFlowRenderer.RenderFlameChart(segment);
+                    flameData = InternalFlowRenderer.GetFlameChartData(segment);
+                    var flamePlaceholder = "<div class=\"iflow-flame\" data-diagram-type=\"flamechart\"></div>";
                     content = flameChartPosition switch
                     {
                         InternalFlowFlameChartPosition.Underneath =>
-                            mainContent + "<hr style=\"margin:12px 0\">" + flameHtml,
+                            mainContent + "<hr style=\"margin:12px 0\">" + flamePlaceholder,
                         _ => // BehindWithToggle
                             "<div class=\"iflow-toggle\">"
                             + "<button class=\"iflow-toggle-btn iflow-toggle-active\" data-view=\"main\">Activity</button>"
                             + "<button class=\"iflow-toggle-btn\" data-view=\"flame\">Flame Chart</button>"
                             + "</div>"
                             + "<div class=\"iflow-view iflow-view-main\">" + mainContent + "</div>"
-                            + "<div class=\"iflow-view iflow-view-flame\" style=\"display:none\">" + flameHtml + "</div>"
+                            + "<div class=\"iflow-view iflow-view-flame\" style=\"display:none\">" + flamePlaceholder + "</div>"
                     };
                 }
 
-                data[key] = new
+                if (flameData is InternalFlowRenderer.FlameChartData { Spans.Length: > 0 } fd)
                 {
-                    title = $"Internal Flow ({segment.Spans.Length} span{(segment.Spans.Length == 1 ? "" : "s")})",
-                    content
-                };
+                    data[key] = new
+                    {
+                        title = $"Internal Flow ({segment.Spans.Length} span{(segment.Spans.Length == 1 ? "" : "s")})",
+                        content,
+                        flameData = new { s = fd.Sources, f = fd.Spans }
+                    };
+                }
+                else
+                {
+                    data[key] = new
+                    {
+                        title = $"Internal Flow ({segment.Spans.Length} span{(segment.Spans.Length == 1 ? "" : "s")})",
+                        content
+                    };
+                }
             }
             else
             {
@@ -103,23 +117,40 @@ public static class InternalFlowHtmlGenerator
         switch (visualization)
         {
             case WholeTestFlowVisualization.FlameChart:
-                sb.Append(InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(segment, boundaryLogs));
+            {
+                var flameData = InternalFlowRenderer.GetFlameChartDataWithMarkers(segment, boundaryLogs);
+                var flameJson = JsonSerializer.Serialize(
+                    flameData.Markers != null
+                        ? (object)new { s = flameData.Sources, f = flameData.Spans, m = flameData.Markers }
+                        : new { s = flameData.Sources, f = flameData.Spans },
+                    new JsonSerializerOptions { WriteIndented = false });
+                var encodedJson = System.Net.WebUtility.HtmlEncode(flameJson);
+                sb.Append($"<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame=\"{encodedJson}\"></div>");
                 break;
+            }
 
             case WholeTestFlowVisualization.ActivityDiagram:
                 sb.Append(RenderWholeTestActivityDiagramHtml(segment));
                 break;
 
             case WholeTestFlowVisualization.Both:
+            {
                 var activityHtml = RenderWholeTestActivityDiagramHtml(segment);
-                var flameHtml = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(segment, boundaryLogs);
+                var flameData = InternalFlowRenderer.GetFlameChartDataWithMarkers(segment, boundaryLogs);
+                var flameJson = JsonSerializer.Serialize(
+                    flameData.Markers != null
+                        ? (object)new { s = flameData.Sources, f = flameData.Spans, m = flameData.Markers }
+                        : new { s = flameData.Sources, f = flameData.Spans },
+                    new JsonSerializerOptions { WriteIndented = false });
+                var encodedJson = System.Net.WebUtility.HtmlEncode(flameJson);
                 sb.Append("<div class=\"iflow-toggle\">");
                 sb.Append("<button class=\"iflow-toggle-btn iflow-toggle-active\" data-view=\"main\">Activity</button>");
                 sb.Append("<button class=\"iflow-toggle-btn\" data-view=\"flame\">Flame Chart</button>");
                 sb.Append("</div>");
                 sb.Append($"<div class=\"iflow-view iflow-view-main\">{activityHtml}</div>");
-                sb.Append($"<div class=\"iflow-view iflow-view-flame\" style=\"display:none\">{flameHtml}</div>");
+                sb.Append($"<div class=\"iflow-view iflow-view-flame\" style=\"display:none\"><div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame=\"{encodedJson}\"></div></div>");
                 break;
+            }
         }
 
         sb.AppendLine("</details>");

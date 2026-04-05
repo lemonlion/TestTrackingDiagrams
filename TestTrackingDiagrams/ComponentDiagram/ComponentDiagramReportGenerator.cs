@@ -128,6 +128,7 @@ public static class ComponentDiagramReportGenerator
                        + DiagramContextMenu.GetStyles();
             flowScripts = DiagramContextMenu.GetPlantUmlBrowserRenderScript()
                         + DiagramContextMenu.GetInternalFlowPopupScript()
+                        + DiagramContextMenu.GetFlameChartRenderScript()
                         + DiagramContextMenu.GetToggleScript()
                         + DiagramContextMenu.GetContextMenuScript();
 
@@ -176,12 +177,17 @@ public static class ComponentDiagramReportGenerator
                 sysSb.AppendLine("<button class=\"iflow-toggle-btn\" data-view=\"gantt\">Gantt</button>");
                 sysSb.AppendLine("</div>");
 
-                var flameHtml = InternalFlowRenderer.RenderSequentialTestFlameChart(wholeTestSegments);
+                var seqData = InternalFlowRenderer.GetSequentialFlameChartData(wholeTestSegments);
+                var seqJson = JsonSerializer.Serialize(
+                    new { s = seqData.Sources, b = seqData.Bands },
+                    new JsonSerializerOptions { WriteIndented = false });
+                var encodedSeqJson = System.Net.WebUtility.HtmlEncode(seqJson);
+
                 var ganttPuml = InternalFlowRenderer.RenderGantt(systemSegment);
                 var ganttId = "iflow-puml-system-gantt";
                 var ganttEncoded = System.Net.WebUtility.HtmlEncode(ganttPuml);
 
-                sysSb.AppendLine($"<div class=\"iflow-view iflow-view-flame\">{flameHtml}</div>");
+                sysSb.AppendLine($"<div class=\"iflow-view iflow-view-flame\"><div class=\"iflow-flame iflow-sequential-tests\" data-diagram-type=\"flamechart\" data-flame=\"{encodedSeqJson}\"></div></div>");
                 sysSb.AppendLine($"<div class=\"iflow-view iflow-view-gantt\" style=\"display:none\">");
                 sysSb.AppendLine($"<div class=\"plantuml-browser\" id=\"{ganttId}\" data-plantuml=\"{ganttEncoded}\" data-diagram-type=\"plantuml\">Loading...</div>");
                 sysSb.AppendLine("</div>");
