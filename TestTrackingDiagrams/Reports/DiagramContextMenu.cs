@@ -320,7 +320,10 @@ public static class DiagramContextMenu
                 var rect = svg.querySelector('rect');
                 if (rect) {
                     var fill = rect.getAttribute('fill');
-                    if (fill && fill !== 'none') return fill;
+                    if (fill && fill !== 'none' && fill !== 'transparent') return fill;
+                    var style = rect.getAttribute('style') || '';
+                    var m = style.match(/fill\s*:\s*([^;]+)/);
+                    if (m && m[1].trim() !== 'none' && m[1].trim() !== 'transparent') return m[1].trim();
                 }
                 return '#ffffff';
             }
@@ -344,7 +347,14 @@ public static class DiagramContextMenu
 
             function svgToCanvasWithBg(svg, callback) {
                 var bg = getBackgroundColor(svg);
-                var svgData = serializeSvg(svg);
+                var clone = svg.cloneNode(true);
+                var ns = 'http://www.w3.org/2000/svg';
+                var bgRect = document.createElementNS(ns, 'rect');
+                bgRect.setAttribute('width', '100%');
+                bgRect.setAttribute('height', '100%');
+                bgRect.setAttribute('fill', bg);
+                clone.insertBefore(bgRect, clone.firstChild);
+                var svgData = new XMLSerializer().serializeToString(clone);
                 var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
                 var img = new Image();
                 var scale = 2;
@@ -354,8 +364,6 @@ public static class DiagramContextMenu
                     canvas.height = img.naturalHeight * scale;
                     var ctx = canvas.getContext('2d');
                     ctx.scale(scale, scale);
-                    ctx.fillStyle = bg;
-                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
                     ctx.drawImage(img, 0, 0);
                     callback(canvas);
                 };
