@@ -19,7 +19,8 @@ public static class TestPageGenerator
     public static string GenerateIflowPopupTestPage(
         bool includeToggle = false,
         bool includeCallTree = false,
-        bool includeEmptySegment = false)
+        bool includeEmptySegment = false,
+        bool includeContextMenu = false)
     {
         using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.Selenium");
         using var listener = new ActivityListener
@@ -69,6 +70,9 @@ public static class TestPageGenerator
             ? DiagramContextMenu.GetPlantUmlBrowserRenderScript()
             : "";
 
+        var contextMenuScript = includeContextMenu ? DiagramContextMenu.GetContextMenuScript() : "";
+        var contextMenuStyles = includeContextMenu ? DiagramContextMenu.GetStyles() : "";
+
         parentSpan.Dispose();
         childSpan.Dispose();
 
@@ -79,8 +83,10 @@ public static class TestPageGenerator
                 <title>Selenium Test Page</title>
                 <style>
                     {{styles}}
+                    {{contextMenuStyles}}
                 </style>
                 {{plantUmlBrowserScript}}
+                {{contextMenuScript}}
                 <style>
                     body { font-family: sans-serif; padding: 20px; }
                     .test-trigger { padding: 10px 20px; cursor: pointer; margin: 5px; }

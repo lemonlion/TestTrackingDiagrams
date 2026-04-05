@@ -55,7 +55,7 @@ public static class InternalFlowRenderer
 
         var roots = BuildSpanTree(segment.Spans);
         var sb = new StringBuilder();
-        sb.AppendLine("<ul class=\"iflow-call-tree\">");
+        sb.AppendLine("<ul class=\"iflow-call-tree\" data-diagram-type=\"calltree\">");
         foreach (var root in roots)
             RenderTreeNode(sb, root);
         sb.AppendLine("</ul>");
@@ -126,7 +126,7 @@ public static class InternalFlowRenderer
         if (totalMs <= 0) totalMs = 1;
 
         var sb = new StringBuilder();
-        sb.AppendLine("<div class=\"iflow-flame\">");
+        sb.AppendLine("<div class=\"iflow-flame\" data-diagram-type=\"flamechart\">");
         foreach (var root in roots)
             RenderFlameNode(sb, root, earliest, totalMs, 0);
         sb.AppendLine("</div>");
@@ -174,7 +174,7 @@ public static class InternalFlowRenderer
         if (totalMs <= 0) totalMs = 1;
 
         var sb = new StringBuilder();
-        sb.AppendLine("<div class=\"iflow-flame\" style=\"position:relative\">");
+        sb.AppendLine("<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" style=\"position:relative\">");
 
         foreach (var (label, timestamp) in boundaryLogs)
         {
@@ -250,7 +250,7 @@ public static class InternalFlowRenderer
             return string.Empty;
 
         var sb = new StringBuilder();
-        sb.AppendLine("<div class=\"iflow-flame iflow-sequential-tests\">");
+        sb.AppendLine("<div class=\"iflow-flame iflow-sequential-tests\" data-diagram-type=\"flamechart\">");
 
         foreach (var (key, segment) in wholeTestSegments.OrderBy(kv => kv.Value.StartTime))
         {

@@ -450,4 +450,104 @@ public class IflowPopupTests : IDisposable
         var overlays = _driver.FindElements(By.CssSelector(".iflow-overlay"));
         Assert.Single(overlays);
     }
+
+    // ── Context menu ──
+
+    [Fact]
+    public void Context_menu_appears_on_activity_diagram_right_click()
+    {
+        var html = TestPageGenerator.GenerateIflowPopupTestPage(includeContextMenu: true);
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("trigger-seg-1")).Click();
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        var svg = WaitForActivityDiagramSvg(popup);
+
+        // Right-click on the SVG
+        RightClick(svg);
+
+        var menu = WaitFor(By.CssSelector(".diagram-ctx-menu"));
+        Assert.True(menu.Displayed);
+
+        var items = menu.FindElements(By.CssSelector("div"));
+        var itemTexts = items.Select(i => i.Text).ToList();
+
+        Assert.Contains("Copy as PNG", itemTexts);
+        Assert.Contains("Copy as PNG (no transparency)", itemTexts);
+        Assert.Contains("Save as PNG", itemTexts);
+        Assert.Contains("Save as PNG (no transparency)", itemTexts);
+        Assert.Contains("Copy as SVG", itemTexts);
+    }
+
+    [Fact]
+    public void Context_menu_z_index_is_above_popup_overlay()
+    {
+        var html = TestPageGenerator.GenerateIflowPopupTestPage(includeContextMenu: true);
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("trigger-seg-1")).Click();
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        var svg = WaitForActivityDiagramSvg(popup);
+
+        RightClick(svg);
+        var menu = WaitFor(By.CssSelector(".diagram-ctx-menu"));
+
+        var zIndex = GetComputedStyle(menu, "z-index");
+        Assert.Equal("20001", zIndex);
+    }
+
+    [Fact]
+    public void Context_menu_show_browser_menu_shows_toast()
+    {
+        var html = TestPageGenerator.GenerateIflowPopupTestPage(includeContextMenu: true);
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("trigger-seg-1")).Click();
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        var svg = WaitForActivityDiagramSvg(popup);
+
+        RightClick(svg);
+        var menu = WaitFor(By.CssSelector(".diagram-ctx-menu"));
+        var showBrowserItem = menu.FindElements(By.CssSelector("div"))
+            .First(d => d.Text.Contains("browser menu"));
+        showBrowserItem.Click();
+
+        // Menu should close and a toast notification should appear
+        Assert.True(WaitUntilGone(By.CssSelector(".diagram-ctx-menu")));
+        var toast = WaitFor(By.CssSelector(".diagram-ctx-toast"));
+        Assert.True(toast.Displayed);
+        Assert.Contains("right-click outside", toast.Text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Context_menu_on_flame_chart_has_png_only()
+    {
+        var html = TestPageGenerator.GenerateIflowPopupTestPage(includeToggle: true, includeContextMenu: true);
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("trigger-seg-1")).Click();
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        WaitForActivityDiagramSvg(popup);
+
+        // Switch to flame chart
+        var toggleBtns = popup.FindElements(By.CssSelector(".iflow-toggle-btn"));
+        toggleBtns[1].Click();
+
+        var flameBar = popup.FindElement(By.CssSelector(".iflow-flame-bar"));
+        RightClick(flameBar);
+
+        var menu = WaitFor(By.CssSelector(".diagram-ctx-menu"));
+        var items = menu.FindElements(By.CssSelector("div")).Select(i => i.Text).ToList();
+
+        // Flame charts should have PNG items but NOT SVG or source items
+        Assert.Contains("Copy as PNG", items);
+        Assert.Contains("Save as PNG", items);
+        Assert.DoesNotContain("Copy as SVG", items);
+        Assert.DoesNotContain("Copy PlantUML source", items);
+    }
+
+    private void RightClick(IWebElement element)
+    {
+        new OpenQA.Selenium.Interactions.Actions(_driver).ContextClick(element).Perform();
+    }
 }

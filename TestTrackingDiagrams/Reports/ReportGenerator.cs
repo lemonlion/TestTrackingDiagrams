@@ -290,8 +290,8 @@ public static class ReportGenerator
         var hasInteractiveDiagrams = isMermaid || isPlantUmlBrowser || isInlineSvg;
         var mermaidScript = isMermaid ? DiagramContextMenu.GetMermaidScript() : "";
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
-        var contextMenuScript = hasInteractiveDiagrams ? DiagramContextMenu.GetContextMenuScript() : "";
-        var contextMenuStyles = hasInteractiveDiagrams ? DiagramContextMenu.GetStyles() : "";
+        var contextMenuScript = hasInteractiveDiagrams || internalFlowTracking ? DiagramContextMenu.GetContextMenuScript() : "";
+        var contextMenuStyles = hasInteractiveDiagrams || internalFlowTracking ? DiagramContextMenu.GetStyles() : "";
         var inlineSvgStyles = isInlineSvg ? DiagramContextMenu.GetInlineSvgStyles() : "";
         var internalFlowPopupStyles = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupStyles() : "";
         var internalFlowPopupScript = internalFlowTracking ? DiagramContextMenu.GetInternalFlowPopupScript() : "";

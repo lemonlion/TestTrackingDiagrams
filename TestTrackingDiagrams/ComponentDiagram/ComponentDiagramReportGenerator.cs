@@ -124,10 +124,12 @@ public static class ComponentDiagramReportGenerator
 
         if (hasFlows)
         {
-            flowStyles = DiagramContextMenu.GetInternalFlowPopupStyles();
+            flowStyles = DiagramContextMenu.GetInternalFlowPopupStyles()
+                       + DiagramContextMenu.GetStyles();
             flowScripts = DiagramContextMenu.GetPlantUmlBrowserRenderScript()
                         + DiagramContextMenu.GetInternalFlowPopupScript()
-                        + DiagramContextMenu.GetToggleScript();
+                        + DiagramContextMenu.GetToggleScript()
+                        + DiagramContextMenu.GetContextMenuScript();
 
             var popupData = new Dictionary<string, object>();
 

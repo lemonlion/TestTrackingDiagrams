@@ -361,4 +361,42 @@ public class InternalFlowRendererTests : IDisposable
         Assert.Contains("op1", result);
         Assert.Contains("op2", result);
     }
+
+    // ── data-diagram-type attributes ──
+
+    [Fact]
+    public void RenderFlameChart_has_data_diagram_type_flamechart()
+    {
+        var span = CreateSpan("op", duration: TimeSpan.FromMilliseconds(10));
+        var result = InternalFlowRenderer.RenderFlameChart(MakeSegment(span));
+        Assert.Contains("data-diagram-type=\"flamechart\"", result);
+    }
+
+    [Fact]
+    public void RenderFlameChartWithBoundaryMarkers_has_data_diagram_type_flamechart()
+    {
+        var span = CreateSpan("op", duration: TimeSpan.FromMilliseconds(10));
+        var result = InternalFlowRenderer.RenderFlameChartWithBoundaryMarkers(MakeSegment(span), []);
+        Assert.Contains("data-diagram-type=\"flamechart\"", result);
+    }
+
+    [Fact]
+    public void RenderSequentialTestFlameChart_has_data_diagram_type_flamechart()
+    {
+        var span = CreateSpan("op", duration: TimeSpan.FromMilliseconds(10));
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-t"] = new(Guid.Empty, RequestResponseType.Request, "t", null, null, [span])
+        };
+        var result = InternalFlowRenderer.RenderSequentialTestFlameChart(segments);
+        Assert.Contains("data-diagram-type=\"flamechart\"", result);
+    }
+
+    [Fact]
+    public void RenderCallTree_has_data_diagram_type_calltree()
+    {
+        var span = CreateSpan("op");
+        var result = InternalFlowRenderer.RenderCallTree(MakeSegment(span));
+        Assert.Contains("data-diagram-type=\"calltree\"", result);
+    }
 }

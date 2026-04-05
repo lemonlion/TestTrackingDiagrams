@@ -10,7 +10,7 @@ public static class DiagramContextMenu
             border-radius: 4px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             padding: 4px 0;
-            z-index: 10000;
+            z-index: 20001;
             font: 13px -apple-system, 'Segoe UI', sans-serif;
             min-width: 200px;
         }
@@ -271,7 +271,6 @@ public static class DiagramContextMenu
         <script>
         (function() {
             var menu = null;
-            var skipNext = false;
 
             function findDiagramContainer(el) {
                 while (el) {
@@ -298,6 +297,15 @@ public static class DiagramContextMenu
                 return new XMLSerializer().serializeToString(svg);
             }
 
+            function getBackgroundColor(svg) {
+                var rect = svg.querySelector('rect');
+                if (rect) {
+                    var fill = rect.getAttribute('fill');
+                    if (fill && fill !== 'none') return fill;
+                }
+                return '#ffffff';
+            }
+
             function svgToCanvas(svg, callback) {
                 var svgData = serializeSvg(svg);
                 var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
@@ -312,6 +320,46 @@ public static class DiagramContextMenu
                     ctx.drawImage(img, 0, 0);
                     callback(canvas);
                 };
+                img.src = url;
+            }
+
+            function svgToCanvasWithBg(svg, callback) {
+                var bg = getBackgroundColor(svg);
+                var svgData = serializeSvg(svg);
+                var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                var img = new Image();
+                var scale = 2;
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth * scale;
+                    canvas.height = img.naturalHeight * scale;
+                    var ctx = canvas.getContext('2d');
+                    ctx.scale(scale, scale);
+                    ctx.fillStyle = bg;
+                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                    ctx.drawImage(img, 0, 0);
+                    callback(canvas);
+                };
+                img.src = url;
+            }
+
+            function htmlToCanvas(element, callback) {
+                var rect = element.getBoundingClientRect();
+                var scale = 2;
+                var canvas = document.createElement('canvas');
+                canvas.width = rect.width * scale;
+                canvas.height = rect.height * scale;
+                var ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                var svgNs = 'http://www.w3.org/2000/svg';
+                var fo = '<foreignObject width="' + rect.width + '" height="' + rect.height + '">'
+                    + '<body xmlns="http://www.w3.org/1999/xhtml" style="margin:0">'
+                    + element.outerHTML + '</body></foreignObject>';
+                var svgMarkup = '<svg xmlns="' + svgNs + '" width="' + rect.width + '" height="' + rect.height + '">' + fo + '</svg>';
+                var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgMarkup)));
+                var img = new Image();
+                img.onload = function() { ctx.drawImage(img, 0, 0); callback(canvas); };
+                img.onerror = function() { callback(canvas); };
                 img.src = url;
             }
 
@@ -334,14 +382,30 @@ public static class DiagramContextMenu
                 return document.createElement('hr');
             }
 
+            function showToast(message) {
+                var existing = document.querySelector('.diagram-ctx-toast');
+                if (existing) existing.remove();
+                var toast = document.createElement('div');
+                toast.className = 'diagram-ctx-toast';
+                toast.textContent = message;
+                toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:6px;font:13px -apple-system,sans-serif;z-index:30000;opacity:1;transition:opacity 0.5s';
+                document.body.appendChild(toast);
+                setTimeout(function() { toast.style.opacity = '0'; }, 2500);
+                setTimeout(function() { toast.remove(); }, 3000);
+            }
+
             document.addEventListener('contextmenu', function(e) {
-                if (skipNext) { skipNext = false; return; }
                 var container = findDiagramContainer(e.target);
                 if (!container) return;
-                var svg = getSvg(container);
-                if (!svg) return;
                 e.preventDefault();
                 closeMenu();
+
+                var diagramType = container.getAttribute('data-diagram-type');
+                var svg = getSvg(container);
+                var isHtmlContent = !svg && (diagramType === 'flamechart' || diagramType === 'calltree');
+
+                // Need either an SVG or a recognized HTML content type
+                if (!svg && !isHtmlContent) return;
 
                 var source = getSource(container);
                 var typeLabel = getTypeLabel(container);
@@ -349,58 +413,100 @@ public static class DiagramContextMenu
                 menu = document.createElement('div');
                 menu.className = 'diagram-ctx-menu';
 
-                menu.appendChild(createMenuItem('Copy as PNG', function() {
-                    svgToCanvas(svg, function(canvas) {
-                        canvas.toBlob(function(blob) {
-                            navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                        }, 'image/png');
-                    });
-                }));
-                menu.appendChild(createMenuItem('Copy as SVG', function() {
-                    navigator.clipboard.writeText(serializeSvg(svg));
-                }));
-                menu.appendChild(createMenuItem('Copy ' + typeLabel + ' source', function() {
-                    navigator.clipboard.writeText(source);
-                }));
-                menu.appendChild(createSeparator());
-                menu.appendChild(createMenuItem('Save as PNG', function() {
-                    svgToCanvas(svg, function(canvas) {
-                        canvas.toBlob(function(blob) {
-                            var a = document.createElement('a');
-                            a.href = URL.createObjectURL(blob);
-                            a.download = 'diagram.png';
-                            a.click();
-                            URL.revokeObjectURL(a.href);
-                        }, 'image/png');
-                    });
-                }));
-                menu.appendChild(createMenuItem('Save as SVG', function() {
-                    var blob = new Blob([serializeSvg(svg)], { type: 'image/svg+xml' });
-                    var a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = 'diagram.svg';
-                    a.click();
-                    URL.revokeObjectURL(a.href);
-                }));
-                menu.appendChild(createSeparator());
-                menu.appendChild(createMenuItem('Open as image in new tab', function() {
-                    var svgData = serializeSvg(svg);
-                    var b64 = btoa(unescape(encodeURIComponent(svgData)));
-                    var html = '<html><body style="margin:0;display:flex;justify-content:center;align-items:start;min-height:100vh;background:#f5f5f5"><img src="data:image/svg+xml;base64,' + b64 + '" style="max-width:100%"></body></html>';
-                    var blob = new Blob([html], { type: 'text/html' });
-                    window.open(URL.createObjectURL(blob));
-                }));
-                menu.appendChild(createMenuItem('Open ' + typeLabel + ' source in new tab', function() {
-                    var blob = new Blob([source], { type: 'text/plain' });
-                    window.open(URL.createObjectURL(blob));
-                }));
+                if (svg) {
+                    // Full SVG menu
+                    menu.appendChild(createMenuItem('Copy as PNG', function() {
+                        svgToCanvas(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Copy as PNG (no transparency)', function() {
+                        svgToCanvasWithBg(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Copy as SVG', function() {
+                        navigator.clipboard.writeText(serializeSvg(svg));
+                    }));
+                    if (source) {
+                        menu.appendChild(createMenuItem('Copy ' + typeLabel + ' source', function() {
+                            navigator.clipboard.writeText(source);
+                        }));
+                    }
+                    menu.appendChild(createSeparator());
+                    menu.appendChild(createMenuItem('Save as PNG', function() {
+                        svgToCanvas(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                var a = document.createElement('a');
+                                a.href = URL.createObjectURL(blob);
+                                a.download = 'diagram.png';
+                                a.click();
+                                URL.revokeObjectURL(a.href);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Save as PNG (no transparency)', function() {
+                        svgToCanvasWithBg(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                var a = document.createElement('a');
+                                a.href = URL.createObjectURL(blob);
+                                a.download = 'diagram.png';
+                                a.click();
+                                URL.revokeObjectURL(a.href);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Save as SVG', function() {
+                        var blob = new Blob([serializeSvg(svg)], { type: 'image/svg+xml' });
+                        var a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'diagram.svg';
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    }));
+                    menu.appendChild(createSeparator());
+                    menu.appendChild(createMenuItem('Open as image in new tab', function() {
+                        var svgData = serializeSvg(svg);
+                        var b64 = btoa(unescape(encodeURIComponent(svgData)));
+                        var html = '<html><body style="margin:0;display:flex;justify-content:center;align-items:start;min-height:100vh;background:#f5f5f5"><img src="data:image/svg+xml;base64,' + b64 + '" style="max-width:100%"></body></html>';
+                        var blob = new Blob([html], { type: 'text/html' });
+                        window.open(URL.createObjectURL(blob));
+                    }));
+                    if (source) {
+                        menu.appendChild(createMenuItem('Open ' + typeLabel + ' source in new tab', function() {
+                            var blob = new Blob([source], { type: 'text/plain' });
+                            window.open(URL.createObjectURL(blob));
+                        }));
+                    }
+                } else {
+                    // HTML content (flame chart, call tree) — PNG only
+                    menu.appendChild(createMenuItem('Copy as PNG', function() {
+                        htmlToCanvas(container, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Save as PNG', function() {
+                        htmlToCanvas(container, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                var a = document.createElement('a');
+                                a.href = URL.createObjectURL(blob);
+                                a.download = 'diagram.png';
+                                a.click();
+                                URL.revokeObjectURL(a.href);
+                            }, 'image/png');
+                        });
+                    }));
+                }
+
                 menu.appendChild(createSeparator());
                 menu.appendChild(createMenuItem('Show default browser menu', function() {
-                    skipNext = true;
-                    var evt = new MouseEvent('contextmenu', {
-                        bubbles: true, clientX: e.clientX, clientY: e.clientY
-                    });
-                    e.target.dispatchEvent(evt);
+                    showToast('To use the browser menu, right-click outside the diagram area.');
                 }));
 
                 document.body.appendChild(menu);
