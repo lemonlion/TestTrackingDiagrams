@@ -179,7 +179,8 @@ public static class InternalFlowHtmlGenerator
     {
         var sb = new StringBuilder();
 
-        if (style == InternalFlowDiagramStyle.CallTree)
+        const int maxActivityDiagramSpans = 2000;
+        if (style == InternalFlowDiagramStyle.CallTree || flowData.AggregatedSegment.Spans.Length > maxActivityDiagramSpans)
             sb.Append(InternalFlowRenderer.RenderCallTree(flowData.AggregatedSegment));
         else
             sb.Append(RenderActivityDiagramHtml(flowData.AggregatedSegment));

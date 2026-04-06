@@ -660,7 +660,21 @@ public static class DiagramContextMenu
                         diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
                             try {
                                 var lines = el.getAttribute('data-plantuml').split('\n');
+                                if (lines.length > 3000) {
+                                    el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
+                                        '<strong>Activity diagram too large for browser rendering (' + lines.length + ' lines).</strong><br>' +
+                                        'Use <code>CallTree</code> style for large relationship flows.</div>';
+                                    return;
+                                }
                                 window.plantuml.render(lines, el.id);
+                                setTimeout(function() {
+                                    var text = el.textContent || '';
+                                    if (text.indexOf('RuntimeException') >= 0 || text.indexOf('RangeError') >= 0) {
+                                        el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
+                                            '<strong>Activity diagram too large for browser rendering.</strong><br>' +
+                                            'Use <code>CallTree</code> style for large relationship flows.</div>';
+                                    }
+                                }, 100);
                             } catch(e) {
                                 el.textContent = 'Activity diagram too large for browser rendering. Use CallTree style instead.';
                                 el.style.color = '#c00';
