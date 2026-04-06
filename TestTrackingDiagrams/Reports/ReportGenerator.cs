@@ -181,6 +181,8 @@ public static class ReportGenerator
                              }
                              
                              function run_search_scenarios() {
+                                 let rc = document.getElementById('report-content');
+                                 rc.style.display = 'none';
                                  let input = document.getElementById('searchbar').value;
                                  input = input.toLowerCase().trim();
                              
@@ -203,8 +205,10 @@ public static class ReportGenerator
                                      }
                                  }
                              
-                                 if (searchTokens.length === 0)
+                                 if (searchTokens.length === 0) {
+                                     rc.style.display = '';
                                      return;
+                                 }
                              
                                  // Match at the scenario level
                                  let matchingScenarios = [];
@@ -257,6 +261,7 @@ public static class ReportGenerator
                                          features[i].classList.add('search-opened');
                                      }
                                  }
+                                 rc.style.display = '';
                              }
                              
                              function parseSearchTokensIncludingQuotes(str) {
@@ -290,6 +295,9 @@ public static class ReportGenerator
                                        }
                                        
                                        function filter_dependencies() {
+                                           var rc = document.getElementById('report-content');
+                                           rc.style.display = 'none';
+                                       
                                            var activeSet = new Set();
                                            document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) {
                                                activeSet.add(b.getAttribute('data-dependency'));
@@ -310,7 +318,7 @@ public static class ReportGenerator
                                                }
                                            }
                                        
-                                           if (activeSet.size === 0) return;
+                                           if (activeSet.size === 0) { rc.style.display = ''; return; }
                                        
                                            var activeArr = Array.from(activeSet);
                                            var featureVisibleCounts = new Map();
@@ -344,6 +352,8 @@ public static class ReportGenerator
                                                    f.classList.add('dep-opened');
                                                }
                                            }
+                                       
+                                           rc.style.display = '';
                                        }
                                        """;
 
@@ -356,6 +366,9 @@ public static class ReportGenerator
                                    }
                                    
                                    function filter_statuses() {
+                                       var rc = document.getElementById('report-content');
+                                       rc.style.display = 'none';
+                                   
                                        var activeSet = new Set();
                                        document.querySelectorAll('.status-toggle.status-active').forEach(function(b) {
                                            activeSet.add(b.getAttribute('data-status'));
@@ -376,7 +389,7 @@ public static class ReportGenerator
                                            }
                                        }
                                    
-                                       if (activeSet.size === 0) return;
+                                       if (activeSet.size === 0) { rc.style.display = ''; return; }
                                    
                                        var featureVisibleCounts = new Map();
                                        for (var i = 0; i < features.length; i++) featureVisibleCounts.set(features[i], 0);
@@ -401,6 +414,8 @@ public static class ReportGenerator
                                                f.classList.add('status-opened');
                                            }
                                        }
+                                   
+                                       rc.style.display = '';
                                    }
                                    """;
 
@@ -529,6 +544,7 @@ public static class ReportGenerator
         body.Append("</div>");
         var plantUmlBrowserCounter = 0;
 
+        body.Append("<div id=\"report-content\">");
         foreach (var feature in features)
         {
             body.Append($"""
@@ -637,6 +653,7 @@ public static class ReportGenerator
             }
             body.Append("</details>");
         }
+        body.Append("</div>");
 
         html += body;
         html += """
