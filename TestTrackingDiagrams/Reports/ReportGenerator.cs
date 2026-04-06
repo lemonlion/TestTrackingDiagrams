@@ -284,53 +284,64 @@ public static class ReportGenerator
         var dependencyFilterFunction = """
                                        function toggle_dependency(btn) {
                                            btn.classList.toggle('dependency-active');
-                                           filter_dependencies();
+                                           var features = document.getElementsByClassName('feature');
+                                           for (var i = 0; i < features.length; i++) features[i].style.opacity = '0.5';
+                                           requestAnimationFrame(function() { filter_dependencies(); });
                                        }
                                        
                                        function filter_dependencies() {
-                                           var active = [];
+                                           var activeSet = new Set();
                                            document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) {
-                                               active.push(b.getAttribute('data-dependency'));
+                                               activeSet.add(b.getAttribute('data-dependency'));
                                            });
                                        
                                            var scenarios = document.getElementsByClassName('scenario');
+                                           var features = document.getElementsByClassName('feature');
+                                       
                                            for (var i = 0; i < scenarios.length; i++) {
                                                scenarios[i].classList.remove('dep-hidden');
                                            }
-                                       
-                                           var features = document.getElementsByClassName('feature');
                                            for (var i = 0; i < features.length; i++) {
                                                features[i].classList.remove('dep-hidden');
+                                               features[i].style.opacity = '';
                                                if (features[i].classList.contains('dep-opened')) {
                                                    features[i].removeAttribute('open');
                                                    features[i].classList.remove('dep-opened');
                                                }
                                            }
                                        
-                                           if (active.length === 0) return;
+                                           if (activeSet.size === 0) return;
+                                       
+                                           var activeArr = Array.from(activeSet);
+                                           var featureVisibleCounts = new Map();
+                                           for (var i = 0; i < features.length; i++) featureVisibleCounts.set(features[i], 0);
                                        
                                            for (var i = 0; i < scenarios.length; i++) {
-                                               var deps = (scenarios[i].getAttribute('data-dependencies') || '').split(',').filter(function(d) { return d.length > 0; });
+                                               var s = scenarios[i];
+                                               var raw = s.getAttribute('data-dependencies') || '';
                                                var matchesAll = true;
-                                               for (var j = 0; j < active.length; j++) {
-                                                   if (deps.indexOf(active[j]) === -1) { matchesAll = false; break; }
+                                               if (raw.length > 0) {
+                                                   for (var j = 0; j < activeArr.length; j++) {
+                                                       if (raw.indexOf(activeArr[j]) === -1) { matchesAll = false; break; }
+                                                   }
+                                               } else {
+                                                   matchesAll = false;
                                                }
-                                               if (!matchesAll) scenarios[i].classList.add('dep-hidden');
+                                               if (!matchesAll) {
+                                                   s.classList.add('dep-hidden');
+                                               } else if (!s.classList.contains('search-hidden') && !s.classList.contains('status-hidden')) {
+                                                   var f = s.closest('.feature');
+                                                   if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
+                                               }
                                            }
                                        
                                            for (var i = 0; i < features.length; i++) {
-                                               var fScenarios = features[i].getElementsByClassName('scenario');
-                                               var hasVisible = false;
-                                               for (var k = 0; k < fScenarios.length; k++) {
-                                                   if (!fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden') && !fScenarios[k].classList.contains('status-hidden')) {
-                                                       hasVisible = true; break;
-                                                   }
-                                               }
-                                               if (!hasVisible) {
-                                                   features[i].classList.add('dep-hidden');
-                                               } else if (!features[i].hasAttribute('open')) {
-                                                   features[i].setAttribute('open', '');
-                                                   features[i].classList.add('dep-opened');
+                                               var f = features[i];
+                                               if ((featureVisibleCounts.get(f) || 0) === 0) {
+                                                   f.classList.add('dep-hidden');
+                                               } else if (!f.hasAttribute('open')) {
+                                                   f.setAttribute('open', '');
+                                                   f.classList.add('dep-opened');
                                                }
                                            }
                                        }
@@ -339,49 +350,55 @@ public static class ReportGenerator
         var statusFilterFunction = """
                                    function toggle_status(btn) {
                                        btn.classList.toggle('status-active');
-                                       filter_statuses();
+                                       var features = document.getElementsByClassName('feature');
+                                       for (var i = 0; i < features.length; i++) features[i].style.opacity = '0.5';
+                                       requestAnimationFrame(function() { filter_statuses(); });
                                    }
                                    
                                    function filter_statuses() {
-                                       var active = [];
+                                       var activeSet = new Set();
                                        document.querySelectorAll('.status-toggle.status-active').forEach(function(b) {
-                                           active.push(b.getAttribute('data-status'));
+                                           activeSet.add(b.getAttribute('data-status'));
                                        });
                                    
                                        var scenarios = document.getElementsByClassName('scenario');
+                                       var features = document.getElementsByClassName('feature');
+                                   
                                        for (var i = 0; i < scenarios.length; i++) {
                                            scenarios[i].classList.remove('status-hidden');
                                        }
-                                   
-                                       var features = document.getElementsByClassName('feature');
                                        for (var i = 0; i < features.length; i++) {
                                            features[i].classList.remove('status-hidden');
+                                           features[i].style.opacity = '';
                                            if (features[i].classList.contains('status-opened')) {
                                                features[i].removeAttribute('open');
                                                features[i].classList.remove('status-opened');
                                            }
                                        }
                                    
-                                       if (active.length === 0) return;
+                                       if (activeSet.size === 0) return;
+                                   
+                                       var featureVisibleCounts = new Map();
+                                       for (var i = 0; i < features.length; i++) featureVisibleCounts.set(features[i], 0);
                                    
                                        for (var i = 0; i < scenarios.length; i++) {
-                                           var status = scenarios[i].getAttribute('data-status') || '';
-                                           if (active.indexOf(status) === -1) scenarios[i].classList.add('status-hidden');
+                                           var s = scenarios[i];
+                                           var status = s.getAttribute('data-status') || '';
+                                           if (!activeSet.has(status)) {
+                                               s.classList.add('status-hidden');
+                                           } else if (!s.classList.contains('dep-hidden') && !s.classList.contains('search-hidden')) {
+                                               var f = s.closest('.feature');
+                                               if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
+                                           }
                                        }
                                    
                                        for (var i = 0; i < features.length; i++) {
-                                           var fScenarios = features[i].getElementsByClassName('scenario');
-                                           var hasVisible = false;
-                                           for (var k = 0; k < fScenarios.length; k++) {
-                                               if (!fScenarios[k].classList.contains('status-hidden') && !fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden')) {
-                                                   hasVisible = true; break;
-                                               }
-                                           }
-                                           if (!hasVisible) {
-                                               features[i].classList.add('status-hidden');
-                                           } else if (!features[i].hasAttribute('open')) {
-                                               features[i].setAttribute('open', '');
-                                               features[i].classList.add('status-opened');
+                                           var f = features[i];
+                                           if ((featureVisibleCounts.get(f) || 0) === 0) {
+                                               f.classList.add('status-hidden');
+                                           } else if (!f.hasAttribute('open')) {
+                                               f.setAttribute('open', '');
+                                               f.classList.add('status-opened');
                                            }
                                        }
                                    }
