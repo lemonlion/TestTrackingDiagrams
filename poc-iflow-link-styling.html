@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>iflow-link-hover POC</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+h2 { margin-top: 2em; }
+.test-case { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px; }
+.test-case h3 { margin-top: 0; }
+pre { background: #f5f5f5; padding: 10px; font-size: 12px; overflow-x: auto; }
+#debug { margin-top: 2em; background: #ffffcc; padding: 15px; border-radius: 8px; }
+
+/* === Current CSS from DiagramContextMenu.cs (v2.0.35+) === */
+svg a.iflow-link-hover, svg text.iflow-link-hover { cursor: default; }
+svg a.iflow-link-hover:hover, svg text.iflow-link-hover:hover { cursor: pointer; }
+svg a.iflow-link-hover:hover text { fill: #0000EE; text-decoration: underline; }
+svg text.iflow-link-hover:hover { fill: #0000EE; text-decoration: underline; }
+
+/* === FIX CANDIDATES TO TEST === */
+/* Candidate A: Force fill on text inside iflow-link-hover anchors */
+/*
+svg a.iflow-link-hover text { fill: #000 !important; text-decoration: none !important; }
+svg a.iflow-link-hover:hover text { fill: #0000EE !important; text-decoration: underline !important; }
+*/
+
+/* Candidate B: Target the anchor itself with !important */
+/*
+svg a.iflow-link-hover { fill: inherit !important; color: inherit !important; text-decoration: none !important; }
+svg a.iflow-link-hover:hover { fill: #0000EE !important; text-decoration: underline !important; }
+*/
+</style>
+
+<script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/viz-global.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/plantuml.js"></script>
+<script>plantumlLoad();</script>
+</head>
+<body>
+
+<h1>iflow-link-hover POC - Link Styling Debug</h1>
+<p>This page renders PlantUML diagrams client-side with plantuml.js, then applies iflow link processing.
+Request links should look like <strong>normal black text</strong> by default and only show blue/underline on hover.</p>
+
+<h2>Test 1: With removeAttribute fix (current v2.0.35 approach)</h2>
+<div class="test-case">
+    <h3>Expected: Request labels should be black, not blue. Blue + underline only on hover.</h3>
+    <div class="plantuml-browser" id="puml-fix1" data-plantuml='@startuml
+!pragma teoz true
+skinparam wrapWidth 800
+autonumber 1
+actor "Caller" as caller
+entity "OrderService" as orderService
+entity "PaymentGateway" as paymentGateway
+caller -> orderService: [[#iflow-seg1 POST: /orders]]
+orderService -> paymentGateway: [[#iflow-seg2 POST: /payments/authorize]]
+paymentGateway --> orderService: 200 OK
+orderService --> caller: 201 Created
+@enduml'>Loading...</div>
+</div>
+
+<h2>Test 2: With additional inline style override</h2>
+<div class="test-case">
+    <h3>Expected: Same diagram, but with inline style fix applied via JS</h3>
+    <div class="plantuml-browser" id="puml-fix2" data-plantuml='@startuml
+!pragma teoz true
+skinparam wrapWidth 800
+autonumber 1
+actor "Caller" as caller
+entity "TransactionService" as transactionService
+entity "RateCardService" as rateCardService
+caller -> transactionService: [[#iflow-seg3 GET: /account/123/available-credit]]
+transactionService -> rateCardService: [[#iflow-seg4 GET: /merchants/456/rate-cards]]
+rateCardService --> transactionService: 200 OK
+transactionService --> caller: 200 OK
+@enduml'>Loading...</div>
+</div>
+
+<h2>Test 3: No links (control - should look normal)</h2>
+<div class="test-case">
+    <h3>Expected: Normal diagram with no link styling at all</h3>
+    <div class="plantuml-browser" id="puml-control" data-plantuml='@startuml
+autonumber 1
+actor "Caller" as caller
+entity "OrderService" as orderService
+caller -> orderService: POST: /orders
+orderService --> caller: 201 Created
+@enduml'>Loading...</div>
+</div>
+
+<div id="debug">
+    <h3>Debug Output</h3>
+    <pre id="debug-log"></pre>
+</div>
+
+<script>
+// Fake iflow segments so the bind function finds them
+window.__iflowSegments = {
+    'iflow-seg1': { calls: [] },
+    'iflow-seg2': { calls: [] },
+    'iflow-seg3': { calls: [] },
+    'iflow-seg4': { calls: [] }
+};
+window.__iflowConfig = { hasDataBehavior: 'showLinkOnHover' };
+
+var logEl = document.getElementById('debug-log');
+function log(msg) { logEl.textContent += msg + '\n'; }
+
+function dumpAnchorState(container, label) {
+    var anchors = container.querySelectorAll('a');
+    log('\n=== ' + label + ' ===');
+    log('Total <a> elements: ' + anchors.length);
+    anchors.forEach(function(a, i) {
+        var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '(none)';
+        var fill = a.getAttribute('fill') || '(none)';
+        var style = a.getAttribute('style') || '(none)';
+        var cls = a.getAttribute('class') || '(none)';
+        var textEl = a.querySelector('text');
+        var textFill = textEl ? (textEl.getAttribute('fill') || '(none)') : 'N/A';
+        var textStyle = textEl ? (textEl.getAttribute('style') || '(none)') : 'N/A';
+        var textContent = textEl ? textEl.textContent.trim().substring(0, 60) : 'N/A';
+        log('  <a>[' + i + '] href=' + href + ' fill=' + fill + ' style=' + style + ' class=' + cls);
+        log('    <text> fill=' + textFill + ' style=' + textStyle + ' content="' + textContent + '"');
+        if (textEl) {
+            var computed = window.getComputedStyle(textEl);
+            log('    computed fill=' + computed.fill + ' color=' + computed.color + ' text-decoration=' + computed.textDecoration);
+        }
+    });
+
+    // Also dump ALL text elements to see link rendering
+    var texts = container.querySelectorAll('text');
+    log('Total <text> elements: ' + texts.length);
+    texts.forEach(function(t, i) {
+        var content = t.textContent.trim();
+        if (!content || content.length < 2) return;
+        var fill = t.getAttribute('fill') || '(none)';
+        var style = t.getAttribute('style') || '(none)';
+        var textDecor = t.getAttribute('text-decoration') || '(none)';
+        var parent = t.parentElement ? t.parentElement.tagName : '(none)';
+        var parentAttrs = '';
+        if (t.parentElement) {
+            var p = t.parentElement;
+            parentAttrs = ' href=' + (p.getAttribute('xlink:href') || p.getAttribute('href') || '(none)');
+            parentAttrs += ' fill=' + (p.getAttribute('fill') || '(none)');
+            parentAttrs += ' style=' + (p.getAttribute('style') || '(none)');
+        }
+        var computed = window.getComputedStyle(t);
+        log('  <text>[' + i + '] fill=' + fill + ' style=' + style + ' text-decoration=' + textDecor + ' parent=<' + parent + parentAttrs + '>');
+        log('    content="' + content.substring(0, 80) + '"');
+        log('    computed: fill=' + computed.fill + ' color=' + computed.color + ' textDecor=' + computed.textDecoration);
+    });
+}
+
+// Known iflow link labels (simulating extractIflowMap)
+var iflowMap = {
+    'POST: /orders': 'iflow-seg1',
+    'POST: /payments/authorize': 'iflow-seg2',
+    'GET: /account/123/available-credit': 'iflow-seg3',
+    'GET: /merchants/456/rate-cards': 'iflow-seg4'
+};
+var iflowLabels = Object.keys(iflowMap);
+
+// Approach 1: Override inline SVG attributes on <text> elements (NEW fix)
+function bindFix1(container) {
+    container.querySelectorAll('text').forEach(function(textEl) {
+        var txt = textEl.textContent.replace(/\s+/g, ' ').trim();
+        if (!txt) return;
+        for (var i = 0; i < iflowLabels.length; i++) {
+            if (txt === iflowLabels[i]) {
+                var segId = iflowMap[iflowLabels[i]];
+                if (!window.__iflowSegments[segId]) break;
+                textEl.style.pointerEvents = 'all';
+                var origFill = textEl.getAttribute('fill');
+                textEl.setAttribute('fill', '#000000');
+                textEl.removeAttribute('text-decoration');
+                textEl.style.cursor = 'default';
+                textEl.addEventListener('mouseenter', function() {
+                    textEl.setAttribute('fill', origFill || '#0000FF');
+                    textEl.setAttribute('text-decoration', 'underline');
+                    textEl.style.cursor = 'pointer';
+                });
+                textEl.addEventListener('mouseleave', function() {
+                    textEl.setAttribute('fill', '#000000');
+                    textEl.removeAttribute('text-decoration');
+                    textEl.style.cursor = 'default';
+                });
+                textEl.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    log('Clicked: ' + segId);
+                });
+                break;
+            }
+        }
+    });
+}
+
+// Approach 2: Same fix, duplicate to verify consistency
+function bindFix2(container) {
+    bindFix1(container);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var renderQueue = [];
+    var rendering = false;
+
+    function processQueue() {
+        if (rendering || renderQueue.length === 0) return;
+        rendering = true;
+        var item = renderQueue.shift();
+        var lines = item.source.split('\n');
+
+        var mo = new MutationObserver(function() {
+            mo.disconnect();
+            log('Rendered: ' + item.el.id);
+
+            // Dump state BEFORE any fix
+            dumpAnchorState(item.el, item.el.id + ' BEFORE fix');
+
+            // Apply the appropriate fix
+            item.fix(item.el);
+
+            // Dump state AFTER fix
+            dumpAnchorState(item.el, item.el.id + ' AFTER fix');
+
+            rendering = false;
+            processQueue();
+        });
+        mo.observe(item.el, { childList: true, subtree: true });
+
+        try {
+            window.plantuml.render(lines, item.el.id);
+        } catch(e) {
+            mo.disconnect();
+            item.el.textContent = 'Render error: ' + e.message;
+            rendering = false;
+            processQueue();
+        }
+    }
+
+    // Queue all test cases
+    var el1 = document.getElementById('puml-fix1');
+    renderQueue.push({ el: el1, source: el1.getAttribute('data-plantuml'), fix: bindFix1 });
+
+    var el2 = document.getElementById('puml-fix2');
+    renderQueue.push({ el: el2, source: el2.getAttribute('data-plantuml'), fix: bindFix2 });
+
+    var el3 = document.getElementById('puml-control');
+    renderQueue.push({ el: el3, source: el3.getAttribute('data-plantuml'), fix: function() {} });
+
+    processQueue();
+});
+</script>
+
+</body>
+</html>

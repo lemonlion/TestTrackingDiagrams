@@ -254,7 +254,20 @@ public static class DiagramContextMenu
                                 if (!iflowData[segId]) break;
                                 textEl.style.pointerEvents = 'all';
                                 if (hoverOnly) {
-                                    textEl.classList.add('iflow-link-hover');
+                                    var origFill = textEl.getAttribute('fill');
+                                    textEl.setAttribute('fill', '#000000');
+                                    textEl.removeAttribute('text-decoration');
+                                    textEl.style.cursor = 'default';
+                                    textEl.addEventListener('mouseenter', function() {
+                                        textEl.setAttribute('fill', origFill || '#0000FF');
+                                        textEl.setAttribute('text-decoration', 'underline');
+                                        textEl.style.cursor = 'pointer';
+                                    });
+                                    textEl.addEventListener('mouseleave', function() {
+                                        textEl.setAttribute('fill', '#000000');
+                                        textEl.removeAttribute('text-decoration');
+                                        textEl.style.cursor = 'default';
+                                    });
                                 } else {
                                     textEl.style.cursor = 'pointer';
                                 }
