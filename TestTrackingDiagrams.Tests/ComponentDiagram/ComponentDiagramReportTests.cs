@@ -7,6 +7,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.ComponentDiagram;
 
+[Collection("DiagramsFetcher")]
 public class ComponentDiagramReportTests : IDisposable
 {
     private readonly string _reportDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
