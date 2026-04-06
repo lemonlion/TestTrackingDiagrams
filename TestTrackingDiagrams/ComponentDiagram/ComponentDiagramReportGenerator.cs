@@ -221,7 +221,7 @@ public static class ComponentDiagramReportGenerator
                             $"<td>{relStats.MedianMs:F0}ms</td>" +
                             $"<td>{relStats.P95Ms:F0}ms</td>" +
                             $"<td>{relStats.P99Ms:F0}ms</td>" +
-                            $"<td{errorStyle}>{relStats.ErrorRate:P0}</td></tr>");
+                            $"<td{errorStyle}>{relStats.ErrorRate * 100:F0}%</td></tr>");
                     }
 
                     sysSb.AppendLine("</table>");

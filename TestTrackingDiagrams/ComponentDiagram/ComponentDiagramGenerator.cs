@@ -93,7 +93,7 @@ public static partial class ComponentDiagramGenerator
                 var statsPart = $"P50: {relStats.MedianMs:F0}ms | P95: {relStats.P95Ms:F0}ms | P99: {relStats.P99Ms:F0}ms";
 
                 var errorPart = relStats.ErrorRate > 0
-                    ? $" | {relStats.ErrorRate:P0} errors"
+                    ? $" | {relStats.ErrorRate * 100:F0}% errors"
                     : "";
 
                 label = $"[[#iflow-rel-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Caller)}-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Service)} {methodsPart}]]\\n{statsPart}{errorPart}\\n{rel.CallCount} calls across {rel.TestCount} tests";
