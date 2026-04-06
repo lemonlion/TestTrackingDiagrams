@@ -245,41 +245,65 @@ public static class DiagramContextMenu
                     var iflowMap = extractIflowMap(source);
                     var labels = Object.keys(iflowMap);
                     if (labels.length === 0) return;
-                    container.querySelectorAll('text').forEach(function(textEl) {
-                        var txt = textEl.textContent.replace(/\s+/g, ' ').trim();
-                        if (!txt) return;
-                        for (var i = 0; i < labels.length; i++) {
-                            if (txt === labels[i]) {
-                                var segId = iflowMap[labels[i]];
-                                if (!iflowData[segId]) break;
-                                textEl.style.pointerEvents = 'all';
-                                if (hoverOnly) {
-                                    var origFill = textEl.getAttribute('fill');
-                                    textEl.setAttribute('fill', '#000000');
-                                    textEl.removeAttribute('text-decoration');
-                                    textEl.style.cursor = 'default';
-                                    textEl.addEventListener('mouseenter', function() {
-                                        textEl.setAttribute('fill', origFill || '#0000FF');
-                                        textEl.setAttribute('text-decoration', 'underline');
-                                        textEl.style.cursor = 'pointer';
-                                    });
-                                    textEl.addEventListener('mouseleave', function() {
-                                        textEl.setAttribute('fill', '#000000');
-                                        textEl.removeAttribute('text-decoration');
-                                        textEl.style.cursor = 'default';
-                                    });
-                                } else {
-                                    textEl.style.cursor = 'pointer';
-                                }
-                                textEl.addEventListener('click', function(ev) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    if (window._iflowShowPopup) window._iflowShowPopup(segId);
-                                });
-                                bound++;
-                                break;
-                            }
+                    var allTexts = Array.from(container.querySelectorAll('text'));
+                    var blueIndices = new Set();
+                    allTexts.forEach(function(t, idx) {
+                        if ((t.getAttribute('fill') || '').toLowerCase() === '#0000ff') {
+                            blueIndices.add(idx);
+                            t.setAttribute('fill', '#000000');
+                            t.removeAttribute('text-decoration');
                         }
+                    });
+                    var groups = [];
+                    var curGrp = [];
+                    var sorted = Array.from(blueIndices).sort(function(a, b) { return a - b; });
+                    for (var gi = 0; gi < sorted.length; gi++) {
+                        if (curGrp.length === 0 || sorted[gi] === curGrp[curGrp.length - 1] + 1) {
+                            curGrp.push(sorted[gi]);
+                        } else {
+                            groups.push(curGrp);
+                            curGrp = [sorted[gi]];
+                        }
+                    }
+                    if (curGrp.length > 0) groups.push(curGrp);
+                    groups.forEach(function(group) {
+                        var combined = group.map(function(idx) { return allTexts[idx].textContent.trim(); }).join(' ');
+                        var segId = null;
+                        for (var li = 0; li < labels.length; li++) {
+                            if (combined === labels[li]) { segId = iflowMap[labels[li]]; break; }
+                        }
+                        if (!segId || !iflowData[segId]) return;
+                        var groupEls = group.map(function(idx) { return allTexts[idx]; });
+                        groupEls.forEach(function(textEl) {
+                            textEl.style.pointerEvents = 'all';
+                            if (hoverOnly) {
+                                textEl.style.cursor = 'default';
+                                textEl.addEventListener('mouseenter', function() {
+                                    groupEls.forEach(function(el) {
+                                        el.setAttribute('fill', '#0000FF');
+                                        el.setAttribute('text-decoration', 'underline');
+                                        el.style.cursor = 'pointer';
+                                    });
+                                });
+                                textEl.addEventListener('mouseleave', function() {
+                                    groupEls.forEach(function(el) {
+                                        el.setAttribute('fill', '#000000');
+                                        el.removeAttribute('text-decoration');
+                                        el.style.cursor = 'default';
+                                    });
+                                });
+                            } else {
+                                textEl.setAttribute('fill', '#0000FF');
+                                textEl.setAttribute('text-decoration', 'underline');
+                                textEl.style.cursor = 'pointer';
+                            }
+                            textEl.addEventListener('click', function(ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                if (window._iflowShowPopup) window._iflowShowPopup(segId);
+                            });
+                        });
+                        bound++;
                     });
                 }
                 var observer = new IntersectionObserver(function(entries) {
