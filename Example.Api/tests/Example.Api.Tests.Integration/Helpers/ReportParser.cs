@@ -29,8 +29,18 @@ public static class ReportParser
         using var context = BrowsingContext.New(config);
         using var document = await context.OpenAsync(req => req.Content(html));
 
-        return document.QuerySelectorAll("div.raw-plantuml pre")
+        // Server-rendered mode: raw-plantuml pre
+        var sources = document.QuerySelectorAll("div.raw-plantuml pre")
             .Select(el => WebUtility.HtmlDecode(el.InnerHtml).Trim())
+            .Where(s => s.Length > 0)
+            .ToArray();
+
+        if (sources.Length > 0)
+            return sources;
+
+        // BrowserJs / InlineSvg mode: data-plantuml attribute
+        return document.QuerySelectorAll("[data-plantuml]")
+            .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
             .Where(s => s.Length > 0)
             .ToArray();
     }
@@ -55,6 +65,15 @@ public static class ReportParser
                 .Select(el => el.TextContent.Trim())
                 .Where(s => s.Length > 0)
                 .ToArray();
+
+            // BrowserJs / InlineSvg fallback
+            if (plantUmlSources.Length == 0)
+            {
+                plantUmlSources = scenario.QuerySelectorAll("[data-plantuml]")
+                    .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
+                    .Where(s => s.Length > 0)
+                    .ToArray();
+            }
 
             results.Add(new ParsedScenario(name, isHappyPath, plantUmlSources));
         }

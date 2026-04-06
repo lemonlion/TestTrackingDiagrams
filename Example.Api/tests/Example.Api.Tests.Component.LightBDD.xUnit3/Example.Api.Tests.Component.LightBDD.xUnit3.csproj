@@ -28,7 +28,6 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
-	  <PackageReference Include="LightBDD.Contrib.ProgressNotifierEnhancements" Version="0.2.0" />
 	  <PackageReference Include="LightBDD.TabularAttributes" Version="1.3.2" />
 	  <PackageReference Include="LightBDD.XUnit3" Version="3.12.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />

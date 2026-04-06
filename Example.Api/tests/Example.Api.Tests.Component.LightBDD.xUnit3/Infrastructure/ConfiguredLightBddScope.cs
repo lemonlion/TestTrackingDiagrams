@@ -2,7 +2,6 @@ using System.Reflection;
 using Example.Api.Tests.Component.LightBDD.xUnit3.Infrastructure;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.Shared.HttpFakes;
-using LightBDD.Contrib.ProgressNotifierEnhancements;
 using LightBDD.Core.Configuration;
 using LightBDD.Framework.Configuration;
 using LightBDD.XUnit3;
@@ -37,7 +36,7 @@ public class ConfiguredLightBddScope : LightBddScope
         configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(testAssembly, reportOptions);
 
         // To stop the output repeating the step name for each step
-        configuration.ProgressNotifierConfiguration().Clear().Append(new ConfigurableProgressNotifier());
+        configuration.ProgressNotifierConfiguration().Clear();
 
         configuration.ExecutionExtensionsConfiguration()
                 .RegisterGlobalTearDown("dispose factory", BaseFixture.DisposeFactory)
