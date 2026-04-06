@@ -156,5 +156,42 @@ public class Stylesheets
                 .search-hidden {
                     display: none !important;
                 }
+                
+                .dep-hidden {
+                    display: none !important;
+                }
+                
+                .dependency-filters {
+                    margin-top: 0.5em;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 0.3em;
+                }
+                
+                .dependency-filters-label {
+                    font-weight: bold;
+                    margin-right: 0.3em;
+                }
+                
+                .dependency-toggle {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+                
+                .dependency-toggle:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+                
+                .dependency-toggle.dependency-active {
+                    background: rgb(66, 133, 244);
+                    color: white;
+                    border-color: rgb(66, 133, 244);
+                }
         """;
 }

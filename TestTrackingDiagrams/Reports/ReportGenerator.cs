@@ -281,6 +281,61 @@ public static class ReportGenerator
                              }
                              """;
 
+        var dependencyFilterFunction = """
+                                       function toggle_dependency(btn) {
+                                           btn.classList.toggle('dependency-active');
+                                           filter_dependencies();
+                                       }
+                                       
+                                       function filter_dependencies() {
+                                           var active = [];
+                                           document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) {
+                                               active.push(b.getAttribute('data-dependency'));
+                                           });
+                                       
+                                           var scenarios = document.getElementsByClassName('scenario');
+                                           for (var i = 0; i < scenarios.length; i++) {
+                                               scenarios[i].classList.remove('dep-hidden');
+                                           }
+                                       
+                                           var features = document.getElementsByClassName('feature');
+                                           for (var i = 0; i < features.length; i++) {
+                                               features[i].classList.remove('dep-hidden');
+                                               if (features[i].classList.contains('dep-opened')) {
+                                                   features[i].removeAttribute('open');
+                                                   features[i].classList.remove('dep-opened');
+                                               }
+                                           }
+                                       
+                                           if (active.length === 0) return;
+                                       
+                                           for (var i = 0; i < scenarios.length; i++) {
+                                               var deps = (scenarios[i].getAttribute('data-dependencies') || '').split(',').filter(function(d) { return d.length > 0; });
+                                               var matchesAll = true;
+                                               for (var j = 0; j < active.length; j++) {
+                                                   if (deps.indexOf(active[j]) === -1) { matchesAll = false; break; }
+                                               }
+                                               if (!matchesAll) scenarios[i].classList.add('dep-hidden');
+                                           }
+                                       
+                                           for (var i = 0; i < features.length; i++) {
+                                               var fScenarios = features[i].getElementsByClassName('scenario');
+                                               var hasVisible = false;
+                                               for (var k = 0; k < fScenarios.length; k++) {
+                                                   if (!fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden')) {
+                                                       hasVisible = true; break;
+                                                   }
+                                               }
+                                               if (!hasVisible) {
+                                                   features[i].classList.add('dep-hidden');
+                                               } else if (!features[i].hasAttribute('open')) {
+                                                   features[i].setAttribute('open', '');
+                                                   features[i].classList.add('dep-opened');
+                                               }
+                                           }
+                                       }
+                                       """;
+
         var combinedStylesheet = $"""
                                  {Stylesheets.HtmlReportStyleSheet}
                                  {stylesheet}
@@ -312,6 +367,7 @@ public static class ReportGenerator
                             <script>
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
+                                {{dependencyFilterFunction}}
                             </script>
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
@@ -353,15 +409,42 @@ public static class ReportGenerator
                     """);
         }
 
+        var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
+
+        // Extract dependencies per scenario from diagram source code
+        var scenarioDependencies = new Dictionary<string, HashSet<string>>();
+        var allDependencies = new HashSet<string>();
+        foreach (var feature in features)
+        foreach (var scenario in feature.Scenarios)
+        {
+            var deps = new HashSet<string>();
+            foreach (var diagram in diagramsByTestId[scenario.Id])
+            {
+                foreach (var dep in ExtractDependencies(diagram.CodeBehind, diagramFormat))
+                    deps.Add(dep);
+            }
+            scenarioDependencies[scenario.Id] = deps;
+            foreach (var d in deps) allDependencies.Add(d);
+        }
+
         body.Append($"""
                  <div class="filters">
                     <label for="toggle-happy-paths">Show Only Happy Paths</label>
                     <input id="toggle-happy-paths" type="checkbox" onchange="toggleHappyPaths(this.checked)" />
                     <div><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
-                 </div>
                  """);
 
-        var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
+        if (allDependencies.Count > 0)
+        {
+            body.Append("""<div class="dependency-filters"><span class="dependency-filters-label">Dependencies:</span>""");
+            foreach (var dep in allDependencies.OrderBy(d => d))
+            {
+                body.Append($"""<button class="dependency-toggle" data-dependency="{System.Net.WebUtility.HtmlEncode(dep)}" onclick="toggle_dependency(this)">{System.Net.WebUtility.HtmlEncode(dep)}</button>""");
+            }
+            body.Append("</div>");
+        }
+
+        body.Append("</div>");
         var plantUmlBrowserCounter = 0;
 
         foreach (var feature in features)
@@ -376,8 +459,11 @@ public static class ReportGenerator
             foreach (var scenario in orderedScenarios)
             {
                 var failed = scenario.Result == ScenarioResult.Failed;
+                var depsAttr = scenarioDependencies.TryGetValue(scenario.Id, out var deps) && deps.Count > 0
+                    ? $" data-dependencies=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", deps.OrderBy(d => d)))}\""
+                    : "";
                 body.Append($"""
-                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}">
+                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}>
                             <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
                          """);
 
@@ -579,5 +665,37 @@ public static class ReportGenerator
             }
             return filtered.ToArray();
         }
+    }
+
+    internal static HashSet<string> ExtractDependencies(string codeBehind, DiagramFormat format)
+    {
+        var deps = new HashSet<string>();
+        if (string.IsNullOrEmpty(codeBehind)) return deps;
+
+        foreach (var line in codeBehind.Split('\n'))
+        {
+            var trimmed = line.Trim();
+
+            if (format == DiagramFormat.PlantUml)
+            {
+                // Match: entity "ServiceName" as alias  OR  participant "ServiceName" as alias
+                // Skip: actor "Caller" as caller (these are the test caller, not a dependency)
+                var match = System.Text.RegularExpressions.Regex.Match(trimmed,
+                    @"^(?:entity|participant)\s+""([^""]+)""\s+as\s+");
+                if (match.Success)
+                    deps.Add(match.Groups[1].Value);
+            }
+            else // Mermaid
+            {
+                // Match: participant ServiceName
+                // Skip: actor Caller
+                var match = System.Text.RegularExpressions.Regex.Match(trimmed,
+                    @"^participant\s+(\S+)");
+                if (match.Success)
+                    deps.Add(match.Groups[1].Value);
+            }
+        }
+
+        return deps;
     }
 }
