@@ -165,10 +165,19 @@ When enabled, two additional files are generated alongside your existing reports
 - **Stats-driven labels** — Relationship arrows show P50 / P95 / P99 latency percentiles, error rates, and call counts
 - **Hotspot colouring** — Arrows are colour-coded by P95 latency (green < 50ms, orange 50–200ms, red > 200ms)
 - **Low-coverage warnings** — Relationships with few calls use dashed arrows
-- **Performance summary table** — Aggregated stats for every relationship
+- **Sortable performance summary table** — Aggregated stats for every relationship with click-to-sort columns and expandable per-endpoint breakdown rows
+- **Latency distribution bar chart** — Horizontal bar chart with Mean / P50 / P95 / P99 toggle buttons
+- **Latency variance (CV)** — Coefficient of Variation column in the performance table, colour-coded green (consistent) / orange / red (highly variable)
+- **Outlier detection** — Automatically flags tests with latency > mean + 2σ, showing a badge in the table and a dedicated section with threshold, count, and top 5 outlier tests
+- **Latency contribution** — Stacked bar showing what percentage of total test time each dependency consumes, averaged across all tests
+- **Request method distribution** — Colour-coded stacked bars showing GET / POST / PUT / DELETE / PATCH split per relationship (hidden when all calls use the same method)
+- **Error correlation** — Pairwise co-occurrence analysis: when relationship A errors, how often does B also error (≥50% threshold)
+- **Call ordering patterns** — Aggregates per-test call sequences into patterns like "80% of tests call Auth before Orders" (≥3 samples, ≥60% dominant)
+- **Status code distribution** — Per-relationship breakdown of HTTP status codes
+- **Payload size analysis** — Request and response mean/P95 payload sizes per relationship
+- **Concurrent call detection** — Identifies relationships with overlapping in-flight calls within the same test
 - **Interactive focus mode** — Click a service node to dim unrelated nodes (requires `PlantUmlRendering.BrowserJs`)
 - **Diff mode** — Compare component diagrams between test runs via `ComponentDiagramDiffer.Compare()`
-- **Capped flame chart** — System flow shows the slowest N tests (configurable, default 50)
 
 ### Example Output
 
