@@ -30,9 +30,13 @@ public static class DiagramContextMenu
         """;
 
     public static string GetInlineSvgStyles() => """
-        .plantuml-inline-svg svg {
+        .plantuml-inline-svg svg,
+        .plantuml-browser svg {
             max-width: 100%;
             height: auto;
+        }
+        .plantuml-browser {
+            overflow-x: auto;
         }
         """;
 
@@ -151,8 +155,12 @@ public static class DiagramContextMenu
         .iflow-rel-summary-table th { text-align: left; padding: 4px 8px; border-bottom: 2px solid #ddd; color: #555; }
         .iflow-rel-summary-table td { padding: 4px 8px; border-bottom: 1px solid #eee; cursor: pointer; }
         .iflow-rel-summary-table tr:hover td { background: #f0f4ff; }
-        svg a.iflow-link-hover, svg text.iflow-link-hover { cursor: default; }
-        svg a.iflow-link-hover:hover, svg text.iflow-link-hover:hover { cursor: pointer; }
+        svg a.iflow-link-hover { cursor: default; text-decoration: none; fill: inherit; color: inherit; }
+        svg a.iflow-link-hover text { fill: inherit; }
+        svg text.iflow-link-hover { cursor: default; }
+        svg a.iflow-link-hover:hover { cursor: pointer; text-decoration: underline; }
+        svg a.iflow-link-hover:hover text { fill: #0000EE; }
+        svg text.iflow-link-hover:hover { cursor: pointer; fill: #0000EE; text-decoration: underline; }
         """;
 
     public static string GetInternalFlowConfigScript(InternalFlowHasDataBehavior hasDataBehavior) =>
