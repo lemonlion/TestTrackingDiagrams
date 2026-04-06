@@ -32,7 +32,7 @@ public static class ComponentDiagramReportGenerator
         var stats = ComponentFlowSegmentBuilder.ComputeRelationshipStats(
             relationships, logsArray, options.LowCoverageThreshold);
 
-        var plantUml = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats: stats.Count > 0 ? stats : null);
+        var plantUml = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats: stats.Count > 0 ? stats : null, useC4: !useBrowserJs);
 
         var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
         Directory.CreateDirectory(directory);

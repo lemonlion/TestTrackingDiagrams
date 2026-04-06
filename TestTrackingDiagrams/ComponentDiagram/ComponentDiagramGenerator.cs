@@ -40,13 +40,45 @@ public static partial class ComponentDiagramGenerator
     public static string GeneratePlantUml(
         ComponentRelationship[] relationships,
         ComponentDiagramOptions? options = null,
-        Dictionary<string, RelationshipStats>? stats = null)
+        Dictionary<string, RelationshipStats>? stats = null,
+        bool useC4 = true)
     {
         options ??= new ComponentDiagramOptions();
         var sb = new StringBuilder();
 
         sb.AppendLine("@startuml");
-        sb.AppendLine("!include <C4/C4_Context>");
+
+        if (useC4)
+        {
+            sb.AppendLine("!include <C4/C4_Context>");
+        }
+        else
+        {
+            sb.AppendLine("skinparam defaultTextAlignment center");
+            sb.AppendLine("skinparam wrapWidth 200");
+            sb.AppendLine("skinparam shadowing false");
+            sb.AppendLine("skinparam rectangle<<person>> {");
+            sb.AppendLine("  BackgroundColor #08427B");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #073B6F");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #08427B");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam rectangle<<system>> {");
+            sb.AppendLine("  BackgroundColor #438DD5");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #3C7FC0");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #438DD5");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam arrow {");
+            sb.AppendLine("  Color #666666");
+            sb.AppendLine("  FontColor #666666");
+            sb.AppendLine("  FontSize 11");
+            sb.AppendLine("}");
+        }
 
         if (!string.IsNullOrWhiteSpace(options.PlantUmlTheme))
             sb.AppendLine($"!theme {options.PlantUmlTheme}");
@@ -65,10 +97,19 @@ public static partial class ComponentDiagramGenerator
         foreach (var participant in allParticipants)
         {
             var alias = SanitizeAlias(participant);
-            if (pureCallers.Contains(participant))
-                sb.AppendLine($"Person({alias}, \"{participant}\")");
+            if (useC4)
+            {
+                if (pureCallers.Contains(participant))
+                    sb.AppendLine($"Person({alias}, \"{participant}\")");
+                else
+                    sb.AppendLine($"System({alias}, \"{participant}\")");
+            }
             else
-                sb.AppendLine($"System({alias}, \"{participant}\")");
+            {
+                var stereotype = pureCallers.Contains(participant) ? "person" : "system";
+                var typeLabel = pureCallers.Contains(participant) ? "Person" : "Software System";
+                sb.AppendLine($"rectangle \"**{participant}**\\n<size:10>[{typeLabel}]</size>\" as {alias} <<{stereotype}>>");
+            }
         }
 
         sb.AppendLine();
@@ -126,10 +167,20 @@ public static partial class ComponentDiagramGenerator
                 }
             }
 
-            if (!string.IsNullOrEmpty(color))
-                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\", $tags=\"{color}\")");
+            if (useC4)
+            {
+                if (!string.IsNullOrEmpty(color))
+                    sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\", $tags=\"{color}\")");
+                else
+                    sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\")");
+            }
             else
-                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\")");
+            {
+                if (!string.IsNullOrEmpty(color))
+                    sb.AppendLine($"{callerAlias} -[{color}]-> {serviceAlias} : \"{label}\"");
+                else
+                    sb.AppendLine($"{callerAlias} --> {serviceAlias} : \"{label}\"");
+            }
         }
 
         sb.AppendLine();

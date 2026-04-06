@@ -107,12 +107,12 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var puml = File.ReadAllText(result.PumlFilePath);
-        Assert.Contains("Person(", puml);
+        // Default is BrowserJs which uses plain PlantUML
+        Assert.Contains("rectangle", puml);
         Assert.Contains("WebApp", puml);
-        Assert.Contains("System(", puml);
         Assert.Contains("OrderService", puml);
         Assert.Contains("PaymentService", puml);
-        Assert.Contains("Rel(", puml);
+        Assert.Contains("-->", puml);
     }
 
     [Fact]
@@ -137,8 +137,9 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var html = File.ReadAllText(result.HtmlFilePath);
-        // The stdlib include uses angle brackets which get HTML-encoded in the data attribute
-        Assert.Contains("C4/C4_Context", html);
+        // BrowserJs default: plain PlantUML with skinparams, no C4 includes
+        Assert.Contains("skinparam", html);
+        Assert.DoesNotContain("C4_Context", html);
         Assert.DoesNotContain("raw.githubusercontent.com", html);
     }
 
@@ -189,7 +190,7 @@ public class ComponentDiagramReportTests : IDisposable
     }
 
     [Fact]
-    public void GenerateComponentDiagramReport_PumlFile_UsesC4Context()
+    public void GenerateComponentDiagramReport_PumlFile_UsesPlainPlantUmlByDefault()
     {
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
@@ -197,8 +198,10 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var puml = File.ReadAllText(result.PumlFilePath);
-        Assert.Contains("!include <C4/C4_Context>", puml);
-        Assert.DoesNotContain("C4_Component", puml);
+        // Default BrowserJs mode uses plain PlantUML, no C4
+        Assert.DoesNotContain("!include", puml);
+        Assert.Contains("skinparam", puml);
+        Assert.Contains("rectangle", puml);
     }
 
     // ── Relationship Flow Integration ──
@@ -543,5 +546,44 @@ public class ComponentDiagramReportTests : IDisposable
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.DoesNotContain("focusNode", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_BrowserJs_DoesNotContainC4Include()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = new ComponentDiagramOptions(),
+                PlantUmlRendering = PlantUmlRendering.BrowserJs
+            });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("!include", html);
+        Assert.DoesNotContain("C4_Context", html);
+        Assert.DoesNotContain("Person(", html);
+        Assert.DoesNotContain("System(", html);
+        // Should contain the browser-compatible skinparam styling instead
+        Assert.Contains("skinparam", html);
+        Assert.Contains("rectangle", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_Server_ContainsC4Include()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = new ComponentDiagramOptions(),
+                PlantUmlRendering = PlantUmlRendering.Server
+            });
+
+        var puml = File.ReadAllText(result.PumlFilePath);
+        Assert.Contains("!include <C4/C4_Context>", puml);
+        Assert.Contains("Person(", puml);
     }
 }

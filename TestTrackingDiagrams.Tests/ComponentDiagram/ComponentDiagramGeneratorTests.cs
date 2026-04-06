@@ -711,4 +711,104 @@ public class ComponentDiagramGeneratorTests
         // Low coverage should use dashed line or warning indicator
         Assert.Contains("..>", result); // dashed arrow in PlantUML
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // useC4=false — browser-compatible plain PlantUML output
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_DoesNotContainC4Include()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.DoesNotContain("!include", result);
+        Assert.DoesNotContain("C4_Context", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_DoesNotContainC4Macros()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.DoesNotContain("Person(", result);
+        Assert.DoesNotContain("System(", result);
+        Assert.DoesNotContain("Rel(", result);
+        Assert.DoesNotContain("$tags=", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_UsesRectangleWithStereotypes()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("<<person>>", result);
+        Assert.Contains("<<system>>", result);
+        Assert.Contains("rectangle", result);
+        Assert.Contains("[Person]", result);
+        Assert.Contains("[Software System]", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_IncludesC4SkinparamStyling()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("BackgroundColor #08427B", result);  // Person color
+        Assert.Contains("BackgroundColor #438DD5", result);  // System color
+        Assert.Contains("RoundCorner 25", result);
+        Assert.Contains("skinparam arrow", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_UsesPlainArrowsWithColor()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-Caller-OrderService"] = new(1, 1, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats, useC4: false);
+
+        Assert.Contains("-[#Green]->", result);
+        Assert.DoesNotContain("Rel(", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_PlainArrowWithoutStats()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("-->", result);
+        Assert.DoesNotContain("Rel(", result);
+    }
 }

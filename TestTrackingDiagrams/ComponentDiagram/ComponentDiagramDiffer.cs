@@ -69,11 +69,59 @@ public static partial class ComponentDiagramDiffer
             regressions.ToArray(), improvements.ToArray());
     }
 
-    public static string GenerateDiffPlantUml(DiffResult diff, string title = "Component Diagram Diff")
+    public static string GenerateDiffPlantUml(DiffResult diff, string title = "Component Diagram Diff", bool useC4 = true)
     {
         var sb = new StringBuilder();
         sb.AppendLine("@startuml");
-        sb.AppendLine("!include <C4/C4_Context>");
+
+        if (useC4)
+        {
+            sb.AppendLine("!include <C4/C4_Context>");
+        }
+        else
+        {
+            sb.AppendLine("skinparam defaultTextAlignment center");
+            sb.AppendLine("skinparam wrapWidth 200");
+            sb.AppendLine("skinparam shadowing false");
+            sb.AppendLine("skinparam rectangle<<person>> {");
+            sb.AppendLine("  BackgroundColor #08427B");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #073B6F");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #08427B");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam rectangle<<system>> {");
+            sb.AppendLine("  BackgroundColor #438DD5");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #3C7FC0");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #438DD5");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam rectangle<<newService>> {");
+            sb.AppendLine("  BackgroundColor #LimeGreen");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #2E8B57");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #LimeGreen");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam rectangle<<removedService>> {");
+            sb.AppendLine("  BackgroundColor #Red");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #B22222");
+            sb.AppendLine("  RoundCorner 25");
+            sb.AppendLine("  StereotypeFontColor #Red");
+            sb.AppendLine("  StereotypeFontSize 0");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam arrow {");
+            sb.AppendLine("  Color #666666");
+            sb.AppendLine("  FontColor #666666");
+            sb.AppendLine("  FontSize 11");
+            sb.AppendLine("}");
+        }
+
         sb.AppendLine();
         sb.AppendLine($"title {title}");
         sb.AppendLine();
@@ -90,14 +138,30 @@ public static partial class ComponentDiagramDiffer
         foreach (var participant in allParticipants)
         {
             var alias = SanitizeAlias(participant);
-            var kind = pureCallers.Contains(participant) ? "Person" : "System";
 
-            if (newServiceSet.Contains(participant))
-                sb.AppendLine($"{kind}({alias}, \"{participant}\", $tags=\"#LimeGreen\")");
-            else if (removedServiceSet.Contains(participant))
-                sb.AppendLine($"{kind}({alias}, \"{participant}\", $tags=\"#Red\")");
+            if (useC4)
+            {
+                var kind = pureCallers.Contains(participant) ? "Person" : "System";
+
+                if (newServiceSet.Contains(participant))
+                    sb.AppendLine($"{kind}({alias}, \"{participant}\", $tags=\"#LimeGreen\")");
+                else if (removedServiceSet.Contains(participant))
+                    sb.AppendLine($"{kind}({alias}, \"{participant}\", $tags=\"#Red\")");
+                else
+                    sb.AppendLine($"{kind}({alias}, \"{participant}\")");
+            }
             else
-                sb.AppendLine($"{kind}({alias}, \"{participant}\")");
+            {
+                var typeLabel = pureCallers.Contains(participant) ? "Person" : "Software System";
+                string stereotype;
+                if (newServiceSet.Contains(participant))
+                    stereotype = "newService";
+                else if (removedServiceSet.Contains(participant))
+                    stereotype = "removedService";
+                else
+                    stereotype = pureCallers.Contains(participant) ? "person" : "system";
+                sb.AppendLine($"rectangle \"**{participant}**\\n<size:10>[{typeLabel}]</size>\" as {alias} <<{stereotype}>>");
+            }
         }
 
         sb.AppendLine();
@@ -107,7 +171,10 @@ public static partial class ComponentDiagramDiffer
         {
             var callerAlias = SanitizeAlias(rel.Caller);
             var serviceAlias = SanitizeAlias(rel.Service);
-            sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"unchanged\")");
+            if (useC4)
+                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"unchanged\")");
+            else
+                sb.AppendLine($"{callerAlias} --> {serviceAlias} : \"unchanged\"");
         }
 
         // Added (green)
@@ -115,7 +182,10 @@ public static partial class ComponentDiagramDiffer
         {
             var callerAlias = SanitizeAlias(rel.Caller);
             var serviceAlias = SanitizeAlias(rel.Service);
-            sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"NEW\", $tags=\"#LimeGreen\")");
+            if (useC4)
+                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"NEW\", $tags=\"#LimeGreen\")");
+            else
+                sb.AppendLine($"{callerAlias} -[#LimeGreen]-> {serviceAlias} : \"NEW\"");
         }
 
         // Removed (red, dashed)
