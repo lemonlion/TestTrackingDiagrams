@@ -322,7 +322,7 @@ public static class ReportGenerator
                                                var fScenarios = features[i].getElementsByClassName('scenario');
                                                var hasVisible = false;
                                                for (var k = 0; k < fScenarios.length; k++) {
-                                                   if (!fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden')) {
+                                                   if (!fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden') && !fScenarios[k].classList.contains('status-hidden')) {
                                                        hasVisible = true; break;
                                                    }
                                                }
@@ -335,6 +335,57 @@ public static class ReportGenerator
                                            }
                                        }
                                        """;
+
+        var statusFilterFunction = """
+                                   function toggle_status(btn) {
+                                       btn.classList.toggle('status-active');
+                                       filter_statuses();
+                                   }
+                                   
+                                   function filter_statuses() {
+                                       var active = [];
+                                       document.querySelectorAll('.status-toggle.status-active').forEach(function(b) {
+                                           active.push(b.getAttribute('data-status'));
+                                       });
+                                   
+                                       var scenarios = document.getElementsByClassName('scenario');
+                                       for (var i = 0; i < scenarios.length; i++) {
+                                           scenarios[i].classList.remove('status-hidden');
+                                       }
+                                   
+                                       var features = document.getElementsByClassName('feature');
+                                       for (var i = 0; i < features.length; i++) {
+                                           features[i].classList.remove('status-hidden');
+                                           if (features[i].classList.contains('status-opened')) {
+                                               features[i].removeAttribute('open');
+                                               features[i].classList.remove('status-opened');
+                                           }
+                                       }
+                                   
+                                       if (active.length === 0) return;
+                                   
+                                       for (var i = 0; i < scenarios.length; i++) {
+                                           var status = scenarios[i].getAttribute('data-status') || '';
+                                           if (active.indexOf(status) === -1) scenarios[i].classList.add('status-hidden');
+                                       }
+                                   
+                                       for (var i = 0; i < features.length; i++) {
+                                           var fScenarios = features[i].getElementsByClassName('scenario');
+                                           var hasVisible = false;
+                                           for (var k = 0; k < fScenarios.length; k++) {
+                                               if (!fScenarios[k].classList.contains('status-hidden') && !fScenarios[k].classList.contains('dep-hidden') && !fScenarios[k].classList.contains('search-hidden')) {
+                                                   hasVisible = true; break;
+                                               }
+                                           }
+                                           if (!hasVisible) {
+                                               features[i].classList.add('status-hidden');
+                                           } else if (!features[i].hasAttribute('open')) {
+                                               features[i].setAttribute('open', '');
+                                               features[i].classList.add('status-opened');
+                                           }
+                                       }
+                                   }
+                                   """;
 
         var combinedStylesheet = $"""
                                  {Stylesheets.HtmlReportStyleSheet}
@@ -368,6 +419,7 @@ public static class ReportGenerator
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
                                 {{dependencyFilterFunction}}
+                                {{statusFilterFunction}}
                             </script>
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
@@ -444,6 +496,19 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
+        // Status filter toggles (only show buttons for statuses that exist)
+        var allStatuses = features.SelectMany(f => f.Scenarios).Select(s => s.Result).Distinct().OrderBy(s => s).ToArray();
+        if (allStatuses.Length > 1)
+        {
+            body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
+            foreach (var status in allStatuses)
+            {
+                var statusName = status.ToString();
+                body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
+            }
+            body.Append("</div>");
+        }
+
         body.Append("</div>");
         var plantUmlBrowserCounter = 0;
 
@@ -462,8 +527,9 @@ public static class ReportGenerator
                 var depsAttr = scenarioDependencies.TryGetValue(scenario.Id, out var deps) && deps.Count > 0
                     ? $" data-dependencies=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", deps.OrderBy(d => d)))}\""
                     : "";
+                var statusAttr = $" data-status=\"{scenario.Result}\"";
                 body.Append($"""
-                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}>
+                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}>
                             <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
                          """);
 
