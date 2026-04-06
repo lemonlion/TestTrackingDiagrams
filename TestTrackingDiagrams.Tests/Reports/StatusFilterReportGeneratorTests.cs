@@ -58,13 +58,13 @@ public class StatusFilterReportGeneratorTests
     }
 
     [Fact]
-    public void Report_only_shows_status_buttons_for_statuses_present()
+    public void Report_always_shows_all_status_buttons()
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
         var content = GenerateReport(features, "StatusFilterOnlyPresent.html");
         Assert.Contains("data-status=\"Passed\"", content);
-        // No "Failed" button since no failed scenarios
-        Assert.DoesNotContain(">Failed</button>", content);
+        Assert.Contains(">Failed</button>", content);
+        Assert.Contains(">Skipped</button>", content);
     }
 
     [Fact]
@@ -108,12 +108,12 @@ public class StatusFilterReportGeneratorTests
     }
 
     [Fact]
-    public void Report_shows_skipped_toggle_only_when_skipped_scenarios_exist()
+    public void Report_always_shows_skipped_toggle_even_when_no_skipped_scenarios()
     {
         var features = MakeFeatures(
             ("t1", "Create order", ScenarioResult.Passed),
             ("t2", "Fail order", ScenarioResult.Failed));
         var content = GenerateReport(features, "StatusFilterNoSkipped.html");
-        Assert.DoesNotContain(">Skipped</button>", content);
+        Assert.Contains(">Skipped</button>", content);
     }
 }

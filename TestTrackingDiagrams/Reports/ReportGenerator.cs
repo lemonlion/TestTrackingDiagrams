@@ -528,12 +528,11 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
-        // Status filter toggles (only show buttons for statuses that exist)
+        // Status filter toggles (always show all three statuses)
         var allStatuses = features.SelectMany(f => f.Scenarios).Select(s => s.Result).Distinct().OrderBy(s => s).ToArray();
-        if (allStatuses.Length > 1)
         {
             body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
-            foreach (var status in allStatuses)
+            foreach (var status in Enum.GetValues<ScenarioResult>().OrderBy(s => s))
             {
                 var statusName = status.ToString();
                 body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
