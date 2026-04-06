@@ -46,7 +46,7 @@ public static partial class ComponentDiagramGenerator
         var sb = new StringBuilder();
 
         sb.AppendLine("@startuml");
-        sb.AppendLine("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml");
+        sb.AppendLine("!include <C4/C4_Context>");
 
         if (!string.IsNullOrWhiteSpace(options.PlantUmlTheme))
             sb.AppendLine($"!theme {options.PlantUmlTheme}");

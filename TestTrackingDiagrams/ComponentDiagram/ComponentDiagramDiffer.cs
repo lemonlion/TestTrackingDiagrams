@@ -73,7 +73,7 @@ public static partial class ComponentDiagramDiffer
     {
         var sb = new StringBuilder();
         sb.AppendLine("@startuml");
-        sb.AppendLine("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml");
+        sb.AppendLine("!include <C4/C4_Context>");
         sb.AppendLine();
         sb.AppendLine($"title {title}");
         sb.AppendLine();

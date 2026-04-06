@@ -136,9 +136,9 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var html = File.ReadAllText(result.HtmlFilePath);
-        // The URL-based include should render correctly in browser (no angle brackets to escape)
-        Assert.Contains("C4_Context.puml", html);
-        Assert.DoesNotContain("<C4/", html);
+        // The stdlib include uses angle brackets which get HTML-encoded in the data attribute
+        Assert.Contains("C4/C4_Context", html);
+        Assert.DoesNotContain("raw.githubusercontent.com", html);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var puml = File.ReadAllText(result.PumlFilePath);
-        Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", puml);
+        Assert.Contains("!include <C4/C4_Context>", puml);
         Assert.DoesNotContain("C4_Component", puml);
     }
 

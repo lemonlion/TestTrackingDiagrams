@@ -506,8 +506,22 @@ public class ComponentDiagramGeneratorTests
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
 
-        Assert.Contains("!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml", result);
+        Assert.Contains("!include <C4/C4_Context>", result);
         Assert.DoesNotContain("C4_Component", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_DoesNotUseRemoteIncludes()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.DoesNotContain("!include http", result);
+        Assert.Contains("!include <C4/", result);
     }
 
     [Fact]

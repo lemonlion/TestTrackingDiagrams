@@ -152,4 +152,14 @@ public class ComponentDiagramDifferTests
 
         Assert.Contains("#LimeGreen", puml);
     }
+
+    [Fact]
+    public void GenerateDiffPlantUml_DoesNotUseRemoteIncludes()
+    {
+        var diff = ComponentDiagramDiffer.Compare([], new[] { Rel("A", "B") });
+        var puml = ComponentDiagramDiffer.GenerateDiffPlantUml(diff);
+
+        Assert.DoesNotContain("!include http", puml);
+        Assert.Contains("!include <C4/", puml);
+    }
 }
