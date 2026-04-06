@@ -49,6 +49,7 @@ public class StubDbConnection : DbConnection
         DataSource = dataSource;
     }
 
+    [AllowNull]
     public override string ConnectionString { get; set; } = "";
     public override string Database { get; }
     public override string DataSource { get; }

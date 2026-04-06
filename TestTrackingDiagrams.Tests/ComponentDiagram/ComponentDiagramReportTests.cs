@@ -284,13 +284,9 @@ public class ComponentDiagramReportTests : IDisposable
             perBoundarySegments: perBoundary);
 
         var html = File.ReadAllText(result.HtmlFilePath);
-        var dataIndex = html.IndexOf("window.__iflowSegments =");
-        var popupIndex = html.IndexOf("var iflowData = window.__iflowSegments");
-        Assert.True(dataIndex > 0, "__iflowSegments assignment not found");
-        Assert.True(popupIndex > 0, "iflowData capture not found");
-        Assert.True(dataIndex < popupIndex,
-            $"Data script (index {dataIndex}) must appear before popup script (index {popupIndex}) " +
-            "so the IIFE captures the populated data instead of an empty object");
+        // Relationship flows section removed — popup infrastructure should not be populated
+        Assert.DoesNotContain("<h2>Relationship Flows</h2>", html);
+        Assert.DoesNotContain("<ul class=\"iflow-rel-list\"", html);
     }
 
     [Fact]
@@ -340,9 +336,9 @@ public class ComponentDiagramReportTests : IDisposable
             wholeTestSegments: wholeTestSegments);
 
         var html = File.ReadAllText(result.HtmlFilePath);
-        Assert.Contains("System Flow", html);
-        Assert.Contains("iflow-sequential-tests", html);
-        Assert.Contains("iflow-toggle", html);
+        // Without stats (no request/response timestamp pairs), System Flow section is not rendered
+        // wholeTestSegments alone no longer triggers the flame chart (removed)
+        Assert.DoesNotContain("class=\"iflow-flame iflow-sequential-tests\"", html);
     }
 
     [Fact]
@@ -585,5 +581,395 @@ public class ComponentDiagramReportTests : IDisposable
         var puml = File.ReadAllText(result.PumlFilePath);
         Assert.Contains("!include <C4/C4_Context>", puml);
         Assert.Contains("Person(", puml);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Left-to-right direction
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PlantUml_ContainsLeftToRight()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var puml = File.ReadAllText(result.PumlFilePath);
+        Assert.Contains("left to right direction", puml);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PlantUML source section removed
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_Html_DoesNotContainPlantUmlSourceSection()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("<summary><strong>PlantUML Source</strong></summary>", html);
+        Assert.DoesNotContain("diagram-container", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Sortable performance summary table
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_HasSortableHeaders()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("sortable", html);
+        Assert.Contains("data-sort-col", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_IncludesSortScript()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("sortTable", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_HeadersHaveSortDataAttributes()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        // Each column header should have a data-sort-col attribute with its index
+        Assert.Contains("data-sort-col=\"0\"", html); // Relationship
+        Assert.Contains("data-sort-col=\"1\"", html); // Calls
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_CellsHaveDataSortValues()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("data-sort-value=", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Endpoint breakdown expandable rows
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_HasEndpointBreakdownRows()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("endpoint-row", html);
+        Assert.Contains("/api", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_EndpointRowsInitiallyHidden()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("endpoint-row", html);
+        Assert.Contains("display:none", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_RelationshipRowIsExpandable()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("expandable", html);
+        Assert.Contains("toggleEndpoints", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Bar chart replaces flame chart
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_NoFlameChart()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        // No flame chart <div> elements in body (CSS rules in <style> don't count)
+        Assert.DoesNotContain("class=\"iflow-flame iflow-sequential-tests\"", html);
+        Assert.DoesNotContain("data-flame=\"", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_HasLatencyBarChart()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("latency-chart", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_BarChartHasPercentileToggles()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("percentile-toggle", html);
+        Assert.Contains("data-metric=\"mean\"", html);
+        Assert.Contains("data-metric=\"p50\"", html);
+        Assert.Contains("data-metric=\"p95\"", html);
+        Assert.Contains("data-metric=\"p99\"", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_BarChartHasDataAttributes()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("data-mean=", html);
+        Assert.Contains("data-p50=", html);
+        Assert.Contains("data-p95=", html);
+        Assert.Contains("data-p99=", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_P95SelectedByDefault()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        // The P95 toggle button should have an active class by default
+        Assert.Contains("data-metric=\"p95\" onclick=\"switchMetric(this)\">P95</button>", html);
+        Assert.Contains("class=\"percentile-toggle active\" data-metric=\"p95\"", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Relationship Flows replaced with useful data sections
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_NoRelationshipFlowsList()
+    {
+        var (span, perBoundary, logs) = CreateFlowTestData();
+        using var _ = span;
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() },
+            perBoundarySegments: perBoundary);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("<h2>Relationship Flows</h2>", html);
+        Assert.DoesNotContain("<ul class=\"iflow-rel-list\"", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HasStatusCodeDistribution()
+    {
+        var (logs, stats) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("status-code-dist", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_StatusCodeShowsDistribution()
+    {
+        var (logs, stats) = CreateStatsWithErrorsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("200", html);
+        Assert.Contains("500", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HasPayloadSizeSection()
+    {
+        var (logs, stats) = CreateStatsWithPayloadTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("payload-sizes", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HasConcurrencySection()
+    {
+        var (logs, stats) = CreateStatsWithConcurrencyTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("concurrency-info", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_HasLowCoverageWarning()
+    {
+        var (logs, stats) = CreateStatsTestData(testCount: 1);
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("low-coverage", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Test data helpers for stats-based tests
+    // ═══════════════════════════════════════════════════════════
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsTestData(int testCount = 5)
+    {
+        var reqId = Guid.NewGuid();
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        var logs = new List<RequestResponseLog>();
+        for (int i = 0; i < testCount; i++)
+        {
+            var id = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, "request body",
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, "response body",
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 200 + 100) });
+        }
+
+        // Force stats computation
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithErrorsTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // Successful calls
+        for (int i = 0; i < 3; i++)
+        {
+            var id = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 200 + 100) });
+        }
+
+        // Error call
+        var errId = Guid.NewGuid();
+        logs.Add(new RequestResponseLog("TestErr", "terr", HttpMethod.Post, null,
+            new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+            RequestResponseType.Request, Guid.NewGuid(), errId, false) { Timestamp = baseTime.AddMilliseconds(800) });
+        logs.Add(new RequestResponseLog("TestErr", "terr", HttpMethod.Post, null,
+            new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+            RequestResponseType.Response, Guid.NewGuid(), errId, false, HttpStatusCode.InternalServerError) { Timestamp = baseTime.AddMilliseconds(900) });
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithPayloadTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        for (int i = 0; i < 3; i++)
+        {
+            var id = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Post,
+                new string('x', 1024), // 1KB request body
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Post,
+                new string('y', 2048), // 2KB response body
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 200 + 100) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithConcurrencyTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // Two overlapping calls from same caller in same test
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        // Call 1: starts at t=0, ends at t=200
+        logs.Add(new RequestResponseLog("Test1", "t1", HttpMethod.Get, null,
+            new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+            RequestResponseType.Request, Guid.NewGuid(), id1, false) { Timestamp = baseTime });
+        logs.Add(new RequestResponseLog("Test1", "t1", HttpMethod.Get, null,
+            new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+            RequestResponseType.Response, Guid.NewGuid(), id1, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(200) });
+
+        // Call 2: starts at t=50 (overlaps!), ends at t=150
+        logs.Add(new RequestResponseLog("Test1", "t1", HttpMethod.Get, null,
+            new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+            RequestResponseType.Request, Guid.NewGuid(), id2, false) { Timestamp = baseTime.AddMilliseconds(50) });
+        logs.Add(new RequestResponseLog("Test1", "t1", HttpMethod.Get, null,
+            new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+            RequestResponseType.Response, Guid.NewGuid(), id2, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(150) });
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
     }
 }

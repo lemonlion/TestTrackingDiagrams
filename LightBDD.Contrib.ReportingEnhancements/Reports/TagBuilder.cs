@@ -4,7 +4,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
 {
     public class TagBuilder : IHtmlNode
     {
-        private readonly List<KeyValuePair<string, string>> _attributes = new();
+        private readonly List<KeyValuePair<string, string?>> _attributes = new();
         private bool _skipEmpty;
         private IHtmlNode[] _nodes = Array.Empty<IHtmlNode>();
         private bool _spaceBefore;
@@ -18,14 +18,14 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             _tag = tag.ToString().ToLowerInvariant();
         }
 
-        public TagBuilder Attribute(Html5Attribute attribute, string value)
+        public TagBuilder Attribute(Html5Attribute attribute, string? value)
         {
             return Attribute(attribute.ToString().ToLowerInvariant(), value);
         }
 
-        public TagBuilder Attribute(string attribute, string value)
+        public TagBuilder Attribute(string attribute, string? value)
         {
-            _attributes.Add(new KeyValuePair<string, string>(attribute, value));
+            _attributes.Add(new KeyValuePair<string, string?>(attribute, value));
             return this;
         }
 
@@ -41,7 +41,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             return this;
         }
 
-        public TagBuilder Content(string content, bool trimContent = true, bool escapeContent = true)
+        public TagBuilder Content(string? content, bool trimContent = true, bool escapeContent = true)
         {
             content ??= string.Empty;
             if (trimContent)

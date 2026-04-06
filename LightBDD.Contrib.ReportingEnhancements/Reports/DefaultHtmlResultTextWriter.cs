@@ -65,7 +65,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
                     )));
         }
 
-        protected TagBuilder GetFavicon(Tuple<string, byte[]> custom)
+        protected TagBuilder GetFavicon(Tuple<string, byte[]>? custom)
         {
             var type = "image/x-icon";
             var favicon = _favico;
@@ -92,14 +92,14 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
 
         protected static string ReadResource(string path)
         {
-            using (var stream = typeof(DefaultHtmlResultTextWriter).GetTypeInfo().Assembly.GetManifestResourceStream(path))
+            using (var stream = typeof(DefaultHtmlResultTextWriter).GetTypeInfo().Assembly.GetManifestResourceStream(path)!)
             using (var reader = new StreamReader(stream))
                 return reader.ReadToEnd();
         }
 
         protected static string ReadBase64Resource(string path)
         {
-            using (var stream = typeof(DefaultHtmlResultTextWriter).GetTypeInfo().Assembly.GetManifestResourceStream(path))
+            using (var stream = typeof(DefaultHtmlResultTextWriter).GetTypeInfo().Assembly.GetManifestResourceStream(path)!)
             using (var memoryStream = new MemoryStream())
             {
                 stream.CopyTo(memoryStream);
@@ -162,7 +162,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
                 _html.Tag(Html5Tag.Th).Content(key).Class("subHeader").Attribute(Html5Attribute.Colspan, "2"));
         }
 
-        protected IHtmlNode GetKeyValueTableRow(string key, int value, string classNameIfNotZero = null, string detailsId = null, bool ignoreIfZero = false)
+        protected IHtmlNode GetKeyValueTableRow(string key, int value, string? classNameIfNotZero = null, string? detailsId = null, bool ignoreIfZero = false)
         {
             if (ignoreIfZero && value == 0)
                 return Html.Nothing();
@@ -522,7 +522,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             return string.Join(" ", categories.Select(cat => _categories[cat]));
         }
 
-        protected IHtmlNode GetStatusDetails(string statusDetails)
+        protected IHtmlNode GetStatusDetails(string? statusDetails)
         {
             return GetScenarioDetailsSection("status-details", "Details:", new[] { _html.Tag(Html5Tag.Code).Content(statusDetails).SkipEmpty() });
         }
@@ -706,7 +706,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
 
         protected static string GetLightBddVersion()
         {
-            return typeof(IBddRunner).GetTypeInfo().Assembly.GetName().Version.ToString(4);
+            return typeof(IBddRunner).GetTypeInfo().Assembly.GetName().Version!.ToString(4);
         }
     }
 }

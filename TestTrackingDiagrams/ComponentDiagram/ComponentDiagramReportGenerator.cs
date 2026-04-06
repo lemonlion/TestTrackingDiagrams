@@ -138,7 +138,6 @@ public static class ComponentDiagramReportGenerator
         var flowStyles = "";
         var flowScripts = "";
         var flowDataScript = "";
-        var relListHtml = "";
         var systemFlowHtml = "";
 
         // Always include browser render script when using BrowserJs
@@ -153,115 +152,199 @@ public static class ComponentDiagramReportGenerator
             flowStyles = DiagramContextMenu.GetInternalFlowPopupStyles()
                        + DiagramContextMenu.GetStyles();
             flowScripts += DiagramContextMenu.GetInternalFlowPopupScript()
-                        + DiagramContextMenu.GetFlameChartRenderScript()
                         + DiagramContextMenu.GetToggleScript()
                         + DiagramContextMenu.GetContextMenuScript();
 
-            var popupData = new Dictionary<string, object>();
-
-            // Relationship flows
-            if (relationshipFlows?.Count > 0)
-            {
-                var relSb = new StringBuilder();
-                relSb.AppendLine("<h2>Relationship Flows</h2>");
-                relSb.AppendLine("<ul class=\"iflow-rel-list\">");
-
-                foreach (var rel in relationships)
-                {
-                    var relKey = $"iflow-rel-{SanitizeKey(rel.Caller)}-{SanitizeKey(rel.Service)}";
-                    if (!relationshipFlows.TryGetValue(relKey, out var flow))
-                        continue;
-
-                    var spanCount = flow.AggregatedSegment.Spans.Length;
-                    var testCount = flow.TestSummaries.Length;
-                    var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
-                    var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
-
-                    relSb.AppendLine($"<li onclick=\"window._iflowShowPopup('{relKey}')\">" +
-                        $"{callerEnc} \u2192 {serviceEnc} ({spanCount} span{(spanCount == 1 ? "" : "s")}, {testCount} test{(testCount == 1 ? "" : "s")})</li>");
-
-                    var content = InternalFlowHtmlGenerator.GenerateRelationshipPopupContent(flow, flowStyle);
-                    popupData[relKey] = new
-                    {
-                        title = $"{rel.Caller} \u2192 {rel.Service}",
-                        content
-                    };
-                }
-
-                relSb.AppendLine("</ul>");
-                relListHtml = relSb.ToString();
-            }
-
-            // System flow — performance summary table + capped flame chart (no Gantt)
-            if (wholeTestSegments is { Count: > 0 } || stats.Count > 0)
+            // System flow — performance summary table + latency bar chart + insights
+            if (stats.Count > 0)
             {
                 var sysSb = new StringBuilder();
                 sysSb.AppendLine("<h2>System Flow</h2>");
 
-                // Performance summary table
-                if (stats.Count > 0)
+                // Sortable performance summary table with endpoint breakdowns
+                sysSb.AppendLine("<h3>Performance Summary</h3>");
+                sysSb.AppendLine("<table class=\"performance-summary sortable\">");
+                sysSb.AppendLine("<tr>" +
+                    "<th data-sort-col=\"0\" onclick=\"sortTable(this)\">Relationship &#x25C6;</th>" +
+                    "<th data-sort-col=\"1\" onclick=\"sortTable(this)\">Calls &#x25C6;</th>" +
+                    "<th data-sort-col=\"2\" onclick=\"sortTable(this)\">Mean &#x25C6;</th>" +
+                    "<th data-sort-col=\"3\" onclick=\"sortTable(this)\">P50 &#x25C6;</th>" +
+                    "<th data-sort-col=\"4\" onclick=\"sortTable(this)\">P95 &#x25C6;</th>" +
+                    "<th data-sort-col=\"5\" onclick=\"sortTable(this)\">P99 &#x25C6;</th>" +
+                    "<th data-sort-col=\"6\" onclick=\"sortTable(this)\">Errors &#x25C6;</th></tr>");
+
+                foreach (var rel in relationships)
                 {
-                    sysSb.AppendLine("<h3>Performance Summary</h3>");
-                    sysSb.AppendLine("<table class=\"performance-summary\">");
-                    sysSb.AppendLine("<tr><th>Relationship</th><th>Calls</th><th>Mean</th><th>P50</th><th>P95</th><th>P99</th><th>Errors</th></tr>");
+                    var relKey = $"iflow-rel-{SanitizeKey(rel.Caller)}-{SanitizeKey(rel.Service)}";
+                    if (!stats.TryGetValue(relKey, out var relStats))
+                        continue;
 
-                    foreach (var rel in relationships)
+                    var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                    var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+                    var errorStyle = relStats.ErrorRate > 0 ? " style=\"color:#c00;font-weight:bold\"" : "";
+                    var hasEndpoints = relStats.EndpointBreakdown.Length > 0;
+                    var expandClass = hasEndpoints ? " class=\"expandable\"" : "";
+                    var expandClick = hasEndpoints ? $" onclick=\"toggleEndpoints('{relKey}')\"" : "";
+                    var expandIcon = hasEndpoints ? " &#x25B6;" : "";
+                    var lowCovClass = relStats.IsLowCoverage ? " low-coverage" : "";
+
+                    sysSb.AppendLine($"<tr{expandClass}{expandClick} data-rel=\"{relKey}\">" +
+                        $"<td data-sort-value=\"{callerEnc} {serviceEnc}\">{expandIcon} {callerEnc} \u2192 {serviceEnc}{(relStats.IsLowCoverage ? " <span class=\"low-coverage\" title=\"Low test coverage\">\u26A0</span>" : "")}</td>" +
+                        $"<td data-sort-value=\"{relStats.CallCount}\">{relStats.CallCount}</td>" +
+                        $"<td data-sort-value=\"{relStats.MeanMs:F1}\">{relStats.MeanMs:F0}ms</td>" +
+                        $"<td data-sort-value=\"{relStats.MedianMs:F1}\">{relStats.MedianMs:F0}ms</td>" +
+                        $"<td data-sort-value=\"{relStats.P95Ms:F1}\">{relStats.P95Ms:F0}ms</td>" +
+                        $"<td data-sort-value=\"{relStats.P99Ms:F1}\">{relStats.P99Ms:F0}ms</td>" +
+                        $"<td data-sort-value=\"{relStats.ErrorRate:F4}\"{errorStyle}>{relStats.ErrorRate * 100:F0}%</td></tr>");
+
+                    // Endpoint breakdown rows (initially hidden)
+                    if (hasEndpoints)
                     {
-                        var relKey = $"iflow-rel-{SanitizeKey(rel.Caller)}-{SanitizeKey(rel.Service)}";
-                        if (!stats.TryGetValue(relKey, out var relStats))
-                            continue;
+                        foreach (var ep in relStats.EndpointBreakdown)
+                        {
+                            var epErrorStyle = ep.ErrorRate > 0 ? " style=\"color:#c00;font-weight:bold\"" : "";
+                            sysSb.AppendLine($"<tr class=\"endpoint-row\" data-parent=\"{relKey}\" style=\"display:none\">" +
+                                $"<td style=\"padding-left:2rem;font-size:0.85em;color:#666\">{System.Net.WebUtility.HtmlEncode(ep.Method)} {System.Net.WebUtility.HtmlEncode(ep.Path)}</td>" +
+                                $"<td>{ep.CallCount}</td>" +
+                                $"<td>{ep.MeanMs:F0}ms</td>" +
+                                $"<td>{ep.MedianMs:F0}ms</td>" +
+                                $"<td>{ep.P95Ms:F0}ms</td>" +
+                                $"<td>{ep.P99Ms:F0}ms</td>" +
+                                $"<td{epErrorStyle}>{ep.ErrorRate * 100:F0}%</td></tr>");
+                        }
+                    }
+                }
 
+                sysSb.AppendLine("</table>");
+
+                // Latency bar chart with percentile toggles
+                sysSb.AppendLine("<h3>Latency Distribution</h3>");
+                sysSb.AppendLine("<div class=\"percentile-toggles\">");
+                sysSb.AppendLine("<button class=\"percentile-toggle\" data-metric=\"mean\" onclick=\"switchMetric(this)\">Mean</button>");
+                sysSb.AppendLine("<button class=\"percentile-toggle\" data-metric=\"p50\" onclick=\"switchMetric(this)\">P50</button>");
+                sysSb.AppendLine("<button class=\"percentile-toggle active\" data-metric=\"p95\" onclick=\"switchMetric(this)\">P95</button>");
+                sysSb.AppendLine("<button class=\"percentile-toggle\" data-metric=\"p99\" onclick=\"switchMetric(this)\">P99</button>");
+                sysSb.AppendLine("</div>");
+                sysSb.AppendLine("<div class=\"latency-chart\">");
+
+                foreach (var rel in relationships)
+                {
+                    var relKey = $"iflow-rel-{SanitizeKey(rel.Caller)}-{SanitizeKey(rel.Service)}";
+                    if (!stats.TryGetValue(relKey, out var relStats))
+                        continue;
+
+                    var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                    var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+
+                    sysSb.AppendLine($"<div class=\"latency-bar-row\" " +
+                        $"data-mean=\"{relStats.MeanMs:F1}\" " +
+                        $"data-p50=\"{relStats.MedianMs:F1}\" " +
+                        $"data-p95=\"{relStats.P95Ms:F1}\" " +
+                        $"data-p99=\"{relStats.P99Ms:F1}\">" +
+                        $"<span class=\"latency-label\">{callerEnc} \u2192 {serviceEnc}</span>" +
+                        $"<div class=\"latency-bar\"><div class=\"latency-fill\"></div><span class=\"latency-value\"></span></div>" +
+                        $"</div>");
+                }
+
+                sysSb.AppendLine("</div>");
+
+                // Status code distribution
+                var relWithCodes = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.StatusCodeDistribution.Count > 0)
+                    .ToArray();
+
+                if (relWithCodes.Length > 0)
+                {
+                    sysSb.AppendLine("<h3>Status Codes</h3>");
+                    sysSb.AppendLine("<div class=\"status-code-dist\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>Relationship</th><th>Status Codes</th></tr>");
+
+                    foreach (var (rel, relKey) in relWithCodes)
+                    {
+                        var relStats = stats[relKey];
                         var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
                         var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
-                        var errorStyle = relStats.ErrorRate > 0 ? " style=\"color:#c00;font-weight:bold\"" : "";
-
-                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td>" +
-                            $"<td>{relStats.CallCount}</td>" +
-                            $"<td>{relStats.MeanMs:F0}ms</td>" +
-                            $"<td>{relStats.MedianMs:F0}ms</td>" +
-                            $"<td>{relStats.P95Ms:F0}ms</td>" +
-                            $"<td>{relStats.P99Ms:F0}ms</td>" +
-                            $"<td{errorStyle}>{relStats.ErrorRate * 100:F0}%</td></tr>");
+                        var codeParts = relStats.StatusCodeDistribution
+                            .OrderBy(kv => kv.Key)
+                            .Select(kv =>
+                            {
+                                var code = (int)kv.Key;
+                                var cls = code >= 500 ? "status-5xx" : code >= 400 ? "status-4xx" : "status-2xx";
+                                return $"<span class=\"{cls}\">{code}: {kv.Value}</span>";
+                            });
+                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td><td>{string.Join(" &nbsp; ", codeParts)}</td></tr>");
                     }
 
                     sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
                 }
 
-                // Sequential flame chart (capped)
-                if (wholeTestSegments is { Count: > 0 })
+                // Payload sizes
+                var relWithPayloads = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.PayloadSizes is not null)
+                    .ToArray();
+
+                if (relWithPayloads.Length > 0)
                 {
-                    // Cap to slowest N tests
-                    var cappedSegments = wholeTestSegments
-                        .OrderByDescending(kv => kv.Value.Spans.Length > 0
-                            ? kv.Value.Spans.Max(s => s.StartTimeUtc + s.Duration) - kv.Value.Spans.Min(s => s.StartTimeUtc)
-                            : TimeSpan.Zero)
-                        .Take(maxFlameChartTests)
-                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+                    sysSb.AppendLine("<h3>Payload Sizes</h3>");
+                    sysSb.AppendLine("<div class=\"payload-sizes\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>Relationship</th><th>Req Mean</th><th>Req P95</th><th>Resp Mean</th><th>Resp P95</th></tr>");
 
-                    var seqData = InternalFlowRenderer.GetSequentialFlameChartData(cappedSegments);
-                    var seqJson = JsonSerializer.Serialize(
-                        new { s = seqData.Sources, b = seqData.Bands },
-                        new JsonSerializerOptions { WriteIndented = false });
-                    var encodedSeqJson = System.Net.WebUtility.HtmlEncode(seqJson);
+                    foreach (var (rel, relKey) in relWithPayloads)
+                    {
+                        var ps = stats[relKey].PayloadSizes!;
+                        var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                        var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td>" +
+                            $"<td>{FormatBytes(ps.RequestMeanBytes)}</td>" +
+                            $"<td>{FormatBytes(ps.RequestP95Bytes)}</td>" +
+                            $"<td>{FormatBytes(ps.ResponseMeanBytes)}</td>" +
+                            $"<td>{FormatBytes(ps.ResponseP95Bytes)}</td></tr>");
+                    }
 
-                    var label = wholeTestSegments.Count > maxFlameChartTests
-                        ? $"Flame Chart (top {maxFlameChartTests} of {wholeTestSegments.Count} tests by duration)"
-                        : "Flame Chart";
+                    sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
+                }
 
-                    sysSb.AppendLine($"<h3>{label}</h3>");
-                    sysSb.AppendLine($"<div class=\"iflow-flame iflow-sequential-tests\" data-diagram-type=\"flamechart\" data-flame=\"{encodedSeqJson}\"></div>");
+                // Concurrency info
+                var relWithConcurrency = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.Concurrency is not null)
+                    .ToArray();
+
+                if (relWithConcurrency.Length > 0)
+                {
+                    sysSb.AppendLine("<h3>Concurrent Calls</h3>");
+                    sysSb.AppendLine("<div class=\"concurrency-info\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>Relationship</th><th>Concurrent Tests</th><th>Percentage</th><th>With</th></tr>");
+
+                    foreach (var (rel, relKey) in relWithConcurrency)
+                    {
+                        var ci = stats[relKey].Concurrency!;
+                        var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                        var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td>" +
+                            $"<td>{ci.ConcurrentCallCount}</td>" +
+                            $"<td>{ci.ConcurrencyPercentage:F0}%</td>" +
+                            $"<td>{System.Net.WebUtility.HtmlEncode(string.Join(", ", ci.ConcurrentPairs))}</td></tr>");
+                    }
+
+                    sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
                 }
 
                 systemFlowHtml = sysSb.ToString();
             }
-
-            if (popupData.Count > 0)
-            {
-                var json = JsonSerializer.Serialize(popupData, new JsonSerializerOptions { WriteIndented = false });
-                flowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(hasDataBehavior)
-                    + $"<script>window.__iflowSegments = {json};</script>";
-            }
         }
+
+        var sortScript = GetSortScript();
+        var barChartScript = GetBarChartScript();
+        var endpointToggleScript = GetEndpointToggleScript();
 
         return $$"""
                 <html>
@@ -273,34 +356,120 @@ public static class ComponentDiagramReportGenerator
                             h2 { color: #444; margin-top: 2rem; }
                             h3 { color: #555; margin-top: 1.5rem; }
                             pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; }
-                            .diagram-container { margin: 1rem 0; }
                             .diagram-image { margin: 1rem 0; text-align: center; }
                             .diagram-image img { max-width: 100%; height: auto; }
                             .performance-summary { border-collapse: collapse; width: 100%; margin: 1rem 0; }
                             .performance-summary th, .performance-summary td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                            .performance-summary th { background: #f6f8fa; font-weight: 600; }
-                            .performance-summary tr:nth-child(even) { background: #fafbfc; }
+                            .performance-summary th { background: #f6f8fa; font-weight: 600; cursor: pointer; user-select: none; }
+                            .performance-summary th:hover { background: #e8ecf0; }
+                            .performance-summary tr:nth-child(even):not(.endpoint-row) { background: #fafbfc; }
+                            .performance-summary tr.expandable { cursor: pointer; }
+                            .performance-summary tr.expandable:hover { background: #eef2f7; }
+                            .endpoint-row { background: #f9fafb; }
+                            .endpoint-row td { font-style: italic; }
+                            .low-coverage { color: #d97706; }
+                            .percentile-toggles { margin: 0.5rem 0; }
+                            .percentile-toggle { padding: 6px 16px; margin-right: 4px; border: 1px solid #ddd; background: #f6f8fa; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+                            .percentile-toggle.active { background: #0366d6; color: #fff; border-color: #0366d6; }
+                            .latency-chart { margin: 1rem 0; }
+                            .latency-bar-row { display: flex; align-items: center; margin: 4px 0; }
+                            .latency-label { width: 250px; min-width: 250px; text-align: right; padding-right: 12px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .latency-bar { flex: 1; height: 24px; background: #f0f0f0; border-radius: 3px; position: relative; overflow: hidden; }
+                            .latency-fill { height: 100%; background: #0366d6; border-radius: 3px; transition: width 0.3s; }
+                            .latency-value { position: absolute; right: 8px; top: 3px; font-size: 0.8rem; color: #333; }
+                            .status-2xx { color: #22863a; font-weight: 600; }
+                            .status-4xx { color: #d97706; font-weight: 600; }
+                            .status-5xx { color: #c00; font-weight: 600; }
                             {{flowStyles}}
                         </style>
                         {{flowDataScript}}
                         {{flowScripts}}
+                        {{sortScript}}
+                        {{barChartScript}}
+                        {{endpointToggleScript}}
                     </head>
                     <body>
                         <h1>{{title}}</h1>
                         <div class="diagram-image">
                             {{diagramHtml}}
                         </div>
-                        <div class="diagram-container">
-                            <details>
-                                <summary><strong>PlantUML Source</strong></summary>
-                                <pre>{{encodedPlantUml}}</pre>
-                            </details>
-                        </div>
-                        {{relListHtml}}
                         {{systemFlowHtml}}
                     </body>
                 </html>
                 """;
+    }
+
+    private static string GetSortScript() => """
+        <script>
+        function sortTable(th) {
+            var table = th.closest('table');
+            var col = parseInt(th.getAttribute('data-sort-col'));
+            var rows = Array.from(table.querySelectorAll('tr')).slice(1).filter(r => !r.classList.contains('endpoint-row'));
+            var asc = th.getAttribute('data-sort-dir') !== 'asc';
+            th.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+            // Reset other headers
+            table.querySelectorAll('th[data-sort-col]').forEach(h => { if (h !== th) h.removeAttribute('data-sort-dir'); });
+            rows.sort(function(a, b) {
+                var aCell = a.cells[col], bCell = b.cells[col];
+                var aVal = aCell.getAttribute('data-sort-value') || aCell.textContent;
+                var bVal = bCell.getAttribute('data-sort-value') || bCell.textContent;
+                var aN = parseFloat(aVal), bN = parseFloat(bVal);
+                var cmp = (!isNaN(aN) && !isNaN(bN)) ? aN - bN : aVal.localeCompare(bVal);
+                return asc ? cmp : -cmp;
+            });
+            var tbody = table.querySelector('tbody') || table;
+            rows.forEach(function(row) {
+                var relKey = row.getAttribute('data-rel');
+                tbody.appendChild(row);
+                if (relKey) {
+                    table.querySelectorAll('.endpoint-row[data-parent="' + relKey + '"]').forEach(function(ep) { tbody.appendChild(ep); });
+                }
+            });
+        }
+        </script>
+        """;
+
+    private static string GetBarChartScript() => """
+        <script>
+        function switchMetric(btn) {
+            btn.parentElement.querySelectorAll('.percentile-toggle').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            var metric = btn.getAttribute('data-metric');
+            renderBars(metric);
+        }
+        function renderBars(metric) {
+            var rows = document.querySelectorAll('.latency-bar-row');
+            var maxVal = 0;
+            rows.forEach(function(r) { var v = parseFloat(r.getAttribute('data-' + metric) || '0'); if (v > maxVal) maxVal = v; });
+            rows.forEach(function(r) {
+                var v = parseFloat(r.getAttribute('data-' + metric) || '0');
+                var pct = maxVal > 0 ? (v / maxVal * 100) : 0;
+                var fill = r.querySelector('.latency-fill');
+                var val = r.querySelector('.latency-value');
+                if (fill) fill.style.width = pct + '%';
+                if (val) val.textContent = v.toFixed(0) + 'ms';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() { renderBars('p95'); });
+        </script>
+        """;
+
+    private static string GetEndpointToggleScript() => """
+        <script>
+        function toggleEndpoints(relKey) {
+            var rows = document.querySelectorAll('.endpoint-row[data-parent="' + relKey + '"]');
+            var parentRow = document.querySelector('tr[data-rel="' + relKey + '"]');
+            var show = rows.length > 0 && rows[0].style.display === 'none';
+            rows.forEach(function(r) { r.style.display = show ? '' : 'none'; });
+        }
+        </script>
+        """;
+
+    private static string FormatBytes(double bytes)
+    {
+        if (bytes < 1024) return $"{bytes:F0} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024:F1} KB";
+        return $"{bytes / (1024 * 1024):F1} MB";
     }
 
     private static string SanitizeKey(string name) =>

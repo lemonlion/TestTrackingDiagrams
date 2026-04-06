@@ -811,4 +811,49 @@ public class ComponentDiagramGeneratorTests
         Assert.Contains("-->", result);
         Assert.DoesNotContain("Rel(", result);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Left-to-right layout
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GeneratePlantUml_IncludesLeftToRightDirection()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("left to right direction", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_LeftToRight_AppearsAfterStartuml()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        var startumlIdx = result.IndexOf("@startuml");
+        var ltrIdx = result.IndexOf("left to right direction");
+        Assert.True(ltrIdx > startumlIdx, "left to right direction must come after @startuml");
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_IncludesLeftToRightDirection()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("left to right direction", result);
+    }
 }

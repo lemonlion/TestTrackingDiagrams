@@ -51,10 +51,8 @@ public class WholeTestFlowTests : IDisposable
     {
         return (string)((IJavaScriptExecutor)_driver).ExecuteScript(
             "return window.getComputedStyle(arguments[0]).getPropertyValue(arguments[1]);",
-            element, property);
+            element, property)!;
     }
-
-    // ── Details block ──
 
     [Fact]
     public void Whole_test_flow_renders_collapsed_details_block()

@@ -12,17 +12,17 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             writer.Dispose();
         }
 
-        public void OpenTag(string tag, IEnumerable<KeyValuePair<string, string>> attributes)
+        public void OpenTag(string tag, IEnumerable<KeyValuePair<string, string?>> attributes)
         {
             WriteTag(tag, attributes, false);
         }
 
-        public void WriteTag(string tag, IEnumerable<KeyValuePair<string, string>> attributes)
+        public void WriteTag(string tag, IEnumerable<KeyValuePair<string, string?>> attributes)
         {
             WriteTag(tag, attributes, true);
         }
 
-        private void WriteTag(string tag, IEnumerable<KeyValuePair<string, string>> attributes, bool closed)
+        private void WriteTag(string tag, IEnumerable<KeyValuePair<string, string?>> attributes, bool closed)
         {
             Write("<");
             Write(tag);
@@ -50,7 +50,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
             Write("</"); Write(tag); Write(">");
         }
 
-        private void WriteAttribute(string attribute, string value)
+        private void WriteAttribute(string attribute, string? value)
         {
             Write(" ");
             Write(attribute);

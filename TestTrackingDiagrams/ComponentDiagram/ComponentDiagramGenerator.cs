@@ -47,6 +47,7 @@ public static partial class ComponentDiagramGenerator
         var sb = new StringBuilder();
 
         sb.AppendLine("@startuml");
+        sb.AppendLine("left to right direction");
 
         if (useC4)
         {

@@ -86,10 +86,8 @@ public class IflowPopupTests : IDisposable
     {
         return (string)((IJavaScriptExecutor)_driver).ExecuteScript(
             "return window.getComputedStyle(arguments[0]).getPropertyValue(arguments[1]);",
-            element, property);
+            element, property)!;
     }
-
-    // ── Popup open/close ──
 
     [Fact]
     public void Clicking_trigger_opens_popup_overlay()

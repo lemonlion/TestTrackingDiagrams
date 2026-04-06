@@ -21,7 +21,7 @@ namespace LightBDD.Contrib.ReportingEnhancements.Reports
         public bool IncludeIgnoredTests { get; set; }
         public string Title { get; set; } = "Feature details";
         public DiagramAsCode[] DiagramAsCode { get; set; } = Array.Empty<DiagramAsCode>();
-        public string DiagramsAsCodeCodeBehindTitle { get; set; }
+        public string? DiagramsAsCodeCodeBehindTitle { get; set; }
         public bool StepsHiddenInitially { get; set; }
         public bool FormatResult { get; set; }
         public Func<IScenarioResult, bool>? TreatScenariosAsPassed { get; set; }

@@ -33,7 +33,7 @@ public class YamlReportFormatter : IReportFormatter
         if (Options.OnlyCreateReportOnFullTestRun)
         {
             var numberOfTestsInRun = scenariosRun.Count;
-            var totalNumberOfTests = Options.TestAssembly.CountNumberOfTestsInAssembly();
+            var totalNumberOfTests = Options.TestAssembly!.CountNumberOfTestsInAssembly();
             if (numberOfTestsInRun != totalNumberOfTests)
                 return;
         }
@@ -47,7 +47,7 @@ public class YamlReportFormatter : IReportFormatter
     public static string ToYamlDocument(IFeatureResult[] features, YamlReportOptions? options)
     {
         var yml = new StringBuilder();
-        yml.Append("Title: " + options.Title + "\n");
+        yml.Append("Title: " + options?.Title + "\n");
         yml.Append("Features:\n");
 
         const string happyPathLabel = "Happy Path";

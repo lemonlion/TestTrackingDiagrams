@@ -31,7 +31,7 @@ public class CustomisableHtmlReportFormatter : IReportFormatter
         if (Options.OnlyCreateReportOnFullTestRun)
         {
             var numberOfTestsInRun = scenariosRun.Count;
-            var totalNumberOfTests = Options.TestAssembly.CountNumberOfTestsInAssembly();
+            var totalNumberOfTests = Options.TestAssembly!.CountNumberOfTestsInAssembly();
             if (numberOfTestsInRun != totalNumberOfTests)
                 return;
         }
