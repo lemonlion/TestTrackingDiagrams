@@ -107,13 +107,17 @@ function dumpTextState(container, label) {
     });
 }
 
-// iflowMap simulating extractIflowMap from PlantUML source
-var iflowMap = {
-    'POST: /orders': 'iflow-seg1',
-    'POST: /payments/authorize/with-extra-path-segments/that-are-very-long': 'iflow-seg2',
-    'POST: /audit/log/this-has-no-segment-data/but-is-also-very-long': 'iflow-seg-nodata'
-};
-var iflowLabels = Object.keys(iflowMap);
+// iflowMap using actual extractIflowMap logic (whitespace-insensitive keys)
+function extractIflowMap(source) {
+    var map = {};
+    var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
+    var m;
+    while ((m = re.exec(source)) !== null) {
+        var key = m[2].split('\\n').join('').replace(/\s+/g, '');
+        map[key] = m[1];
+    }
+    return map;
+}
 
 // ===== CURRENT FIX (v2.0.39) - only resets exact text matches =====
 function bindCurrentFix(container) {
@@ -148,8 +152,11 @@ function bindCurrentFix(container) {
 
 // ===== NEW FIX - group consecutive blue text, join, match, hover entire group =====
 function bindNewFix(container) {
+    var source = container.getAttribute('data-plantuml');
     var iflowData = window.__iflowSegments || {};
     var hoverOnly = (window.__iflowConfig || {}).hasDataBehavior === 'showLinkOnHover';
+    var iflowMap = extractIflowMap(source);
+    log('extractIflowMap keys: ' + JSON.stringify(Object.keys(iflowMap)));
 
     // Step 1: Identify all blue <text> elements and record their indices
     var allTexts = Array.from(container.querySelectorAll('text'));
@@ -187,20 +194,16 @@ function bindNewFix(container) {
 
     log('Blue groups found: ' + groups.length);
     groups.forEach(function(g, gi) {
-        var combined = g.map(function(idx) { return allTexts[idx].textContent.trim(); }).join(' ');
-        log('  Group ' + gi + ': indices=[' + g.join(',') + '] text="' + combined + '"');
+        var combined = g.map(function(idx) { return allTexts[idx].textContent; }).join('');
+        var key = combined.replace(/\s+/g, '');
+        log('  Group ' + gi + ': indices=[' + g.join(',') + '] key="' + key + '"');
     });
 
     // Step 4: Match each group against iflow labels and add hover/click
     groups.forEach(function(group) {
-        var combined = group.map(function(idx) { return allTexts[idx].textContent.trim(); }).join(' ');
-        var matchedSegId = null;
-        for (var i = 0; i < iflowLabels.length; i++) {
-            if (combined === iflowLabels[i]) {
-                matchedSegId = iflowMap[iflowLabels[i]];
-                break;
-            }
-        }
+        var combined = group.map(function(idx) { return allTexts[idx].textContent; }).join('');
+        var key = combined.replace(/\s+/g, '');
+        var matchedSegId = iflowMap[key] || null;
 
         if (!matchedSegId || !iflowData[matchedSegId]) return;
 

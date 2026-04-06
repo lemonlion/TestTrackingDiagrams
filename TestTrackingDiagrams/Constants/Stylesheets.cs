@@ -31,6 +31,8 @@ public class Stylesheets
                     background-color: rgb(224, 224, 224);
                     padding: 1em;
                     border-radius: 10px;
+                    content-visibility: auto;
+                    contain-intrinsic-size: auto 500px;
                 }
                 
                 .scenario {

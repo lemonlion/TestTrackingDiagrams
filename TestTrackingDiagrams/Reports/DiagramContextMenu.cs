@@ -179,8 +179,8 @@ public static class DiagramContextMenu
                     var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
                     var m;
                     while ((m = re.exec(source)) !== null) {
-                        var label = m[2].split('\\n')[0].trim();
-                        map[label] = m[1];
+                        var key = m[2].split('\\n').join('').replace(/\s+/g, '');
+                        map[key] = m[1];
                     }
                     return map;
                 }
@@ -243,8 +243,7 @@ public static class DiagramContextMenu
                     if (bound > 0) return;
                     if (!source) return;
                     var iflowMap = extractIflowMap(source);
-                    var labels = Object.keys(iflowMap);
-                    if (labels.length === 0) return;
+                    if (Object.keys(iflowMap).length === 0) return;
                     var allTexts = Array.from(container.querySelectorAll('text'));
                     var blueIndices = new Set();
                     allTexts.forEach(function(t, idx) {
@@ -267,11 +266,9 @@ public static class DiagramContextMenu
                     }
                     if (curGrp.length > 0) groups.push(curGrp);
                     groups.forEach(function(group) {
-                        var combined = group.map(function(idx) { return allTexts[idx].textContent.trim(); }).join(' ');
-                        var segId = null;
-                        for (var li = 0; li < labels.length; li++) {
-                            if (combined === labels[li]) { segId = iflowMap[labels[li]]; break; }
-                        }
+                        var combined = group.map(function(idx) { return allTexts[idx].textContent; }).join('');
+                        var key = combined.replace(/\s+/g, '');
+                        var segId = iflowMap[key] || null;
                         if (!segId || !iflowData[segId]) return;
                         var groupEls = group.map(function(idx) { return allTexts[idx]; });
                         groupEls.forEach(function(textEl) {

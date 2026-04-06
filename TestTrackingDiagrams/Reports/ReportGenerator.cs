@@ -146,6 +146,21 @@ public static class ReportGenerator
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
 
+        var scenarioFeatureMapHelper = """
+                                      var _sfMap;
+                                      function sfMap() {
+                                          if (!_sfMap) {
+                                              _sfMap = new Map();
+                                              var features = document.getElementsByClassName('feature');
+                                              for (var fi = 0; fi < features.length; fi++) {
+                                                  var sc = features[fi].getElementsByClassName('scenario');
+                                                  for (var si = 0; si < sc.length; si++) _sfMap.set(sc[si], features[fi]);
+                                              }
+                                          }
+                                          return _sfMap;
+                                      }
+                                      """;
+
         var toggleHappyPathsFunction = """
                                        function toggle_happy_paths(btn) {
                                            btn.classList.toggle('happy-path-active');
@@ -184,7 +199,7 @@ public static class ReportGenerator
                                                if (!s.classList.contains('happy-path')) {
                                                    s.classList.add('hp-hidden');
                                                } else if (!s.classList.contains('dep-hidden') && !s.classList.contains('status-hidden') && !s.classList.contains('search-hidden')) {
-                                                   var f = s.closest('.feature');
+                                                   var f = sfMap().get(s);
                                                    if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
                                                }
                                            }
@@ -376,7 +391,7 @@ public static class ReportGenerator
                                                if (!matchesAll) {
                                                    s.classList.add('dep-hidden');
                                                } else if (!s.classList.contains('search-hidden') && !s.classList.contains('status-hidden') && !s.classList.contains('hp-hidden')) {
-                                                   var f = s.closest('.feature');
+                                                   var f = sfMap().get(s);
                                                    if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
                                                }
                                            }
@@ -438,7 +453,7 @@ public static class ReportGenerator
                                            if (!activeSet.has(status)) {
                                                s.classList.add('status-hidden');
                                            } else if (!s.classList.contains('dep-hidden') && !s.classList.contains('search-hidden') && !s.classList.contains('hp-hidden')) {
-                                               var f = s.closest('.feature');
+                                               var f = sfMap().get(s);
                                                if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
                                            }
                                        }
@@ -486,6 +501,7 @@ public static class ReportGenerator
                                 {{internalFlowPopupStyles}}
                             </style>
                             <script>
+                                {{scenarioFeatureMapHelper}}
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
                                 {{dependencyFilterFunction}}
