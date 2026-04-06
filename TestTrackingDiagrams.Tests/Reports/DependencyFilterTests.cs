@@ -21,9 +21,8 @@ public class DependencyFilterTests
 
         var html = "<html><body>";
         html += "<div class=\"filters\">";
-        html += "<label for=\"toggle-happy-paths\">Show Only Happy Paths</label>";
-        html += "<input id=\"toggle-happy-paths\" type=\"checkbox\" />";
         html += "<div><input id=\"searchbar\" placeholder=\"Search\" /></div>";
+        html += "<div class=\"happy-path-filters\"><span class=\"happy-path-filters-label\">Happy Paths:</span><button class=\"happy-path-toggle\">Happy Paths Only</button></div>";
 
         // Dependency toggles
         if (allDeps.Count > 0)

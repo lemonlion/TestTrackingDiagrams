@@ -165,7 +165,11 @@ public class Stylesheets
                     display: none !important;
                 }
                 
-                .dependency-filters, .status-filters {
+                .hp-hidden {
+                    display: none !important;
+                }
+                
+                .happy-path-filters, .dependency-filters, .status-filters {
                     margin-top: 0.5em;
                     display: flex;
                     flex-wrap: wrap;
@@ -173,12 +177,12 @@ public class Stylesheets
                     gap: 0.3em;
                 }
                 
-                .dependency-filters-label, .status-filters-label {
+                .happy-path-filters-label, .dependency-filters-label, .status-filters-label {
                     font-weight: bold;
                     margin-right: 0.3em;
                 }
                 
-                .dependency-toggle, .status-toggle {
+                .happy-path-toggle, .dependency-toggle, .status-toggle {
                     padding: 0.25em 0.6em;
                     border: 1px solid rgb(180, 180, 180);
                     border-radius: 0.4em;
@@ -187,12 +191,12 @@ public class Stylesheets
                     font-size: 0.85em;
                 }
                 
-                .dependency-toggle:hover, .status-toggle:hover {
+                .happy-path-toggle:hover, .dependency-toggle:hover, .status-toggle:hover {
                     background: rgb(230, 240, 255);
                     border-color: rgb(100, 150, 255);
                 }
                 
-                .dependency-toggle.dependency-active, .status-toggle.status-active {
+                .happy-path-toggle.happy-path-active, .dependency-toggle.dependency-active, .status-toggle.status-active {
                     background: rgb(66, 133, 244);
                     color: white;
                     border-color: rgb(66, 133, 244);
