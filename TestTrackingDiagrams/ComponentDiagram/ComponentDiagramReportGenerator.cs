@@ -281,8 +281,8 @@ public static class ComponentDiagramReportGenerator
                             .performance-summary tr:nth-child(even) { background: #fafbfc; }
                             {{flowStyles}}
                         </style>
-                        {{flowScripts}}
                         {{flowDataScript}}
+                        {{flowScripts}}
                     </head>
                     <body>
                         <h1>{{title}}</h1>

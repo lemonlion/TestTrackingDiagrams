@@ -268,6 +268,28 @@ public class ComponentDiagramReportTests : IDisposable
     }
 
     [Fact]
+    public void GenerateComponentDiagramReport_ShowRelationshipFlows_DataScriptBeforePopupScript()
+    {
+        var (span, perBoundary, logs) = CreateFlowTestData("API", "DB");
+        using var _ = span;
+        var options = new ComponentDiagramOptions { ShowRelationshipFlows = true };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = options },
+            perBoundarySegments: perBoundary);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        var dataIndex = html.IndexOf("window.__iflowSegments =");
+        var popupIndex = html.IndexOf("var iflowData = window.__iflowSegments");
+        Assert.True(dataIndex > 0, "__iflowSegments assignment not found");
+        Assert.True(popupIndex > 0, "iflowData capture not found");
+        Assert.True(dataIndex < popupIndex,
+            $"Data script (index {dataIndex}) must appear before popup script (index {popupIndex}) " +
+            "so the IIFE captures the populated data instead of an empty object");
+    }
+
+    [Fact]
     public void GenerateComponentDiagramReport_ShowRelationshipFlows_PopupDataContainsSummaryTable()
     {
         var (span, perBoundary, logs) = CreateFlowTestData("API", "DB");
