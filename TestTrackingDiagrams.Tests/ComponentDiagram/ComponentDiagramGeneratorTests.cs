@@ -576,4 +576,125 @@ public class ComponentDiagramGeneratorTests
         Assert.Contains("@startuml", puml);
         Assert.Contains("@enduml", puml);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // GeneratePlantUml with stats — labels, links, styling
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GeneratePlantUml_with_stats_includes_percentiles_in_label()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 10, 5)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+
+        Assert.Contains("P50: 45ms", result);
+        Assert.Contains("P95: 120ms", result);
+        Assert.Contains("P99: 250ms", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_with_stats_includes_iflow_link()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 10, 5)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+
+        Assert.Contains("[[#iflow-rel-Caller-OrderService", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_without_stats_uses_existing_format()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 5, 3)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("HTTP: GET - 5 calls across 3 tests", result);
+        Assert.DoesNotContain("P50:", result);
+        Assert.DoesNotContain("[[#iflow-rel-", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_with_stats_includes_error_rate_when_nonzero()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "OrderService", "HTTP", ["GET"], 10, 5)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
+                0.15, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+
+        Assert.Contains("15%", result); // error rate shown
+    }
+
+    [Fact]
+    public void GeneratePlantUml_hotspot_colors_arrows_by_p95()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("A", "FastService", "HTTP", ["GET"], 10, 5),
+            new ComponentRelationship("A", "SlowService", "HTTP", ["GET"], 10, 5),
+            new ComponentRelationship("A", "MediumService", "HTTP", ["GET"], 10, 5)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-A-FastService"] = new(10, 5, 10.0, 10.0, 30.0, 40.0, 5.0, 50.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false),
+            ["iflow-rel-A-SlowService"] = new(10, 5, 300.0, 280.0, 500.0, 600.0, 100.0, 700.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false),
+            ["iflow-rel-A-MediumService"] = new(10, 5, 100.0, 90.0, 150.0, 180.0, 50.0, 200.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+
+        // Should contain skinparam or styling for different latency levels
+        Assert.Contains("#Green", result);    // Fast (<50ms P95)
+        Assert.Contains("#Red", result);      // Slow (>200ms P95)
+        Assert.Contains("#Orange", result);   // Medium (50-200ms P95)
+    }
+
+    [Fact]
+    public void GeneratePlantUml_low_coverage_uses_dashed_line()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("Caller", "RareService", "HTTP", ["GET"], 1, 1)
+        };
+        var stats = new Dictionary<string, RelationshipStats>
+        {
+            ["iflow-rel-Caller-RareService"] = new(1, 1, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0,
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, true)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+
+        // Low coverage should use dashed line or warning indicator
+        Assert.Contains("..>", result); // dashed arrow in PlantUML
+    }
 }

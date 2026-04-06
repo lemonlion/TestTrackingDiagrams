@@ -158,7 +158,17 @@ When enabled, two additional files are generated alongside your existing reports
 | File | Description |
 |------|-------------|
 | `ComponentDiagram.puml` | Raw PlantUML C4 source — version-controllable, diffable |
-| `ComponentDiagram.html` | Standalone HTML page with the PlantUML source for easy viewing |
+| `ComponentDiagram.html` | Interactive HTML page with browser SVG rendering, clickable links, and focus mode |
+
+### Key Features
+
+- **Stats-driven labels** — Relationship arrows show P50 / P95 / P99 latency percentiles, error rates, and call counts
+- **Hotspot colouring** — Arrows are colour-coded by P95 latency (green < 50ms, orange 50–200ms, red > 200ms)
+- **Low-coverage warnings** — Relationships with few calls use dashed arrows
+- **Performance summary table** — Aggregated stats for every relationship
+- **Interactive focus mode** — Click a service node to dim unrelated nodes (requires `PlantUmlRendering.BrowserJs`)
+- **Diff mode** — Compare component diagrams between test runs via `ComponentDiagramDiffer.Compare()`
+- **Capped flame chart** — System flow shows the slowest N tests (configurable, default 50)
 
 ### Example Output
 
@@ -173,9 +183,9 @@ System(orderService, "OrderService")
 System(paymentService, "PaymentService")
 System(kafka, "Kafka")
 
-Rel(webApp, orderService, "HTTP: GET, POST — 14 calls across 8 tests")
-Rel(orderService, paymentService, "HTTP: POST — 6 calls across 4 tests")
-Rel(orderService, kafka, "Publish: Publish — 3 calls across 2 tests")
+Rel(webApp, orderService, "[[#iflow-rel-WebApp-OrderService HTTP: GET, POST]]\nP50: 42ms | P95: 120ms | P99: 250ms\n14 calls across 8 tests", $tags="#Orange")
+Rel(orderService, paymentService, "[[#iflow-rel-OrderService-PaymentService HTTP: POST]]\nP50: 150ms | P95: 400ms | P99: 500ms | 2% errors\n6 calls across 4 tests", $tags="#Red")
+Rel(orderService, kafka, "[[#iflow-rel-OrderService-Kafka Publish: Publish]]\nP50: 5ms | P95: 15ms | P99: 25ms\n3 calls across 2 tests", $tags="#Green")
 
 @enduml
 ```
@@ -184,9 +194,7 @@ Rel(orderService, kafka, "Publish: Publish — 3 calls across 2 tests")
 - A participant that **only appears as a caller** (never called by another service) is rendered as a `Person()` — typically your test client
 - All other participants are rendered as `System()` — your SUT, its dependencies, event brokers, databases, etc.
 
-**Relationship labels** show the protocol, distinct HTTP methods used, total call count, and how many tests exercised the relationship.
-
-For full configuration details (custom titles, themes, label formatters, participant filters), see the [Component Diagrams](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams) wiki page.
+For full configuration details (custom titles, themes, label formatters, participant filters, diff mode), see the [Component Diagrams](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams) wiki page.
 
 ---
 

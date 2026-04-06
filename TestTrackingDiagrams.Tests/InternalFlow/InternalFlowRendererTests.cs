@@ -301,8 +301,9 @@ public class InternalFlowRendererTests : IDisposable
     private static (string Label, DateTimeOffset Timestamp) MakeBoundaryLog(string label, DateTimeOffset timestamp)
         => (label, timestamp);
 
-    // ── RenderGantt ──
+    // ── RenderGantt (obsolete but tested for backward compat) ──
 
+#pragma warning disable CS0618
     [Fact]
     public void RenderGantt_empty_spans_returns_empty()
     {
@@ -332,6 +333,7 @@ public class InternalFlowRendererTests : IDisposable
 
         Assert.Contains("lasts", result);
     }
+#pragma warning restore CS0618
 
     // ── RenderSequentialTestFlameChart ──
 

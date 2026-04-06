@@ -316,6 +316,7 @@ public static class InternalFlowRenderer
     /// <summary>
     /// Renders a PlantUML Gantt chart from the spans in a segment.
     /// </summary>
+    [Obsolete("Gantt rendering is no longer used by the component diagram report. Use the flame chart approach instead.")]
     public static string RenderGantt(InternalFlowSegment segment)
     {
         if (segment.Spans.Length == 0)

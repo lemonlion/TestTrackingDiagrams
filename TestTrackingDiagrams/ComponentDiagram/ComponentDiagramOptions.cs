@@ -13,4 +13,6 @@ public record ComponentDiagramOptions
     public bool ShowRelationshipFlows { get; set; } = true;
     public InternalFlowDiagramStyle RelationshipFlowStyle { get; set; } = InternalFlowDiagramStyle.ActivityDiagram;
     public bool ShowSystemFlameChart { get; set; } = true;
+    public int LowCoverageThreshold { get; set; } = 3;
+    public int MaxFlameChartTests { get; set; } = 50;
 }

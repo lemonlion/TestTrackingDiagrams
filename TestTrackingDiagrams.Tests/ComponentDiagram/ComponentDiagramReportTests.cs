@@ -120,7 +120,7 @@ public class ComponentDiagramReportTests : IDisposable
         var logs = new[] { MakeRequest() };
         var options = new ComponentDiagramOptions();
 
-        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlRendering = PlantUmlRendering.Server });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("<img src=", html);
@@ -148,7 +148,7 @@ public class ComponentDiagramReportTests : IDisposable
         var options = new ComponentDiagramOptions();
 
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
-            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlServerBaseUrl = "https://plantuml.com/plantuml", PlantUmlImageFormat = PlantUmlImageFormat.Svg });
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlServerBaseUrl = "https://plantuml.com/plantuml", PlantUmlImageFormat = PlantUmlImageFormat.Svg, PlantUmlRendering = PlantUmlRendering.Server });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("plantuml.com/plantuml/svg/", html);
@@ -161,7 +161,7 @@ public class ComponentDiagramReportTests : IDisposable
         var options = new ComponentDiagramOptions();
 
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
-            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlImageFormat = PlantUmlImageFormat.Png });
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = options, PlantUmlImageFormat = PlantUmlImageFormat.Png, PlantUmlRendering = PlantUmlRendering.Server });
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("plantuml.com/plantuml/png/", html);
@@ -331,7 +331,7 @@ public class ComponentDiagramReportTests : IDisposable
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.DoesNotContain("iflow-rel-list", html);
         Assert.DoesNotContain("System Flow", html);
-        Assert.DoesNotContain("__iflowSegments", html);
+        Assert.DoesNotContain("window.__iflowSegments = {", html);
     }
 
     [Fact]
@@ -346,5 +346,179 @@ public class ComponentDiagramReportTests : IDisposable
     {
         var options = new ComponentDiagramOptions();
         Assert.True(options.ShowSystemFlameChart);
+    }
+
+    // ── Phase 3: Browser SVG rendering ──
+
+    [Fact]
+    public void GenerateComponentDiagramReport_BrowserJs_Uses_PlantumlBrowserDiv()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = options,
+                PlantUmlRendering = PlantUmlRendering.BrowserJs
+            });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("plantuml-browser", html);
+        Assert.Contains("data-plantuml", html);
+        Assert.Contains("plantuml.js", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_Server_StillUsesImgTag()
+    {
+        var logs = new[] { MakeRequest() };
+        var options = new ComponentDiagramOptions();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = options,
+                PlantUmlRendering = PlantUmlRendering.Server
+            });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("<img src=", html);
+    }
+
+    // ── Phase 3: Stats wired into diagram labels ──
+
+    [Fact]
+    public void GenerateComponentDiagramReport_WithTimestamps_IncludesStatsInPlantUml()
+    {
+        var reqId = Guid.NewGuid();
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        var req = new RequestResponseLog("T", "t1", HttpMethod.Get, null, new Uri("http://sut/api"),
+            [], "OrderService", "Caller", RequestResponseType.Request, Guid.NewGuid(), reqId, false) { Timestamp = baseTime };
+        var res = new RequestResponseLog("T", "t1", HttpMethod.Get, null, new Uri("http://sut/api"),
+            [], "OrderService", "Caller", RequestResponseType.Response, Guid.NewGuid(), reqId, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(100) };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            [req, res], new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = new ComponentDiagramOptions(),
+                PlantUmlRendering = PlantUmlRendering.BrowserJs
+            });
+
+        var puml = File.ReadAllText(result.PumlFilePath);
+        Assert.Contains("P50:", puml);
+        Assert.Contains("P95:", puml);
+    }
+
+    // ── Phase 3: System flow — no Gantt, has stats table ──
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_NoGanttSection()
+    {
+        using var source = new ActivitySource("Tests.Phase3.NoGantt");
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        Activity.Current = null;
+        using var span = source.StartActivity("Process")!;
+        span.SetStartTime(DateTime.UtcNow);
+        span.SetEndTime(DateTime.UtcNow.AddMilliseconds(50));
+
+        var logs = new[] { MakeRequest() };
+        var wholeTestSegments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = new(Guid.Empty, RequestResponseType.Request, "test-1",
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMilliseconds(50), [span])
+        };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs,
+            new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions { ShowSystemFlameChart = true } },
+            wholeTestSegments: wholeTestSegments);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("@startgantt", html);
+        Assert.DoesNotContain("system-gantt", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_SystemFlow_HasPerformanceSummaryTable()
+    {
+        var reqId = Guid.NewGuid();
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        using var source = new ActivitySource("Tests.Phase3.StatsTable");
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        Activity.Current = null;
+        using var span = source.StartActivity("Process")!;
+        span.SetStartTime(baseTime.UtcDateTime);
+        span.SetEndTime(baseTime.UtcDateTime.AddMilliseconds(50));
+
+        var req = new RequestResponseLog("T", "t1", HttpMethod.Get, null, new Uri("http://sut/api"),
+            [], "OrderService", "Caller", RequestResponseType.Request, Guid.NewGuid(), reqId, false) { Timestamp = baseTime };
+        var res = new RequestResponseLog("T", "t1", HttpMethod.Get, null, new Uri("http://sut/api"),
+            [], "OrderService", "Caller", RequestResponseType.Response, Guid.NewGuid(), reqId, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(100) };
+
+        var wholeTestSegments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-t1"] = new(Guid.Empty, RequestResponseType.Request, "t1",
+                baseTime, baseTime.AddMilliseconds(50), [span])
+        };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            [req, res],
+            new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions { ShowSystemFlameChart = true } },
+            wholeTestSegments: wholeTestSegments);
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("performance-summary", html);
+        Assert.Contains("Mean", html);
+        Assert.Contains("P95", html);
+    }
+
+    // ── Phase 4: Focus mode ──
+
+    [Fact]
+    public void GenerateComponentDiagramReport_BrowserJs_IncludesFocusModeScript()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = new ComponentDiagramOptions(),
+                PlantUmlRendering = PlantUmlRendering.BrowserJs
+            });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("focus-dimmed", html);
+        Assert.Contains("focusNode", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_Server_DoesNotIncludeFocusScript()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions
+            {
+                ComponentDiagramOptions = new ComponentDiagramOptions(),
+                PlantUmlRendering = PlantUmlRendering.Server
+            });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("focusNode", html);
     }
 }

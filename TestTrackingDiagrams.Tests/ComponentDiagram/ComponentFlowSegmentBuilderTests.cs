@@ -152,8 +152,9 @@ public class ComponentFlowSegmentBuilderTests : IDisposable
         Assert.Equal("t1", entry.TestSummaries[0].TestId);
     }
 
-    // ── BuildSystemSegment ──
+    // ── BuildSystemSegment (obsolete but tested for backward compat) ──
 
+#pragma warning disable CS0618
     [Fact]
     public void BuildSystemSegment_empty_returns_empty()
     {
@@ -177,4 +178,5 @@ public class ComponentFlowSegmentBuilderTests : IDisposable
 
         Assert.Equal(2, result.Spans.Length);
     }
+#pragma warning restore CS0618
 }

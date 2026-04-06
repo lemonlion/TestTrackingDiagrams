@@ -39,7 +39,8 @@ public static partial class ComponentDiagramGenerator
 
     public static string GeneratePlantUml(
         ComponentRelationship[] relationships,
-        ComponentDiagramOptions? options = null)
+        ComponentDiagramOptions? options = null,
+        Dictionary<string, RelationshipStats>? stats = null)
     {
         options ??= new ComponentDiagramOptions();
         var sb = new StringBuilder();
@@ -76,11 +77,26 @@ public static partial class ComponentDiagramGenerator
         {
             var callerAlias = SanitizeAlias(rel.Caller);
             var serviceAlias = SanitizeAlias(rel.Service);
+            var relKey = $"iflow-rel-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Caller)}-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Service)}";
 
             string label;
             if (options.RelationshipLabelFormatter is not null)
             {
                 label = options.RelationshipLabelFormatter(rel);
+            }
+            else if (stats != null && stats.TryGetValue(relKey, out var relStats))
+            {
+                var methodsPart = rel.Protocol == "HTTP"
+                    ? $"HTTP: {string.Join(", ", rel.Methods.OrderBy(m => m))}"
+                    : $"{rel.Protocol}: {string.Join(", ", rel.Methods.OrderBy(m => m))}";
+
+                var statsPart = $"P50: {relStats.MedianMs:F0}ms | P95: {relStats.P95Ms:F0}ms | P99: {relStats.P99Ms:F0}ms";
+
+                var errorPart = relStats.ErrorRate > 0
+                    ? $" | {relStats.ErrorRate:P0} errors"
+                    : "";
+
+                label = $"[[#iflow-rel-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Caller)}-{ComponentFlowSegmentBuilder.SanitizeKey(rel.Service)} {methodsPart}]]\\n{statsPart}{errorPart}\\n{rel.CallCount} calls across {rel.TestCount} tests";
             }
             else
             {
@@ -90,7 +106,30 @@ public static partial class ComponentDiagramGenerator
                 label = $"{methodsPart} - {rel.CallCount} calls across {rel.TestCount} tests";
             }
 
-            sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\")");
+            // Determine arrow style based on stats
+            var color = "";
+            if (stats != null && stats.TryGetValue(relKey, out var arrowStats))
+            {
+                // Hotspot coloring by P95
+                color = arrowStats.P95Ms switch
+                {
+                    < 50 => "#Green",
+                    < 200 => "#Orange",
+                    _ => "#Red"
+                };
+
+                // Low coverage uses dashed line
+                if (arrowStats.IsLowCoverage)
+                {
+                    sb.AppendLine($"{callerAlias} ..> {serviceAlias} : \"{label}\"");
+                    continue;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(color))
+                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\", $tags=\"{color}\")");
+            else
+                sb.AppendLine($"Rel({callerAlias}, {serviceAlias}, \"{label}\")");
         }
 
         sb.AppendLine();

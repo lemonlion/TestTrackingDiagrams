@@ -880,4 +880,99 @@ public static class DiagramContextMenu
         })();
         </script>
         """;
+
+    public static string GetFocusModeScript() => """
+        <style>
+            .focus-dimmed { opacity: 0.15; transition: opacity 0.3s; }
+            .focus-active { opacity: 1; transition: opacity 0.3s; }
+        </style>
+        <script>
+        (function() {
+            document.addEventListener('DOMContentLoaded', function() {
+                var focused = null;
+
+                function getNodeAlias(el) {
+                    // Walk up to find a group (<g>) that contains a rect or polygon (C4 system/person)
+                    var g = el.closest ? el.closest('g') : null;
+                    if (!g) return null;
+                    // Look for text elements inside the group to identify the node
+                    var texts = g.querySelectorAll('text');
+                    if (texts.length === 0) return null;
+                    return texts[0].textContent.trim();
+                }
+
+                function getRelationships(svg) {
+                    // Parse relationship edges: look for <g> containing <path> or <line> + <text>
+                    var edges = [];
+                    svg.querySelectorAll('g').forEach(function(g) {
+                        var path = g.querySelector('path, line, polyline');
+                        var textEls = g.querySelectorAll('text');
+                        if (path && textEls.length > 0) {
+                            edges.push({ group: g, label: textEls[0].textContent.trim() });
+                        }
+                    });
+                    return edges;
+                }
+
+                function focusNode(nodeName, svgContainer) {
+                    if (!svgContainer) return;
+                    var svg = svgContainer.querySelector('svg');
+                    if (!svg) return;
+
+                    if (focused === nodeName) {
+                        // Unfocus - remove all dim/active classes
+                        svg.querySelectorAll('.focus-dimmed, .focus-active').forEach(function(el) {
+                            el.classList.remove('focus-dimmed', 'focus-active');
+                        });
+                        focused = null;
+                        return;
+                    }
+
+                    focused = nodeName;
+                    // Dim everything, then highlight related elements
+                    var allGroups = svg.querySelectorAll('g');
+                    allGroups.forEach(function(g) {
+                        g.classList.remove('focus-dimmed', 'focus-active');
+                        // Check if this group contains the focused node name
+                        var texts = g.querySelectorAll('text');
+                        var isRelated = false;
+                        texts.forEach(function(t) {
+                            if (t.textContent.trim() === nodeName) isRelated = true;
+                        });
+                        if (isRelated) {
+                            g.classList.add('focus-active');
+                        } else {
+                            g.classList.add('focus-dimmed');
+                        }
+                    });
+                }
+
+                // Expose for testing and external use
+                window.focusNode = focusNode;
+
+                // Bind click handlers to SVG nodes after render
+                var mo = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(m) {
+                        m.addedNodes.forEach(function(node) {
+                            if (node.tagName === 'svg' || (node.querySelector && node.querySelector('svg'))) {
+                                var svg = node.tagName === 'svg' ? node : node.querySelector('svg');
+                                if (!svg) return;
+                                svg.querySelectorAll('rect, polygon, ellipse').forEach(function(shape) {
+                                    shape.style.cursor = 'pointer';
+                                    shape.addEventListener('click', function(e) {
+                                        var name = getNodeAlias(e.target);
+                                        if (name) focusNode(name, svg.parentElement);
+                                    });
+                                });
+                            }
+                        });
+                    });
+                });
+                document.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                    mo.observe(el, { childList: true, subtree: true });
+                });
+            });
+        })();
+        </script>
+        """;
 }
