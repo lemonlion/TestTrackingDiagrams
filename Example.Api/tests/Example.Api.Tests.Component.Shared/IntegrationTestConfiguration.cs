@@ -38,6 +38,9 @@ public static class IntegrationTestConfiguration
         if (TryGetEnum<PlantUmlRendering>("TTD_PLANTUML_RENDERING") is { } plantUmlRendering)
             options.PlantUmlRendering = plantUmlRendering;
 
+        if (TryGetBool("TTD_INTERNAL_FLOW_TRACKING") is { } internalFlowTracking)
+            options.InternalFlowTracking = internalFlowTracking;
+
         return options;
     }
 

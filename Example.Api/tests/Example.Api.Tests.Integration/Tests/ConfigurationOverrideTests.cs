@@ -147,7 +147,8 @@ public class ConfigurationOverrideTests
         {
             ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "true",
             ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server"
+            ["TTD_PLANTUML_RENDERING"] = "Server",
+            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -168,7 +169,8 @@ public class ConfigurationOverrideTests
         {
             ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "false",
             ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server"
+            ["TTD_PLANTUML_RENDERING"] = "Server",
+            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -193,7 +195,8 @@ public class ConfigurationOverrideTests
         {
             ["TTD_PLANTUML_SERVER_BASE_URL"] = customBaseUrl,
             ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server"
+            ["TTD_PLANTUML_RENDERING"] = "Server",
+            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");

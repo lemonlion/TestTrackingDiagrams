@@ -39,9 +39,10 @@ public static class ReportParser
             return sources;
 
         // BrowserJs / InlineSvg mode: data-plantuml inside scenario containers
+        // Filter to sequence diagrams only (exclude activity/component diagrams)
         return document.QuerySelectorAll("details.scenario [data-plantuml], div.scenario [data-plantuml]")
             .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
-            .Where(s => s.Length > 0)
+            .Where(s => s.Length > 0 && s.Contains("participant "))
             .ToArray();
     }
 
