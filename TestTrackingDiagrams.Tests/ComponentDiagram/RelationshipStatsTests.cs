@@ -821,4 +821,45 @@ public class RelationshipStatsTests
 
         Assert.Empty(correlations);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // GUID Normalization
+    // ═══════════════════════════════════════════════════════════
+
+    [Theory]
+    [InlineData("/api/orders", "/api/orders")]
+    [InlineData("/transaction/1272dfb0-bde7-41ba-8c6e-db504bfdef81", "/transaction/{guid}")]
+    [InlineData("/api/v1/1272dfb0-bde7-41ba-8c6e-db504bfdef81/items/5df8b10d-885f-4e98-bc32-fa0e76be83e1", "/api/v1/{guid}/items/{guid}")]
+    [InlineData("/UPPER/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", "/UPPER/{guid}")]
+    public void NormalizePathGuids_replaces_guids(string input, string expected)
+    {
+        Assert.Equal(expected, ComponentFlowSegmentBuilder.NormalizePathGuids(input));
+    }
+
+    [Fact]
+    public void ComputeRelationshipStats_merges_endpoints_differing_only_by_guid()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (int i = 0; i < 3; i++)
+        {
+            var guid = Guid.NewGuid();
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                service: "OrderService",
+                uri: $"http://sut/api/orders/{guid}",
+                requestTime: BaseTime.AddSeconds(i),
+                responseTime: BaseTime.AddSeconds(i).AddMilliseconds(50));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        var stats = result.Values.Single();
+        Assert.Single(stats.EndpointBreakdown);
+        Assert.Equal("/api/orders/{guid}", stats.EndpointBreakdown[0].Path);
+        Assert.Equal(3, stats.EndpointBreakdown[0].CallCount);
+    }
 }

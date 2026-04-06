@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text.RegularExpressions;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
 
@@ -221,7 +222,7 @@ public static class ComponentFlowSegmentBuilder
 
             // Endpoint breakdown
             var endpointGroups = callDurations
-                .GroupBy(c => (Method: c.Request.Method.Value?.ToString() ?? "Unknown", Path: c.Request.Uri.AbsolutePath))
+                .GroupBy(c => (Method: c.Request.Method.Value?.ToString() ?? "Unknown", Path: NormalizePathGuids(c.Request.Uri.AbsolutePath)))
                 .Select(g =>
                 {
                     var epDurations = g.Select(c => c.DurationMs).OrderBy(d => d).ToArray();
@@ -692,6 +693,13 @@ public static class ComponentFlowSegmentBuilder
 
         return (longest.Length, longest.Path.ToArray());
     }
+
+    private static readonly Regex GuidPattern = new(
+        @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        RegexOptions.Compiled);
+
+    internal static string NormalizePathGuids(string path) =>
+        GuidPattern.Replace(path, "{guid}");
 
     internal static string SanitizeKey(string name) =>
         name.Replace(" ", "_").Replace("/", "_").Replace("\\", "_");

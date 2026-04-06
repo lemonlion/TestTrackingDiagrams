@@ -306,18 +306,23 @@ public static class ComponentDiagramReportGenerator
                     sysSb.AppendLine("<h3>Payload Sizes</h3>");
                     sysSb.AppendLine("<div class=\"payload-sizes\">");
                     sysSb.AppendLine("<table class=\"performance-summary\">");
-                    sysSb.AppendLine("<tr><th>Relationship</th><th>Req Mean</th><th>Req P95</th><th>Resp Mean</th><th>Resp P95</th></tr>");
+                    sysSb.AppendLine("<tr>" +
+                        "<th data-sort-col=\"0\" onclick=\"sortTable(this)\">Relationship &#x25C6;</th>" +
+                        "<th data-sort-col=\"1\" onclick=\"sortTable(this)\">Req Mean &#x25C6;</th>" +
+                        "<th data-sort-col=\"2\" onclick=\"sortTable(this)\">Req P95 &#x25C6;</th>" +
+                        "<th data-sort-col=\"3\" onclick=\"sortTable(this)\">Resp Mean &#x25C6;</th>" +
+                        "<th data-sort-col=\"4\" onclick=\"sortTable(this)\">Resp P95 &#x25C6;</th></tr>");
 
                     foreach (var (rel, relKey) in relWithPayloads)
                     {
                         var ps = stats[relKey].PayloadSizes!;
                         var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
                         var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
-                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td>" +
-                            $"<td>{FormatBytes(ps.RequestMeanBytes)}</td>" +
-                            $"<td>{FormatBytes(ps.RequestP95Bytes)}</td>" +
-                            $"<td>{FormatBytes(ps.ResponseMeanBytes)}</td>" +
-                            $"<td>{FormatBytes(ps.ResponseP95Bytes)}</td></tr>");
+                        sysSb.AppendLine($"<tr><td data-sort-value=\"{callerEnc} {serviceEnc}\">{callerEnc} \u2192 {serviceEnc}</td>" +
+                            $"<td data-sort-value=\"{ps.RequestMeanBytes:F1}\">{FormatBytes(ps.RequestMeanBytes)}</td>" +
+                            $"<td data-sort-value=\"{ps.RequestP95Bytes:F1}\">{FormatBytes(ps.RequestP95Bytes)}</td>" +
+                            $"<td data-sort-value=\"{ps.ResponseMeanBytes:F1}\">{FormatBytes(ps.ResponseMeanBytes)}</td>" +
+                            $"<td data-sort-value=\"{ps.ResponseP95Bytes:F1}\">{FormatBytes(ps.ResponseP95Bytes)}</td></tr>");
                     }
 
                     sysSb.AppendLine("</table>");
