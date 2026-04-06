@@ -38,8 +38,8 @@ public static class ReportParser
         if (sources.Length > 0)
             return sources;
 
-        // BrowserJs / InlineSvg mode: data-plantuml attribute
-        return document.QuerySelectorAll("[data-plantuml]")
+        // BrowserJs / InlineSvg mode: data-plantuml inside scenario containers
+        return document.QuerySelectorAll("details.scenario [data-plantuml], div.scenario [data-plantuml]")
             .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
             .Where(s => s.Length > 0)
             .ToArray();

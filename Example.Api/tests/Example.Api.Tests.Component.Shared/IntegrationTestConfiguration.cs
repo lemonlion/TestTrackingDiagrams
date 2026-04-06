@@ -35,6 +35,9 @@ public static class IntegrationTestConfiguration
         if (TryGetEnv("TTD_PLANTUML_SERVER_BASE_URL") is { } plantUmlServerBaseUrl)
             options.PlantUmlServerBaseUrl = plantUmlServerBaseUrl;
 
+        if (TryGetEnum<PlantUmlRendering>("TTD_PLANTUML_RENDERING") is { } plantUmlRendering)
+            options.PlantUmlRendering = plantUmlRendering;
+
         return options;
     }
 

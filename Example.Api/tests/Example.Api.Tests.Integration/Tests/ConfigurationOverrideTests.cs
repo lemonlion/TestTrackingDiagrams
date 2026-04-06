@@ -146,7 +146,8 @@ public class ConfigurationOverrideTests
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
             ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["TTD_PLANTUML_RENDERING"] = "Server"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -166,7 +167,8 @@ public class ConfigurationOverrideTests
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
             ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "false",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["TTD_PLANTUML_RENDERING"] = "Server"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -190,7 +192,8 @@ public class ConfigurationOverrideTests
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
             ["TTD_PLANTUML_SERVER_BASE_URL"] = customBaseUrl,
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["TTD_PLANTUML_RENDERING"] = "Server"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
