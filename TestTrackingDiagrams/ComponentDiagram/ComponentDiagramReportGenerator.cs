@@ -32,6 +32,11 @@ public static class ComponentDiagramReportGenerator
         var stats = ComponentFlowSegmentBuilder.ComputeRelationshipStats(
             relationships, logsArray, options.LowCoverageThreshold);
 
+        // Compute call ordering patterns and error correlations
+        var callOrderings = ComponentFlowSegmentBuilder.BuildCallOrdering(logsArray);
+        var callOrderingPatterns = ComponentFlowSegmentBuilder.ComputeCallOrderingPatterns(callOrderings);
+        var errorCorrelations = ComponentFlowSegmentBuilder.ComputeErrorCorrelations(relationships, logsArray);
+
         var plantUml = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats: stats.Count > 0 ? stats : null, useC4: !useBrowserJs);
 
         var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
@@ -58,7 +63,9 @@ public static class ComponentDiagramReportGenerator
             options.RelationshipFlowStyle,
             reportOptions.InternalFlowHasDataBehavior,
             useBrowserJs,
-            options.MaxFlameChartTests);
+            options.MaxFlameChartTests,
+            callOrderingPatterns,
+            errorCorrelations);
         var htmlPath = Path.Combine(directory, $"{options.FileName}.html");
         File.WriteAllText(htmlPath, html);
 
@@ -117,7 +124,9 @@ public static class ComponentDiagramReportGenerator
         InternalFlowDiagramStyle flowStyle,
         InternalFlowHasDataBehavior hasDataBehavior = InternalFlowHasDataBehavior.ShowLinkOnHover,
         bool useBrowserJs = false,
-        int maxFlameChartTests = 50)
+        int maxFlameChartTests = 50,
+        CallOrderingPattern[]? callOrderingPatterns = null,
+        ErrorCorrelation[]? errorCorrelations = null)
     {
         var encodedPlantUml = System.Net.WebUtility.HtmlEncode(plantUml);
 
@@ -171,7 +180,8 @@ public static class ComponentDiagramReportGenerator
                     "<th data-sort-col=\"3\" onclick=\"sortTable(this)\">P50 &#x25C6;</th>" +
                     "<th data-sort-col=\"4\" onclick=\"sortTable(this)\">P95 &#x25C6;</th>" +
                     "<th data-sort-col=\"5\" onclick=\"sortTable(this)\">P99 &#x25C6;</th>" +
-                    "<th data-sort-col=\"6\" onclick=\"sortTable(this)\">Errors &#x25C6;</th></tr>");
+                    "<th data-sort-col=\"6\" onclick=\"sortTable(this)\" title=\"Coefficient of Variation (stdDev/mean). Low=consistent, High=variable\">CV &#x25C6;</th>" +
+                    "<th data-sort-col=\"7\" onclick=\"sortTable(this)\">Errors &#x25C6;</th></tr>");
 
                 foreach (var rel in relationships)
                 {
@@ -187,14 +197,17 @@ public static class ComponentDiagramReportGenerator
                     var expandClick = hasEndpoints ? $" onclick=\"toggleEndpoints('{relKey}')\"" : "";
                     var expandIcon = hasEndpoints ? " &#x25B6;" : "";
                     var lowCovClass = relStats.IsLowCoverage ? " low-coverage" : "";
+                    var cvClass = relStats.CoefficientOfVariation < 0.3 ? "cv-low" : relStats.CoefficientOfVariation > 0.7 ? "cv-high" : "cv-med";
+                    var outlierBadge = relStats.Outliers is not null ? $" <span class=\"outlier-badge\" title=\"{relStats.Outliers.OutlierCount} outlier(s) detected\">&#x1F53A; {relStats.Outliers.OutlierCount}</span>" : "";
 
                     sysSb.AppendLine($"<tr{expandClass}{expandClick} data-rel=\"{relKey}\">" +
-                        $"<td data-sort-value=\"{callerEnc} {serviceEnc}\">{expandIcon} {callerEnc} \u2192 {serviceEnc}{(relStats.IsLowCoverage ? " <span class=\"low-coverage\" title=\"Low test coverage\">\u26A0</span>" : "")}</td>" +
+                        $"<td data-sort-value=\"{callerEnc} {serviceEnc}\">{expandIcon} {callerEnc} \u2192 {serviceEnc}{(relStats.IsLowCoverage ? " <span class=\"low-coverage\" title=\"Low test coverage\">\u26A0</span>" : "")}{outlierBadge}</td>" +
                         $"<td data-sort-value=\"{relStats.CallCount}\">{relStats.CallCount}</td>" +
                         $"<td data-sort-value=\"{relStats.MeanMs:F1}\">{relStats.MeanMs:F0}ms</td>" +
                         $"<td data-sort-value=\"{relStats.MedianMs:F1}\">{relStats.MedianMs:F0}ms</td>" +
                         $"<td data-sort-value=\"{relStats.P95Ms:F1}\">{relStats.P95Ms:F0}ms</td>" +
                         $"<td data-sort-value=\"{relStats.P99Ms:F1}\">{relStats.P99Ms:F0}ms</td>" +
+                        $"<td data-sort-value=\"{relStats.CoefficientOfVariation:F3}\" class=\"{cvClass}\">{relStats.CoefficientOfVariation:F2}</td>" +
                         $"<td data-sort-value=\"{relStats.ErrorRate:F4}\"{errorStyle}>{relStats.ErrorRate * 100:F0}%</td></tr>");
 
                     // Endpoint breakdown rows (initially hidden)
@@ -210,6 +223,7 @@ public static class ComponentDiagramReportGenerator
                                 $"<td>{ep.MedianMs:F0}ms</td>" +
                                 $"<td>{ep.P95Ms:F0}ms</td>" +
                                 $"<td>{ep.P99Ms:F0}ms</td>" +
+                                $"<td></td>" +
                                 $"<td{epErrorStyle}>{ep.ErrorRate * 100:F0}%</td></tr>");
                         }
                     }
@@ -338,6 +352,131 @@ public static class ComponentDiagramReportGenerator
                     sysSb.AppendLine("</div>");
                 }
 
+                // Request method distribution
+                var relWithMethods = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.MethodDistribution.Count > 1)
+                    .ToArray();
+
+                if (relWithMethods.Length > 0)
+                {
+                    sysSb.AppendLine("<h3>Request Methods</h3>");
+                    sysSb.AppendLine("<div class=\"method-dist\">");
+
+                    foreach (var (rel, relKey) in relWithMethods)
+                    {
+                        var md = stats[relKey].MethodDistribution;
+                        var total = md.Values.Sum();
+                        var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                        var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+
+                        sysSb.AppendLine($"<div class=\"method-row\">");
+                        sysSb.AppendLine($"<span class=\"method-label\">{callerEnc} \u2192 {serviceEnc}</span>");
+                        sysSb.AppendLine("<div class=\"method-bar\">");
+                        foreach (var (method, count) in md.OrderByDescending(kv => kv.Value))
+                        {
+                            var pct = (double)count / total * 100;
+                            var methodEnc = System.Net.WebUtility.HtmlEncode(method);
+                            sysSb.AppendLine($"<div class=\"method-segment method-{methodEnc}\" style=\"width:{pct:F1}%\" title=\"{methodEnc}: {count}\">{methodEnc}</div>");
+                        }
+                        sysSb.AppendLine("</div></div>");
+                    }
+
+                    sysSb.AppendLine("</div>");
+                }
+
+                // Outlier detection
+                var relWithOutliers = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.Outliers is not null)
+                    .ToArray();
+
+                if (relWithOutliers.Length > 0)
+                {
+                    sysSb.AppendLine("<h3>Outlier Detection</h3>");
+                    sysSb.AppendLine("<div class=\"outlier-detection\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>Relationship</th><th>Threshold</th><th>Outliers</th><th>Top Outlier Tests</th></tr>");
+
+                    foreach (var (rel, relKey) in relWithOutliers)
+                    {
+                        var oi = stats[relKey].Outliers!;
+                        var callerEnc = System.Net.WebUtility.HtmlEncode(rel.Caller);
+                        var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+                        var topTests = string.Join(", ", oi.TopOutliers.Select(o =>
+                            $"{System.Net.WebUtility.HtmlEncode(o.TestName)} ({o.DurationMs:F0}ms, {o.DeviationsFromMean:F1}\u03C3)"));
+                        sysSb.AppendLine($"<tr><td>{callerEnc} \u2192 {serviceEnc}</td>" +
+                            $"<td>{oi.ThresholdMs:F0}ms</td>" +
+                            $"<td>{oi.OutlierCount}</td>" +
+                            $"<td>{topTests}</td></tr>");
+                    }
+
+                    sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
+                }
+
+                // Latency contribution breakdown
+                var relWithContribution = relationships
+                    .Select(r => (Rel: r, Key: $"iflow-rel-{SanitizeKey(r.Caller)}-{SanitizeKey(r.Service)}"))
+                    .Where(x => stats.TryGetValue(x.Key, out var s) && s.LatencyContributionPct > 0)
+                    .ToArray();
+
+                if (relWithContribution.Length > 1)
+                {
+                    sysSb.AppendLine("<h3>Latency Contribution</h3>");
+                    sysSb.AppendLine("<div class=\"contribution-chart\">");
+                    sysSb.AppendLine("<div class=\"contribution-bar\">");
+
+                    foreach (var (rel, relKey) in relWithContribution.OrderByDescending(x => stats[x.Key].LatencyContributionPct))
+                    {
+                        var pct = stats[relKey].LatencyContributionPct;
+                        var serviceEnc = System.Net.WebUtility.HtmlEncode(rel.Service);
+                        sysSb.AppendLine($"<div class=\"contribution-segment\" style=\"width:{pct:F1}%\" title=\"{serviceEnc}: {pct:F0}%\">{serviceEnc} {pct:F0}%</div>");
+                    }
+
+                    sysSb.AppendLine("</div></div>");
+                }
+
+                // Error correlations
+                if (errorCorrelations is { Length: > 0 })
+                {
+                    sysSb.AppendLine("<h3>Error Correlations</h3>");
+                    sysSb.AppendLine("<div class=\"error-correlations\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>When this errors...</th><th>This also errors</th><th>Co-occurrence</th><th>Count</th></tr>");
+
+                    foreach (var ec in errorCorrelations)
+                    {
+                        var relAEnc = System.Net.WebUtility.HtmlEncode(ec.RelationshipA);
+                        var relBEnc = System.Net.WebUtility.HtmlEncode(ec.RelationshipB);
+                        sysSb.AppendLine($"<tr><td>{relAEnc}</td><td>{relBEnc}</td>" +
+                            $"<td>{ec.CoOccurrencePct:F0}%</td><td>{ec.CoOccurrenceCount}/{ec.TotalErrorTests}</td></tr>");
+                    }
+
+                    sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
+                }
+
+                // Call ordering patterns
+                if (callOrderingPatterns is { Length: > 0 })
+                {
+                    sysSb.AppendLine("<h3>Call Ordering</h3>");
+                    sysSb.AppendLine("<div class=\"call-ordering\">");
+                    sysSb.AppendLine("<table class=\"performance-summary\">");
+                    sysSb.AppendLine("<tr><th>First Called</th><th>Then Called</th><th>Pattern</th><th>Tests</th></tr>");
+
+                    foreach (var pattern in callOrderingPatterns)
+                    {
+                        var firstEnc = System.Net.WebUtility.HtmlEncode(pattern.FirstService);
+                        var secondEnc = System.Net.WebUtility.HtmlEncode(pattern.SecondService);
+                        sysSb.AppendLine($"<tr><td>{firstEnc}</td><td>{secondEnc}</td>" +
+                            $"<td>{pattern.PctFirstBeforeSecond:F0}% first</td><td>{pattern.SampleCount}</td></tr>");
+                    }
+
+                    sysSb.AppendLine("</table>");
+                    sysSb.AppendLine("</div>");
+                }
+
                 systemFlowHtml = sysSb.ToString();
             }
         }
@@ -380,6 +519,25 @@ public static class ComponentDiagramReportGenerator
                             .status-2xx { color: #22863a; font-weight: 600; }
                             .status-4xx { color: #d97706; font-weight: 600; }
                             .status-5xx { color: #c00; font-weight: 600; }
+                            .cv-low { color: #22863a; font-weight: 600; }
+                            .cv-med { color: #d97706; font-weight: 600; }
+                            .cv-high { color: #c00; font-weight: 600; }
+                            .outlier-badge { color: #c00; font-size: 0.8rem; }
+                            .method-dist { margin: 1rem 0; }
+                            .method-row { display: flex; align-items: center; margin: 4px 0; }
+                            .method-label { width: 250px; min-width: 250px; text-align: right; padding-right: 12px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .method-bar { display: flex; flex: 1; height: 24px; border-radius: 3px; overflow: hidden; }
+                            .method-segment { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #fff; min-width: 30px; }
+                            .method-GET { background: #0366d6; }
+                            .method-POST { background: #22863a; }
+                            .method-PUT { background: #d97706; }
+                            .method-DELETE { background: #c00; }
+                            .method-PATCH { background: #6f42c1; }
+                            .contribution-chart { margin: 1rem 0; }
+                            .contribution-bar { display: flex; height: 32px; border-radius: 4px; overflow: hidden; background: #f0f0f0; }
+                            .contribution-segment { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #fff; background: #0366d6; border-right: 1px solid #fff; min-width: 40px; }
+                            .contribution-segment:nth-child(2n) { background: #6f42c1; }
+                            .contribution-segment:nth-child(3n) { background: #22863a; }
                             {{flowStyles}}
                         </style>
                         {{flowDataScript}}

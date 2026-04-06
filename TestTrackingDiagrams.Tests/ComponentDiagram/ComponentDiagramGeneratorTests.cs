@@ -605,7 +605,7 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
@@ -625,7 +625,7 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
@@ -658,7 +658,7 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-Caller-OrderService"] = new(10, 5, 50.0, 45.0, 120.0, 250.0, 5.0, 300.0,
-                0.15, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                0.15, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
@@ -678,11 +678,11 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-A-FastService"] = new(10, 5, 10.0, 10.0, 30.0, 40.0, 5.0, 50.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false),
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0),
             ["iflow-rel-A-SlowService"] = new(10, 5, 300.0, 280.0, 500.0, 600.0, 100.0, 700.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false),
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0),
             ["iflow-rel-A-MediumService"] = new(10, 5, 100.0, 90.0, 150.0, 180.0, 50.0, 200.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
@@ -703,7 +703,7 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-Caller-RareService"] = new(1, 1, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, true)
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, true, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
@@ -789,7 +789,7 @@ public class ComponentDiagramGeneratorTests
         var stats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-Caller-OrderService"] = new(1, 1, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats, useC4: false);

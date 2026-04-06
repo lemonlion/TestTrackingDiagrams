@@ -81,12 +81,12 @@ public class ComponentDiagramDifferTests
         var baselineStats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-A-B"] = new(10, 5, 50, 50, 80, 90, 10, 100, 0,
-                new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
         var currentStats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-A-B"] = new(10, 5, 150, 150, 300, 400, 50, 500, 0,
-                new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var diff = ComponentDiagramDiffer.Compare(rels, rels, baselineStats, currentStats);
@@ -102,12 +102,12 @@ public class ComponentDiagramDifferTests
         var baselineStats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-A-B"] = new(10, 5, 150, 150, 300, 400, 50, 500, 0,
-                new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
         var currentStats = new Dictionary<string, RelationshipStats>
         {
             ["iflow-rel-A-B"] = new(10, 5, 50, 50, 80, 90, 10, 100, 0,
-                new Dictionary<HttpStatusCode, int>(), [], null, null, false)
+                new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
 
         var diff = ComponentDiagramDiffer.Compare(rels, rels, baselineStats, currentStats);

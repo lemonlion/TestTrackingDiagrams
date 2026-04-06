@@ -20,7 +20,18 @@ public record RelationshipStats(
     EndpointStats[] EndpointBreakdown,
     PayloadSizeStats? PayloadSizes,
     ConcurrencyInfo? Concurrency,
-    bool IsLowCoverage);
+    bool IsLowCoverage,
+    double CoefficientOfVariation,
+    Dictionary<string, int> MethodDistribution,
+    OutlierInfo? Outliers,
+    double LatencyContributionPct);
+
+public record OutlierInfo(int OutlierCount, double ThresholdMs, OutlierDetail[] TopOutliers);
+public record OutlierDetail(string TestName, double DurationMs, double DeviationsFromMean);
+
+public record CallOrderingPattern(string FirstService, string SecondService, double PctFirstBeforeSecond, int SampleCount);
+
+public record ErrorCorrelation(string RelationshipA, string RelationshipB, double CoOccurrencePct, int CoOccurrenceCount, int TotalErrorTests);
 
 public record EndpointStats(
     string Method,

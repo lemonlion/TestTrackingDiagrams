@@ -143,6 +143,9 @@ public static class ComponentFlowSegmentBuilder
                         && l.Timestamp.HasValue)
             .ToArray();
 
+        // Track per-test, per-relationship duration sums for latency contribution (two-pass)
+        var testRelDurations = new Dictionary<string, Dictionary<string, double>>(); // testId → relKey → sumMs
+
         foreach (var rel in relationships)
         {
             var relKey = $"iflow-rel-{SanitizeKey(rel.Caller)}-{SanitizeKey(rel.Service)}";
@@ -165,6 +168,19 @@ public static class ComponentFlowSegmentBuilder
 
             if (callDurations.Count == 0)
                 continue;
+
+            // Accumulate per-test duration sums for latency contribution
+            foreach (var call in callDurations)
+            {
+                var testId = call.Request.TestId;
+                if (!testRelDurations.TryGetValue(testId, out var relDurs))
+                {
+                    relDurs = new Dictionary<string, double>();
+                    testRelDurations[testId] = relDurs;
+                }
+                relDurs.TryAdd(relKey, 0);
+                relDurs[relKey] += call.DurationMs;
+            }
 
             var durations = callDurations.Select(c => c.DurationMs).OrderBy(d => d).ToArray();
             var testCount = callDurations.Select(c => c.Request.TestId).Distinct().Count();
@@ -276,6 +292,41 @@ public static class ComponentFlowSegmentBuilder
                     ConcurrentPairs: concurrentPairs.ToArray());
             }
 
+            // Coefficient of Variation (stdDev / mean)
+            var mean = durations.Average();
+            var variance = durations.Select(d => (d - mean) * (d - mean)).Sum() / durations.Length;
+            var stdDev = Math.Sqrt(variance);
+            var cv = mean > 0 ? stdDev / mean : 0;
+
+            // Method distribution
+            var methodDist = callDurations
+                .GroupBy(c => c.Request.Method.Value?.ToString() ?? "Unknown")
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // Outlier detection (mean + 2σ), only when ≥5 calls
+            OutlierInfo? outliers = null;
+            if (callDurations.Count >= 5)
+            {
+                var threshold = mean + 2 * stdDev;
+                var outlierCalls = callDurations
+                    .Where(c => c.DurationMs > threshold)
+                    .GroupBy(c => c.Request.TestId)
+                    .Select(g =>
+                    {
+                        var worst = g.OrderByDescending(c => c.DurationMs).First();
+                        var deviations = stdDev > 0 ? (worst.DurationMs - mean) / stdDev : 0;
+                        return new OutlierDetail(worst.Request.TestName, worst.DurationMs, deviations);
+                    })
+                    .OrderByDescending(o => o.DeviationsFromMean)
+                    .Take(5)
+                    .ToArray();
+
+                if (outlierCalls.Length > 0)
+                {
+                    outliers = new OutlierInfo(outlierCalls.Length, threshold, outlierCalls);
+                }
+            }
+
             result[relKey] = new RelationshipStats(
                 CallCount: callDurations.Count,
                 TestCount: testCount,
@@ -290,7 +341,38 @@ public static class ComponentFlowSegmentBuilder
                 EndpointBreakdown: endpointGroups,
                 PayloadSizes: payloadSizes,
                 Concurrency: concurrency,
-                IsLowCoverage: testCount < lowCoverageThreshold);
+                IsLowCoverage: testCount < lowCoverageThreshold,
+                CoefficientOfVariation: cv,
+                MethodDistribution: methodDist,
+                Outliers: outliers,
+                LatencyContributionPct: 0);
+        }
+
+        // Second pass: compute latency contribution percentages
+        if (testRelDurations.Count > 0)
+        {
+            // For each test, compute total duration across all relationships
+            var testTotals = testRelDurations.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.Values.Sum());
+
+            // For each relationship, compute average contribution % across tests that include it
+            foreach (var relKey in result.Keys.ToArray())
+            {
+                var contributions = new List<double>();
+                foreach (var (testId, relDurs) in testRelDurations)
+                {
+                    if (relDurs.TryGetValue(relKey, out var relDur) && testTotals[testId] > 0)
+                    {
+                        contributions.Add(relDur / testTotals[testId] * 100);
+                    }
+                }
+
+                if (contributions.Count > 0)
+                {
+                    result[relKey] = result[relKey] with { LatencyContributionPct = contributions.Average() };
+                }
+            }
         }
 
         return result;
@@ -321,6 +403,123 @@ public static class ComponentFlowSegmentBuilder
                 return new TestCallOrdering(g.Key, ordered[0].TestName, entries);
             })
             .ToArray();
+    }
+
+    /// <summary>
+    /// Aggregates call ordering data into patterns showing how often service A is called before service B.
+    /// </summary>
+    public static CallOrderingPattern[] ComputeCallOrderingPatterns(TestCallOrdering[] orderings)
+    {
+        if (orderings.Length == 0) return [];
+
+        // For each test, extract the order of first appearance of each service
+        var pairCounts = new Dictionary<(string, string), (int AFirst, int BFirst)>();
+
+        foreach (var test in orderings)
+        {
+            var serviceOrder = new List<string>();
+            foreach (var entry in test.Entries)
+            {
+                if (!serviceOrder.Contains(entry.Service))
+                    serviceOrder.Add(entry.Service);
+            }
+
+            // For all pairs of services in this test
+            for (int i = 0; i < serviceOrder.Count; i++)
+            {
+                for (int j = i + 1; j < serviceOrder.Count; j++)
+                {
+                    var a = serviceOrder[i];
+                    var b = serviceOrder[j];
+                    // Normalize: always use alphabetical order as the key
+                    var key = string.Compare(a, b, StringComparison.Ordinal) <= 0 ? (a, b) : (b, a);
+                    pairCounts.TryAdd(key, (0, 0));
+                    var (af, bf) = pairCounts[key];
+                    if (key.Item1 == a)
+                        pairCounts[key] = (af + 1, bf);
+                    else
+                        pairCounts[key] = (af, bf + 1);
+                }
+            }
+        }
+
+        return pairCounts
+            .Where(kv => kv.Value.AFirst + kv.Value.BFirst >= 3)
+            .Select(kv =>
+            {
+                var total = kv.Value.AFirst + kv.Value.BFirst;
+                var (first, second, pct) = kv.Value.AFirst >= kv.Value.BFirst
+                    ? (kv.Key.Item1, kv.Key.Item2, (double)kv.Value.AFirst / total * 100)
+                    : (kv.Key.Item2, kv.Key.Item1, (double)kv.Value.BFirst / total * 100);
+                return new CallOrderingPattern(first, second, pct, total);
+            })
+            .Where(p => p.PctFirstBeforeSecond >= 60)
+            .OrderByDescending(p => p.SampleCount)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Computes pairwise error co-occurrence between relationships across tests.
+    /// </summary>
+    public static ErrorCorrelation[] ComputeErrorCorrelations(
+        ComponentRelationship[] relationships,
+        RequestResponseLog[] logs)
+    {
+        if (relationships.Length == 0 || logs.Length == 0) return [];
+
+        // Build response lookup
+        var responseLookup = new Dictionary<Guid, RequestResponseLog>();
+        foreach (var log in logs)
+        {
+            if (log.Type == RequestResponseType.Response && log.Timestamp.HasValue)
+                responseLookup.TryAdd(log.RequestResponseId, log);
+        }
+
+        // For each test, collect the set of relKeys that had errors
+        var testErrorSets = new Dictionary<string, HashSet<string>>();
+        foreach (var req in logs.Where(l => l.Type == RequestResponseType.Request && !l.TrackingIgnore && !l.IsOverrideStart && !l.IsOverrideEnd && !l.IsActionStart))
+        {
+            if (responseLookup.TryGetValue(req.RequestResponseId, out var res)
+                && res.StatusCode?.Value is System.Net.HttpStatusCode sc && (int)sc >= 400)
+            {
+                var relKey = $"{req.CallerName} \u2192 {req.ServiceName}";
+                if (!testErrorSets.TryGetValue(req.TestId, out var set))
+                {
+                    set = [];
+                    testErrorSets[req.TestId] = set;
+                }
+                set.Add(relKey);
+            }
+        }
+
+        // Pairwise co-occurrence
+        var results = new List<ErrorCorrelation>();
+        var allErrorRels = testErrorSets.Values.SelectMany(s => s).Distinct().ToArray();
+
+        for (int i = 0; i < allErrorRels.Length; i++)
+        {
+            var relA = allErrorRels[i];
+            var testsWithAError = testErrorSets.Count(kv => kv.Value.Contains(relA));
+            if (testsWithAError < 2) continue;
+
+            for (int j = i + 1; j < allErrorRels.Length; j++)
+            {
+                var relB = allErrorRels[j];
+                var coOccurrences = testErrorSets.Count(kv => kv.Value.Contains(relA) && kv.Value.Contains(relB));
+                if (coOccurrences == 0) continue;
+
+                var pctFromA = (double)coOccurrences / testsWithAError * 100;
+                var testsWithBError = testErrorSets.Count(kv => kv.Value.Contains(relB));
+                var pctFromB = (double)coOccurrences / testsWithBError * 100;
+
+                if (pctFromA >= 50)
+                    results.Add(new ErrorCorrelation(relA, relB, pctFromA, coOccurrences, testsWithAError));
+                if (pctFromB >= 50 && testsWithBError >= 2)
+                    results.Add(new ErrorCorrelation(relB, relA, pctFromB, coOccurrences, testsWithBError));
+            }
+        }
+
+        return results.OrderByDescending(r => r.CoOccurrenceCount).ToArray();
     }
 
     /// <summary>

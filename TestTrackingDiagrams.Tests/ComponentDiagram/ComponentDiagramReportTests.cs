@@ -972,4 +972,357 @@ public class ComponentDiagramReportTests : IDisposable
 
         return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 6: Latency Variance (Coefficient of Variation)
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_HasCVColumn()
+    {
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains(">CV &#x25C6;</th>", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_LowCVGetsGreenStyling()
+    {
+        // All calls at same duration → CV ≈ 0 → green
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("cv-low", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_PerformanceTable_HighCVGetsRedStyling()
+    {
+        var (logs, _) = CreateStatsWithHighVarianceTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("cv-high", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 7: Request Method Distribution
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_MethodDistribution_ShowsMixedMethods()
+    {
+        var (logs, _) = CreateStatsWithMixedMethodsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("Request Methods", html);
+        Assert.Contains("method-bar", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_MethodDistribution_NotShownWhenAllSameMethod()
+    {
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Request Methods", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_MethodDistribution_ColorsMatchMethod()
+    {
+        var (logs, _) = CreateStatsWithMixedMethodsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("method-GET", html);
+        Assert.Contains("method-POST", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 2: Outlier Detection
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_OutlierDetection_FlagsTestsBeyondTwoSigma()
+    {
+        var (logs, _) = CreateStatsWithOutlierTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("Outlier Detection", html);
+        Assert.Contains("outlier", html.ToLower());
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_OutlierDetection_NotShownWhenAllNormal()
+    {
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Outlier Detection", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_OutlierDetection_SkippedWhenTooFewCalls()
+    {
+        // Only 3 calls — not enough for outlier detection (needs ≥5)
+        var (logs, _) = CreateStatsTestData(testCount: 3);
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Outlier Detection", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 1: Latency Contribution Breakdown
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_LatencyContribution_ShowsPercentagePerRelationship()
+    {
+        var (logs, _) = CreateMultiRelationshipTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("Latency Contribution", html);
+        Assert.Contains("contribution-bar", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_LatencyContribution_NotRenderedWhenNoStats()
+    {
+        var logs = new[] { MakeRequest() };
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Latency Contribution", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 5: Error Correlation
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ErrorCorrelation_DetectsCoOccurringErrors()
+    {
+        var (logs, _) = CreateStatsWithCorrelatedErrorsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("Error Correlations", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_ErrorCorrelation_NotShownWhenNoErrors()
+    {
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Error Correlations", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Feature 3: Call Ordering Patterns
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GenerateComponentDiagramReport_CallOrdering_ShowsDominantPattern()
+    {
+        var (logs, _) = CreateMultiRelationshipTestData(testCount: 5);
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.Contains("Call Ordering", html);
+    }
+
+    [Fact]
+    public void GenerateComponentDiagramReport_CallOrdering_NotShownWhenSingleService()
+    {
+        var (logs, _) = CreateStatsTestData();
+
+        var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(
+            logs, new ReportConfigurationOptions { ComponentDiagramOptions = new ComponentDiagramOptions() });
+
+        var html = File.ReadAllText(result.HtmlFilePath);
+        Assert.DoesNotContain("Call Ordering", html);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Test data helpers for new features
+    // ═══════════════════════════════════════════════════════════
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithHighVarianceTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // Mix of very fast and very slow calls → high CV
+        var durations = new[] { 10, 20, 15, 500, 12, 18, 450, 25, 480, 10 };
+        for (int i = 0; i < durations.Length; i++)
+        {
+            var id = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 1000) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 1000 + durations[i]) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithMixedMethodsTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // Mix of GET and POST calls
+        var methods = new[] { "GET", "GET", "POST", "POST", "GET" };
+        for (int i = 0; i < methods.Length; i++)
+        {
+            var id = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Parse(methods[i]), null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Parse(methods[i]), null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 200 + 100) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithOutlierTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // 9 normal calls at ~100ms, 1 outlier at 2000ms
+        for (int i = 0; i < 10; i++)
+        {
+            var id = Guid.NewGuid();
+            var duration = i == 9 ? 2000 : 100;
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id, false) { Timestamp = baseTime.AddMilliseconds(i * 3000) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 3000 + duration) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateMultiRelationshipTestData(int testCount = 5)
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        for (int i = 0; i < testCount; i++)
+        {
+            // Each test calls OrderService (slow: 200ms) then PaymentService (fast: 50ms)
+            var id1 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id1, false) { Timestamp = baseTime.AddMilliseconds(i * 1000) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id1, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 200) });
+
+            var id2 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id2, false) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 300) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id2, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 350) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
+
+    private (RequestResponseLog[] logs, Dictionary<string, RelationshipStats> stats) CreateStatsWithCorrelatedErrorsTestData()
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var logs = new List<RequestResponseLog>();
+
+        // 3 tests where both OrderService and PaymentService error together
+        for (int i = 0; i < 3; i++)
+        {
+            var id1 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id1, false) { Timestamp = baseTime.AddMilliseconds(i * 1000) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id1, false, HttpStatusCode.InternalServerError) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 100) });
+
+            var id2 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id2, false) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id2, false, HttpStatusCode.InternalServerError) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 300) });
+        }
+
+        // 2 successful tests for both services
+        for (int i = 3; i < 5; i++)
+        {
+            var id1 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id1, false) { Timestamp = baseTime.AddMilliseconds(i * 1000) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/orders"), [], "OrderService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id1, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 100) });
+
+            var id2 = Guid.NewGuid();
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Request, Guid.NewGuid(), id2, false) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 200) });
+            logs.Add(new RequestResponseLog($"Test{i}", $"t{i}", HttpMethod.Get, null,
+                new Uri("http://sut/api/payments"), [], "PaymentService", "Caller",
+                RequestResponseType.Response, Guid.NewGuid(), id2, false, HttpStatusCode.OK) { Timestamp = baseTime.AddMilliseconds(i * 1000 + 300) });
+        }
+
+        return (logs.ToArray(), new Dictionary<string, RelationshipStats>());
+    }
 }

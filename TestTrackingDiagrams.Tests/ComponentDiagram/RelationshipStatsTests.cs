@@ -518,4 +518,307 @@ public class RelationshipStatsTests
 
         Assert.False(result.Values.First().IsLowCoverage);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Coefficient of Variation (CV)
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeRelationshipStats_CV_consistent_durations_low_cv()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (int i = 0; i < 5; i++)
+        {
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i),
+                responseTime: BaseTime.AddSeconds(i).AddMilliseconds(100)); // all exactly 100ms
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        Assert.True(result.Values.First().CoefficientOfVariation < 0.01);
+    }
+
+    [Fact]
+    public void ComputeRelationshipStats_CV_variable_durations_high_cv()
+    {
+        var logs = new List<RequestResponseLog>();
+        var durations = new[] { 10, 500, 15, 480, 12 };
+        for (int i = 0; i < durations.Length; i++)
+        {
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i * 2),
+                responseTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(durations[i]));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        Assert.True(result.Values.First().CoefficientOfVariation > 0.7);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Method Distribution
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeRelationshipStats_method_distribution_counts_methods()
+    {
+        var logs = new List<RequestResponseLog>();
+        var methods = new[] { "GET", "GET", "POST" };
+        for (int i = 0; i < methods.Length; i++)
+        {
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                method: methods[i],
+                requestTime: BaseTime.AddSeconds(i),
+                responseTime: BaseTime.AddSeconds(i).AddMilliseconds(50));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        var methodDist = result.Values.First().MethodDistribution;
+        Assert.Equal(2, methodDist["GET"]);
+        Assert.Equal(1, methodDist["POST"]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Outlier Detection
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeRelationshipStats_outlier_detection_flags_extreme_calls()
+    {
+        var logs = new List<RequestResponseLog>();
+        // 9 calls at ~100ms, 1 at 2000ms
+        for (int i = 0; i < 10; i++)
+        {
+            var duration = i == 9 ? 2000 : 100;
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i * 3),
+                responseTime: BaseTime.AddSeconds(i * 3).AddMilliseconds(duration));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        var outliers = result.Values.First().Outliers;
+        Assert.NotNull(outliers);
+        Assert.True(outliers.OutlierCount > 0);
+        Assert.True(outliers.TopOutliers[0].DurationMs > 1500);
+    }
+
+    [Fact]
+    public void ComputeRelationshipStats_outlier_detection_null_when_few_calls()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (int i = 0; i < 3; i++)
+        {
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i),
+                responseTime: BaseTime.AddSeconds(i).AddMilliseconds(100));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        Assert.Null(result.Values.First().Outliers);
+    }
+
+    [Fact]
+    public void ComputeRelationshipStats_outlier_detection_caps_at_five()
+    {
+        var logs = new List<RequestResponseLog>();
+        // 50 normal calls at ~100ms, then 8 extreme outlier calls at 10000+ms
+        // With 50 normals, mean ≈ 230ms, σ small enough to catch the 10000ms+ outliers
+        for (int i = 0; i < 58; i++)
+        {
+            var duration = i >= 50 ? 10000 + i * 1000 : 100; // 8 extreme outliers well beyond 2σ
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i * 3),
+                responseTime: BaseTime.AddSeconds(i * 3).AddMilliseconds(duration));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        var outliers = result.Values.First().Outliers;
+        Assert.NotNull(outliers);
+        Assert.True(outliers.TopOutliers.Length <= 5);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Latency Contribution
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeRelationshipStats_latency_contribution_computed_across_relationships()
+    {
+        var logs = new List<RequestResponseLog>();
+        // Each test calls OrderService (200ms) then PaymentService (50ms)
+        for (int i = 0; i < 5; i++)
+        {
+            var (req1, res1) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                service: "OrderService",
+                requestTime: BaseTime.AddSeconds(i * 2),
+                responseTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(200));
+            logs.Add(req1);
+            logs.Add(res1);
+
+            var (req2, res2) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                service: "PaymentService",
+                uri: "http://sut/api/payments",
+                requestTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(300),
+                responseTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(350));
+            logs.Add(req2);
+            logs.Add(res2);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var result = ComponentFlowSegmentBuilder.ComputeRelationshipStats(rels, logsArray);
+
+        // OrderService takes 200ms = 80% of the 250ms total, PaymentService takes 50ms = 20%
+        var orderStats = result.Values.First(v => v.MeanMs > 150);
+        var paymentStats = result.Values.First(v => v.MeanMs < 100);
+        Assert.True(orderStats.LatencyContributionPct > 70);
+        Assert.True(paymentStats.LatencyContributionPct < 30);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Call Ordering Patterns
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeCallOrderingPatterns_detects_dominant_pattern()
+    {
+        // 5 tests all call OrderService before PaymentService
+        var orderings = Enumerable.Range(0, 5).Select(i => new TestCallOrdering(
+            $"test-{i}", $"Test{i}", [
+                new CallOrderEntry(1, "Caller", "OrderService", "GET", "/api/orders"),
+                new CallOrderEntry(2, "Caller", "PaymentService", "GET", "/api/payments")
+            ])).ToArray();
+
+        var patterns = ComponentFlowSegmentBuilder.ComputeCallOrderingPatterns(orderings);
+
+        Assert.Single(patterns);
+        Assert.Equal("OrderService", patterns[0].FirstService);
+        Assert.Equal("PaymentService", patterns[0].SecondService);
+        Assert.Equal(100, patterns[0].PctFirstBeforeSecond);
+    }
+
+    [Fact]
+    public void ComputeCallOrderingPatterns_skips_low_sample_pairs()
+    {
+        // Only 2 tests — below minimum of 3
+        var orderings = Enumerable.Range(0, 2).Select(i => new TestCallOrdering(
+            $"test-{i}", $"Test{i}", [
+                new CallOrderEntry(1, "Caller", "OrderService", "GET", "/api/orders"),
+                new CallOrderEntry(2, "Caller", "PaymentService", "GET", "/api/payments")
+            ])).ToArray();
+
+        var patterns = ComponentFlowSegmentBuilder.ComputeCallOrderingPatterns(orderings);
+
+        Assert.Empty(patterns);
+    }
+
+    [Fact]
+    public void ComputeCallOrderingPatterns_empty_when_single_service()
+    {
+        var orderings = Enumerable.Range(0, 5).Select(i => new TestCallOrdering(
+            $"test-{i}", $"Test{i}", [
+                new CallOrderEntry(1, "Caller", "OrderService", "GET", "/api/orders")
+            ])).ToArray();
+
+        var patterns = ComponentFlowSegmentBuilder.ComputeCallOrderingPatterns(orderings);
+
+        Assert.Empty(patterns);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Error Correlation
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeErrorCorrelations_detects_co_occurring_errors()
+    {
+        var logs = new List<RequestResponseLog>();
+        // 3 tests where both OrderService and PaymentService error
+        for (int i = 0; i < 3; i++)
+        {
+            var (req1, res1) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                service: "OrderService",
+                statusCode: HttpStatusCode.InternalServerError,
+                requestTime: BaseTime.AddSeconds(i * 2),
+                responseTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(100));
+            logs.Add(req1);
+            logs.Add(res1);
+
+            var (req2, res2) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                service: "PaymentService",
+                uri: "http://sut/api/payments",
+                statusCode: HttpStatusCode.InternalServerError,
+                requestTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(200),
+                responseTime: BaseTime.AddSeconds(i * 2).AddMilliseconds(300));
+            logs.Add(req2);
+            logs.Add(res2);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var correlations = ComponentFlowSegmentBuilder.ComputeErrorCorrelations(rels, logsArray);
+
+        Assert.NotEmpty(correlations);
+        Assert.True(correlations[0].CoOccurrencePct >= 50);
+    }
+
+    [Fact]
+    public void ComputeErrorCorrelations_empty_when_no_errors()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (int i = 0; i < 5; i++)
+        {
+            var (req, res) = MakeRequestResponsePair(
+                testId: $"test-{i}",
+                requestTime: BaseTime.AddSeconds(i),
+                responseTime: BaseTime.AddSeconds(i).AddMilliseconds(50));
+            logs.Add(req);
+            logs.Add(res);
+        }
+
+        var logsArray = logs.ToArray();
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logsArray);
+        var correlations = ComponentFlowSegmentBuilder.ComputeErrorCorrelations(rels, logsArray);
+
+        Assert.Empty(correlations);
+    }
 }
