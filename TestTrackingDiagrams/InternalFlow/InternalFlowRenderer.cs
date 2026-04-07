@@ -60,7 +60,7 @@ public static class InternalFlowRenderer
         if (currentBatch.Count > 0)
             batches.Add(currentBatch);
 
-        const int maxBatches = 10;
+        const int maxBatches = 4;
         var totalBatches = batches.Count;
         var truncated = totalBatches > maxBatches;
         var renderCount = truncated ? maxBatches : totalBatches;
@@ -180,7 +180,7 @@ public static class InternalFlowRenderer
     /// <summary>
     /// Returns compact flame chart data for client-side rendering.
     /// </summary>
-    public static FlameChartData GetFlameChartData(InternalFlowSegment segment, int maxSpans = 5000)
+    public static FlameChartData GetFlameChartData(InternalFlowSegment segment, int maxSpans = 2000)
     {
         if (segment.Spans.Length == 0)
             return FlameChartData.Empty;
