@@ -170,6 +170,94 @@ public class InternalFlowRendererTests : IDisposable
         Assert.Contains("op", result);
     }
 
+    // ── RenderActivityDiagramBatched ──
+
+    [Fact]
+    public void RenderActivityDiagramBatched_small_span_count_returns_single_diagram()
+    {
+        var span1 = CreateSpan("op1");
+        var span2 = CreateSpan("op2");
+
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(span1, span2), maxSpansPerBatch: 500);
+
+        Assert.Single(results);
+        Assert.Contains("op1", results[0]);
+        Assert.Contains("op2", results[0]);
+    }
+
+    [Fact]
+    public void RenderActivityDiagramBatched_splits_when_exceeding_max()
+    {
+        // Create 6 independent root spans, batch at 2
+        var spans = new List<Activity>();
+        for (int i = 0; i < 6; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(spans.ToArray()), maxSpansPerBatch: 2);
+
+        Assert.Equal(3, results.Length);
+        foreach (var diagram in results)
+        {
+            Assert.Contains("@startuml", diagram);
+            Assert.Contains("@enduml", diagram);
+        }
+    }
+
+    [Fact]
+    public void RenderActivityDiagramBatched_keeps_child_spans_with_parent()
+    {
+        // Parent with 3 children = 4 spans total, batch at 3
+        // Should NOT split parent from children
+        var parent = CreateSpan("parent");
+        var child1 = CreateSpan("child1", parent);
+        var child2 = CreateSpan("child2", parent);
+        var child3 = CreateSpan("child3", parent);
+
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(
+            MakeSegment(parent, child1, child2, child3), maxSpansPerBatch: 3);
+
+        // All 4 spans under one root — should be in a single batch (can't split a tree)
+        Assert.Single(results);
+        Assert.Contains("parent", results[0]);
+        Assert.Contains("child1", results[0]);
+        Assert.Contains("child3", results[0]);
+    }
+
+    [Fact]
+    public void RenderActivityDiagramBatched_empty_spans_returns_empty()
+    {
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(), maxSpansPerBatch: 500);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void RenderActivityDiagramBatched_each_batch_has_header_label()
+    {
+        var spans = new List<Activity>();
+        for (int i = 0; i < 4; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(spans.ToArray()), maxSpansPerBatch: 2);
+
+        Assert.Equal(2, results.Length);
+        Assert.Contains("Part 1", results[0]);
+        Assert.Contains("Part 2", results[1]);
+    }
+
     // ── RenderCallTree ──
 
     [Fact]

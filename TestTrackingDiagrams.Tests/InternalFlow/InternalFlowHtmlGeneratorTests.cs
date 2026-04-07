@@ -189,6 +189,35 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
     }
 
     [Fact]
+    public void GetWholeTestFlowContent_many_spans_produces_multiple_activity_divs()
+    {
+        // Create enough independent root spans to trigger batching (default 500)
+        var spans = new List<Activity>();
+        for (int i = 0; i < 600; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = MakeSegment("test-1", spans.ToArray())
+        };
+
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
+            segments, "test-1", [], WholeTestFlowVisualization.ActivityDiagram);
+
+        Assert.NotNull(result);
+        // Should have multiple plantuml-browser divs
+        var divCount = System.Text.RegularExpressions.Regex.Matches(result.Value.ActivityHtml, "plantuml-browser").Count;
+        Assert.True(divCount >= 2, $"Expected multiple batched divs but got {divCount}");
+    }
+
+    [Fact]
     public void CompressToBase64_round_trips_correctly()
     {
         var original = "{\"s\":[\"test\"],\"f\":[[0,\"operation\",1.23,45.67,0,100]]}";

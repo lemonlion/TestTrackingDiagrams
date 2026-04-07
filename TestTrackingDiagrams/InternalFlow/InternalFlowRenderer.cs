@@ -29,6 +29,66 @@ public static class InternalFlowRenderer
         return sb.ToString();
     }
 
+    public static string[] RenderActivityDiagramBatched(InternalFlowSegment segment, int maxSpansPerBatch = 500)
+    {
+        if (segment.Spans.Length == 0)
+            return [];
+
+        var roots = BuildSpanTree(segment.Spans);
+
+        // If total spans fit in one batch, return a single diagram (no header label)
+        if (segment.Spans.Length <= maxSpansPerBatch)
+            return [RenderActivityDiagram(segment)];
+
+        // Split roots into batches — each root and all its descendants stay together
+        var batches = new List<List<SpanNode>>();
+        var currentBatch = new List<SpanNode>();
+        var currentCount = 0;
+
+        foreach (var root in roots)
+        {
+            var nodeCount = CountNodes(root);
+            if (currentBatch.Count > 0 && currentCount + nodeCount > maxSpansPerBatch)
+            {
+                batches.Add(currentBatch);
+                currentBatch = [];
+                currentCount = 0;
+            }
+            currentBatch.Add(root);
+            currentCount += nodeCount;
+        }
+        if (currentBatch.Count > 0)
+            batches.Add(currentBatch);
+
+        var results = new string[batches.Count];
+        for (var i = 0; i < batches.Count; i++)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("@startuml");
+            sb.AppendLine("skinparam ActivityBackgroundColor #f0f4ff");
+            sb.AppendLine("skinparam ActivityBorderColor #666");
+            sb.AppendLine("skinparam SwimlaneBorderColor #ccc");
+            sb.AppendLine($"title Part {i + 1} of {batches.Count}");
+
+            var currentSwimlane = "";
+            foreach (var root in batches[i])
+                RenderActivityNode(sb, root, ref currentSwimlane, 0);
+
+            sb.AppendLine("@enduml");
+            results[i] = sb.ToString();
+        }
+
+        return results;
+    }
+
+    private static int CountNodes(SpanNode node)
+    {
+        var count = 1;
+        foreach (var child in node.Children)
+            count += CountNodes(child);
+        return count;
+    }
+
     private static void RenderActivityNode(StringBuilder sb, SpanNode node, ref string currentSwimlane, int depth)
     {
         var source = string.IsNullOrEmpty(node.Span.Source.Name) ? "Unknown" : node.Span.Source.Name;

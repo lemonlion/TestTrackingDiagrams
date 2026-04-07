@@ -202,10 +202,20 @@ public static class InternalFlowHtmlGenerator
 
     private static string RenderWholeTestActivityDiagramHtml(InternalFlowSegment segment)
     {
-        var plantuml = InternalFlowRenderer.RenderActivityDiagram(segment);
-        var id = $"iflow-puml-whole-{segment.TestId}";
-        var compressed = CompressToBase64(plantuml);
-        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
+        var batches = InternalFlowRenderer.RenderActivityDiagramBatched(segment);
+        if (batches.Length == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < batches.Length; i++)
+        {
+            var id = batches.Length == 1
+                ? $"iflow-puml-whole-{segment.TestId}"
+                : $"iflow-puml-whole-{segment.TestId}-{i}";
+            var compressed = CompressToBase64(batches[i]);
+            sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>");
+        }
+        return sb.ToString();
     }
 
     /// <summary>
