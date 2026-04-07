@@ -158,6 +158,7 @@ public static class DiagramContextMenu
         .diagram-toggle-btn:hover { background: #e8f0fe; }
         .diagram-toggle-active { background: #4285f4; color: #fff; border-color: #4285f4; }
         .diagram-toggle-active:hover { background: #3367d6; }
+        .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
         .iflow-sequential-tests { padding: 0; }

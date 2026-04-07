@@ -101,7 +101,7 @@ public static class InternalFlowHtmlGenerator
     /// Returns the activity diagram and flame chart HTML content for a specific test,
     /// without any wrapper elements or toggle buttons. Returns null if no data is available.
     /// </summary>
-    public static (string ActivityHtml, string FlameHtml)? GetWholeTestFlowContent(
+    public static (string ActivityHtml, string FlameHtml, int SpanCount)? GetWholeTestFlowContent(
         Dictionary<string, InternalFlowSegment> wholeTestSegments,
         string testId,
         (string Label, DateTimeOffset Timestamp)[] boundaryLogs,
@@ -132,7 +132,7 @@ public static class InternalFlowHtmlGenerator
             flameHtml = $"<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame-z=\"{compressedFlame}\"></div>";
         }
 
-        return (activityHtml, flameHtml);
+        return (activityHtml, flameHtml, segment.Spans.Length);
     }
 
     /// <summary>

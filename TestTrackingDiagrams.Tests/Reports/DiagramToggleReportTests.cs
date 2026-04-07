@@ -252,4 +252,77 @@ public class DiagramToggleReportTests : IDisposable
         Assert.Contains("diagram-toggle-btn", content);
         Assert.Contains("data-dtype", content);
     }
+
+    private Dictionary<string, InternalFlowSegment> MakeWholeTestSegmentsWithSpanCount(string testId, int spanCount)
+    {
+        var spans = new List<Activity>();
+        for (int i = 0; i < spanCount; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+        return new Dictionary<string, InternalFlowSegment>
+        {
+            [$"iflow-test-{testId}"] = new(Guid.Empty, RequestResponseType.Request, testId,
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMilliseconds(50), spans.ToArray())
+        };
+    }
+
+    private static Feature[] MakeTwoScenarioFeatures() =>
+    [
+        new Feature
+        {
+            DisplayName = "Test Feature",
+            Scenarios =
+            [
+                new Scenario { Id = "t1", DisplayName = "Normal test", IsHappyPath = true, Result = ScenarioResult.Passed },
+                new Scenario { Id = "t2", DisplayName = "Outlier test", IsHappyPath = true, Result = ScenarioResult.Passed }
+            ]
+        }
+    ];
+
+    [Fact]
+    public void Report_shows_span_count_warning_when_10x_median()
+    {
+        var features = MakeTwoScenarioFeatures();
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("t1", "", "@startuml\nA->B: call\n@enduml"),
+            new DefaultDiagramsFetcher.DiagramAsCode("t2", "", "@startuml\nA->B: call\n@enduml")
+        };
+
+        // t1 has 5 spans (median), t2 has 50 spans (10x median)
+        var segments = MakeWholeTestSegmentsWithSpanCount("t1", 5);
+        foreach (var kv in MakeWholeTestSegmentsWithSpanCount("t2", 50))
+            segments[kv.Key] = kv.Value;
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "ToggleSpanWarning.html", "Test", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            internalFlowTracking: true,
+            wholeTestSegments: segments,
+            wholeTestVisualization: WholeTestFlowVisualization.Both);
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("span-count-warning", content);
+        Assert.Contains("50 spans", content);
+        Assert.Contains("might indicate a problem", content);
+    }
+
+    [Fact]
+    public void Report_no_span_warning_when_below_threshold()
+    {
+        var content = GenerateReport(
+            MakeDiagrams(), MakeFeatures(), "ToggleNoWarning.html",
+            wholeTestSegments: MakeWholeTestSegments());
+
+        Assert.DoesNotContain("<span class=\"span-count-warning\"", content);
+    }
 }

@@ -258,6 +258,28 @@ public class InternalFlowRendererTests : IDisposable
         Assert.Contains("Part 2", results[1]);
     }
 
+    [Fact]
+    public void RenderActivityDiagramBatched_caps_at_10_batches()
+    {
+        // Create 30 independent root spans, batch at 1 → 30 batches, capped at 10
+        var spans = new List<Activity>();
+        for (int i = 0; i < 30; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+
+        var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(spans.ToArray()), maxSpansPerBatch: 1);
+
+        Assert.Equal(10, results.Length);
+        Assert.Contains("Part 1 of 30 (showing first 10)", results[0]);
+        Assert.Contains("Part 10 of 30 (showing first 10)", results[9]);
+    }
+
     // ── RenderCallTree ──
 
     [Fact]
@@ -287,6 +309,29 @@ public class InternalFlowRendererTests : IDisposable
         var result = InternalFlowRenderer.RenderCallTree(MakeSegment(span, span));
 
         Assert.Contains("<ul", result);
+    }
+
+    // ── GetFlameChartData ──
+
+    [Fact]
+    public void GetFlameChartData_caps_at_maxSpans()
+    {
+        // Create 20 independent root spans, cap at 5
+        var spans = new List<Activity>();
+        for (int i = 0; i < 20; i++)
+        {
+            Activity.Current = null;
+            var s = _source.StartActivity($"op{i}", ActivityKind.Internal,
+                new ActivityContext(ActivityTraceId.CreateRandom(), default, ActivityTraceFlags.Recorded))!;
+            s.SetEndTime(s.StartTimeUtc + TimeSpan.FromMilliseconds(10));
+            _activities.Add(s);
+            spans.Add(s);
+        }
+
+        var data = InternalFlowRenderer.GetFlameChartData(MakeSegment(spans.ToArray()), maxSpans: 5);
+
+        Assert.True(data.Spans.Length <= 5, $"Expected at most 5 spans but got {data.Spans.Length}");
+        Assert.True(data.Spans.Length >= 1);
     }
 
     // ── RenderFlameChart ──

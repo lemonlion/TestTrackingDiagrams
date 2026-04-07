@@ -60,15 +60,23 @@ public static class InternalFlowRenderer
         if (currentBatch.Count > 0)
             batches.Add(currentBatch);
 
-        var results = new string[batches.Count];
-        for (var i = 0; i < batches.Count; i++)
+        const int maxBatches = 10;
+        var totalBatches = batches.Count;
+        var truncated = totalBatches > maxBatches;
+        var renderCount = truncated ? maxBatches : totalBatches;
+
+        var results = new string[renderCount];
+        for (var i = 0; i < renderCount; i++)
         {
             var sb = new StringBuilder();
             sb.AppendLine("@startuml");
             sb.AppendLine("skinparam ActivityBackgroundColor #f0f4ff");
             sb.AppendLine("skinparam ActivityBorderColor #666");
             sb.AppendLine("skinparam SwimlaneBorderColor #ccc");
-            sb.AppendLine($"title Part {i + 1} of {batches.Count}");
+            var title = truncated
+                ? $"title Part {i + 1} of {totalBatches} (showing first {maxBatches})"
+                : $"title Part {i + 1} of {totalBatches}";
+            sb.AppendLine(title);
 
             var currentSwimlane = "";
             foreach (var root in batches[i])
@@ -172,7 +180,7 @@ public static class InternalFlowRenderer
     /// <summary>
     /// Returns compact flame chart data for client-side rendering.
     /// </summary>
-    public static FlameChartData GetFlameChartData(InternalFlowSegment segment)
+    public static FlameChartData GetFlameChartData(InternalFlowSegment segment, int maxSpans = 5000)
     {
         if (segment.Spans.Length == 0)
             return FlameChartData.Empty;
@@ -186,6 +194,7 @@ public static class InternalFlowRenderer
         var sources = new List<string>();
         var sourceIndex = new Dictionary<string, int>();
         var spans = new List<object[]>();
+        var spanCount = 0;
 
         void FlattenNode(SpanNode node, int depth)
         {
@@ -206,13 +215,18 @@ public static class InternalFlowRenderer
 
             // [srcIdx, name, leftPct, widthPct, depth, durationMs]
             spans.Add([srcIdx, name, leftPct, widthPct, depth, durMs]);
+            spanCount++;
 
             foreach (var child in node.Children)
                 FlattenNode(child, depth + 1);
         }
 
         foreach (var root in roots)
+        {
+            if (spanCount >= maxSpans)
+                break;
             FlattenNode(root, 0);
+        }
 
         return new FlameChartData(sources.ToArray(), spans.ToArray());
     }

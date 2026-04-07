@@ -465,6 +465,19 @@ public static class ReportGenerator
         body.Append("</div>");
         var plantUmlBrowserCounter = 0;
 
+        // Pre-compute median span count for outlier detection
+        var medianSpanCount = 0;
+        if (wholeTestSegments is not null && wholeTestSegments.Count > 0)
+        {
+            var spanCounts = wholeTestSegments.Values
+                .Where(s => s.Spans.Length > 0)
+                .Select(s => s.Spans.Length)
+                .OrderBy(c => c)
+                .ToArray();
+            if (spanCounts.Length > 0)
+                medianSpanCount = spanCounts[(spanCounts.Length - 1) / 2];
+        }
+
         body.Append("<div id=\"report-content\">");
         foreach (var feature in features)
         {
@@ -513,7 +526,7 @@ public static class ReportGenerator
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
 
                 // Get whole-test-flow content (activity + flame) if available
-                (string ActivityHtml, string FlameHtml)? wholeTestContent = null;
+                (string ActivityHtml, string FlameHtml, int SpanCount)? wholeTestContent = null;
                 if (wholeTestSegments is not null && wholeTestVisualization != WholeTestFlowVisualization.None)
                 {
                     var boundaryLogs = trackedLogs?
@@ -529,6 +542,14 @@ public static class ReportGenerator
                 var hasSequenceDiagrams = diagramsForTest.Length > 0;
                 var hasWholeTestFlow = wholeTestContent is not null;
 
+                // Span count warning for outliers (>= 10x median)
+                var spanWarning = "";
+                if (hasWholeTestFlow && medianSpanCount > 0 && wholeTestContent!.Value.SpanCount >= medianSpanCount * 10)
+                {
+                    var count = wholeTestContent.Value.SpanCount;
+                    spanWarning = $"<span class=\"span-count-warning\">(Warning: {count:N0} spans. This might indicate a problem/recursive loop in your test.)</span>";
+                }
+
                 if (hasSequenceDiagrams || hasWholeTestFlow)
                 {
                     body.Append("<details class=\"example-diagrams\" open>");
@@ -542,6 +563,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"activity\">Activity Diagrams</button>");
                         if (!string.IsNullOrEmpty(wholeTestContent!.Value.FlameHtml))
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                        body.Append(spanWarning);
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
@@ -559,6 +581,7 @@ public static class ReportGenerator
                             body.Append("<div class=\"diagram-toggle\">");
                             body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"activity\">Activity Diagrams</button>");
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                            body.Append(spanWarning);
                             body.Append("</div>");
                         }
                         else if (hasActivity)
