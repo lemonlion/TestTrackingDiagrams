@@ -52,41 +52,46 @@ public class DiagramContextMenuTests
     }
 
     // ═══════════════════════════════════════════════════════════
-    // svgToCanvasWithBg — canvas-level background fill
+    // svgToCanvasWithBg — SVG clone + background rect injection
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void SvgToCanvasWithBg_uses_canvas_fillRect_not_svg_clone()
+    public void SvgToCanvasWithBg_clones_svg_and_injects_background_rect()
     {
-        // Should use canvas fillRect for background
-        Assert.Contains("ctx.fillStyle = bg", _script);
-        Assert.Contains("ctx.fillRect(0, 0,", _script);
+        // Should clone the SVG and inject a background rect
+        Assert.Contains("svg.cloneNode(true)", _script);
+        Assert.Contains("createElementNS", _script);
+        Assert.Contains("clone.insertBefore(bgRect, clone.firstChild)", _script);
     }
 
     [Fact]
-    public void SvgToCanvasWithBg_fills_full_canvas_dimensions()
+    public void SvgToCanvasWithBg_reads_viewBox_for_rect_dimensions()
     {
-        // fillRect should use canvas.width/height (which includes scale), not img.naturalWidth
-        Assert.Contains("ctx.fillRect(0, 0, canvas.width, canvas.height)", _script);
+        // Should read viewBox to get rect dimensions
+        Assert.Contains("clone.getAttribute('viewBox')", _script);
+        Assert.Contains("bgRect.setAttribute('width', bw)", _script);
+        Assert.Contains("bgRect.setAttribute('height', bh)", _script);
     }
 
     [Fact]
-    public void SvgToCanvasWithBg_does_not_clone_svg_or_inject_rect()
+    public void SvgToCanvasWithBg_does_not_use_canvas_fillRect()
     {
-        // The old approach cloned the SVG and inserted a <rect> — this should be gone
-        Assert.DoesNotContain("clone.insertBefore", _script);
-        Assert.DoesNotContain("cloneNode", _script);
-        Assert.DoesNotContain("createElementNS", _script);
+        // The new approach uses SVG rect injection, not canvas fillRect for background
+        var funcStart = _script.IndexOf("function svgToCanvasWithBg(");
+        var funcEnd = _script.IndexOf("function ", funcStart + 1);
+        var funcBody = _script.Substring(funcStart, funcEnd - funcStart);
+        Assert.DoesNotContain("ctx.fillStyle", funcBody);
+        Assert.DoesNotContain("ctx.fillRect", funcBody);
     }
 
     [Fact]
-    public void SvgToCanvasWithBg_draws_image_after_background()
+    public void SvgToCanvasWithBg_serializes_clone_not_original()
     {
-        // fillRect must come before drawImage in svgToCanvasWithBg
-        var fillRectIndex = _script.IndexOf("ctx.fillRect(0, 0,");
-        var drawImageIndex = _script.IndexOf("ctx.drawImage(img, 0, 0)", fillRectIndex);
-        Assert.True(fillRectIndex > 0);
-        Assert.True(drawImageIndex > fillRectIndex, "drawImage should come after fillRect");
+        // Should serialize the clone (with injected rect), not the original SVG
+        var funcStart = _script.IndexOf("function svgToCanvasWithBg(");
+        var funcEnd = _script.IndexOf("function ", funcStart + 1);
+        var funcBody = _script.Substring(funcStart, funcEnd - funcStart);
+        Assert.Contains("serializeSvg(clone)", funcBody);
     }
 
     // ═══════════════════════════════════════════════════════════
