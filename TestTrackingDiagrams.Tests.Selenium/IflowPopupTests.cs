@@ -598,4 +598,106 @@ public class IflowPopupTests : IDisposable
     {
         new OpenQA.Selenium.Interactions.Actions(_driver).ContextClick(element).Perform();
     }
+
+    // ── FeaturesReport-like PNG no-transparency tests ──
+
+    /// <summary>
+    /// JS snippet that finds the first SVG in the page, calls getBackgroundColor + canvas fillRect,
+    /// and returns [alpha_topLeft, alpha_topRight, alpha_bottomLeft, alpha_bottomRight, detectedBg].
+    /// </summary>
+    private static string PngOpacityCheckScript(string svgSelector) => $$"""
+        var done = arguments[arguments.length - 1];
+        var svg = document.querySelector('{{svgSelector}}');
+        if (!svg) { done(JSON.stringify({error:'no svg'})); return; }
+
+        var svgData = new XMLSerializer().serializeToString(svg);
+        var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        var img = new Image();
+        img.onload = function() {
+            var w = img.naturalWidth, h = img.naturalHeight;
+            if (w === 0 || h === 0) { done(JSON.stringify({error:'zero size',w:w,h:h})); return; }
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            // Replicate svgToCanvasWithBg: detect bg, fill, draw
+            var bg = (function() {
+                var s = svg.getAttribute('style') || '';
+                var m = s.match(/background\s*:\s*([^;]+)/);
+                if (m) { var v = m[1].trim(); if (v && v !== 'none' && v !== 'transparent') return v; }
+                var c = window.getComputedStyle(svg).backgroundColor;
+                if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c;
+                var rects = svg.querySelectorAll('rect');
+                for (var i = 0; i < rects.length; i++) {
+                    var r = rects[i];
+                    var fo = r.getAttribute('fill-opacity');
+                    if (fo !== null && parseFloat(fo) === 0) continue;
+                    var rs = r.getAttribute('style') || '';
+                    var fom = rs.match(/fill-opacity\s*:\s*([^;]+)/);
+                    if (fom && parseFloat(fom[1]) === 0) continue;
+                    var fill = r.getAttribute('fill');
+                    if (fill) {
+                        if (fill === 'none' || fill === 'transparent') continue;
+                        if (/^#[0-9a-fA-F]{8}$/.test(fill) && fill.slice(7).toLowerCase() === '00') continue;
+                        return fill;
+                    }
+                }
+                return '#ffffff';
+            })();
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0);
+            var tl = ctx.getImageData(0, 0, 1, 1).data[3];
+            var tr = ctx.getImageData(w-1, 0, 1, 1).data[3];
+            var bl = ctx.getImageData(0, h-1, 1, 1).data[3];
+            var br = ctx.getImageData(w-1, h-1, 1, 1).data[3];
+            done(JSON.stringify({tl:tl,tr:tr,bl:bl,br:br,bg:bg,w:w,h:h}));
+        };
+        img.onerror = function() { done(JSON.stringify({error:'img load failed'})); };
+        img.src = url;
+    """;
+
+    [Fact]
+    public void PNG_no_transparency_opaque_for_InlineSvg_sequence_diagram()
+    {
+        var html = TestPageGenerator.GenerateInlineSvgSequenceDiagramPage();
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        // Wait for SVG to be present
+        WaitFor(By.CssSelector(".plantuml-inline-svg svg"));
+
+        var result = (string)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(
+            PngOpacityCheckScript(".plantuml-inline-svg svg"));
+
+        var data = System.Text.Json.JsonDocument.Parse(result).RootElement;
+        Assert.False(data.TryGetProperty("error", out _), $"Error: {result}");
+        Assert.Equal(255, data.GetProperty("tl").GetInt32());
+        Assert.Equal(255, data.GetProperty("tr").GetInt32());
+        Assert.Equal(255, data.GetProperty("bl").GetInt32());
+        Assert.Equal(255, data.GetProperty("br").GetInt32());
+    }
+
+    [Fact]
+    public void PNG_no_transparency_opaque_for_BrowserJs_sequence_diagram()
+    {
+        var html = TestPageGenerator.GenerateBrowserJsSequenceDiagramPage();
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        // Wait for plantuml-js to render the SVG
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
+        wait.Until(d =>
+        {
+            try { return d.FindElement(By.CssSelector(".plantuml-browser svg")).Displayed; }
+            catch (NoSuchElementException) { return false; }
+        });
+
+        var result = (string)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(
+            PngOpacityCheckScript(".plantuml-browser svg"));
+
+        var data = System.Text.Json.JsonDocument.Parse(result).RootElement;
+        Assert.False(data.TryGetProperty("error", out _), $"Error: {result}");
+        Assert.Equal(255, data.GetProperty("tl").GetInt32());
+        Assert.Equal(255, data.GetProperty("tr").GetInt32());
+        Assert.Equal(255, data.GetProperty("bl").GetInt32());
+        Assert.Equal(255, data.GetProperty("br").GetInt32());
+    }
 }

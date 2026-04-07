@@ -101,7 +101,7 @@ public static class DiagramContextMenu
         .iflow-call-tree li { padding: 2px 0; }
         .iflow-source { color: #888; font-size: 11px; }
         .iflow-duration { color: #666; font-size: 12px; }
-        .iflow-toggle { margin-bottom: 8px; }
+        .iflow-toggle { margin-top: 8px; margin-bottom: 8px; }
         .iflow-toggle-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
@@ -143,7 +143,7 @@ public static class DiagramContextMenu
             pointer-events: none;
         }
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
-        .whole-test-flow { margin-top: 8px; }
+        .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -379,7 +379,12 @@ public static class DiagramContextMenu
                     var fom = rstyle.match(/fill-opacity\s*:\s*([^;]+)/);
                     if (fom && parseFloat(fom[1]) === 0) continue;
                     var fill = rect.getAttribute('fill');
-                    if (fill && fill !== 'none' && fill !== 'transparent') return fill;
+                    if (fill) {
+                        if (fill === 'none' || fill === 'transparent') continue;
+                        // Skip 8-digit hex with zero alpha (e.g. #00000000 from plantuml-js)
+                        if (/^#[0-9a-fA-F]{8}$/.test(fill) && fill.slice(7).toLowerCase() === '00') continue;
+                        return fill;
+                    }
                     var fm = rstyle.match(/fill\s*:\s*([^;]+)/);
                     if (fm && fm[1].trim() !== 'none' && fm[1].trim() !== 'transparent') return fm[1].trim();
                 }

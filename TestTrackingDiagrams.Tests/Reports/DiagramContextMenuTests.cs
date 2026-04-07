@@ -26,8 +26,23 @@ public class DiagramContextMenuTests
     [Fact]
     public void GetBackgroundColor_falls_back_to_rect_fill()
     {
-        Assert.Contains("svg.querySelector('rect')", _script);
+        Assert.Contains("svg.querySelectorAll('rect')", _script);
         Assert.Contains("rect.getAttribute('fill')", _script);
+    }
+
+    [Fact]
+    public void GetBackgroundColor_skips_rects_with_zero_fill_opacity()
+    {
+        Assert.Contains("fill-opacity", _script);
+        Assert.Contains("parseFloat(fo) === 0", _script);
+    }
+
+    [Fact]
+    public void GetBackgroundColor_skips_rects_with_8digit_hex_zero_alpha()
+    {
+        // plantuml-js uses fill="#00000000" (8-digit hex, alpha=00)
+        Assert.Contains("fill.slice(7)", _script);
+        Assert.Contains("#[0-9a-fA-F]{8}", _script);
     }
 
     [Fact]
@@ -46,6 +61,13 @@ public class DiagramContextMenuTests
         // Should use canvas fillRect for background
         Assert.Contains("ctx.fillStyle = bg", _script);
         Assert.Contains("ctx.fillRect(0, 0,", _script);
+    }
+
+    [Fact]
+    public void SvgToCanvasWithBg_fills_full_canvas_dimensions()
+    {
+        // fillRect should use canvas.width/height (which includes scale), not img.naturalWidth
+        Assert.Contains("ctx.fillRect(0, 0, canvas.width, canvas.height)", _script);
     }
 
     [Fact]
