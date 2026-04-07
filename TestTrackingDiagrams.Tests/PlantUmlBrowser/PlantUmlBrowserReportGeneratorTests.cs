@@ -1,4 +1,3 @@
-using System.Net;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.PlantUmlBrowser;
@@ -66,9 +65,10 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml=", content);
+        Assert.Contains("data-plantuml-z=", content);
         Assert.Contains("plantuml-browser", content);
-        Assert.Contains("@startuml", content);
+        // Diagram source is compressed, not in data-plantuml attribute
+        Assert.DoesNotContain("data-plantuml=\"@startuml", content);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml=", content);
+        Assert.Contains("data-plantuml-z=", content);
         Assert.Contains("data-diagram-type=\"plantuml\"", content);
     }
 
@@ -163,11 +163,11 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml=\"", content);
-        Assert.Contains("&lt;script&gt;", content);
-        Assert.Contains("&quot;xss&quot;", content);
-        Assert.Contains("&amp; stuff", content);
-        Assert.DoesNotContain("data-plantuml=\"@startuml\nAlice -> Bob: <script>", content);
+        Assert.Contains("data-plantuml-z=\"", content);
+        // Raw XSS payload should not appear in data-plantuml (it's compressed)
+        Assert.DoesNotContain("data-plantuml=\"", content);
+        // Unescaped script tags should never appear in HTML
+        Assert.DoesNotContain("<script>alert", content);
     }
 
     [Fact]
@@ -307,6 +307,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
+        Assert.DoesNotContain("data-plantuml-z=", content);
         Assert.DoesNotContain("data-plantuml=", content);
         Assert.DoesNotContain("id=\"puml-", content);
         Assert.DoesNotContain("Sequence Diagrams", content);
@@ -322,15 +323,20 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        // Newlines (\n) are not HTML-encoded, so they survive in the attribute
-        // The JS splits on \n to pass lines to the renderer
-        var dataAttrStart = content.IndexOf("data-plantuml=\"", StringComparison.Ordinal);
+        // Diagram source is now gzip+base64 compressed in data-plantuml-z
+        var dataAttrStart = content.IndexOf("data-plantuml-z=\"", StringComparison.Ordinal);
         Assert.True(dataAttrStart >= 0);
-        var afterAttr = content.Substring(dataAttrStart + "data-plantuml=\"".Length);
+        var afterAttr = content.Substring(dataAttrStart + "data-plantuml-z=\"".Length);
         var attrEnd = afterAttr.IndexOf("\"", StringComparison.Ordinal);
-        var attrValue = WebUtility.HtmlDecode(afterAttr[..attrEnd]);
-        Assert.Contains("\n", attrValue);
-        Assert.Contains("@startuml", attrValue);
-        Assert.Contains("@enduml", attrValue);
+        var compressed = afterAttr[..attrEnd];
+        // Verify it's valid base64
+        var bytes = Convert.FromBase64String(compressed);
+        Assert.True(bytes.Length > 0);
+        // Decompress and verify content
+        using var input = new System.IO.Compression.GZipStream(new System.IO.MemoryStream(bytes), System.IO.Compression.CompressionMode.Decompress);
+        using var reader = new System.IO.StreamReader(input);
+        var decompressed = reader.ReadToEnd();
+        Assert.Contains("@startuml", decompressed);
+        Assert.Contains("@enduml", decompressed);
     }
 }

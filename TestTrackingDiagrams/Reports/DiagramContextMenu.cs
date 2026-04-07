@@ -345,6 +345,7 @@ public static class DiagramContextMenu
                     var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
                     return new Response(stream).text();
                 }
+                window.decompressGzipBase64 = decompressGzipBase64;
                 document.querySelectorAll('.plantuml-browser').forEach(function(el) {
                     observer.observe(el);
                 });
@@ -400,6 +401,17 @@ public static class DiagramContextMenu
 
             function getSource(container) {
                 return container.getAttribute('data-plantuml') || container.getAttribute('data-mermaid-source') || '';
+            }
+
+            async function getSourceAsync(container) {
+                var src = container.getAttribute('data-plantuml') || container.getAttribute('data-mermaid-source');
+                if (src) return src;
+                if (container.hasAttribute('data-plantuml-z')) {
+                    var decoded = await decompressGzipBase64(container.getAttribute('data-plantuml-z'));
+                    container.setAttribute('data-plantuml', decoded);
+                    return decoded;
+                }
+                return '';
             }
 
             function getTypeLabel(container) {
@@ -791,26 +803,37 @@ public static class DiagramContextMenu
 
                     if (window.plantuml && diagramDiv.querySelector('.plantuml-browser')) {
                         diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                            try {
-                                var lines = el.getAttribute('data-plantuml').split('\n');
-                                if (lines.length > 3000) {
-                                    el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
-                                        '<strong>Activity diagram too large for browser rendering (' + lines.length + ' lines).</strong><br>' +
-                                        'Use <code>CallTree</code> style for large relationship flows.</div>';
-                                    return;
-                                }
-                                window.plantuml.render(lines, el.id);
-                                setTimeout(function() {
-                                    var text = el.textContent || '';
-                                    if (text.indexOf('RuntimeException') >= 0 || text.indexOf('RangeError') >= 0) {
+                            function renderEl(source) {
+                                try {
+                                    var lines = source.split('\n');
+                                    if (lines.length > 3000) {
                                         el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
-                                            '<strong>Activity diagram too large for browser rendering.</strong><br>' +
+                                            '<strong>Activity diagram too large for browser rendering (' + lines.length + ' lines).</strong><br>' +
                                             'Use <code>CallTree</code> style for large relationship flows.</div>';
+                                        return;
                                     }
-                                }, 100);
-                            } catch(e) {
-                                el.textContent = 'Activity diagram too large for browser rendering. Use CallTree style instead.';
-                                el.style.color = '#c00';
+                                    window.plantuml.render(lines, el.id);
+                                    setTimeout(function() {
+                                        var text = el.textContent || '';
+                                        if (text.indexOf('RuntimeException') >= 0 || text.indexOf('RangeError') >= 0) {
+                                            el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
+                                                '<strong>Activity diagram too large for browser rendering.</strong><br>' +
+                                                'Use <code>CallTree</code> style for large relationship flows.</div>';
+                                        }
+                                    }, 100);
+                                } catch(e) {
+                                    el.textContent = 'Activity diagram too large for browser rendering. Use CallTree style instead.';
+                                    el.style.color = '#c00';
+                                }
+                            }
+                            var source = el.getAttribute('data-plantuml');
+                            if (source) {
+                                renderEl(source);
+                            } else if (el.hasAttribute('data-plantuml-z')) {
+                                decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                    el.setAttribute('data-plantuml', decoded);
+                                    renderEl(decoded);
+                                }).catch(function() { el.textContent = 'Decompression error'; });
                             }
                         });
                     }

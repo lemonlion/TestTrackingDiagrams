@@ -93,8 +93,8 @@ public static class InternalFlowHtmlGenerator
     {
         var plantuml = InternalFlowRenderer.RenderActivityDiagram(segment);
         var id = $"iflow-puml-{segment.RequestResponseId}-{segment.BoundaryType.ToString().ToLowerInvariant()}";
-        var encoded = System.Net.WebUtility.HtmlEncode(plantuml);
-        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml=\"{encoded}\" data-diagram-type=\"plantuml\">Loading...</div>";
+        var compressed = CompressToBase64(plantuml);
+        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
     }
 
     /// <summary>

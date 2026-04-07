@@ -128,13 +128,12 @@ public static class ComponentDiagramReportGenerator
         CallOrderingPattern[]? callOrderingPatterns = null,
         ErrorCorrelation[]? errorCorrelations = null)
     {
-        var encodedPlantUml = System.Net.WebUtility.HtmlEncode(plantUml);
-
         // Diagram rendering: browser SVG or server <img>
         string diagramHtml;
         if (useBrowserJs)
         {
-            diagramHtml = $"<div class=\"plantuml-browser\" id=\"comp-diagram\" data-plantuml=\"{encodedPlantUml}\" data-diagram-type=\"plantuml\">Loading...</div>";
+            var compressed = InternalFlow.InternalFlowHtmlGenerator.CompressToBase64(plantUml);
+            diagramHtml = $"<div class=\"plantuml-browser\" id=\"comp-diagram\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
         }
         else
         {

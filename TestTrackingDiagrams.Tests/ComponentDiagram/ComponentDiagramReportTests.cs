@@ -68,7 +68,7 @@ public class ComponentDiagramReportTests : IDisposable
         var content = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("<html>", content);
         Assert.Contains("Component Diagram", content);
-        Assert.Contains("@startuml", content);
+        Assert.Contains("data-plantuml-z=", content);
     }
 
     [Fact]
@@ -137,9 +137,11 @@ public class ComponentDiagramReportTests : IDisposable
         var result = ComponentDiagramReportGenerator.GenerateComponentDiagramReport(logs, new ReportConfigurationOptions { ComponentDiagramOptions = options });
 
         var html = File.ReadAllText(result.HtmlFilePath);
-        // BrowserJs default: plain PlantUML with skinparams, no C4 includes
-        Assert.Contains("skinparam", html);
-        Assert.DoesNotContain("C4_Context", html);
+        // BrowserJs default: diagram source is compressed in data-plantuml-z
+        Assert.Contains("data-plantuml-z=", html);
+        // BrowserJs uses plain PlantUML with skinparams (verify via result.PlantUml)
+        Assert.Contains("skinparam", result.PlantUml);
+        Assert.DoesNotContain("C4_Context", result.PlantUml);
         Assert.DoesNotContain("raw.githubusercontent.com", html);
     }
 
@@ -248,8 +250,8 @@ public class ComponentDiagramReportTests : IDisposable
 
         var html = File.ReadAllText(result.HtmlFilePath);
         Assert.Contains("iflow-rel-list", html);
-        Assert.Contains("WebApp", html);
-        Assert.Contains("OrderService", html);
+        Assert.Contains("WebApp", result.PlantUml); // diagram source is now compressed in HTML
+        Assert.Contains("OrderService", result.PlantUml);
         Assert.Contains("_iflowShowPopup", html);
     }
 
@@ -561,9 +563,9 @@ public class ComponentDiagramReportTests : IDisposable
         Assert.DoesNotContain("C4_Context", html);
         Assert.DoesNotContain("Person(", html);
         Assert.DoesNotContain("System(", html);
-        // Should contain the browser-compatible skinparam styling instead
-        Assert.Contains("skinparam", html);
-        Assert.Contains("rectangle", html);
+        // Should contain the browser-compatible skinparam styling (verify via PlantUml output)
+        Assert.Contains("skinparam", result.PlantUml);
+        Assert.Contains("rectangle", result.PlantUml);
     }
 
     [Fact]

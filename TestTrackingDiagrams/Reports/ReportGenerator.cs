@@ -965,16 +965,16 @@ public static class ReportGenerator
                             else if (isPlantUmlBrowser)
                             {
                                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
-                                var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                                var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
                                 body.Append($"""
-                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}" data-diagram-type="plantuml">Loading diagram...</div>
+                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml-z="{compressed}" data-diagram-type="plantuml">Loading diagram...</div>
                                          """);
                             }
                             else if (isInlineSvg)
                             {
-                                var sourceEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                                var sourceCompressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
                                 body.Append($"""
-                                         <div class="plantuml-inline-svg" data-plantuml="{sourceEncoded}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
+                                         <div class="plantuml-inline-svg" data-plantuml-z="{sourceCompressed}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
                                          """);
                             }
                             else
