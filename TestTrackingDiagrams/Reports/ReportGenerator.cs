@@ -359,15 +359,7 @@ public static class ReportGenerator
                                         }
                                         """;
 
-        // Dark mode toggle
-        var darkModeFunction = """
-                               function toggle_dark_mode(btn) {
-                                   document.body.classList.toggle('dark-mode');
-                                   var isDark = document.body.classList.contains('dark-mode');
-                                   btn.textContent = isDark ? '\u2600 Light Mode' : '\u263E Dark Mode';
-                                   try { localStorage.setItem('ttd-dark-mode', isDark ? '1' : '0'); } catch(e) {}
-                               }
-                               """;
+
 
         // Copy scenario name
         var copyScenarioNameFunction = """
@@ -439,7 +431,9 @@ public static class ReportGenerator
         var exportFunction = """
                              function export_html() {
                                  var c = fc();
-                                 var html = '<html><head><style>' + document.querySelector('style').textContent + '</style></head><body>';
+                                 var head = document.querySelector('head');
+                                 var headHtml = head ? head.innerHTML : '';
+                                 var html = '<html><head>' + headHtml + '</head><body>';
                                  html += '<h1>Filtered Report</h1>';
                                  for (var i = 0; i < c.features.length; i++) {
                                      if (c.features[i].style.display === 'none') continue;
@@ -635,14 +629,6 @@ public static class ReportGenerator
         // Deep link + init script
         var initScript = """
                          document.addEventListener('DOMContentLoaded', function() {
-                             // Restore dark mode
-                             try {
-                                 if (localStorage.getItem('ttd-dark-mode') === '1') {
-                                     document.body.classList.add('dark-mode');
-                                     var dmBtn = document.querySelector('.dark-mode-toggle');
-                                     if (dmBtn) dmBtn.textContent = '\u2600 Light Mode';
-                                 }
-                             } catch(e) {}
                              // Restore filters from URL hash first, then localStorage
                              if (window.location.hash && window.location.hash.length > 1) {
                                  parse_url_hash();
@@ -687,7 +673,6 @@ public static class ReportGenerator
                                 {{dependencyFilterFunction}}
                                 {{statusFilterFunction}}
                                 {{collapseExpandAllFunction}}
-                                {{darkModeFunction}}
                                 {{copyScenarioNameFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
@@ -810,7 +795,6 @@ public static class ReportGenerator
         // Toolbar row: Collapse/Expand All, Dark Mode, Export
         body.Append("""<div class="toolbar-row">""");
         body.Append("""<button class="collapse-expand-all" onclick="toggle_all(this)">Expand All</button>""");
-        body.Append("""<button class="dark-mode-toggle" onclick="toggle_dark_mode(this)">&#9790; Dark Mode</button>""");
         body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
         body.Append("</div>");
 

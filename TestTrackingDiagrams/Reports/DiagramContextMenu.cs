@@ -422,24 +422,31 @@ public static class DiagramContextMenu
                 // 2. Check computed style
                 var computed = window.getComputedStyle(svg).backgroundColor;
                 if (computed && computed !== 'rgba(0, 0, 0, 0)' && computed !== 'transparent') return computed;
-                // 3. Fall back to first visible rect fill (skip transparent rects)
-                var rects = svg.querySelectorAll('rect');
-                for (var i = 0; i < rects.length; i++) {
-                    var rect = rects[i];
-                    var fo = rect.getAttribute('fill-opacity');
-                    if (fo !== null && parseFloat(fo) === 0) continue;
-                    var rstyle = rect.getAttribute('style') || '';
-                    var fom = rstyle.match(/fill-opacity\s*:\s*([^;]+)/);
-                    if (fom && parseFloat(fom[1]) === 0) continue;
-                    var fill = rect.getAttribute('fill');
-                    if (fill) {
-                        if (fill === 'none' || fill === 'transparent') continue;
-                        // Skip 8-digit hex with zero alpha (e.g. #00000000 from plantuml-js)
-                        if (/^#[0-9a-fA-F]{8}$/.test(fill) && fill.slice(7).toLowerCase() === '00') continue;
-                        return fill;
+                // 3. Only consider rects that cover the full SVG area (true background rects)
+                var svgW = svg.width.baseVal.value || svg.getBoundingClientRect().width;
+                var svgH = svg.height.baseVal.value || svg.getBoundingClientRect().height;
+                var svgArea = svgW * svgH;
+                if (svgArea > 0) {
+                    var rects = svg.querySelectorAll('rect');
+                    for (var i = 0; i < rects.length; i++) {
+                        var rect = rects[i];
+                        var rw = parseFloat(rect.getAttribute('width') || 0);
+                        var rh = parseFloat(rect.getAttribute('height') || 0);
+                        if ((rw * rh) / svgArea < 0.9) continue;
+                        var fo = rect.getAttribute('fill-opacity');
+                        if (fo !== null && parseFloat(fo) === 0) continue;
+                        var rstyle = rect.getAttribute('style') || '';
+                        var fom = rstyle.match(/fill-opacity\s*:\s*([^;]+)/);
+                        if (fom && parseFloat(fom[1]) === 0) continue;
+                        var fill = rect.getAttribute('fill');
+                        if (fill) {
+                            if (fill === 'none' || fill === 'transparent') continue;
+                            if (/^#[0-9a-fA-F]{8}$/.test(fill) && fill.slice(7).toLowerCase() === '00') continue;
+                            return fill;
+                        }
+                        var fm = rstyle.match(/fill\s*:\s*([^;]+)/);
+                        if (fm && fm[1].trim() !== 'none' && fm[1].trim() !== 'transparent') return fm[1].trim();
                     }
-                    var fm = rstyle.match(/fill\s*:\s*([^;]+)/);
-                    if (fm && fm[1].trim() !== 'none' && fm[1].trim() !== 'transparent') return fm[1].trim();
                 }
                 return '#ffffff';
             }
@@ -463,7 +470,24 @@ public static class DiagramContextMenu
 
             function svgToCanvasWithBg(svg, callback) {
                 var bg = getBackgroundColor(svg);
-                var svgData = serializeSvg(svg);
+                var clone = svg.cloneNode(true);
+                var vb = clone.getAttribute('viewBox');
+                var bx = '0', by = '0', bw, bh;
+                if (vb) {
+                    var parts = vb.split(/[\s,]+/);
+                    bx = parts[0]; by = parts[1]; bw = parts[2]; bh = parts[3];
+                } else {
+                    bw = clone.getAttribute('width') || svg.getBoundingClientRect().width;
+                    bh = clone.getAttribute('height') || svg.getBoundingClientRect().height;
+                }
+                var bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bgRect.setAttribute('x', bx);
+                bgRect.setAttribute('y', by);
+                bgRect.setAttribute('width', bw);
+                bgRect.setAttribute('height', bh);
+                bgRect.setAttribute('fill', bg);
+                clone.insertBefore(bgRect, clone.firstChild);
+                var svgData = serializeSvg(clone);
                 var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
                 var img = new Image();
                 var scale = 2;
@@ -473,8 +497,6 @@ public static class DiagramContextMenu
                     canvas.height = img.naturalHeight * scale;
                     var ctx = canvas.getContext('2d');
                     ctx.scale(scale, scale);
-                    ctx.fillStyle = bg;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
                     callback(canvas);
                 };
