@@ -376,3 +376,31 @@ dotnet build
 
 ### And/But keywords show as Given/When/Then
 Ensure you are using `TestTrackingDiagrams.ReqNRoll.xUnit3` version 1.20.0 or later. Earlier versions used `StepDefinitionType` (which collapses keywords) instead of `StepDefinitionKeyword`.
+
+---
+
+## What's New in v2.0
+
+### Gherkin Steps in the Unified Report
+
+ReqNRoll Gherkin steps (Given/When/Then/And/But) are now rendered directly in the main HTML report alongside sequence diagrams. Steps are automatically extracted from the ReqNRoll step hooks.
+
+### Tags → Labels
+
+ReqNRoll scenario tags (other than the built-in `@happy-path` and `@endpoint:` tags) are now displayed as **labels** on scenario summaries in the report.
+
+### Feature Description
+
+The feature file description (from the Gherkin `Feature:` block) is now displayed in the report as a feature description.
+
+### Feature Summary Table
+
+A sortable summary table at the top of the report shows per-feature scenario counts by status and step counts.
+
+### Category Filter
+
+When scenarios have categories (via tags), a category filter toolbar appears in the report.
+
+### YAML Steps
+
+The YAML specification file now includes Gherkin steps, labels, and categories for each scenario.

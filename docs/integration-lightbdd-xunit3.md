@@ -387,3 +387,37 @@ If any test has failed, the specifications files will be blank by design (they o
 
 ### ReSharper ignores TestPipelineStartup
 Current versions of ReSharper may not recognise `[assembly: TestPipelineStartup]`. Use the Visual Studio Test Explorer or `dotnet test` instead.
+
+---
+
+## What's New in v2.0
+
+### Unified Report Path (`UnifiedReportFormatter`)
+
+A new `UnifiedReportFormatter` is available that converts LightBDD's `IFeatureResult[]` into the TTD unified data model (`Feature[]`/`Scenario[]`/`ScenarioStep[]`) and generates reports through the standard `ReportGenerator` pipeline. This gives LightBDD tests access to all TTD report features (search, keyboard navigation, deep linking, CI summaries, etc.) while preserving full step/label/category/parameter data.
+
+The existing `CustomisableHtmlReportFormatter` (via `LightBDD.Contrib.ReportingEnhancements`) continues to work.
+
+### Full Parameter Data
+
+LightBDD's rich parameter verification data (inline parameters, tabular parameters, tree parameters) is now mapped into the unified report:
+
+- **Inline parameters** with success/failure status colors
+- **Tabular parameters** rendered as HTML tables with row type indicators
+- **Tree parameters** rendered as hierarchical displays with per-node verification status
+
+### Labels + Categories
+
+LightBDD scenario labels and categories are now displayed as badges and power the category filter toolbar.
+
+### Feature Description
+
+The LightBDD feature description is now displayed in the report.
+
+### Feature Summary Table
+
+A sortable summary table at the top of the report shows per-feature scenario counts by status and step counts.
+
+### YAML Steps
+
+The YAML specification file now includes steps, labels, and categories.

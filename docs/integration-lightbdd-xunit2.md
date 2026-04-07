@@ -349,3 +349,9 @@ See the [Tracking Dependencies wiki page](https://github.com/lemonlion/TestTrack
 
 ### Empty specifications HTML / YAML
 If any test has failed, the specifications files will be blank by design (they only generate on a fully passing test run). The `FeaturesReport.html` will still be generated.
+
+---
+
+## What's New in v2.0
+
+See the [LightBDD xUnit3 guide](integration-lightbdd-xunit3.md#whats-new-in-v20) for details on new features in v2.0, including the UnifiedReportFormatter, full parameter data mapping, labels/categories, feature description, summary table, and YAML steps.

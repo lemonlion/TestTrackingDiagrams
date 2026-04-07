@@ -408,5 +408,185 @@ public class Stylesheets
                     outline: 2px solid rgb(66, 133, 244);
                     outline-offset: 2px;
                 }
+
+                .scenario-steps {
+                    margin: 0.5em 0 1em 0;
+                    padding: 0.5em 1em;
+                    border-left: 3px solid rgb(200, 200, 200);
+                }
+
+                .step {
+                    margin: 0.3em 0;
+                    line-height: 1.6;
+                }
+
+                .step-status {
+                    display: inline-block;
+                    width: 1.2em;
+                    height: 1.2em;
+                    line-height: 1.2em;
+                    text-align: center;
+                    border-radius: 50%;
+                    color: white;
+                    font-size: 0.75em;
+                    font-weight: bold;
+                    margin-right: 0.3em;
+                    vertical-align: middle;
+                }
+
+                .step-status.passed { background: #1daf26; }
+                .step-status.failed { background: #cc0000; }
+                .step-status.skipped { background: #949494; }
+                .step-status.bypassed { background: #2e7bff; }
+                .step-status.ignored { background: #fbc800; color: black; }
+
+                .step-keyword {
+                    font-weight: bold;
+                    color: rgb(100, 100, 100);
+                }
+
+                .step-text {
+                    color: rgb(50, 50, 50);
+                }
+
+                .step-duration {
+                    font-size: 0.8em;
+                    color: rgb(130, 130, 130);
+                }
+
+                .step-comment {
+                    font-style: italic;
+                    color: rgb(100, 100, 100);
+                    margin-left: 1.5em;
+                    font-size: 0.9em;
+                }
+
+                .step-attachment {
+                    display: inline-block;
+                    margin-left: 1.5em;
+                    font-size: 0.85em;
+                    color: rgb(66, 133, 244);
+                }
+
+                .sub-steps {
+                    margin-left: 1.5em;
+                    border-left: 2px solid rgb(220, 220, 220);
+                    padding-left: 0.8em;
+                }
+
+                .feature-description {
+                    font-style: italic;
+                    color: rgb(100, 100, 100);
+                    margin: 0.3em 0 0.8em 0;
+                    white-space: pre-line;
+                }
+
+                .category-filters {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 0.3em;
+                }
+
+                .category-filters-label {
+                    font-weight: bold;
+                    margin-right: 0.3em;
+                }
+
+                .category-toggle {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+
+                .category-toggle:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                .category-toggle.category-active {
+                    background: rgb(66, 133, 244);
+                    color: white;
+                    border-color: rgb(66, 133, 244);
+                }
+
+                .cat-hidden {
+                    display: none !important;
+                }
+
+                .feature-summary-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 1.5em;
+                    font-size: 0.9em;
+                }
+                .feature-summary-table th, .feature-summary-table td {
+                    border: 1px solid #ddd;
+                    padding: 6px 10px;
+                    text-align: left;
+                }
+                .feature-summary-table th {
+                    background: #f5f5f5;
+                    cursor: pointer;
+                    user-select: none;
+                }
+                .feature-summary-table th:hover {
+                    background: #e8e8e8;
+                }
+                .feature-summary-table tr.failed td {
+                    background: #fff0f0;
+                }
+
+                .step-param-inline {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    font-family: monospace;
+                    font-size: 0.9em;
+                    margin-left: 4px;
+                }
+                .param-success { background: #d4edda; }
+                .param-failure { background: #f8d7da; }
+                .param-exception { background: #f5c6cb; }
+                .param-not-provided { background: #fff3cd; }
+                .param-na { background: #e9ecef; }
+
+                .step-param-table {
+                    margin: 4px 0 4px 24px;
+                }
+                .step-param-table table {
+                    border-collapse: collapse;
+                    font-size: 0.85em;
+                }
+                .step-param-table th, .step-param-table td {
+                    border: 1px solid #ccc;
+                    padding: 3px 8px;
+                }
+                .step-param-table th {
+                    background: #f5f5f5;
+                }
+                .step-param-table th.key {
+                    font-weight: bold;
+                    text-decoration: underline;
+                }
+                .row-surplus td:first-child { color: green; }
+                .row-missing td:first-child { color: red; }
+
+                .step-param-tree {
+                    margin: 4px 0 4px 24px;
+                    font-family: monospace;
+                    font-size: 0.85em;
+                }
+                .tree-node {
+                    padding: 1px 0;
+                }
+                .tree-node-name {
+                    font-weight: bold;
+                }
+                .tree-children {
+                    margin-left: 16px;
+                }
         """;
 }

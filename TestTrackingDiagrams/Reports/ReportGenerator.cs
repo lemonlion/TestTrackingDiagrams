@@ -168,7 +168,7 @@ public static class ReportGenerator
                                                   var s = sc[si];
                                                   var raw = s.getAttribute('data-dependencies') || '';
                                                   var d = raw ? new Set(raw.split(',')) : new Set();
-                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false, dur: false };
+                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false, dur: false, cat: false };
                                                   items.push(item);
                                                   fMap.set(s, features[fi]);
                                               }
@@ -179,7 +179,7 @@ public static class ReportGenerator
                                       function applyVisibility(c) {
                                           for (var i = 0; i < c.items.length; i++) {
                                               var d = c.items[i];
-                                              var hidden = d.hp || d.dep || d.st || d.sr || d.dur;
+                                              var hidden = d.hp || d.dep || d.st || d.sr || d.dur || d.cat;
                                               d.el.style.display = hidden ? 'none' : '';
                                           }
                                           for (var i = 0; i < c.features.length; i++) {
@@ -323,6 +323,53 @@ public static class ReportGenerator
                                        }
                                        """;
 
+        var categoryFilterFunction = """
+                                     function toggle_category(btn) {
+                                         var cat = btn.getAttribute('data-category');
+                                         if (cat === '') {
+                                             // "All" button: deactivate all specific categories
+                                             document.querySelectorAll('.category-toggle').forEach(function(b) { b.classList.remove('category-active'); });
+                                             btn.classList.add('category-active');
+                                         } else {
+                                             // Deactivate "All" button, toggle this one
+                                             var allBtn = document.querySelector('.category-toggle[data-category=""]');
+                                             if (allBtn) allBtn.classList.remove('category-active');
+                                             btn.classList.toggle('category-active');
+                                             // If nothing is active, re-activate "All"
+                                             if (document.querySelectorAll('.category-toggle.category-active').length === 0) {
+                                                 if (allBtn) allBtn.classList.add('category-active');
+                                             }
+                                         }
+                                         filter_categories();
+                                     }
+                                     
+                                     function filter_categories() {
+                                         var c = fc();
+                                         var allActive = document.querySelector('.category-toggle.category-active[data-category=""]') !== null;
+                                         if (allActive) {
+                                             for (var i = 0; i < c.items.length; i++) c.items[i].cat = false;
+                                             applyVisibility(c);
+                                             return;
+                                         }
+                                         var activeSet = new Set();
+                                         document.querySelectorAll('.category-toggle.category-active').forEach(function(b) {
+                                             activeSet.add(b.getAttribute('data-category'));
+                                         });
+                                         for (var i = 0; i < c.items.length; i++) {
+                                             var raw = c.items[i].el.getAttribute('data-categories') || '';
+                                             var cats = raw ? new Set(raw.split(',')) : new Set();
+                                             if (activeSet.has('__uncategorized__') && cats.size === 0) {
+                                                 c.items[i].cat = false;
+                                             } else {
+                                                 var match = false;
+                                                 activeSet.forEach(function(a) { if (a !== '__uncategorized__' && cats.has(a)) match = true; });
+                                                 c.items[i].cat = !match;
+                                             }
+                                         }
+                                         applyVisibility(c);
+                                     }
+                                     """;
+
         var statusFilterFunction = """
                                    function toggle_status(btn) {
                                        btn.classList.toggle('status-active');
@@ -366,6 +413,26 @@ public static class ReportGenerator
                                             btn.textContent = expanding ? 'Collapse All' : 'Expand All';
                                         }
                                         """;
+
+        var sortTableFunction = """
+                                function sort_table(col) {
+                                    var table = document.querySelector('.feature-summary-table');
+                                    if (!table) return;
+                                    var tbody = table.querySelector('tbody');
+                                    var rows = Array.from(tbody.querySelectorAll('tr'));
+                                    var asc = table.getAttribute('data-sort-col') === '' + col && table.getAttribute('data-sort-dir') !== 'asc';
+                                    rows.sort(function(a, b) {
+                                        var ac = a.cells[col].textContent.trim();
+                                        var bc = b.cells[col].textContent.trim();
+                                        var an = parseFloat(ac), bn = parseFloat(bc);
+                                        if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+                                        return asc ? ac.localeCompare(bc) : bc.localeCompare(ac);
+                                    });
+                                    for (var i = 0; i < rows.length; i++) tbody.appendChild(rows[i]);
+                                    table.setAttribute('data-sort-col', col);
+                                    table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+                                }
+                                """;
 
 
 
@@ -679,8 +746,10 @@ public static class ReportGenerator
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
                                 {{dependencyFilterFunction}}
+                                {{categoryFilterFunction}}
                                 {{statusFilterFunction}}
                                 {{collapseExpandAllFunction}}
+                                {{sortTableFunction}}
                                 {{copyScenarioNameFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
@@ -782,6 +851,25 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
+        // Category filter (only shown when scenarios have category data)
+        var allCategories = features.SelectMany(f => f.Scenarios)
+            .Where(s => s.Categories is { Length: > 0 })
+            .SelectMany(s => s.Categories!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToArray();
+        if (allCategories.Length > 0)
+        {
+            body.Append("""<div class="category-filters"><span class="category-filters-label">Categories:</span>""");
+            body.Append("""<button class="category-toggle category-active" data-category="" onclick="toggle_category(this)">All</button>""");
+            foreach (var cat in allCategories)
+            {
+                body.Append($"""<button class="category-toggle" data-category="{System.Net.WebUtility.HtmlEncode(cat)}" onclick="toggle_category(this)">{System.Net.WebUtility.HtmlEncode(cat)}</button>""");
+            }
+            body.Append("""<button class="category-toggle" data-category="__uncategorized__" onclick="toggle_category(this)">Uncategorized</button>""");
+            body.Append("</div>");
+        }
+
         // Duration filter (only shown when scenarios have duration data)
         if (hasDurations)
         {
@@ -807,6 +895,49 @@ public static class ReportGenerator
         body.Append("</div>");
 
         body.Append("<h2>Features Summary</h2>");
+
+        // Feature summary table
+        var hasAnySteps = features.Any(f => f.Scenarios.Any(s => s.Steps is { Length: > 0 }));
+        body.Append("<table class=\"feature-summary-table\"><thead><tr>");
+        body.Append("<th onclick=\"sort_table(0)\">Feature</th>");
+        body.Append("<th onclick=\"sort_table(1)\">Scenarios</th>");
+        body.Append("<th onclick=\"sort_table(2)\">Passed</th>");
+        body.Append("<th onclick=\"sort_table(3)\">Failed</th>");
+        body.Append("<th onclick=\"sort_table(4)\">Skipped</th>");
+        if (hasAnySteps)
+            body.Append("<th onclick=\"sort_table(5)\">Steps</th>");
+        body.Append("</tr></thead><tbody>");
+
+        foreach (var feature in features)
+        {
+            var total = feature.Scenarios.Length;
+            var passed = feature.Scenarios.Count(s => s.Result == ScenarioResult.Passed);
+            var failed = feature.Scenarios.Count(s => s.Result == ScenarioResult.Failed);
+            var skipped = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.Ignored);
+            var featureHasFail = failed > 0;
+
+            body.Append($"<tr{(featureHasFail ? " class=\"failed\"" : "")}>");
+            body.Append($"<td>{System.Net.WebUtility.HtmlEncode(feature.DisplayName)}</td>");
+            body.Append($"<td>{total}</td>");
+            body.Append($"<td>{passed}</td>");
+            body.Append($"<td>{failed}</td>");
+            body.Append($"<td>{skipped}</td>");
+
+            if (hasAnySteps)
+            {
+                var allSteps = feature.Scenarios
+                    .Where(s => s.Steps is not null)
+                    .SelectMany(s => s.Steps!)
+                    .ToArray();
+                var stepCount = CountStepsRecursive(allSteps);
+                body.Append($"<td>{stepCount}</td>");
+            }
+
+            body.Append("</tr>");
+        }
+
+        body.Append("</tbody></table>");
+
         var plantUmlBrowserCounter = 0;
 
         // Pre-compute median span count for outlier detection
@@ -828,8 +959,13 @@ public static class ReportGenerator
             var featureHasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2{(featureHasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
+                        <summary class="h2{(featureHasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}{(feature.Labels is { Length: > 0 } fl ? string.Concat(fl.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>")) : "")}</summary>
                      """);
+
+            if (feature.Description is not null)
+            {
+                body.Append($"""<div class="feature-description">{System.Net.WebUtility.HtmlEncode(feature.Description)}</div>""");
+            }
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
 
@@ -862,11 +998,18 @@ public static class ReportGenerator
                 foreach (var d in diagramsForSearch) searchParts.Add(d.CodeBehind);
                 var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
+                var categoriesAttr = scenario.Categories is { Length: > 0 }
+                    ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", scenario.Categories))}\""
+                    : "";
+
                 var encodedName = System.Net.WebUtility.HtmlEncode(scenario.DisplayName);
+                var scenarioLabelsHtml = scenario.Labels is { Length: > 0 }
+                    ? string.Concat(scenario.Labels.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>"))
+                    : "";
 
                 body.Append($"""
-                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr} id="{anchorId}" tabindex="0">
-                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
+                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr}{categoriesAttr} id="{anchorId}" tabindex="0">
+                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
                          """);
 
                 if (failed)
@@ -881,6 +1024,16 @@ public static class ReportGenerator
                                  </pre>
                               </details>
                               """);
+                }
+
+                if (scenario.Steps is { Length: > 0 })
+                {
+                    body.Append("<div class=\"scenario-steps\">");
+                    foreach (var step in scenario.Steps)
+                    {
+                        RenderStep(body, step);
+                    }
+                    body.Append("</div>");
                 }
 
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
@@ -1061,18 +1214,73 @@ public static class ReportGenerator
             if (feature.Endpoint is not null)
                 yml.Append("    Endpoint: " + feature.Endpoint + "\n");
 
+            if (feature.Description is not null)
+                yml.Append("    Description: " + feature.Description.SanitiseForYml() + "\n");
+
+            if (feature.Labels is { Length: > 0 })
+            {
+                yml.Append("    Labels:\n");
+                foreach (var label in feature.Labels)
+                    yml.Append("      - " + label.SanitiseForYml() + "\n");
+            }
+
             yml.Append("    Scenarios:\n");
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
             foreach (var scenario in orderedScenarios)
             {
                 yml.Append("      - Scenario: " + scenario.DisplayName.SanitiseForYml() + "\n");
-                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower());
-                yml.Append("\n\n");
+                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
+
+                if (scenario.Labels is { Length: > 0 })
+                {
+                    yml.Append("        Labels:\n");
+                    foreach (var label in scenario.Labels)
+                        yml.Append("          - " + label.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Categories is { Length: > 0 })
+                {
+                    yml.Append("        Categories:\n");
+                    foreach (var cat in scenario.Categories)
+                        yml.Append("          - " + cat.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Steps is { Length: > 0 })
+                {
+                    yml.Append("        Steps:\n");
+                    foreach (var step in scenario.Steps)
+                        AppendYamlStep(yml, step, "          ");
+                }
+
+                yml.Append("\n");
             }
         }
 
         return WriteFile(yml.ToString(), fileName);
+    }
+
+    private static void AppendYamlStep(StringBuilder yml, ScenarioStep step, string indent)
+    {
+        var text = step.Keyword is not null ? $"{step.Keyword} {step.Text}" : step.Text;
+        yml.Append(indent + "- " + text.SanitiseForYml() + "\n");
+
+        if (step.SubSteps is { Length: > 0 })
+        {
+            foreach (var sub in step.SubSteps)
+                AppendYamlStep(yml, sub, indent + "  ");
+        }
+    }
+
+    private static int CountStepsRecursive(ScenarioStep[] steps)
+    {
+        var count = steps.Length;
+        foreach (var step in steps)
+        {
+            if (step.SubSteps is { Length: > 0 })
+                count += CountStepsRecursive(step.SubSteps);
+        }
+        return count;
     }
 
     private static string FormatDuration(TimeSpan duration)
@@ -1083,6 +1291,174 @@ public static class ReportGenerator
         if (total.TotalMinutes < 1)
             return $"{total.Seconds}s";
         return $"{(int)total.TotalMinutes}m {total.Seconds}s";
+    }
+
+    private static void RenderStep(StringBuilder body, ScenarioStep step)
+    {
+        var statusClass = step.Status switch
+        {
+            ScenarioResult.Passed => "passed",
+            ScenarioResult.Failed => "failed",
+            ScenarioResult.Skipped => "skipped",
+            ScenarioResult.Bypassed => "bypassed",
+            ScenarioResult.Ignored => "ignored",
+            _ => ""
+        };
+
+        var statusIcon = step.Status switch
+        {
+            ScenarioResult.Passed => "&#10003;",
+            ScenarioResult.Failed => "&#10005;",
+            ScenarioResult.Skipped => "?",
+            ScenarioResult.Bypassed => "~",
+            ScenarioResult.Ignored => "!",
+            _ => ""
+        };
+
+        body.Append("<div class=\"step\">");
+
+        if (step.Status.HasValue)
+        {
+            body.Append($"<span class=\"step-status {statusClass}\">{statusIcon}</span>");
+        }
+
+        if (step.Keyword is not null)
+        {
+            body.Append($"<span class=\"step-keyword\">{System.Net.WebUtility.HtmlEncode(step.Keyword)}</span> ");
+        }
+
+        body.Append($"<span class=\"step-text\">{System.Net.WebUtility.HtmlEncode(step.Text)}</span>");
+
+        if (step.Duration.HasValue)
+        {
+            body.Append($" <span class=\"step-duration\">({FormatDurationBadge(step.Duration.Value)})</span>");
+        }
+
+        if (step.Comments is { Length: > 0 })
+        {
+            foreach (var comment in step.Comments)
+            {
+                body.Append($"<div class=\"step-comment\">{System.Net.WebUtility.HtmlEncode(comment)}</div>");
+            }
+        }
+
+        if (step.Attachments is { Length: > 0 })
+        {
+            foreach (var attachment in step.Attachments)
+            {
+                body.Append($"<a class=\"step-attachment\" href=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\">{System.Net.WebUtility.HtmlEncode(attachment.Name)}</a>");
+            }
+        }
+
+        if (step.Parameters is { Length: > 0 })
+        {
+            foreach (var param in step.Parameters)
+            {
+                RenderParameter(body, param);
+            }
+        }
+
+        if (step.SubSteps is { Length: > 0 })
+        {
+            body.Append("<div class=\"sub-steps\">");
+            foreach (var subStep in step.SubSteps)
+            {
+                RenderStep(body, subStep);
+            }
+            body.Append("</div>");
+        }
+
+        body.Append("</div>");
+    }
+
+    private static void RenderParameter(StringBuilder body, StepParameter param)
+    {
+        switch (param.Kind)
+        {
+            case StepParameterKind.Inline when param.InlineValue is not null:
+                var statusClass = param.InlineValue.Status switch
+                {
+                    VerificationStatus.Success => "param-success",
+                    VerificationStatus.Failure => "param-failure",
+                    VerificationStatus.Exception => "param-exception",
+                    VerificationStatus.NotProvided => "param-not-provided",
+                    _ => "param-na"
+                };
+                var display = param.InlineValue.Expectation is not null
+                    ? $"{System.Net.WebUtility.HtmlEncode(param.InlineValue.Value)}/{System.Net.WebUtility.HtmlEncode(param.InlineValue.Expectation)}"
+                    : System.Net.WebUtility.HtmlEncode(param.InlineValue.Value);
+                body.Append($"<span class=\"step-param-inline {statusClass}\" title=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\">{display}</span>");
+                break;
+
+            case StepParameterKind.Tabular when param.TabularValue is not null:
+                body.Append($"<div class=\"step-param-table\"><table><thead><tr><th></th>");
+                foreach (var col in param.TabularValue.Columns)
+                {
+                    body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
+                }
+                body.Append("</tr></thead><tbody>");
+                foreach (var row in param.TabularValue.Rows)
+                {
+                    var rowIndicator = row.Type switch
+                    {
+                        TableRowType.Matching => "=",
+                        TableRowType.Surplus => "+",
+                        TableRowType.Missing => "-",
+                        _ => ""
+                    };
+                    body.Append($"<tr class=\"row-{row.Type.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>");
+                    foreach (var cell in row.Values)
+                    {
+                        var cellClass = cell.Status switch
+                        {
+                            VerificationStatus.Success => "param-success",
+                            VerificationStatus.Failure => "param-failure",
+                            VerificationStatus.Exception => "param-exception",
+                            VerificationStatus.NotProvided => "param-not-provided",
+                            _ => ""
+                        };
+                        var cellDisplay = cell.Expectation is not null && cell.Status == VerificationStatus.Failure
+                            ? $"{System.Net.WebUtility.HtmlEncode(cell.Value)}/{System.Net.WebUtility.HtmlEncode(cell.Expectation)}"
+                            : System.Net.WebUtility.HtmlEncode(cell.Value);
+                        body.Append($"<td class=\"{cellClass}\">{cellDisplay}</td>");
+                    }
+                    body.Append("</tr>");
+                }
+                body.Append("</tbody></table></div>");
+                break;
+
+            case StepParameterKind.Tree when param.TreeValue is not null:
+                body.Append("<div class=\"step-param-tree\">");
+                RenderTreeNode(body, param.TreeValue.Root);
+                body.Append("</div>");
+                break;
+        }
+    }
+
+    private static void RenderTreeNode(StringBuilder body, TreeNode node)
+    {
+        var statusClass = node.Status switch
+        {
+            VerificationStatus.Success => "param-success",
+            VerificationStatus.Failure => "param-failure",
+            VerificationStatus.Exception => "param-exception",
+            VerificationStatus.NotProvided => "param-not-provided",
+            _ => ""
+        };
+        var valueDisplay = node.Expectation is not null && node.Status == VerificationStatus.Failure
+            ? $"{System.Net.WebUtility.HtmlEncode(node.Value)}/{System.Net.WebUtility.HtmlEncode(node.Expectation)}"
+            : System.Net.WebUtility.HtmlEncode(node.Value);
+        body.Append($"<div class=\"tree-node {statusClass}\"><span class=\"tree-node-name\">{System.Net.WebUtility.HtmlEncode(node.Node)}</span>: {valueDisplay}");
+
+        if (node.Children is { Length: > 0 })
+        {
+            body.Append("<div class=\"tree-children\">");
+            foreach (var child in node.Children)
+                RenderTreeNode(body, child);
+            body.Append("</div>");
+        }
+
+        body.Append("</div>");
     }
 
     internal static string FormatDurationBadge(TimeSpan duration)

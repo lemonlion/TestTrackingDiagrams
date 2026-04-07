@@ -4,5 +4,7 @@ public enum ScenarioResult
 {
     Passed,
     Failed,
-    Skipped
+    Skipped,
+    Bypassed,
+    Ignored
 }

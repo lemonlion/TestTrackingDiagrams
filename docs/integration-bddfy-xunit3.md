@@ -391,3 +391,39 @@ TrackingDiagramOverride.StartAction();
 BDDfy supports **automatic setup separation**. When `SeparateSetup = true` is set on `ReportConfigurationOptions`, HTTP calls made during GIVEN steps are automatically wrapped in a visual "Setup" partition in the diagram. The boundary is detected implicitly when the test transitions from a GIVEN step to a WHEN or THEN step — no manual `StartAction()` call is needed.
 
 This works via a custom `IStepExecutor` that tracks the current BDD step type during execution. It is registered automatically when you call `BDDfyDiagramsConfigurator.Configure()`.
+
+---
+
+## What's New in v2.0
+
+### BDD Steps in the Unified Report
+
+BDDfy steps (Given/When/Then/And/But) are now rendered directly in the main HTML report alongside sequence diagrams. Steps are automatically extracted from BDDfy's step model and displayed with keyword highlighting.
+
+### Tags → Labels
+
+BDDfy tags (other than the built-in `happy-path` and `endpoint:` tags) are now displayed as **labels** on scenario summaries in the report. For example:
+
+```csharp
+this.Given(...).When(...).Then(...)
+    .WithTags("smoke", "regression", "happy-path")
+    .BDDfy();
+```
+
+The tags `smoke` and `regression` appear as badges; `happy-path` continues to control the happy-path filter.
+
+### Story Description → Feature Description
+
+The BDDfy Story description (from `[Story]` attribute or `StoryMetadata`) is now displayed as a feature description in the report.
+
+### Feature Summary Table
+
+A sortable summary table at the top of the report shows per-feature scenario counts by status (Passed/Failed/Skipped) and step counts when available.
+
+### Category Filter
+
+When scenarios have categories, a category filter toolbar appears in the report allowing you to filter scenarios by category.
+
+### YAML Steps
+
+The YAML specification file now includes steps, labels, and categories for each scenario.

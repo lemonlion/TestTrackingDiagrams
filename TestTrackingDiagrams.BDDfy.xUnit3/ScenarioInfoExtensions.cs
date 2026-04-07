@@ -21,16 +21,30 @@ internal static class ScenarioInfoExtensions
                 {
                     DisplayName = featureGroup.Key,
                     Endpoint = endpoint,
+                    Description = firstScenario.StoryDescription,
                     Scenarios = DeduplicateScenarioTitles(featureGroup
                         .DistinctBy(x => x.TestId)
                         .OrderByDescending(x => x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.TestId,
-                            DisplayName = x.ScenarioTitle,
-                            IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
-                            Result = x.Result.ToScenarioResult(),
+                            var labels = x.Tags
+                                .Where(t => !t.Equals(BDDfyConstants.HappyPathTag, StringComparison.OrdinalIgnoreCase)
+                                         && !t.StartsWith(BDDfyConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
+                                .ToArray();
+
+                            return new Scenario
+                            {
+                                Id = x.TestId,
+                                DisplayName = x.ScenarioTitle,
+                                IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
+                                Result = x.Result.ToScenarioResult(),
+                                Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,
+                                Steps = x.Steps.Count > 0
+                                    ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
+                                    : null,
+                                Labels = labels.Length > 0 ? labels : null,
+                            };
                         }).ToArray())
                 };
             }).ToArray();

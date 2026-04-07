@@ -406,3 +406,9 @@ If you later want to migrate to xUnit v3, see the [ReqNRoll xUnit3 guide](integr
 4. Update `reqnroll.json` to reference `TestTrackingDiagrams.ReqNRoll.xUnit3`
 5. Change your `using` statements from `TestTrackingDiagrams.ReqNRoll.xUnit2` to `TestTrackingDiagrams.ReqNRoll.xUnit3`
 6. Clean `bin/` and `obj/` directories before building
+
+---
+
+## What's New in v2.0
+
+See the [ReqNRoll xUnit3 guide](integration-reqnroll-xunit3.md#whats-new-in-v20) for details on new features in v2.0, including Gherkin steps in the unified report, tags as labels, feature description, summary table, category filter, and YAML steps.

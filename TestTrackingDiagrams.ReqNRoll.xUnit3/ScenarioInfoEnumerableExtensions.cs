@@ -20,18 +20,31 @@ internal static class ScenarioInfoEnumerableExtensions
                 {
                     DisplayName = featureGroup.Key,
                     Endpoint = endpoint,
+                    Description = firstScenario.FeatureDescription,
                     Scenarios = featureGroup
                         .DistinctBy(x => x.ScenarioId)
                         .OrderByDescending(x => x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.ScenarioId,
-                            DisplayName = x.ScenarioTitle,
-                            IsHappyPath = x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
-                            Result = x.ExecutionStatus.ToScenarioResult(),
-                            ErrorMessage = x.TestError?.Message,
-                            ErrorStackTrace = x.TestError?.StackTrace
+                            var labels = x.ScenarioTags
+                                .Where(t => !t.Equals(ReqNRollConstants.HappyPathTag, StringComparison.OrdinalIgnoreCase)
+                                         && !t.StartsWith(ReqNRollConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
+                                .ToArray();
+
+                            return new Scenario
+                            {
+                                Id = x.ScenarioId,
+                                DisplayName = x.ScenarioTitle,
+                                IsHappyPath = x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
+                                Result = x.ExecutionStatus.ToScenarioResult(),
+                                ErrorMessage = x.TestError?.Message,
+                                ErrorStackTrace = x.TestError?.StackTrace,
+                                Steps = x.Steps.Count > 0
+                                    ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
+                                    : null,
+                                Labels = labels.Length > 0 ? labels : null,
+                            };
                         }).ToArray()
                 };
             }).ToArray();
