@@ -530,10 +530,13 @@ public class Stylesheets
                 }
                 .features-summary-details summary {
                     cursor: pointer;
-                    list-style: revert;
                 }
-                .features-summary-details summary h2 {
-                    display: inline;
+
+                .features-summary-table-wrapper {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 1em;
+                    margin-top: 0.5em;
                 }
 
                 .feature-summary-table {

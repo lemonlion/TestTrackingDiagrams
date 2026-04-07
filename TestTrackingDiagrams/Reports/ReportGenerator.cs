@@ -780,7 +780,8 @@ public static class ReportGenerator
 
             // Feature summary table (collapsible, above execution summary)
             var hasAnySteps = features.Any(f => f.Scenarios.Any(s => s.Steps is { Length: > 0 }));
-            body.Append("<details class=\"features-summary-details\"><summary><h2>Features Summary</h2></summary>");
+            body.Append("<details class=\"features-summary-details\"><summary class=\"h2\">Features Summary</summary>");
+            body.Append("<div class=\"features-summary-table-wrapper\">");
             body.Append("<table class=\"feature-summary-table\"><thead><tr>");
             body.Append("<th onclick=\"sort_table(0)\">Feature</th>");
             body.Append("<th onclick=\"sort_table(1)\">Scenarios</th>");
@@ -820,6 +821,7 @@ public static class ReportGenerator
             }
 
             body.Append("</tbody></table>");
+            body.Append("</div>");
             body.Append("</details>");
 
             body.Append($"""
