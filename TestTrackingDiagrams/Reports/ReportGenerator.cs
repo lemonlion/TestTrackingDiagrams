@@ -160,7 +160,7 @@ public static class ReportGenerator
                                                   var s = sc[si];
                                                   var raw = s.getAttribute('data-dependencies') || '';
                                                   var d = raw ? new Set(raw.split(',')) : new Set();
-                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false };
+                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false, dur: false };
                                                   items.push(item);
                                                   fMap.set(s, features[fi]);
                                               }
@@ -171,7 +171,7 @@ public static class ReportGenerator
                                       function applyVisibility(c) {
                                           for (var i = 0; i < c.items.length; i++) {
                                               var d = c.items[i];
-                                              var hidden = d.hp || d.dep || d.st || d.sr;
+                                              var hidden = d.hp || d.dep || d.st || d.sr || d.dur;
                                               d.el.style.display = hidden ? 'none' : '';
                                           }
                                           for (var i = 0; i < c.features.length; i++) {
@@ -341,6 +341,317 @@ public static class ReportGenerator
                                    }
                                    """;
 
+        // Collapse/Expand All
+        var collapseExpandAllFunction = """
+                                        function toggle_all(btn) {
+                                            var features = document.querySelectorAll('details.feature');
+                                            var scenarios = document.querySelectorAll('details.scenario');
+                                            var expanding = btn.textContent.trim().indexOf('Expand') >= 0;
+                                            for (var i = 0; i < features.length; i++) {
+                                                if (expanding) features[i].setAttribute('open', '');
+                                                else features[i].removeAttribute('open');
+                                            }
+                                            for (var i = 0; i < scenarios.length; i++) {
+                                                if (expanding) scenarios[i].setAttribute('open', '');
+                                                else scenarios[i].removeAttribute('open');
+                                            }
+                                            btn.textContent = expanding ? 'Collapse All' : 'Expand All';
+                                        }
+                                        """;
+
+        // Dark mode toggle
+        var darkModeFunction = """
+                               function toggle_dark_mode(btn) {
+                                   document.body.classList.toggle('dark-mode');
+                                   var isDark = document.body.classList.contains('dark-mode');
+                                   btn.textContent = isDark ? '\u2600 Light Mode' : '\u263E Dark Mode';
+                                   try { localStorage.setItem('ttd-dark-mode', isDark ? '1' : '0'); } catch(e) {}
+                               }
+                               """;
+
+        // Copy scenario name
+        var copyScenarioNameFunction = """
+                                       function copy_scenario_name(btn, evt) {
+                                           evt.stopPropagation();
+                                           evt.preventDefault();
+                                           var name = btn.getAttribute('data-scenario-name');
+                                           navigator.clipboard.writeText(name).then(function() {
+                                               var orig = btn.textContent;
+                                               btn.textContent = '\u2713';
+                                               setTimeout(function() { btn.textContent = orig; }, 1500);
+                                           });
+                                       }
+                                       """;
+
+        // Jump to failure
+        var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ScenarioResult.Failed);
+        var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ScenarioResult.Failed);
+        var jumpToFailureFunction = """
+                                    var _failureIndex = -1;
+                                    function jump_to_next_failure() {
+                                        var failures = document.querySelectorAll('details.scenario[data-status="Failed"]');
+                                        if (failures.length === 0) return;
+                                        _failureIndex = (_failureIndex + 1) % failures.length;
+                                        var el = failures[_failureIndex];
+                                        var feature = el.closest('details.feature');
+                                        if (feature) feature.setAttribute('open', '');
+                                        el.setAttribute('open', '');
+                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        var counter = document.getElementById('failure-counter');
+                                        if (counter) counter.textContent = '(' + (_failureIndex + 1) + '/' + failures.length + ')';
+                                    }
+                                    """;
+
+        // Duration filter
+        var hasDurations = features.SelectMany(f => f.Scenarios).Any(s => s.Duration.HasValue);
+        var durationFilterFunction = """
+                                     function filter_duration() {
+                                         var c = fc();
+                                         var input = document.getElementById('duration-threshold');
+                                         if (!input) return;
+                                         var threshold = parseFloat(input.value);
+                                         if (isNaN(threshold) || threshold <= 0) {
+                                             for (var i = 0; i < c.items.length; i++) c.items[i].dur = false;
+                                             applyVisibility(c);
+                                             save_filter_state();
+                                             update_url_hash();
+                                             return;
+                                         }
+                                         var thresholdMs = threshold * 1000;
+                                         for (var i = 0; i < c.items.length; i++) {
+                                             var ms = parseFloat(c.items[i].el.getAttribute('data-duration-ms') || '0');
+                                             c.items[i].dur = ms > 0 && ms < thresholdMs;
+                                         }
+                                         applyVisibility(c);
+                                         save_filter_state();
+                                         update_url_hash();
+                                     }
+                                     function set_percentile(btn) {
+                                         var ms = parseFloat(btn.getAttribute('data-threshold-ms'));
+                                         var input = document.getElementById('duration-threshold');
+                                         if (input) { input.value = (ms / 1000).toFixed(1); filter_duration(); }
+                                         document.querySelectorAll('.percentile-btn').forEach(function(b) { b.classList.remove('percentile-active'); });
+                                         btn.classList.add('percentile-active');
+                                     }
+                                     """;
+
+        // Export filtered view
+        var exportFunction = """
+                             function export_html() {
+                                 var c = fc();
+                                 var html = '<html><head><style>' + document.querySelector('style').textContent + '</style></head><body>';
+                                 html += '<h1>Filtered Report</h1>';
+                                 for (var i = 0; i < c.features.length; i++) {
+                                     if (c.features[i].style.display === 'none') continue;
+                                     html += c.features[i].outerHTML;
+                                 }
+                                 html += '</body></html>';
+                                 var blob = new Blob([html], { type: 'text/html' });
+                                 var a = document.createElement('a');
+                                 a.href = URL.createObjectURL(blob);
+                                 a.download = 'filtered-report.html';
+                                 a.click();
+                                 URL.revokeObjectURL(a.href);
+                             }
+                             function export_csv() {
+                                 var c = fc();
+                                 var lines = ['Feature,Scenario,Status,Duration'];
+                                 for (var i = 0; i < c.items.length; i++) {
+                                     var d = c.items[i];
+                                     if (d.el.style.display === 'none') continue;
+                                     var f = d.f;
+                                     var fname = (f.querySelector('summary.h2') || f.querySelector('summary')).textContent.trim();
+                                     var sname = (d.el.querySelector('summary.h3') || d.el.querySelector('summary')).textContent.trim();
+                                     var dur = d.el.getAttribute('data-duration-ms') || '';
+                                     lines.push('"' + fname.replace(/"/g,'""') + '","' + sname.replace(/"/g,'""') + '","' + d.status + '","' + dur + '"');
+                                 }
+                                 var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+                                 var a = document.createElement('a');
+                                 a.href = URL.createObjectURL(blob);
+                                 a.download = 'filtered-report.csv';
+                                 a.click();
+                                 URL.revokeObjectURL(a.href);
+                             }
+                             """;
+
+        // Persistent filter state
+        var persistentFilterFunction = """
+                                       function save_filter_state() {
+                                           try {
+                                               var state = {};
+                                               var search = document.getElementById('searchbar');
+                                               if (search && search.value) state.search = search.value;
+                                               var statuses = [];
+                                               document.querySelectorAll('.status-toggle.status-active').forEach(function(b) { statuses.push(b.getAttribute('data-status')); });
+                                               if (statuses.length > 0) state.statuses = statuses;
+                                               var deps = [];
+                                               document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { deps.push(b.getAttribute('data-dependency')); });
+                                               if (deps.length > 0) state.deps = deps;
+                                               if (document.querySelector('.happy-path-toggle.happy-path-active')) state.happyPath = true;
+                                               var dur = document.getElementById('duration-threshold');
+                                               if (dur && dur.value) state.duration = dur.value;
+                                               localStorage.setItem('ttd-filter-state', JSON.stringify(state));
+                                           } catch(e) {}
+                                       }
+                                       function restore_filter_state() {
+                                           try {
+                                               var raw = localStorage.getItem('ttd-filter-state');
+                                               if (!raw) return;
+                                               var state = JSON.parse(raw);
+                                               if (state.search) {
+                                                   var sb = document.getElementById('searchbar');
+                                                   if (sb) { sb.value = state.search; run_search_scenarios(); }
+                                               }
+                                               if (state.statuses) {
+                                                   state.statuses.forEach(function(s) {
+                                                       var btn = document.querySelector('.status-toggle[data-status="' + s + '"]');
+                                                       if (btn) { btn.classList.add('status-active'); }
+                                                   });
+                                                   filter_statuses();
+                                               }
+                                               if (state.deps) {
+                                                   state.deps.forEach(function(d) {
+                                                       var btn = document.querySelector('.dependency-toggle[data-dependency="' + d + '"]');
+                                                       if (btn) { btn.classList.add('dependency-active'); }
+                                                   });
+                                                   filter_dependencies();
+                                               }
+                                               if (state.happyPath) {
+                                                   var hp = document.querySelector('.happy-path-toggle');
+                                                   if (hp) { hp.classList.add('happy-path-active'); filter_happy_paths(); }
+                                               }
+                                               if (state.duration) {
+                                                   var dur = document.getElementById('duration-threshold');
+                                                   if (dur) { dur.value = state.duration; filter_duration(); }
+                                               }
+                                           } catch(e) {}
+                                       }
+                                       """;
+
+        // URL-anchored filters
+        var urlHashFunction = """
+                              function update_url_hash() {
+                                  var parts = [];
+                                  var search = document.getElementById('searchbar');
+                                  if (search && search.value) parts.push('q=' + encodeURIComponent(search.value));
+                                  var statuses = [];
+                                  document.querySelectorAll('.status-toggle.status-active').forEach(function(b) { statuses.push(b.getAttribute('data-status')); });
+                                  if (statuses.length > 0) parts.push('status=' + statuses.join(','));
+                                  var deps = [];
+                                  document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { deps.push(b.getAttribute('data-dependency')); });
+                                  if (deps.length > 0) parts.push('deps=' + encodeURIComponent(deps.join(',')));
+                                  if (document.querySelector('.happy-path-toggle.happy-path-active')) parts.push('hp=1');
+                                  var dur = document.getElementById('duration-threshold');
+                                  if (dur && dur.value) parts.push('dur=' + dur.value);
+                                  var hash = parts.length > 0 ? '#' + parts.join('&') : '';
+                                  history.replaceState(null, '', window.location.pathname + window.location.search + hash);
+                              }
+                              function parse_url_hash() {
+                                  var hash = window.location.hash.substring(1);
+                                  if (!hash) return;
+                                  // Check if it's a scenario anchor (starts with 'scenario-')
+                                  if (hash.indexOf('scenario-') === 0) {
+                                      var el = document.getElementById(hash);
+                                      if (el) {
+                                          var feature = el.closest('details.feature');
+                                          if (feature) feature.setAttribute('open', '');
+                                          el.setAttribute('open', '');
+                                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      }
+                                      return;
+                                  }
+                                  var params = {};
+                                  hash.split('&').forEach(function(p) {
+                                      var kv = p.split('=');
+                                      if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+                                  });
+                                  if (params.q) {
+                                      var sb = document.getElementById('searchbar');
+                                      if (sb) { sb.value = params.q; run_search_scenarios(); }
+                                  }
+                                  if (params.status) {
+                                      params.status.split(',').forEach(function(s) {
+                                          var btn = document.querySelector('.status-toggle[data-status="' + s + '"]');
+                                          if (btn) btn.classList.add('status-active');
+                                      });
+                                      filter_statuses();
+                                  }
+                                  if (params.deps) {
+                                      params.deps.split(',').forEach(function(d) {
+                                          var btn = document.querySelector('.dependency-toggle[data-dependency="' + d + '"]');
+                                          if (btn) btn.classList.add('dependency-active');
+                                      });
+                                      filter_dependencies();
+                                  }
+                                  if (params.hp === '1') {
+                                      var hp = document.querySelector('.happy-path-toggle');
+                                      if (hp) { hp.classList.add('happy-path-active'); filter_happy_paths(); }
+                                  }
+                                  if (params.dur) {
+                                      var dur = document.getElementById('duration-threshold');
+                                      if (dur) { dur.value = params.dur; filter_duration(); }
+                                  }
+                              }
+                              """;
+
+        // Keyboard navigation
+        var keyboardNavigationFunction = """
+                                         document.addEventListener('keydown', function(e) {
+                                             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                                             if (e.key === '/') {
+                                                 e.preventDefault();
+                                                 var sb = document.getElementById('searchbar');
+                                                 if (sb) sb.focus();
+                                                 return;
+                                             }
+                                             var scenarios = Array.from(document.querySelectorAll('details.scenario')).filter(function(s) { return s.style.display !== 'none'; });
+                                             if (scenarios.length === 0) return;
+                                             var focused = document.querySelector('.scenario-focused');
+                                             var idx = focused ? scenarios.indexOf(focused) : -1;
+                                             if (e.key === 'ArrowDown') {
+                                                 e.preventDefault();
+                                                 if (focused) focused.classList.remove('scenario-focused');
+                                                 idx = (idx + 1) % scenarios.length;
+                                                 scenarios[idx].classList.add('scenario-focused');
+                                                 scenarios[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                 var feature = scenarios[idx].closest('details.feature');
+                                                 if (feature) feature.setAttribute('open', '');
+                                             } else if (e.key === 'ArrowUp') {
+                                                 e.preventDefault();
+                                                 if (focused) focused.classList.remove('scenario-focused');
+                                                 idx = idx <= 0 ? scenarios.length - 1 : idx - 1;
+                                                 scenarios[idx].classList.add('scenario-focused');
+                                                 scenarios[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                 var feature = scenarios[idx].closest('details.feature');
+                                                 if (feature) feature.setAttribute('open', '');
+                                             } else if (e.key === 'Enter' && focused) {
+                                                 e.preventDefault();
+                                                 if (focused.hasAttribute('open')) focused.removeAttribute('open');
+                                                 else focused.setAttribute('open', '');
+                                             }
+                                         });
+                                         """;
+
+        // Deep link + init script
+        var initScript = """
+                         document.addEventListener('DOMContentLoaded', function() {
+                             // Restore dark mode
+                             try {
+                                 if (localStorage.getItem('ttd-dark-mode') === '1') {
+                                     document.body.classList.add('dark-mode');
+                                     var dmBtn = document.querySelector('.dark-mode-toggle');
+                                     if (dmBtn) dmBtn.textContent = '\u2600 Light Mode';
+                                 }
+                             } catch(e) {}
+                             // Restore filters from URL hash first, then localStorage
+                             if (window.location.hash && window.location.hash.length > 1) {
+                                 parse_url_hash();
+                             } else {
+                                 restore_filter_state();
+                             }
+                         });
+                         """;
+
         var combinedStylesheet = $"""
                                  {Stylesheets.HtmlReportStyleSheet}
                                  {stylesheet}
@@ -375,6 +686,16 @@ public static class ReportGenerator
                                 {{searchFunction}}
                                 {{dependencyFilterFunction}}
                                 {{statusFilterFunction}}
+                                {{collapseExpandAllFunction}}
+                                {{darkModeFunction}}
+                                {{copyScenarioNameFunction}}
+                                {{jumpToFailureFunction}}
+                                {{durationFilterFunction}}
+                                {{exportFunction}}
+                                {{persistentFilterFunction}}
+                                {{urlHashFunction}}
+                                {{keyboardNavigationFunction}}
+                                {{initScript}}
                             </script>
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
@@ -406,9 +727,9 @@ public static class ReportGenerator
                         <table>
                             <tr><td colspan="2" class="column-header">Execution</td><td colspan="2" class="column-header">Content</td></tr>
                             <tr><td>Overall status:</td><td>{overallStatus}</td><td>Features: </td><td>{numberOfFeatures}</td></tr>
-                            <tr><td>Start Date:</td><td>{startRunTime.ToShortDateString()} (UTC)</td><td>Scenarios: </td><td>{scenarios.Length}</td></tr>
-                            <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss}</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
-                            <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss}</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
+                            <tr><td>Start Date:</td><td>{startRunTime:yyyy-MM-dd} (UTC)</td><td>Scenarios: </td><td>{scenarios.Length}</td></tr>
+                            <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss} (UTC)</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
+                            <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss} (UTC)</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
                             <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
                         </table>
                     </div>
@@ -468,9 +789,31 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
+        // Duration filter (only shown when scenarios have duration data)
+        if (hasDurations)
+        {
+            var durationsMs = features.SelectMany(f => f.Scenarios)
+                .Where(s => s.Duration.HasValue)
+                .Select(s => s.Duration!.Value.TotalMilliseconds)
+                .OrderBy(d => d)
+                .ToArray();
+            var p95Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.95)] : 0;
+            var p99Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.99)] : 0;
+
+            body.Append($"""<div class="duration-filters" data-p95="{p95Ms:F0}" data-p99="{p99Ms:F0}"><span class="duration-filters-label">Duration &gt;:</span><input id="duration-threshold" type="number" step="0.1" min="0" placeholder="seconds" onchange="filter_duration()" /><button class="percentile-btn" data-threshold-ms="{p95Ms:F0}" onclick="set_percentile(this)">p95 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p95Ms))})</button><button class="percentile-btn" data-threshold-ms="{p99Ms:F0}" onclick="set_percentile(this)">p99 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p99Ms))})</button></div>""");
+        }
+
         body.Append("</div>"); // close filters
         body.Append("</div>"); // close filtering-box
         body.Append("</div>"); // close header-row
+
+        // Toolbar row: Collapse/Expand All, Dark Mode, Export
+        body.Append("""<div class="toolbar-row">""");
+        body.Append("""<button class="collapse-expand-all" onclick="toggle_all(this)">Expand All</button>""");
+        body.Append("""<button class="dark-mode-toggle" onclick="toggle_dark_mode(this)">&#9790; Dark Mode</button>""");
+        body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
+        body.Append("</div>");
+
         body.Append("<h2>Features Summary</h2>");
         var plantUmlBrowserCounter = 0;
 
@@ -490,10 +833,10 @@ public static class ReportGenerator
         body.Append("<div id=\"report-content\">");
         foreach (var feature in features)
         {
-            var hasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
+            var featureHasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2{(hasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
+                        <summary class="h2{(featureHasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
                      """);
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
@@ -506,6 +849,20 @@ public static class ReportGenerator
                     : "";
                 var statusAttr = $" data-status=\"{scenario.Result}\"";
 
+                // Duration attributes and badge
+                var durationAttr = "";
+                var durationBadge = "";
+                if (scenario.Duration.HasValue)
+                {
+                    var durationMs = scenario.Duration.Value.TotalMilliseconds;
+                    durationAttr = $" data-duration-ms=\"{durationMs:F0}\"";
+                    var durationClass = durationMs < 2000 ? "duration-fast" : durationMs < 5000 ? "duration-moderate" : "duration-slow";
+                    durationBadge = $" <span class=\"duration-badge {durationClass}\">{FormatDurationBadge(scenario.Duration.Value)}</span>";
+                }
+
+                // Deep link anchor ID
+                var anchorId = GenerateScenarioAnchorId(scenario.DisplayName);
+
                 // Pre-build searchable text: scenario name + error info + diagram sources
                 var searchParts = new List<string> { scenario.DisplayName };
                 if (failed && scenario.ErrorMessage is not null) searchParts.Add(scenario.ErrorMessage);
@@ -513,9 +870,11 @@ public static class ReportGenerator
                 foreach (var d in diagramsForSearch) searchParts.Add(d.CodeBehind);
                 var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
+                var encodedName = System.Net.WebUtility.HtmlEncode(scenario.DisplayName);
+
                 body.Append($"""
-                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}>
-                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
+                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr} id="{anchorId}" tabindex="0">
+                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
                          """);
 
                 if (failed)
@@ -674,6 +1033,12 @@ public static class ReportGenerator
         }
         body.Append("</div>");
 
+        // Jump-to-failure button (only when there are failures)
+        if (hasFailures)
+        {
+            body.Append($"""<button class="jump-to-failure" onclick="jump_to_next_failure()">Next Failure <span class="failure-counter" id="failure-counter">(0/{failureCount})</span></button>""");
+        }
+
         html += body;
         html += """
                     </body>
@@ -726,6 +1091,23 @@ public static class ReportGenerator
         if (total.TotalMinutes < 1)
             return $"{total.Seconds}s";
         return $"{(int)total.TotalMinutes}m {total.Seconds}s";
+    }
+
+    internal static string FormatDurationBadge(TimeSpan duration)
+    {
+        var total = duration.Duration();
+        if (total.TotalSeconds < 1)
+            return $"{(int)total.TotalMilliseconds}ms";
+        if (total.TotalMinutes < 1)
+            return $"{total.TotalSeconds:F1}s";
+        return $"{(int)total.TotalMinutes}m {total.Seconds}s";
+    }
+
+    internal static string GenerateScenarioAnchorId(string displayName)
+    {
+        // Convert to lowercase, replace non-alphanumeric with hyphens, collapse multiple hyphens
+        var slug = System.Text.RegularExpressions.Regex.Replace(displayName.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        return $"scenario-{slug}";
     }
 
     private static string WriteFile(string text, string fileName)

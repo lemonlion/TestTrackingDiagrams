@@ -235,5 +235,248 @@ public class Stylesheets
                     color: white;
                     border-color: rgb(66, 133, 244);
                 }
+
+                .duration-badge {
+                    font-size: 0.75em;
+                    font-weight: normal;
+                    padding: 0.15em 0.5em;
+                    border-radius: 0.3em;
+                    margin-left: 0.5em;
+                    display: inline-block;
+                    white-space: nowrap;
+                }
+
+                .duration-fast {
+                    background: rgb(220, 245, 220);
+                    color: rgb(30, 100, 30);
+                }
+
+                .duration-moderate {
+                    background: rgb(255, 243, 205);
+                    color: rgb(140, 100, 0);
+                }
+
+                .duration-slow {
+                    background: rgb(255, 220, 220);
+                    color: rgb(191, 0, 0);
+                }
+
+                .duration-filters {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 0.3em;
+                }
+
+                .duration-filters-label {
+                    font-weight: bold;
+                    margin-right: 0.3em;
+                }
+
+                #duration-threshold {
+                    width: 5em;
+                    padding: 0.25em 0.4em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    font-size: 0.85em;
+                }
+
+                .percentile-btn {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+
+                .percentile-btn:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                .percentile-btn.percentile-active {
+                    background: rgb(66, 133, 244);
+                    color: white;
+                    border-color: rgb(66, 133, 244);
+                }
+
+                .collapse-expand-all {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+
+                .collapse-expand-all:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                .dark-mode-toggle {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+
+                .dark-mode-toggle:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                body.dark-mode {
+                    background-color: rgb(30, 30, 30);
+                    color: rgb(220, 220, 220);
+                }
+
+                body.dark-mode .feature {
+                    background-color: rgb(50, 50, 50);
+                }
+
+                body.dark-mode .scenario {
+                    background-color: rgb(40, 40, 40);
+                }
+
+                body.dark-mode .test-execution-summary {
+                    background-color: rgb(50, 50, 50);
+                }
+
+                body.dark-mode .filtering-box {
+                    background-color: rgb(50, 50, 50);
+                }
+
+                body.dark-mode #searchbar {
+                    background-color: rgb(60, 60, 60);
+                    color: rgb(220, 220, 220);
+                    border-color: rgb(100, 100, 100);
+                }
+
+                body.dark-mode .happy-path-toggle,
+                body.dark-mode .dependency-toggle,
+                body.dark-mode .status-toggle,
+                body.dark-mode .collapse-expand-all,
+                body.dark-mode .dark-mode-toggle,
+                body.dark-mode .percentile-btn,
+                body.dark-mode .export-btn {
+                    background: rgb(60, 60, 60);
+                    color: rgb(220, 220, 220);
+                    border-color: rgb(100, 100, 100);
+                }
+
+                body.dark-mode .example-diagrams {
+                    border-color: rgb(80, 80, 80);
+                }
+
+                body.dark-mode .example-diagrams > summary {
+                    background-color: rgb(40, 40, 40);
+                }
+
+                body.dark-mode .failure-result {
+                    background-color: rgb(60, 30, 30);
+                    border-color: rgb(100, 50, 50);
+                }
+
+                body.dark-mode span.label {
+                    background-color: rgb(80, 80, 80);
+                }
+
+                .jump-to-failure {
+                    position: fixed;
+                    bottom: 1.5em;
+                    right: 1.5em;
+                    padding: 0.5em 1em;
+                    background: rgb(191, 0, 0);
+                    color: white;
+                    border: none;
+                    border-radius: 0.5em;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                    z-index: 1000;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                }
+
+                .jump-to-failure:hover {
+                    background: rgb(160, 0, 0);
+                }
+
+                .failure-counter {
+                    font-size: 0.85em;
+                    margin-left: 0.3em;
+                    opacity: 0.9;
+                }
+
+                .copy-scenario-name {
+                    font-size: 0.7em;
+                    padding: 0.1em 0.4em;
+                    margin-left: 0.4em;
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 0.3em;
+                    background: rgb(245, 245, 245);
+                    cursor: pointer;
+                    opacity: 0.5;
+                    vertical-align: middle;
+                }
+
+                .copy-scenario-name:hover {
+                    opacity: 1;
+                    background: rgb(230, 240, 255);
+                }
+
+                .scenario-link {
+                    font-size: 0.7em;
+                    padding: 0.1em 0.4em;
+                    margin-left: 0.3em;
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 0.3em;
+                    background: rgb(245, 245, 245);
+                    cursor: pointer;
+                    opacity: 0.5;
+                    text-decoration: none;
+                    color: inherit;
+                    vertical-align: middle;
+                }
+
+                .scenario-link:hover {
+                    opacity: 1;
+                    background: rgb(230, 240, 255);
+                }
+
+                .export-filtered {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3em;
+                }
+
+                .export-btn {
+                    padding: 0.25em 0.6em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+
+                .export-btn:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                .toolbar-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5em;
+                    align-items: center;
+                    margin-bottom: 0.5em;
+                }
+
+                .scenario-focused {
+                    outline: 2px solid rgb(66, 133, 244);
+                    outline-offset: 2px;
+                }
         """;
 }

@@ -8,4 +8,5 @@ public record Scenario
     public ScenarioResult Result { get; set; }
     public string? ErrorMessage { get; set; }
     public string? ErrorStackTrace { get; set; }
+    public TimeSpan? Duration { get; set; }
 }

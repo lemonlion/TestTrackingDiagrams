@@ -117,7 +117,7 @@ public class DependencyFilterReportGeneratorTests
 
         var content = GenerateReport(features, diagrams, "DepFilterNoDiagrams.html");
 
-        Assert.DoesNotContain("data-dependency=", content);
+        Assert.DoesNotContain("<button class=\"dependency-toggle\"", content);
     }
 
     [Fact]
