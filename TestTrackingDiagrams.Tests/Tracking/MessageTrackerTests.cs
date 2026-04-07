@@ -28,9 +28,10 @@ public class MessageTrackerTests
 
     private static MessageTracker CreateTracker(
         IHttpContextAccessor? accessor = null,
-        string callingServiceName = "MyService")
+        string callingServiceName = "MyService",
+        Func<(string Name, string Id)>? testInfoFallback = null)
     {
-        return new MessageTracker(accessor ?? CreateHttpContextAccessor(), callingServiceName);
+        return new MessageTracker(accessor ?? CreateHttpContextAccessor(), callingServiceName, testInfoFallback: testInfoFallback);
     }
 
     // ─── TrackMessageRequest ────────────────────────────────────
@@ -199,5 +200,58 @@ public class MessageTrackerTests
 
         var responseLog = GetLogsById(id).Last();
         Assert.Equal(RequestResponseMetaType.Event, responseLog.MetaType);
+    }
+
+    // ─── Fallback test info ─────────────────────────────────────
+
+    [Fact]
+    public void TrackMessageRequest_uses_fallback_when_no_http_context()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var tracker = CreateTracker(accessor, testInfoFallback: () => ("FallbackTest", "fallback-id-1"));
+
+        var id = tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { Msg = "hello" });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("FallbackTest", log.TestName);
+        Assert.Equal("fallback-id-1", log.TestId);
+    }
+
+    [Fact]
+    public void TrackMessageResponse_uses_fallback_when_no_http_context()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var tracker = CreateTracker(accessor, testInfoFallback: () => ("FallbackTest", "fallback-id-2"));
+
+        var id = tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { });
+        tracker.TrackMessageResponse("ServiceBus", "Queue", new Uri("servicebus://queue"), id);
+
+        var logs = GetLogsById(id);
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal("FallbackTest", l.TestName));
+        Assert.All(logs, l => Assert.Equal("fallback-id-2", l.TestId));
+    }
+
+    [Fact]
+    public void TrackMessageRequest_prefers_http_context_over_fallback()
+    {
+        var accessor = CreateHttpContextAccessor("HttpTest", "http-id", "7c9e6679-7425-40de-944b-e07fc1f90ae7");
+        var tracker = CreateTracker(accessor, testInfoFallback: () => ("FallbackTest", "fallback-id"));
+
+        var id = tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("HttpTest", log.TestName);
+        Assert.Equal("http-id", log.TestId);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_throws_when_no_http_context_and_no_fallback()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var tracker = CreateTracker(accessor);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { }));
     }
 }
