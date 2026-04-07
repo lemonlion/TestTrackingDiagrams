@@ -145,6 +145,19 @@ public static class DiagramContextMenu
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
         .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
+        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; }
+        .diagram-toggle-btn {
+            padding: 4px 14px;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+        .diagram-toggle-btn:hover { background: #e8f0fe; }
+        .diagram-toggle-active { background: #4285f4; color: #fff; border-color: #4285f4; }
+        .diagram-toggle-active:hover { background: #3367d6; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
         .iflow-sequential-tests { padding: 0; }
@@ -840,6 +853,26 @@ public static class DiagramContextMenu
             if (target) {
                 target.style.display = '';
                 window._renderFlameCharts(target);
+            }
+        });
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest ? e.target.closest('.diagram-toggle-btn') : null;
+            if (!btn) return;
+            var toggle = btn.closest('.diagram-toggle');
+            if (!toggle) return;
+            var container = toggle.parentElement;
+            if (!container) return;
+            var dtype = btn.getAttribute('data-dtype');
+            toggle.querySelectorAll('.diagram-toggle-btn').forEach(function(b) {
+                b.classList.toggle('diagram-toggle-active', b === btn);
+            });
+            container.querySelectorAll('.diagram-view').forEach(function(v) {
+                v.style.display = 'none';
+            });
+            var target = container.querySelector('.diagram-view-' + dtype);
+            if (target) {
+                target.style.display = '';
+                if (window._renderFlameCharts) window._renderFlameCharts(target);
             }
         });
         </script>

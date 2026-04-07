@@ -42,20 +42,20 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             spans.Length > 0 ? spans.Max(s => s.StartTimeUtc + s.Duration) : null,
             spans);
 
-    // ── GenerateWholeTestFlowHtml ──
+    // ── GetWholeTestFlowContent ──
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_returns_empty_for_empty_segments()
+    public void GetWholeTestFlowContent_returns_null_for_empty_segments()
     {
         var segments = new Dictionary<string, InternalFlowSegment>();
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.Both);
 
-        Assert.Equal(string.Empty, result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_returns_empty_for_None()
+    public void GetWholeTestFlowContent_returns_null_for_None()
     {
         var span = CreateSpan("op");
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -63,14 +63,14 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.None);
 
-        Assert.Equal(string.Empty, result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_produces_collapsed_details()
+    public void GetWholeTestFlowContent_Both_returns_activity_and_flame()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -78,16 +78,18 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.Both);
 
-        Assert.Contains("<details", result);
-        Assert.Contains("Whole Test Flow", result);
-        Assert.DoesNotContain("open", result.Split('\n').First(l => l.Contains("<details")));
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Value.ActivityHtml);
+        Assert.NotEmpty(result.Value.FlameHtml);
+        Assert.DoesNotContain("<details", result.Value.ActivityHtml);
+        Assert.DoesNotContain("<details", result.Value.FlameHtml);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_Both_includes_toggle_buttons()
+    public void GetWholeTestFlowContent_Both_does_not_include_toggle_buttons()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -95,16 +97,16 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.Both);
 
-        Assert.Contains("iflow-toggle", result);
-        Assert.Contains("Activity", result);
-        Assert.Contains("Flame Chart", result);
+        Assert.NotNull(result);
+        Assert.DoesNotContain("iflow-toggle", result.Value.ActivityHtml);
+        Assert.DoesNotContain("iflow-toggle", result.Value.FlameHtml);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_FlameChart_only_has_flamechart()
+    public void GetWholeTestFlowContent_FlameChart_only_has_flame()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -112,15 +114,16 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.FlameChart);
 
-        Assert.Contains("iflow-flame", result);
-        Assert.DoesNotContain("iflow-toggle", result);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Value.FlameHtml);
+        Assert.Empty(result.Value.ActivityHtml);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_ActivityDiagram_only_has_activity()
+    public void GetWholeTestFlowContent_ActivityDiagram_only_has_activity()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -128,15 +131,16 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.ActivityDiagram);
 
-        Assert.Contains("plantuml-browser", result);
-        Assert.DoesNotContain("iflow-toggle", result);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Value.ActivityHtml);
+        Assert.Empty(result.Value.FlameHtml);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_no_matching_test_returns_empty()
+    public void GetWholeTestFlowContent_no_matching_test_returns_null()
     {
         var span = CreateSpan("op");
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -144,14 +148,14 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-999", [], WholeTestFlowVisualization.Both);
 
-        Assert.Equal(string.Empty, result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_FlameChart_uses_compressed_attribute()
+    public void GetWholeTestFlowContent_FlameChart_uses_compressed_attribute()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -159,15 +163,16 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.FlameChart);
 
-        Assert.Contains("data-flame-z=", result);
-        Assert.DoesNotContain("data-flame=\"", result);
+        Assert.NotNull(result);
+        Assert.Contains("data-flame-z=", result.Value.FlameHtml);
+        Assert.DoesNotContain("data-flame=\"", result.Value.FlameHtml);
     }
 
     [Fact]
-    public void GenerateWholeTestFlowHtml_ActivityDiagram_uses_compressed_attribute()
+    public void GetWholeTestFlowContent_ActivityDiagram_uses_compressed_attribute()
     {
         var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
         var segments = new Dictionary<string, InternalFlowSegment>
@@ -175,11 +180,12 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
             ["iflow-test-test-1"] = MakeSegment("test-1", span)
         };
 
-        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
             segments, "test-1", [], WholeTestFlowVisualization.ActivityDiagram);
 
-        Assert.Contains("data-plantuml-z=", result);
-        Assert.DoesNotContain("data-plantuml=\"", result);
+        Assert.NotNull(result);
+        Assert.Contains("data-plantuml-z=", result.Value.ActivityHtml);
+        Assert.DoesNotContain("data-plantuml=\"", result.Value.ActivityHtml);
     }
 
     [Fact]

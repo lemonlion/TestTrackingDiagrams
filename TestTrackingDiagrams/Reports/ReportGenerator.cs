@@ -512,59 +512,8 @@ public static class ReportGenerator
 
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
 
-
-                if (diagramsForTest.Length > 0)
-                {
-                    body.Append("""
-                            <details class="example-diagrams" open>
-                            <summary class="h4">Sequence Diagrams</summary>
-                            """);
-
-                    var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
-                    var rawLabel = isMermaid ? "Raw Mermaid" : "Raw Plant UML";
-                    foreach (var diagram in diagramsForTest)
-                    {
-                        if (isMermaid)
-                        {
-                            var mermaidEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
-                            body.Append($"""
-                                     <pre class="mermaid" data-mermaid-source="{mermaidEncoded}" data-diagram-type="mermaid">{diagram.CodeBehind}</pre>
-                                     """);
-                        }
-                        else if (isPlantUmlBrowser)
-                        {
-                            var diagramId = $"puml-{plantUmlBrowserCounter++}";
-                            var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
-                            body.Append($"""
-                                     <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}" data-diagram-type="plantuml">Loading diagram...</div>
-                                     """);
-                        }
-                        else if (isInlineSvg)
-                        {
-                            var sourceEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
-                            body.Append($"""
-                                     <div class="plantuml-inline-svg" data-plantuml="{sourceEncoded}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
-                                     """);
-                        }
-                        else
-                        {
-                            body.Append($"""
-                                     <details class="example">
-                                        <summary class="example-image">
-                                            <img{lazyLoadAttr} src="{diagram.ImgSrc}">
-                                        </summary>
-                                        <div class="raw-plantuml">
-                                            <h4>{rawLabel}</h4>
-                                            <pre>{diagram.CodeBehind}</pre>
-                                         </div>
-                                     </details>
-                                     """);
-                        }
-                    }
-                    body.Append("</details>");
-
-                }
-
+                // Get whole-test-flow content (activity + flame) if available
+                (string ActivityHtml, string FlameHtml)? wholeTestContent = null;
                 if (wholeTestSegments is not null && wholeTestVisualization != WholeTestFlowVisualization.None)
                 {
                     var boundaryLogs = trackedLogs?
@@ -573,10 +522,118 @@ public static class ReportGenerator
                         .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
                         .ToArray() ?? [];
 
-                    var wholeTestHtml = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+                    wholeTestContent = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
                         wholeTestSegments, scenario.Id, boundaryLogs, wholeTestVisualization);
-                    if (!string.IsNullOrEmpty(wholeTestHtml))
-                        body.Append(wholeTestHtml);
+                }
+
+                var hasSequenceDiagrams = diagramsForTest.Length > 0;
+                var hasWholeTestFlow = wholeTestContent is not null;
+
+                if (hasSequenceDiagrams || hasWholeTestFlow)
+                {
+                    body.Append("<details class=\"example-diagrams\" open>");
+
+                    if (hasWholeTestFlow && hasSequenceDiagrams)
+                    {
+                        body.Append("<summary class=\"h4\">Diagrams</summary>");
+                        body.Append("<div class=\"diagram-toggle\">");
+                        body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"seq\">Sequence Diagrams</button>");
+                        if (!string.IsNullOrEmpty(wholeTestContent!.Value.ActivityHtml))
+                            body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"activity\">Activity Diagrams</button>");
+                        if (!string.IsNullOrEmpty(wholeTestContent!.Value.FlameHtml))
+                            body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                        body.Append("</div>");
+                    }
+                    else if (hasSequenceDiagrams)
+                    {
+                        body.Append("<summary class=\"h4\">Sequence Diagrams</summary>");
+                    }
+                    else
+                    {
+                        // Only whole-test-flow, no sequence diagrams
+                        var hasActivity = !string.IsNullOrEmpty(wholeTestContent!.Value.ActivityHtml);
+                        var hasFlame = !string.IsNullOrEmpty(wholeTestContent!.Value.FlameHtml);
+                        if (hasActivity && hasFlame)
+                        {
+                            body.Append("<summary class=\"h4\">Diagrams</summary>");
+                            body.Append("<div class=\"diagram-toggle\">");
+                            body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"activity\">Activity Diagrams</button>");
+                            body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                            body.Append("</div>");
+                        }
+                        else if (hasActivity)
+                        {
+                            body.Append("<summary class=\"h4\">Activity Diagrams</summary>");
+                        }
+                        else
+                        {
+                            body.Append("<summary class=\"h4\">Flame Chart</summary>");
+                        }
+                    }
+
+                    if (hasSequenceDiagrams)
+                    {
+                        var seqWrap = hasWholeTestFlow;
+                        if (seqWrap) body.Append("<div class=\"diagram-view diagram-view-seq\">");
+
+                        var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
+                        var rawLabel = isMermaid ? "Raw Mermaid" : "Raw Plant UML";
+                        foreach (var diagram in diagramsForTest)
+                        {
+                            if (isMermaid)
+                            {
+                                var mermaidEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                                body.Append($"""
+                                         <pre class="mermaid" data-mermaid-source="{mermaidEncoded}" data-diagram-type="mermaid">{diagram.CodeBehind}</pre>
+                                         """);
+                            }
+                            else if (isPlantUmlBrowser)
+                            {
+                                var diagramId = $"puml-{plantUmlBrowserCounter++}";
+                                var encoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                                body.Append($"""
+                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml="{encoded}" data-diagram-type="plantuml">Loading diagram...</div>
+                                         """);
+                            }
+                            else if (isInlineSvg)
+                            {
+                                var sourceEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
+                                body.Append($"""
+                                         <div class="plantuml-inline-svg" data-plantuml="{sourceEncoded}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
+                                         """);
+                            }
+                            else
+                            {
+                                body.Append($"""
+                                         <details class="example">
+                                            <summary class="example-image">
+                                                <img{lazyLoadAttr} src="{diagram.ImgSrc}">
+                                            </summary>
+                                            <div class="raw-plantuml">
+                                                <h4>{rawLabel}</h4>
+                                                <pre>{diagram.CodeBehind}</pre>
+                                             </div>
+                                         </details>
+                                         """);
+                            }
+                        }
+
+                        if (seqWrap) body.Append("</div>");
+                    }
+
+                    if (hasWholeTestFlow)
+                    {
+                        var wtf = wholeTestContent!.Value;
+                        var hideActivity = hasSequenceDiagrams; // hidden when seq is default
+                        var hideFlame = hasSequenceDiagrams || (!string.IsNullOrEmpty(wtf.ActivityHtml) && !hasSequenceDiagrams);
+
+                        if (!string.IsNullOrEmpty(wtf.ActivityHtml))
+                            body.Append($"<div class=\"diagram-view diagram-view-activity\"{(hideActivity ? " style=\"display:none\"" : "")}>{wtf.ActivityHtml}</div>");
+                        if (!string.IsNullOrEmpty(wtf.FlameHtml))
+                            body.Append($"<div class=\"diagram-view diagram-view-flame\"{(hideFlame ? " style=\"display:none\"" : "")}>{wtf.FlameHtml}</div>");
+                    }
+
+                    body.Append("</details>");
                 }
 
                 body.Append("</details>");

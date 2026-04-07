@@ -98,6 +98,44 @@ public static class InternalFlowHtmlGenerator
     }
 
     /// <summary>
+    /// Returns the activity diagram and flame chart HTML content for a specific test,
+    /// without any wrapper elements or toggle buttons. Returns null if no data is available.
+    /// </summary>
+    public static (string ActivityHtml, string FlameHtml)? GetWholeTestFlowContent(
+        Dictionary<string, InternalFlowSegment> wholeTestSegments,
+        string testId,
+        (string Label, DateTimeOffset Timestamp)[] boundaryLogs,
+        WholeTestFlowVisualization visualization)
+    {
+        if (visualization == WholeTestFlowVisualization.None)
+            return null;
+
+        var segmentKey = $"iflow-test-{testId}";
+        if (!wholeTestSegments.TryGetValue(segmentKey, out var segment) || segment.Spans.Length == 0)
+            return null;
+
+        var activityHtml = "";
+        var flameHtml = "";
+
+        if (visualization is WholeTestFlowVisualization.ActivityDiagram or WholeTestFlowVisualization.Both)
+            activityHtml = RenderWholeTestActivityDiagramHtml(segment);
+
+        if (visualization is WholeTestFlowVisualization.FlameChart or WholeTestFlowVisualization.Both)
+        {
+            var flameData = InternalFlowRenderer.GetFlameChartDataWithMarkers(segment, boundaryLogs);
+            var flameJson = JsonSerializer.Serialize(
+                flameData.Markers != null
+                    ? (object)new { s = flameData.Sources, f = flameData.Spans, m = flameData.Markers }
+                    : new { s = flameData.Sources, f = flameData.Spans },
+                new JsonSerializerOptions { WriteIndented = false });
+            var compressedFlame = CompressToBase64(flameJson);
+            flameHtml = $"<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame-z=\"{compressedFlame}\"></div>";
+        }
+
+        return (activityHtml, flameHtml);
+    }
+
+    /// <summary>
     /// Generates an inline collapsed &lt;details&gt; block containing the whole-test
     /// flamechart and/or activity diagram for a specific test.
     /// </summary>
