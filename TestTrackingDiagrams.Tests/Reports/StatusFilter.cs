@@ -35,13 +35,24 @@ public static class StatusFilter
             return;
 
         var activeSet = new HashSet<string>(activeStatuses, StringComparer.OrdinalIgnoreCase);
+        var totalVisible = 0;
 
         foreach (var scenario in document.QuerySelectorAll(".scenario"))
         {
             var status = scenario.GetAttribute("data-status") ?? "";
             if (!activeSet.Contains(status))
+            {
                 scenario.ClassList.Add(StatusHiddenClass);
+            }
+            else if (!scenario.ClassList.Contains("dep-hidden") &&
+                     !scenario.ClassList.Contains("search-hidden") &&
+                     !scenario.ClassList.Contains("hp-hidden"))
+            {
+                totalVisible++;
+            }
         }
+
+        var shouldOpen = totalVisible <= 10;
 
         foreach (var feature in allFeatures)
         {
@@ -55,7 +66,7 @@ public static class StatusFilter
             {
                 feature.ClassList.Add(StatusHiddenClass);
             }
-            else if (!feature.HasAttribute("open"))
+            else if (shouldOpen && !feature.HasAttribute("open"))
             {
                 feature.SetAttribute("open", "");
                 feature.ClassList.Add("status-opened");

@@ -38,6 +38,7 @@ public static class DependencyFilter
             return;
 
         var allScenarios = document.QuerySelectorAll(".scenario");
+        var totalVisible = 0;
 
         foreach (var scenario in allScenarios)
         {
@@ -48,8 +49,18 @@ public static class DependencyFilter
 
             var matchesAll = activeDeps.All(d => scenarioDeps.Contains(d));
             if (!matchesAll)
+            {
                 scenario.ClassList.Add(DepHiddenClass);
+            }
+            else if (!scenario.ClassList.Contains("search-hidden") &&
+                     !scenario.ClassList.Contains("status-hidden") &&
+                     !scenario.ClassList.Contains("hp-hidden"))
+            {
+                totalVisible++;
+            }
         }
+
+        var shouldOpen = totalVisible <= 10;
 
         // Hide features with no visible scenarios, open features with matches
         foreach (var feature in allFeatures)
@@ -63,7 +74,7 @@ public static class DependencyFilter
             {
                 feature.ClassList.Add(DepHiddenClass);
             }
-            else if (!feature.HasAttribute("open"))
+            else if (shouldOpen && !feature.HasAttribute("open"))
             {
                 feature.SetAttribute("open", "");
                 feature.ClassList.Add("dep-opened");

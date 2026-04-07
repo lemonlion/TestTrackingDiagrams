@@ -224,4 +224,44 @@ public class StatusFilterTests
     }
 
     #endregion
+
+    #region Feature Contraction when >10 Visible Scenarios
+
+    [Fact]
+    public void StatusFilter_FeaturesContracted_WhenMoreThan10VisibleScenarios()
+    {
+        var scenarios = Enumerable.Range(1, 12)
+            .Select(i => new ScenarioSpec($"Scenario {i}", "Passed"))
+            .ToArray();
+
+        var doc = BuildDomWithStatuses(
+            new FeatureSpec("Feature A", scenarios[..6]),
+            new FeatureSpec("Feature B", scenarios[6..]));
+
+        StatusFilter.Apply(doc, ["Passed"]);
+
+        var features = doc.QuerySelectorAll(".feature");
+        Assert.False(features[0].HasAttribute("open"), "Feature should stay contracted when >10 visible scenarios");
+        Assert.False(features[1].HasAttribute("open"), "Feature should stay contracted when >10 visible scenarios");
+    }
+
+    [Fact]
+    public void StatusFilter_FeaturesExpanded_WhenAtMost10VisibleScenarios()
+    {
+        var scenarios = Enumerable.Range(1, 10)
+            .Select(i => new ScenarioSpec($"Scenario {i}", "Passed"))
+            .ToArray();
+
+        var doc = BuildDomWithStatuses(
+            new FeatureSpec("Feature A", scenarios[..5]),
+            new FeatureSpec("Feature B", scenarios[5..]));
+
+        StatusFilter.Apply(doc, ["Passed"]);
+
+        var features = doc.QuerySelectorAll(".feature");
+        Assert.True(features[0].HasAttribute("open"), "Feature should open when ≤10 visible scenarios");
+        Assert.True(features[1].HasAttribute("open"), "Feature should open when ≤10 visible scenarios");
+    }
+
+    #endregion
 }

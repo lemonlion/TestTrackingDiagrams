@@ -100,15 +100,10 @@ public static class BDDfyReportGenerator
         var toggleHappyPathsFunction = """
                                        function toggle_happy_paths(btn) {
                                            btn.classList.toggle('happy-path-active');
-                                           var features = document.getElementsByClassName('feature');
-                                           for (var i = 0; i < features.length; i++) features[i].style.opacity = '0.5';
-                                           requestAnimationFrame(function() { filter_happy_paths(); });
+                                           filter_happy_paths();
                                        }
                                        
                                        function filter_happy_paths() {
-                                           var rc = document.getElementById('report-content');
-                                           rc.style.display = 'none';
-                                       
                                            var active = document.querySelector('.happy-path-toggle.happy-path-active') !== null;
                                            var scenarios = document.getElementsByClassName('scenario');
                                            var features = document.getElementsByClassName('feature');
@@ -118,16 +113,16 @@ public static class BDDfyReportGenerator
                                            }
                                            for (var i = 0; i < features.length; i++) {
                                                features[i].classList.remove('hp-hidden');
-                                               features[i].style.opacity = '';
                                                if (features[i].classList.contains('hp-opened')) {
                                                    features[i].removeAttribute('open');
                                                    features[i].classList.remove('hp-opened');
                                                }
                                            }
                                        
-                                           if (!active) { rc.style.display = ''; return; }
+                                           if (!active) return;
                                        
                                            var featureVisibleCounts = new Map();
+                                           var totalVisible = 0;
                                            for (var i = 0; i < features.length; i++) featureVisibleCounts.set(features[i], 0);
                                        
                                            for (var i = 0; i < scenarios.length; i++) {
@@ -137,20 +132,20 @@ public static class BDDfyReportGenerator
                                                } else if (!s.classList.contains('search-hidden')) {
                                                    var f = s.closest('.feature');
                                                    if (f) featureVisibleCounts.set(f, (featureVisibleCounts.get(f) || 0) + 1);
+                                                   totalVisible++;
                                                }
                                            }
                                        
+                                           var shouldOpen = totalVisible <= 10;
                                            for (var i = 0; i < features.length; i++) {
                                                var f = features[i];
                                                if ((featureVisibleCounts.get(f) || 0) === 0) {
                                                    f.classList.add('hp-hidden');
-                                               } else if (!f.hasAttribute('open')) {
+                                               } else if (shouldOpen && !f.hasAttribute('open')) {
                                                    f.setAttribute('open', '');
                                                    f.classList.add('hp-opened');
                                                }
                                            }
-                                       
-                                           rc.style.display = '';
                                        }
                                        """;
 
