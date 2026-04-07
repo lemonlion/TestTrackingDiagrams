@@ -29,7 +29,7 @@ public static class InternalFlowRenderer
         return sb.ToString();
     }
 
-    public static string[] RenderActivityDiagramBatched(InternalFlowSegment segment, int maxSpansPerBatch = 500)
+    public static string[] RenderActivityDiagramBatched(InternalFlowSegment segment, int maxSpansPerBatch = 150)
     {
         if (segment.Spans.Length == 0)
             return [];
