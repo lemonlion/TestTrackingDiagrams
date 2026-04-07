@@ -145,7 +145,7 @@ public static class DiagramContextMenu
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
         .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
-        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; }
+        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; }
         .diagram-toggle-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
