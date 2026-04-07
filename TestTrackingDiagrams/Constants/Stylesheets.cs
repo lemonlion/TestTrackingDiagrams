@@ -278,11 +278,22 @@ public class Stylesheets
                 }
 
                 #duration-threshold {
-                    width: 5em;
+                    width: 7em;
                     padding: 0.25em 0.4em;
                     border: 1px solid rgb(180, 180, 180);
                     border-radius: 0.4em;
                     font-size: 0.85em;
+                }
+
+                .duration-filters-unit {
+                    font-size: 0.85em;
+                    color: rgb(100, 100, 100);
+                }
+
+                #custom-duration-wrap {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.3em;
                 }
 
                 .percentile-btn {

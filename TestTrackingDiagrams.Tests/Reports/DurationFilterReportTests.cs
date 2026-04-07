@@ -61,8 +61,11 @@ public class DurationFilterReportTests
             ("t1", "Test A", ScenarioResult.Passed, TimeSpan.FromSeconds(1)),
             ("t2", "Test B", ScenarioResult.Passed, TimeSpan.FromSeconds(5)));
         var content = GenerateReport(features, "DurationFilterPercentiles.html");
-        Assert.Contains("p95", content);
-        Assert.Contains("p99", content);
+        Assert.Contains("P50", content);
+        Assert.Contains("P90", content);
+        Assert.Contains("P95", content);
+        Assert.Contains("P99", content);
+        Assert.Contains("Custom", content);
     }
 
     [Fact]
@@ -92,6 +95,8 @@ public class DurationFilterReportTests
             .ToArray();
         var features = MakeFeatures(scenarios);
         var content = GenerateReport(features, "DurationFilterPrecomp.html");
+        Assert.Contains("data-p50=", content);
+        Assert.Contains("data-p90=", content);
         Assert.Contains("data-p95=", content);
         Assert.Contains("data-p99=", content);
     }

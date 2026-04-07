@@ -486,11 +486,26 @@ public static class ReportGenerator
                                          update_url_hash();
                                      }
                                      function set_percentile(btn) {
-                                         var ms = parseFloat(btn.getAttribute('data-threshold-ms'));
-                                         var input = document.getElementById('duration-threshold');
-                                         if (input) { input.value = (ms / 1000).toFixed(1); filter_duration(); }
+                                         var wasActive = btn.classList.contains('percentile-active');
                                          document.querySelectorAll('.percentile-btn').forEach(function(b) { b.classList.remove('percentile-active'); });
-                                         btn.classList.add('percentile-active');
+                                         var input = document.getElementById('duration-threshold');
+                                         var customWrap = document.getElementById('custom-duration-wrap');
+                                         if (wasActive) {
+                                             if (input) { input.value = ''; filter_duration(); }
+                                             if (customWrap) customWrap.style.display = 'none';
+                                             return;
+                                         }
+                                         var isCustom = btn.getAttribute('data-custom') === '1';
+                                         if (isCustom) {
+                                             btn.classList.add('percentile-active');
+                                             if (customWrap) customWrap.style.display = 'inline-flex';
+                                             if (input) { input.focus(); if (input.value) filter_duration(); }
+                                         } else {
+                                             if (customWrap) customWrap.style.display = 'none';
+                                             var ms = parseFloat(btn.getAttribute('data-threshold-ms'));
+                                             if (input) { input.value = (ms / 1000).toFixed(1); filter_duration(); }
+                                             btn.classList.add('percentile-active');
+                                         }
                                      }
                                      """;
 
@@ -551,6 +566,8 @@ public static class ReportGenerator
                                                if (document.querySelector('.happy-path-toggle.happy-path-active')) state.happyPath = true;
                                                var dur = document.getElementById('duration-threshold');
                                                if (dur && dur.value) state.duration = dur.value;
+                                               var activeP = document.querySelector('.percentile-btn.percentile-active');
+                                               if (activeP) state.percentile = activeP.textContent;
                                                localStorage.setItem('ttd-filter-state', JSON.stringify(state));
                                            } catch(e) {}
                                        }
@@ -581,6 +598,17 @@ public static class ReportGenerator
                                                    var hp = document.querySelector('.happy-path-toggle');
                                                    if (hp) { hp.classList.add('happy-path-active'); filter_happy_paths(); }
                                                }
+                                               if (state.percentile) {
+                                                   document.querySelectorAll('.percentile-btn').forEach(function(b) {
+                                                       if (b.textContent === state.percentile) {
+                                                           b.classList.add('percentile-active');
+                                                           if (b.getAttribute('data-custom') === '1') {
+                                                               var cw = document.getElementById('custom-duration-wrap');
+                                                               if (cw) cw.style.display = 'inline-flex';
+                                                           }
+                                                       }
+                                                   });
+                                               }
                                                if (state.duration) {
                                                    var dur = document.getElementById('duration-threshold');
                                                    if (dur) { dur.value = state.duration; filter_duration(); }
@@ -604,6 +632,8 @@ public static class ReportGenerator
                                   if (document.querySelector('.happy-path-toggle.happy-path-active')) parts.push('hp=1');
                                   var dur = document.getElementById('duration-threshold');
                                   if (dur && dur.value) parts.push('dur=' + dur.value);
+                                  var activeP = document.querySelector('.percentile-btn.percentile-active');
+                                  if (activeP) parts.push('pctl=' + encodeURIComponent(activeP.textContent));
                                   var hash = parts.length > 0 ? '#' + parts.join('&') : '';
                                   history.replaceState(null, '', window.location.pathname + window.location.search + hash);
                               }
@@ -647,6 +677,17 @@ public static class ReportGenerator
                                   if (params.hp === '1') {
                                       var hp = document.querySelector('.happy-path-toggle');
                                       if (hp) { hp.classList.add('happy-path-active'); filter_happy_paths(); }
+                                  }
+                                  if (params.pctl) {
+                                      document.querySelectorAll('.percentile-btn').forEach(function(b) {
+                                          if (b.textContent === params.pctl) {
+                                              b.classList.add('percentile-active');
+                                              if (b.getAttribute('data-custom') === '1') {
+                                                  var cw = document.getElementById('custom-duration-wrap');
+                                                  if (cw) cw.style.display = 'inline-flex';
+                                              }
+                                          }
+                                      });
                                   }
                                   if (params.dur) {
                                       var dur = document.getElementById('duration-threshold');
@@ -918,10 +959,12 @@ public static class ReportGenerator
                 .Select(s => s.Duration!.Value.TotalMilliseconds)
                 .OrderBy(d => d)
                 .ToArray();
+            var p50Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.50)] : 0;
+            var p90Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.90)] : 0;
             var p95Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.95)] : 0;
             var p99Ms = durationsMs.Length > 0 ? durationsMs[(int)(durationsMs.Length * 0.99)] : 0;
 
-            body.Append($"""<div class="duration-filters" data-p95="{p95Ms:F0}" data-p99="{p99Ms:F0}"><span class="duration-filters-label">Duration &gt;:</span><input id="duration-threshold" type="number" step="0.1" min="0" placeholder="seconds" onchange="filter_duration()" /><button class="percentile-btn" data-threshold-ms="{p95Ms:F0}" onclick="set_percentile(this)">p95 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p95Ms))})</button><button class="percentile-btn" data-threshold-ms="{p99Ms:F0}" onclick="set_percentile(this)">p99 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p99Ms))})</button></div>""");
+            body.Append($"""<div class="duration-filters" data-p50="{p50Ms:F0}" data-p90="{p90Ms:F0}" data-p95="{p95Ms:F0}" data-p99="{p99Ms:F0}"><span class="duration-filters-label">Duration Greater Than:</span><button class="percentile-btn" data-threshold-ms="{p50Ms:F0}" onclick="set_percentile(this)">P50 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p50Ms))})</button><button class="percentile-btn" data-threshold-ms="{p90Ms:F0}" onclick="set_percentile(this)">P90 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p90Ms))})</button><button class="percentile-btn" data-threshold-ms="{p95Ms:F0}" onclick="set_percentile(this)">P95 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p95Ms))})</button><button class="percentile-btn" data-threshold-ms="{p99Ms:F0}" onclick="set_percentile(this)">P99 ({FormatDurationBadge(TimeSpan.FromMilliseconds(p99Ms))})</button><button class="percentile-btn" data-custom="1" onclick="set_percentile(this)">Custom</button><span id="custom-duration-wrap" style="display:none;align-items:center;gap:0.3em"><input id="duration-threshold" type="number" step="0.1" min="0" placeholder="seconds" onchange="filter_duration()" /><span class="duration-filters-unit">seconds</span></span></div>""");
         }
 
         body.Append("</div>"); // close filters
