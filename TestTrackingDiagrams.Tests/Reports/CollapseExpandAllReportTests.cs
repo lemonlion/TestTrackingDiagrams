@@ -46,14 +46,16 @@ public class CollapseExpandAllReportTests
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
         var content = GenerateReport(features, "CollapseExpandJs.html");
-        Assert.Contains("toggle_all", content);
+        Assert.Contains("expand_all", content);
+        Assert.Contains("collapse_all", content);
     }
 
     [Fact]
-    public void Report_collapse_expand_button_has_expand_text_by_default()
+    public void Report_collapse_expand_buttons_have_correct_text()
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
         var content = GenerateReport(features, "CollapseExpandDefault.html");
         Assert.Contains("Expand All", content);
+        Assert.Contains("Collapse All", content);
     }
 }

@@ -43,22 +43,38 @@
             }
 
             function getNotePreview(contentLines) {
-                var raw = contentLines.map(function(l) { return l.trim(); })
-                    .filter(function(l) { return !l.match(/^\$color\(gray\)/); })
-                    .join(' ').trim();
+                var nonGray = contentLines.map(function(l) { return l.trim(); })
+                    .filter(function(l) { return !l.match(/^\$color\(gray\)/); });
+                var raw = nonGray.join(' ').trim();
+                if (!raw) {
+                    raw = contentLines.map(function(l) { return l.trim().replace(/\$color\(gray\)/g, ''); })
+                        .join(' ').trim();
+                }
+                if (!raw) raw = '(collapsed)';
                 if (raw.length <= 20) return raw;
                 return raw.substring(0, 20) + '...';
             }
 
+            function hasNoteFill(pathEl) {
+                var fill = (pathEl.getAttribute('fill') || '').toLowerCase().trim();
+                if (!fill || fill === 'none' || fill === 'transparent') return false;
+                if (fill === '#000000' || fill === '#000' || fill === 'black' || fill === 'rgb(0,0,0)') return false;
+                if (/^#[0-9a-f]{6}00$/.test(fill)) return false;
+                return true;
+            }
+
             function findNoteGroups(svg) {
-                var mainG = svg.children.length > 1 ? svg.children[1] : svg.children[0];
-                if (!mainG || mainG.tagName !== 'g') return [];
+                var mainG = null;
+                for (var i = 0; i < svg.children.length; i++) {
+                    if (svg.children[i].tagName === 'g') { mainG = svg.children[i]; break; }
+                }
+                if (!mainG) return [];
                 var children = Array.from(mainG.children);
                 var groups = [];
                 var ci = 0;
                 while (ci < children.length) {
                     if (children[ci].tagName === 'g') { ci++; continue; }
-                    if (children[ci].tagName === 'path') {
+                    if (children[ci].tagName === 'path' && hasNoteFill(children[ci])) {
                         var grp = { paths: [], texts: [] };
                         while (ci < children.length && children[ci].tagName === 'path') {
                             grp.paths.push(children[ci]);
@@ -172,12 +188,7 @@
                 }
             }
 
-            function toggleNote(container, noteIdx) {
-                if (!container._collapsedNotes) container._collapsedNotes = {};
-                container._collapsedNotes[noteIdx] = !container._collapsedNotes[noteIdx];
-
-                var origSource = container._noteOriginalSource;
-                var noteBlocks = parseNoteBlocks(origSource);
+            function buildSourceWithCollapsedNotes(origSource, collapsedNotes, noteBlocks) {
                 var lines = origSource.split('\n');
                 var newLines = [];
                 var nIdx = 0;
@@ -189,7 +200,7 @@
                     if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
                         inNote = true;
                         newLines.push(lines[i]);
-                        if (container._collapsedNotes[nIdx]) {
+                        if (collapsedNotes[nIdx]) {
                             skipping = true;
                             var preview = getNotePreview(noteBlocks[nIdx].contentLines);
                             newLines.push(preview);
@@ -206,13 +217,33 @@
                     if (skipping) continue;
                     newLines.push(lines[i]);
                 }
+                return newLines.join('\n');
+            }
 
-                var newSource = newLines.join('\n');
+            function toggleNote(container, noteIdx) {
+                if (container._noteRendering) return;
+                if (!container._collapsedNotes) container._collapsedNotes = {};
+                container._collapsedNotes[noteIdx] = !container._collapsedNotes[noteIdx];
+
+                var origSource = container._noteOriginalSource;
+                var noteBlocks = parseNoteBlocks(origSource);
+                var newSource = buildSourceWithCollapsedNotes(origSource, container._collapsedNotes, noteBlocks);
+
                 container.setAttribute('data-plantuml', newSource);
+                container._noteRendering = true;
 
-                var mo = new MutationObserver(function() {
-                    mo.disconnect();
+                var done = false;
+                function afterRender() {
+                    if (done) return;
+                    done = true;
+                    container._noteRendering = false;
                     makeNotesCollapsible(container);
+                }
+
+                var mo = new MutationObserver(function(mutations) {
+                    if (!container.querySelector('svg')) return;
+                    mo.disconnect();
+                    afterRender();
                 });
                 mo.observe(container, { childList: true, subtree: true });
 
@@ -220,7 +251,25 @@
                     window.plantuml.render(newSource.split('\n'), container.id);
                 } catch(e) {
                     mo.disconnect();
+                    container._noteRendering = false;
                 }
+
+                var pollCount = 0;
+                var poll = setInterval(function() {
+                    pollCount++;
+                    if (done) { clearInterval(poll); return; }
+                    var svg = container.querySelector('svg');
+                    if (svg && !svg.querySelector('.note-toggle-icon')) {
+                        clearInterval(poll);
+                        mo.disconnect();
+                        afterRender();
+                    }
+                    if (pollCount > 100) {
+                        clearInterval(poll);
+                        mo.disconnect();
+                        container._noteRendering = false;
+                    }
+                }, 100);
             }
 
             window._makeNotesCollapsible = makeNotesCollapsible;

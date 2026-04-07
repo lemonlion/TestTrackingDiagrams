@@ -517,6 +517,14 @@ public class Stylesheets
                     display: none !important;
                 }
 
+                .features-summary-details summary {
+                    cursor: pointer;
+                    list-style: revert;
+                }
+                .features-summary-details summary h2 {
+                    display: inline;
+                }
+
                 .feature-summary-table {
                     width: 100%;
                     border-collapse: collapse;

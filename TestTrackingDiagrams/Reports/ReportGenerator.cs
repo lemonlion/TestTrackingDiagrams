@@ -398,19 +398,17 @@ public static class ReportGenerator
 
         // Collapse/Expand All
         var collapseExpandAllFunction = """
-                                        function toggle_all(btn) {
+                                        function expand_all() {
                                             var features = document.querySelectorAll('details.feature');
                                             var scenarios = document.querySelectorAll('details.scenario');
-                                            var expanding = btn.textContent.trim().indexOf('Expand') >= 0;
-                                            for (var i = 0; i < features.length; i++) {
-                                                if (expanding) features[i].setAttribute('open', '');
-                                                else features[i].removeAttribute('open');
-                                            }
-                                            for (var i = 0; i < scenarios.length; i++) {
-                                                if (expanding) scenarios[i].setAttribute('open', '');
-                                                else scenarios[i].removeAttribute('open');
-                                            }
-                                            btn.textContent = expanding ? 'Collapse All' : 'Expand All';
+                                            for (var i = 0; i < features.length; i++) features[i].setAttribute('open', '');
+                                            for (var i = 0; i < scenarios.length; i++) scenarios[i].setAttribute('open', '');
+                                        }
+                                        function collapse_all() {
+                                            var features = document.querySelectorAll('details.feature');
+                                            var scenarios = document.querySelectorAll('details.scenario');
+                                            for (var i = 0; i < features.length; i++) features[i].removeAttribute('open');
+                                            for (var i = 0; i < scenarios.length; i++) scenarios[i].removeAttribute('open');
                                         }
                                         """;
 
@@ -784,6 +782,50 @@ public static class ReportGenerator
             var failedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Failed).ToArray();
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
+            // Feature summary table (collapsible, above execution summary)
+            var hasAnySteps = features.Any(f => f.Scenarios.Any(s => s.Steps is { Length: > 0 }));
+            body.Append("<details class=\"features-summary-details\"><summary><h2>Features Summary</h2></summary>");
+            body.Append("<table class=\"feature-summary-table\"><thead><tr>");
+            body.Append("<th onclick=\"sort_table(0)\">Feature</th>");
+            body.Append("<th onclick=\"sort_table(1)\">Scenarios</th>");
+            body.Append("<th onclick=\"sort_table(2)\">Passed</th>");
+            body.Append("<th onclick=\"sort_table(3)\">Failed</th>");
+            body.Append("<th onclick=\"sort_table(4)\">Skipped</th>");
+            if (hasAnySteps)
+                body.Append("<th onclick=\"sort_table(5)\">Steps</th>");
+            body.Append("</tr></thead><tbody>");
+
+            foreach (var feature in features)
+            {
+                var totalSc = feature.Scenarios.Length;
+                var passedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Passed);
+                var failedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Failed);
+                var skippedSc = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.Ignored);
+                var featureHasFail = failedSc > 0;
+
+                body.Append($"<tr{(featureHasFail ? " class=\"failed\"" : "")}>");
+                body.Append($"<td>{System.Net.WebUtility.HtmlEncode(feature.DisplayName)}</td>");
+                body.Append($"<td>{totalSc}</td>");
+                body.Append($"<td>{passedSc}</td>");
+                body.Append($"<td>{failedSc}</td>");
+                body.Append($"<td>{skippedSc}</td>");
+
+                if (hasAnySteps)
+                {
+                    var allSteps = feature.Scenarios
+                        .Where(s => s.Steps is not null)
+                        .SelectMany(s => s.Steps!)
+                        .ToArray();
+                    var stepCount = CountStepsRecursive(allSteps);
+                    body.Append($"<td>{stepCount}</td>");
+                }
+
+                body.Append("</tr>");
+            }
+
+            body.Append("</tbody></table>");
+            body.Append("</details>");
+
             body.Append($"""
                     <div class="header-row">
                     <div class="test-execution-summary">
@@ -892,53 +934,10 @@ public static class ReportGenerator
 
         // Toolbar row: Collapse/Expand All, Dark Mode, Export
         body.Append("""<div class="toolbar-row">""");
-        body.Append("""<button class="collapse-expand-all" onclick="toggle_all(this)">Expand All</button>""");
+        body.Append("""<button class="collapse-expand-all" onclick="expand_all()">Expand All</button>""");
+        body.Append("""<button class="collapse-expand-all" onclick="collapse_all()">Collapse All</button>""");
         body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
         body.Append("</div>");
-
-        body.Append("<h2>Features Summary</h2>");
-
-        // Feature summary table
-        var hasAnySteps = features.Any(f => f.Scenarios.Any(s => s.Steps is { Length: > 0 }));
-        body.Append("<table class=\"feature-summary-table\"><thead><tr>");
-        body.Append("<th onclick=\"sort_table(0)\">Feature</th>");
-        body.Append("<th onclick=\"sort_table(1)\">Scenarios</th>");
-        body.Append("<th onclick=\"sort_table(2)\">Passed</th>");
-        body.Append("<th onclick=\"sort_table(3)\">Failed</th>");
-        body.Append("<th onclick=\"sort_table(4)\">Skipped</th>");
-        if (hasAnySteps)
-            body.Append("<th onclick=\"sort_table(5)\">Steps</th>");
-        body.Append("</tr></thead><tbody>");
-
-        foreach (var feature in features)
-        {
-            var total = feature.Scenarios.Length;
-            var passed = feature.Scenarios.Count(s => s.Result == ScenarioResult.Passed);
-            var failed = feature.Scenarios.Count(s => s.Result == ScenarioResult.Failed);
-            var skipped = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.Ignored);
-            var featureHasFail = failed > 0;
-
-            body.Append($"<tr{(featureHasFail ? " class=\"failed\"" : "")}>");
-            body.Append($"<td>{System.Net.WebUtility.HtmlEncode(feature.DisplayName)}</td>");
-            body.Append($"<td>{total}</td>");
-            body.Append($"<td>{passed}</td>");
-            body.Append($"<td>{failed}</td>");
-            body.Append($"<td>{skipped}</td>");
-
-            if (hasAnySteps)
-            {
-                var allSteps = feature.Scenarios
-                    .Where(s => s.Steps is not null)
-                    .SelectMany(s => s.Steps!)
-                    .ToArray();
-                var stepCount = CountStepsRecursive(allSteps);
-                body.Append($"<td>{stepCount}</td>");
-            }
-
-            body.Append("</tr>");
-        }
-
-        body.Append("</tbody></table>");
 
         var plantUmlBrowserCounter = 0;
 

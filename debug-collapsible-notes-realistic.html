@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug: Collapsible Notes — Realistic Multi-Diagram</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .scenario { border: 1px solid #ccc; margin: 20px 0; padding: 15px; }
+        .scenario h3 { margin-top: 0; }
+        .plantuml-browser { border: 1px solid #eee; padding: 10px; margin: 10px 0; min-height: 50px; }
+        .plantuml-browser svg { max-width: 100%; height: auto; }
+        #log { background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 12px; padding: 10px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; margin-top: 20px; }
+        .log-info { color: #4fc1ff; }
+        .log-warn { color: #dcdcaa; }
+        .log-err { color: #f14c4c; }
+        .log-ok { color: #6a9955; }
+    </style>
+</head>
+<body>
+    <h1>Collapsible Notes — Realistic Debug Page</h1>
+    <p>This page mirrors the real FeaturesReport render pipeline: render queue, compressed data, multiple diagrams, event-styled notes.</p>
+    <p>Open DevTools Console for detailed logging. Click the <code>−</code> icon (hover top-right of a note) to collapse.</p>
+
+    <!-- Diagram 1: Event notes with <<eventNote>> style (like real report) -->
+    <details class="scenario" open>
+        <summary><h3>Scenario 1 — Event notes with iflow links (4 notes)</h3></summary>
+        <div class="plantuml-browser" id="puml-0" data-diagram-type="plantuml">Loading diagram...</div>
+    </details>
+
+    <!-- Diagram 2: Regular notes (no <<eventNote>> style) -->
+    <details class="scenario" open>
+        <summary><h3>Scenario 2 — Regular HTTP request/response notes (3 notes)</h3></summary>
+        <div class="plantuml-browser" id="puml-1" data-diagram-type="plantuml">Loading diagram...</div>
+    </details>
+
+    <!-- Diagram 3: Mixed notes with $color(gray) headers -->
+    <details class="scenario" open>
+        <summary><h3>Scenario 3 — Notes with $color(gray) headers (2 notes)</h3></summary>
+        <div class="plantuml-browser" id="puml-2" data-diagram-type="plantuml">Loading diagram...</div>
+    </details>
+
+    <div id="log"></div>
+
+    <script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/viz-global.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_8192@v1.2026.3beta6-patched/plantuml.js"></script>
+    <script>
+        plantumlLoad();
+
+        // ===== LOGGING =====
+        var logEl = document.getElementById('log');
+        function log(cls, msg) {
+            var ts = new Date().toISOString().substring(11, 23);
+            var line = document.createElement('div');
+            line.className = cls;
+            line.textContent = '[' + ts + '] ' + msg;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log('[collapsible-notes] ' + msg);
+        }
+
+        // ===== DIAGRAM SOURCES =====
+        var sources = {};
+
+        // Source 1: Event notes with <<eventNote>> style (real-world format)
+        sources['puml-0'] = [
+            '@startuml',
+            '!pragma teoz true',
+            '<style>',
+            ' .eventNote {',
+            '     BackgroundColor #cfecf7',
+            '     FontSize 11',
+            '     RoundCorner 10',
+            ' }',
+            '</style>',
+            'skinparam wrapWidth 800',
+            '!function $color($value)',
+            '!return "<color:"+$value+" >"',
+            '!endfunction',
+            'autonumber 1',
+            '',
+            'actor "Caller" as caller',
+            'entity "Merchant Gateway Service" as mgs',
+            'entity "Service Bus" as sb',
+            'entity "Transaction Service" as ts',
+            '',
+            'mgs -> sb: [[#iflow-aaa Send (Service Bus): /sbq-mgs-outbox]]',
+            'note<<eventNote>> left',
+            '{',
+            '  "MerchantId": "7da33279-b66d-494e",',
+            '  "OrganisationUnitId": "c56e8db9-143c",',
+            '  "Name": "Merchant",',
+            '  "CategoryCode": "18",',
+            '  "Retailer": {',
+            '    "TradingName": "Merchant"',
+            '  },',
+            '  "Status": "Active"',
+            '}',
+            'end note',
+            'sb --> mgs: Responded',
+            'mgs -> sb: [[#iflow-bbb Send (Service Bus): /sbq-mgs-outbox]]',
+            'note<<eventNote>> left',
+            '{',
+            '  "MerchantId": "7da33279-b66d-494e",',
+            '  "ReasonForChange": {',
+            '    "Source": "MerchantCreated",',
+            '    "ConfigRulesByCategory": {}',
+            '  },',
+            '  "Configuration": {',
+            '    "MerchantService": {',
+            '      "EndOfDay": [[[]]],',
+            '      "SpendOptionsExpirySeconds": [],',
+            '      "TargetBackend": [],',
+            '      "FiservConfig": [],',
+            '      "MerchantStatus": [[[],[],[],[],[],[]]]',
+            '    }',
+            '  }',
+            '}',
+            'end note',
+            'sb --> mgs: Responded',
+            'mgs -> ts: [[#iflow-ccc POST /api/transactions]]',
+            'note left',
+            '{',
+            '  "transactionId": "TX-001",',
+            '  "amount": 99.99,',
+            '  "currency": "GBP"',
+            '}',
+            'end note',
+            'ts --> mgs: 200 OK',
+            'note right',
+            '{',
+            '  "transactionId": "TX-001",',
+            '  "status": "approved",',
+            '  "authCode": "AUTH123",',
+            '  "processorRef": "PR-456",',
+            '  "timestamp": "2024-01-15T10:30:00Z"',
+            '}',
+            'end note',
+            '@enduml'
+        ].join('\n');
+
+        // Source 2: Regular HTTP notes (no <<eventNote>>)
+        sources['puml-1'] = [
+            '@startuml',
+            '!pragma teoz true',
+            'skinparam wrapWidth 800',
+            '!function $color($value)',
+            '!return "<color:"+$value+" >"',
+            '!endfunction',
+            'autonumber 1',
+            '',
+            'actor "Test" as test',
+            'participant "Order API" as orderApi',
+            'participant "Payment Gateway" as pg',
+            '',
+            'test -> orderApi: POST /api/orders',
+            'note left',
+            '$color(gray)[Content-Type=application/json]',
+            '$color(gray)[Authorization=Bearer eyJ...]',
+            '',
+            '{',
+            '  "customerId": "C-12345",',
+            '  "items": [',
+            '    {"sku": "WIDGET-A", "qty": 2, "price": 29.99},',
+            '    {"sku": "GADGET-B", "qty": 1, "price": 149.99}',
+            '  ],',
+            '  "shippingAddress": {',
+            '    "line1": "123 Test Street",',
+            '    "city": "London",',
+            '    "postcode": "SW1A 1AA"',
+            '  }',
+            '}',
+            'end note',
+            'orderApi -> pg: POST /api/payments/authorize',
+            'note left',
+            '{',
+            '  "amount": 209.97,',
+            '  "currency": "GBP",',
+            '  "merchantRef": "ORD-67890"',
+            '}',
+            'end note',
+            'pg --> orderApi: 200 OK',
+            'note right',
+            '{',
+            '  "paymentId": "PAY-11111",',
+            '  "status": "authorized",',
+            '  "authorizationCode": "AUTH-ABCDEF",',
+            '  "expiresAt": "2024-01-15T11:30:00Z"',
+            '}',
+            'end note',
+            'orderApi --> test: 201 Created',
+            '@enduml'
+        ].join('\n');
+
+        // Source 3: Notes with gray headers
+        sources['puml-2'] = [
+            '@startuml',
+            '!pragma teoz true',
+            'skinparam wrapWidth 800',
+            '!function $color($value)',
+            '!return "<color:"+$value+" >"',
+            '!endfunction',
+            '',
+            'actor "Client" as client',
+            'participant "Gateway" as gw',
+            'participant "Backend" as be',
+            '',
+            'client -> gw: GET /api/products?category=electronics',
+            'note left',
+            '$color(gray)[Accept=application/json]',
+            '$color(gray)[X-Request-Id=req-abc-123]',
+            '$color(gray)[X-Correlation-Id=corr-def-456]',
+            'end note',
+            'gw -> be: GET /internal/products?cat=electronics&limit=50',
+            'be --> gw: 200 OK',
+            'note right',
+            '$color(gray)[Content-Type=application/json]',
+            '$color(gray)[X-Response-Time=42ms]',
+            '',
+            '[',
+            '  {"id": "P001", "name": "Widget Pro", "price": 29.99},',
+            '  {"id": "P002", "name": "Gadget Max", "price": 149.99},',
+            '  {"id": "P003", "name": "Thingamajig", "price": 9.99}',
+            ']',
+            'end note',
+            'gw --> client: 200 OK',
+            '@enduml'
+        ].join('\n');
+
+        // ===== COLLAPSIBLE NOTES SCRIPT (matches GetCollapsibleNotesScript) =====
+        (function() {
+            var SVGNS = 'http://www.w3.org/2000/svg';
+
+            function parseNoteBlocks(source) {
+                if (!source) return [];
+                var lines = source.split('\n');
+                var notes = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var trimmed = lines[i].trim();
+                    if (/^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
+                        var start = i;
+                        i++;
+                        var contentLines = [];
+                        while (i < lines.length && lines[i].trim() !== 'end note') {
+                            contentLines.push(lines[i]);
+                            i++;
+                        }
+                        notes.push({ start: start, end: i, contentLines: contentLines });
+                    }
+                }
+                return notes;
+            }
+
+            function getNotePreview(contentLines) {
+                var nonGray = contentLines.map(function(l) { return l.trim(); })
+                    .filter(function(l) { return !l.match(/^\$color\(gray\)/); });
+                var raw = nonGray.join(' ').trim();
+                if (!raw) {
+                    raw = contentLines.map(function(l) { return l.trim().replace(/\$color\(gray\)/g, ''); })
+                        .join(' ').trim();
+                }
+                if (!raw) raw = '(collapsed)';
+                if (raw.length <= 20) return raw;
+                return raw.substring(0, 20) + '...';
+            }
+
+            function hasNoteFill(pathEl) {
+                var fill = (pathEl.getAttribute('fill') || '').toLowerCase().trim();
+                if (!fill || fill === 'none' || fill === 'transparent') return false;
+                if (fill === '#000000' || fill === '#000' || fill === 'black' || fill === 'rgb(0,0,0)') return false;
+                if (/^#[0-9a-f]{6}00$/.test(fill)) return false;
+                return true;
+            }
+
+            function findNoteGroups(svg) {
+                var mainG = null;
+                for (var i = 0; i < svg.children.length; i++) {
+                    if (svg.children[i].tagName === 'g') { mainG = svg.children[i]; break; }
+                }
+                if (!mainG) return [];
+                var children = Array.from(mainG.children);
+                var groups = [];
+                var ci = 0;
+                while (ci < children.length) {
+                    if (children[ci].tagName === 'g') { ci++; continue; }
+                    if (children[ci].tagName === 'path' && hasNoteFill(children[ci])) {
+                        var grp = { paths: [], texts: [] };
+                        while (ci < children.length && children[ci].tagName === 'path') {
+                            grp.paths.push(children[ci]);
+                            ci++;
+                        }
+                        while (ci < children.length && children[ci].tagName === 'text') {
+                            grp.texts.push(children[ci]);
+                            ci++;
+                        }
+                        if (grp.paths.length > 0 && grp.texts.length > 0) {
+                            groups.push(grp);
+                        }
+                    } else {
+                        ci++;
+                    }
+                }
+                return groups;
+            }
+
+            function getNoteBBox(grp) {
+                var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                grp.paths.concat(grp.texts).forEach(function(el) {
+                    try {
+                        var bb = el.getBBox();
+                        if (bb.x < minX) minX = bb.x;
+                        if (bb.y < minY) minY = bb.y;
+                        if (bb.x + bb.width > maxX) maxX = bb.x + bb.width;
+                        if (bb.y + bb.height > maxY) maxY = bb.y + bb.height;
+                    } catch(e) {}
+                });
+                return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+            }
+
+            function createToggleIcon(svg, bbox, isCollapsed, onClick) {
+                var size = 12;
+                var pad = 3;
+                var ix = bbox.x + bbox.width - size - pad;
+                var iy = bbox.y + pad;
+
+                var g = document.createElementNS(SVGNS, 'g');
+                g.setAttribute('class', 'note-toggle-icon');
+                g.style.cursor = 'pointer';
+                g.style.opacity = '0';
+
+                var bg = document.createElementNS(SVGNS, 'rect');
+                bg.setAttribute('x', ix);
+                bg.setAttribute('y', iy);
+                bg.setAttribute('width', size);
+                bg.setAttribute('height', size);
+                bg.setAttribute('rx', '2');
+                bg.setAttribute('fill', '#ffffff');
+                bg.setAttribute('stroke', '#999');
+                bg.setAttribute('stroke-width', '0.5');
+                g.appendChild(bg);
+
+                var symbol = document.createElementNS(SVGNS, 'text');
+                symbol.setAttribute('x', ix + size / 2);
+                symbol.setAttribute('y', iy + size - 2.5);
+                symbol.setAttribute('text-anchor', 'middle');
+                symbol.setAttribute('font-size', '10');
+                symbol.setAttribute('font-family', 'sans-serif');
+                symbol.setAttribute('fill', '#666');
+                symbol.style.pointerEvents = 'none';
+                symbol.textContent = isCollapsed ? '+' : '\u2212';
+                g.appendChild(symbol);
+
+                var hoverRect = document.createElementNS(SVGNS, 'rect');
+                hoverRect.setAttribute('x', bbox.x);
+                hoverRect.setAttribute('y', bbox.y);
+                hoverRect.setAttribute('width', bbox.width);
+                hoverRect.setAttribute('height', bbox.height);
+                hoverRect.setAttribute('fill', 'transparent');
+                hoverRect.style.pointerEvents = 'all';
+                hoverRect.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
+                hoverRect.addEventListener('mouseleave', function() { g.style.opacity = '0'; });
+                g.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
+
+                if (isCollapsed) g.style.opacity = '0.6';
+
+                svg.appendChild(hoverRect);
+                bg.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    onClick();
+                });
+                svg.appendChild(g);
+            }
+
+            function makeNotesCollapsible(container) {
+                var svg = container.querySelector('svg');
+                if (!svg) { log('log-warn', container.id + ': makeNotesCollapsible — no SVG found'); return; }
+                var source = container._noteOriginalSource || container.getAttribute('data-plantuml');
+                if (!source) { log('log-warn', container.id + ': makeNotesCollapsible — no source'); return; }
+                if (!container._noteOriginalSource) container._noteOriginalSource = source;
+
+                var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                if (noteBlocks.length === 0) { log('log-warn', container.id + ': no note blocks found in source'); return; }
+                if (!container._collapsedNotes) container._collapsedNotes = {};
+
+                // Debug: log all path fills in main group
+                var mainG = null;
+                for (var mi = 0; mi < svg.children.length; mi++) {
+                    if (svg.children[mi].tagName === 'g') { mainG = svg.children[mi]; break; }
+                }
+                if (mainG) {
+                    var pathInfo = [];
+                    Array.from(mainG.children).forEach(function(ch, idx) {
+                        if (ch.tagName === 'path') {
+                            var fill = ch.getAttribute('fill') || '(none)';
+                            pathInfo.push('path[' + idx + '] fill=' + fill + (hasNoteFill(ch) ? ' ✓' : ' ✗'));
+                        } else if (ch.tagName !== 'g') {
+                            pathInfo.push(ch.tagName + '[' + idx + ']');
+                        }
+                    });
+                    log('log-info', container.id + ': mainG children (non-g): ' + pathInfo.join(', '));
+                }
+
+                var noteGroups = findNoteGroups(svg);
+                log('log-info', container.id + ': makeNotesCollapsible — ' + noteBlocks.length + ' notes in source, ' + noteGroups.length + ' note groups in SVG');
+                noteGroups.forEach(function(grp, idx) {
+                    var fills = grp.paths.map(function(p) { return p.getAttribute('fill') || '?'; });
+                    var textPreview = grp.texts.map(function(t) { return t.textContent.substring(0, 30); }).join('|');
+                    log('log-info', container.id + ':   group[' + idx + '] paths=' + grp.paths.length + ' fills=[' + fills.join(',') + '] texts=' + grp.texts.length + ' "' + textPreview + '"');
+                });
+
+                for (var ni = 0; ni < Math.min(noteGroups.length, noteBlocks.length); ni++) {
+                    (function(idx) {
+                        var grp = noteGroups[idx];
+                        var bbox = getNoteBBox(grp);
+                        var isCollapsed = !!container._collapsedNotes[idx];
+                        createToggleIcon(svg, bbox, isCollapsed, function() {
+                            toggleNote(container, idx);
+                        });
+                    })(ni);
+                }
+            }
+
+            function buildSourceWithCollapsedNotes(origSource, collapsedNotes, noteBlocks) {
+                var lines = origSource.split('\n');
+                var newLines = [];
+                var nIdx = 0;
+                var inNote = false;
+                var skipping = false;
+
+                for (var i = 0; i < lines.length; i++) {
+                    var trimmed = lines[i].trim();
+                    if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
+                        inNote = true;
+                        newLines.push(lines[i]);
+                        if (collapsedNotes[nIdx]) {
+                            skipping = true;
+                            var preview = getNotePreview(noteBlocks[nIdx].contentLines);
+                            newLines.push(preview);
+                        }
+                        nIdx++;
+                        continue;
+                    }
+                    if (inNote && trimmed === 'end note') {
+                        inNote = false;
+                        skipping = false;
+                        newLines.push(lines[i]);
+                        continue;
+                    }
+                    if (skipping) continue;
+                    newLines.push(lines[i]);
+                }
+                return newLines.join('\n');
+            }
+
+            function toggleNote(container, noteIdx) {
+                if (container._noteRendering) {
+                    log('log-warn', container.id + ': toggle ignored — render in progress');
+                    return;
+                }
+                if (!container._collapsedNotes) container._collapsedNotes = {};
+                container._collapsedNotes[noteIdx] = !container._collapsedNotes[noteIdx];
+                var isNowCollapsed = container._collapsedNotes[noteIdx];
+                log('log-info', container.id + ': toggleNote(' + noteIdx + ') → ' + (isNowCollapsed ? 'COLLAPSE' : 'EXPAND'));
+
+                var origSource = container._noteOriginalSource;
+                var noteBlocks = parseNoteBlocks(origSource);
+                var newSource = buildSourceWithCollapsedNotes(origSource, container._collapsedNotes, noteBlocks);
+                var origLineCount = origSource.split('\n').length;
+                var newLineCount = newSource.split('\n').length;
+                log('log-info', container.id + ': source lines: ' + origLineCount + ' → ' + newLineCount);
+
+                container.setAttribute('data-plantuml', newSource);
+                container._noteRendering = true;
+
+                var done = false;
+                function afterRender() {
+                    if (done) return;
+                    done = true;
+                    container._noteRendering = false;
+                    log('log-ok', container.id + ': afterRender — re-applying collapsible notes');
+                    makeNotesCollapsible(container);
+                }
+
+                log('log-info', container.id + ': calling plantuml.render()');
+
+                var mo = new MutationObserver(function(mutations) {
+                    if (!container.querySelector('svg')) return;
+                    mo.disconnect();
+                    log('log-ok', container.id + ': MO fired — SVG detected');
+                    afterRender();
+                });
+                mo.observe(container, { childList: true, subtree: true });
+
+                try {
+                    window.plantuml.render(newSource.split('\n'), container.id);
+                    log('log-info', container.id + ': plantuml.render() called (async)');
+                } catch(e) {
+                    log('log-err', container.id + ': plantuml.render() threw: ' + e.message);
+                    mo.disconnect();
+                    container._noteRendering = false;
+                }
+
+                // Polling fallback
+                var pollCount = 0;
+                var poll = setInterval(function() {
+                    pollCount++;
+                    if (done) { clearInterval(poll); return; }
+                    var svg = container.querySelector('svg');
+                    if (svg && !svg.querySelector('.note-toggle-icon')) {
+                        log('log-warn', container.id + ': poll fallback triggered at ' + (pollCount * 100) + 'ms');
+                        clearInterval(poll);
+                        mo.disconnect();
+                        afterRender();
+                    }
+                    if (pollCount > 100) {
+                        log('log-err', container.id + ': poll timeout after 10s');
+                        clearInterval(poll);
+                        mo.disconnect();
+                        container._noteRendering = false;
+                    }
+                }, 100);
+            }
+
+            window._makeNotesCollapsible = makeNotesCollapsible;
+        })();
+
+        // ===== RENDER QUEUE (same as real FeaturesReport) =====
+        document.addEventListener('DOMContentLoaded', function() {
+            var renderQueue = [];
+            var rendering = false;
+
+            function processQueue() {
+                if (rendering || renderQueue.length === 0) return;
+                rendering = true;
+                var item = renderQueue.shift();
+                log('log-info', item.el.id + ': rendering (' + item.source.split('\\n').length + ' lines)...');
+
+                var mo = new MutationObserver(function() {
+                    mo.disconnect();
+                    log('log-ok', item.el.id + ': initial render complete');
+                    if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
+                    rendering = false;
+                    processQueue();
+                });
+                mo.observe(item.el, { childList: true, subtree: true });
+
+                try {
+                    window.plantuml.render(item.source.split('\n'), item.el.id);
+                } catch(e) {
+                    mo.disconnect();
+                    rendering = false;
+                    item.el.textContent = 'Render error: ' + e.message;
+                    log('log-err', item.el.id + ': render error: ' + e.message);
+                    processQueue();
+                }
+            }
+
+            // Queue all diagrams
+            document.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                var source = sources[el.id];
+                if (source) {
+                    el.setAttribute('data-plantuml', source);
+                    renderQueue.push({ el: el, source: source });
+                }
+            });
+
+            log('log-info', 'Queued ' + renderQueue.length + ' diagrams for rendering');
+            processQueue();
+        });
+    </script>
+</body>
+</html>
