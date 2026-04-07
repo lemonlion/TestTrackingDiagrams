@@ -1,0 +1,75 @@
+using TestTrackingDiagrams.Reports;
+
+namespace TestTrackingDiagrams.Tests.Reports;
+
+/// <summary>
+/// Tests for the deep link to scenario feature.
+/// Each scenario gets a stable anchor ID so CI summaries can link directly to a specific failure.
+/// </summary>
+public class DeepLinkReportTests
+{
+    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    [
+        new Feature
+        {
+            DisplayName = "Test Feature",
+            Scenarios = scenarios.Select(s => new Scenario
+            {
+                Id = s.id,
+                DisplayName = s.name,
+                IsHappyPath = false,
+                Result = s.result
+            }).ToArray()
+        }
+    ];
+
+    private static string GenerateReport(Feature[] features, string fileName)
+    {
+        var path = ReportGenerator.GenerateHtmlReport(
+            [], features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, fileName, "Test", true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        return File.ReadAllText(path);
+    }
+
+    [Fact]
+    public void Report_scenario_has_id_attribute()
+    {
+        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var content = GenerateReport(features, "DeepLinkId.html");
+        Assert.Contains("id=\"scenario-", content);
+    }
+
+    [Fact]
+    public void Report_scenario_anchor_is_derived_from_name()
+    {
+        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var content = GenerateReport(features, "DeepLinkName.html");
+        Assert.Contains("id=\"scenario-create-order\"", content);
+    }
+
+    [Fact]
+    public void Report_scenario_anchor_handles_special_characters()
+    {
+        var features = MakeFeatures(("t1", "Order (with VAT) creates 200 OK", ScenarioResult.Passed));
+        var content = GenerateReport(features, "DeepLinkSpecialChars.html");
+        Assert.Contains("id=\"scenario-order-with-vat-creates-200-ok\"", content);
+    }
+
+    [Fact]
+    public void Report_expands_scenario_from_hash_on_load()
+    {
+        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var content = GenerateReport(features, "DeepLinkHashExpand.html");
+        Assert.Contains("location.hash", content);
+    }
+
+    [Fact]
+    public void Report_scenario_has_anchor_link_button()
+    {
+        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var content = GenerateReport(features, "DeepLinkAnchorBtn.html");
+        Assert.Contains("scenario-link", content);
+    }
+}
