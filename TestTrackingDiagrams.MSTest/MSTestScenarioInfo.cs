@@ -12,4 +12,5 @@ public record MSTestScenarioInfo
     public string? ErrorStackTrace { get; init; }
     public string? Endpoint { get; init; }
     public bool IsHappyPath { get; init; }
+    public TimeSpan? Duration { get; init; }
 }

@@ -27,6 +27,7 @@ internal static class ScenarioInfoCollectionExtensions
                             IsHappyPath = x.IsHappyPath,
                             ErrorMessage = x.ErrorMessage ?? string.Empty,
                             ErrorStackTrace = x.ErrorStackTrace ?? string.Empty,
+                            Duration = x.Duration,
                         }).ToArray()
                 };
             }).ToArray();

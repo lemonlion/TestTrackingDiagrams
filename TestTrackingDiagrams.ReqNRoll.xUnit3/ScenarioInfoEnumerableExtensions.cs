@@ -39,8 +39,7 @@ internal static class ScenarioInfoEnumerableExtensions
                                 IsHappyPath = x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
                                 Result = x.ExecutionStatus.ToScenarioResult(),
                                 ErrorMessage = x.TestError?.Message,
-                                ErrorStackTrace = x.TestError?.StackTrace,
-                                Steps = x.Steps.Count > 0
+                                ErrorStackTrace = x.TestError?.StackTrace,                                  Duration = x.Duration,                                Steps = x.Steps.Count > 0
                                     ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,

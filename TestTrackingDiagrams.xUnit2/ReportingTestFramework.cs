@@ -78,6 +78,15 @@ internal sealed class TestResultCapturingSink : IMessageSink
     {
         switch (message)
         {
+            case ITestPassed passed:
+                Outcomes.Add(new TestOutcome
+                {
+                    DisplayName = passed.Test.DisplayName,
+                    Result = ScenarioResult.Passed,
+                    ExecutionTime = passed.ExecutionTime,
+                });
+                break;
+
             case ITestFailed failed:
                 Outcomes.Add(new TestOutcome
                 {
@@ -85,6 +94,7 @@ internal sealed class TestResultCapturingSink : IMessageSink
                     Result = ScenarioResult.Failed,
                     ErrorMessage = string.Join(Environment.NewLine, failed.Messages),
                     ErrorStackTrace = string.Join(Environment.NewLine, failed.StackTraces),
+                    ExecutionTime = failed.ExecutionTime,
                 });
                 break;
 
@@ -118,6 +128,9 @@ internal sealed class TestResultCapturingSink : IMessageSink
                     scenario.Result = outcome.Result;
                     scenario.ErrorMessage = outcome.ErrorMessage;
                     scenario.ErrorStackTrace = outcome.ErrorStackTrace;
+                    scenario.Duration = outcome.ExecutionTime > 0
+                        ? TimeSpan.FromSeconds((double)outcome.ExecutionTime)
+                        : null;
                     break;
                 }
             }
@@ -131,6 +144,7 @@ internal record TestOutcome
     public required ScenarioResult Result { get; init; }
     public string? ErrorMessage { get; init; }
     public string? ErrorStackTrace { get; init; }
+    public decimal ExecutionTime { get; init; }
 }
 
 /// <summary>

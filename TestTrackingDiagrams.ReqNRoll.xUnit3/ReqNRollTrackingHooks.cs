@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Reqnroll;
 
 namespace TestTrackingDiagrams.ReqNRoll.xUnit3;
@@ -7,6 +8,7 @@ public class ReqNRollTrackingHooks
 {
     private readonly ScenarioContext _scenarioContext;
     private readonly FeatureContext _featureContext;
+    private Stopwatch? _stopwatch;
 
     public ReqNRollTrackingHooks(ScenarioContext scenarioContext, FeatureContext featureContext)
     {
@@ -17,6 +19,7 @@ public class ReqNRollTrackingHooks
     [BeforeScenario(Order = int.MinValue)]
     public void BeforeScenario()
     {
+        _stopwatch = Stopwatch.StartNew();
         var scenarioId = Guid.NewGuid().ToString();
         _scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey] = scenarioId;
         _scenarioContext[ReqNRollConstants.StepsCollectionKey] = new List<ReqNRollStepInfo>();
@@ -40,6 +43,7 @@ public class ReqNRollTrackingHooks
     [AfterScenario(Order = int.MaxValue)]
     public void AfterScenario()
     {
+        _stopwatch?.Stop();
         var scenarioId = (string)_scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey];
         var steps = (List<ReqNRollStepInfo>)_scenarioContext[ReqNRollConstants.StepsCollectionKey];
 
@@ -53,6 +57,7 @@ public class ReqNRollTrackingHooks
             CombinedTags = _scenarioContext.ScenarioInfo.CombinedTags,
             TestError = _scenarioContext.TestError,
             ExecutionStatus = _scenarioContext.ScenarioExecutionStatus,
+            Duration = _stopwatch?.Elapsed,
             Steps = steps
         });
 

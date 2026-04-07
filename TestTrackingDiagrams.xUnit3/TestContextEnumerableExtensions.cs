@@ -29,7 +29,8 @@ internal static class TestContextEnumerableExtensions
                             DisplayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName),
                             IsHappyPath = x.Test!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey),
                             ErrorMessage = string.Join(Environment.NewLine, x.TestState!.FailureCause) + Environment.NewLine + string.Join(Environment.NewLine, x.TestState!.ExceptionMessages ?? []),
-                            ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? [])
+                            ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? []),
+                            Duration = x.TestState!.ExecutionTime is > 0 ? TimeSpan.FromSeconds((double)x.TestState.ExecutionTime.Value) : null
                         }).ToArray()
                 };
             }).ToArray();

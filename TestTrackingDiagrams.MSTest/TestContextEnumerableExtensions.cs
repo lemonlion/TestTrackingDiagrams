@@ -28,7 +28,8 @@ internal static class TestContextEnumerableExtensions
                             DisplayName = x.TestMethodName.Replace("_", " "),
                             IsHappyPath = x.IsHappyPath,
                             ErrorMessage = x.ErrorMessage,
-                            ErrorStackTrace = x.ErrorStackTrace
+                            ErrorStackTrace = x.ErrorStackTrace,
+                            Duration = x.Duration
                         }).ToArray()
                 };
             }).ToArray();

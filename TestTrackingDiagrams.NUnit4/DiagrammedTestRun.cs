@@ -6,6 +6,7 @@ namespace TestTrackingDiagrams.NUnit4;
 public class DiagrammedTestRun
 {
     public static ConcurrentQueue<TestContext> TestContexts { get; } = new();
+    public static ConcurrentDictionary<string, TimeSpan> TestDurations { get; } = new();
     protected static DateTime StartRunTime { get; private set; }
     protected static DateTime EndRunTime { get; set; }
 

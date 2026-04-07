@@ -13,4 +13,5 @@ public class ScenarioInfo
     public ScenarioResult Result { get; set; } = ScenarioResult.Passed;
     public string? ErrorMessage { get; set; }
     public string? ErrorStackTrace { get; set; }
+    public TimeSpan? Duration { get; set; }
 }

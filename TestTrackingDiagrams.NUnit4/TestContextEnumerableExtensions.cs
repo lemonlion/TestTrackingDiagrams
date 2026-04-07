@@ -33,7 +33,8 @@ internal static class TestContextEnumerableExtensions
                             DisplayName = x.Test.MethodName!.Replace("_", " "),
                             IsHappyPath = x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey),
                             ErrorMessage = x.Result.Message,
-                            ErrorStackTrace = x.Result.StackTrace
+                            ErrorStackTrace = x.Result.StackTrace,
+                            Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null
                         }).ToArray()
                 };
             }).ToArray();
