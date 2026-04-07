@@ -398,13 +398,11 @@ public static class ReportGenerator
 
         // Collapse/Expand All
         var collapseExpandAllFunction = """
-                                        function toggle_expand_collapse(btn) {
-                                            var expanding = btn.textContent === 'Expand All';
-                                            var features = document.querySelectorAll('details.feature');
-                                            var scenarios = document.querySelectorAll('details.scenario');
-                                            for (var i = 0; i < features.length; i++) { if (expanding) features[i].setAttribute('open', ''); else features[i].removeAttribute('open'); }
-                                            for (var i = 0; i < scenarios.length; i++) { if (expanding) scenarios[i].setAttribute('open', ''); else scenarios[i].removeAttribute('open'); }
-                                            btn.textContent = expanding ? 'Collapse All' : 'Expand All';
+                                        function toggle_expand_collapse(btn, selector, expandLabel, collapseLabel) {
+                                            var expanding = btn.textContent === expandLabel;
+                                            var els = document.querySelectorAll(selector);
+                                            for (var i = 0; i < els.length; i++) { if (expanding) els[i].setAttribute('open', ''); else els[i].removeAttribute('open'); }
+                                            btn.textContent = expanding ? collapseLabel : expandLabel;
                                         }
                                         """;
 
@@ -932,7 +930,8 @@ public static class ReportGenerator
 
         // Toolbar row: Collapse/Expand All, Dark Mode, Export
         body.Append("""<div class="toolbar-row">""");
-        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this)">Expand All</button>""");
+        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button>""");
+        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
         body.Append("</div>");
 
