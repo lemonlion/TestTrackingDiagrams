@@ -161,7 +161,18 @@ public static class ReportGenerator
                                                   var s = sc[si];
                                                   var raw = s.getAttribute('data-dependencies') || '';
                                                   var d = raw ? new Set(raw.split(',')) : new Set();
-                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi] };
+                                                  var sText = '';
+                                                  for (var ci = 0; ci < s.children.length; ci++) {
+                                                      if (s.children[ci].classList.contains('whole-test-flow')) continue;
+                                                      sText += s.children[ci].textContent;
+                                                  }
+                                                  var pumlEls = s.querySelectorAll('[data-plantuml],[data-mermaid-source]');
+                                                  for (var pi = 0; pi < pumlEls.length; pi++) {
+                                                      if (pumlEls[pi].closest('.whole-test-flow')) continue;
+                                                      var src = pumlEls[pi].getAttribute('data-plantuml') || pumlEls[pi].getAttribute('data-mermaid-source');
+                                                      if (src) sText += ' ' + src;
+                                                  }
+                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: sText.toLowerCase() };
                                                   items.push(item);
                                                   arr.push(item);
                                                   fMap.set(s, features[fi]);
@@ -259,14 +270,7 @@ public static class ReportGenerator
                                  // Match at the scenario level
                                  let matchingScenarios = [];
                                  for (let i = 0; i < c.items.length; i++) {
-                                     let s = c.items[i].el;
-                                     let text = s.textContent.toLowerCase();
-                                     let diagramEls = s.querySelectorAll('[data-plantuml],[data-mermaid-source]');
-                                     for (let d = 0; d < diagramEls.length; d++) {
-                                         var src = diagramEls[d].getAttribute('data-plantuml')
-                                                || diagramEls[d].getAttribute('data-mermaid-source');
-                                         if (src) text += ' ' + src.toLowerCase();
-                                     }
+                                     let text = c.items[i].searchText;
                                      let allMatch = true;
                                      for (let j = 0; j < searchTokens.length; j++) {
                                          if (!text.includes(searchTokens[j])) {
