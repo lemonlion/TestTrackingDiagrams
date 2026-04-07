@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using TestTrackingDiagrams.ComponentDiagram;
@@ -128,8 +129,8 @@ public static class InternalFlowHtmlGenerator
                         ? (object)new { s = flameData.Sources, f = flameData.Spans, m = flameData.Markers }
                         : new { s = flameData.Sources, f = flameData.Spans },
                     new JsonSerializerOptions { WriteIndented = false });
-                var encodedJson = System.Net.WebUtility.HtmlEncode(flameJson);
-                sb.Append($"<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame=\"{encodedJson}\"></div>");
+                var compressedFlame = CompressToBase64(flameJson);
+                sb.Append($"<div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame-z=\"{compressedFlame}\"></div>");
                 break;
             }
 
@@ -146,13 +147,13 @@ public static class InternalFlowHtmlGenerator
                         ? (object)new { s = flameData.Sources, f = flameData.Spans, m = flameData.Markers }
                         : new { s = flameData.Sources, f = flameData.Spans },
                     new JsonSerializerOptions { WriteIndented = false });
-                var encodedJson = System.Net.WebUtility.HtmlEncode(flameJson);
+                var compressedFlame = CompressToBase64(flameJson);
                 sb.Append("<div class=\"iflow-toggle\">");
                 sb.Append("<button class=\"iflow-toggle-btn iflow-toggle-active\" data-view=\"main\">Activity</button>");
                 sb.Append("<button class=\"iflow-toggle-btn\" data-view=\"flame\">Flame Chart</button>");
                 sb.Append("</div>");
                 sb.Append($"<div class=\"iflow-view iflow-view-main\">{activityHtml}</div>");
-                sb.Append($"<div class=\"iflow-view iflow-view-flame\" style=\"display:none\"><div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame=\"{encodedJson}\"></div></div>");
+                sb.Append($"<div class=\"iflow-view iflow-view-flame\" style=\"display:none\"><div class=\"iflow-flame\" data-diagram-type=\"flamechart\" data-flame-z=\"{compressedFlame}\"></div></div>");
                 break;
             }
         }
@@ -165,8 +166,8 @@ public static class InternalFlowHtmlGenerator
     {
         var plantuml = InternalFlowRenderer.RenderActivityDiagram(segment);
         var id = $"iflow-puml-whole-{segment.TestId}";
-        var encoded = System.Net.WebUtility.HtmlEncode(plantuml);
-        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml=\"{encoded}\" data-diagram-type=\"plantuml\">Loading...</div>";
+        var compressed = CompressToBase64(plantuml);
+        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
     }
 
     /// <summary>
@@ -200,5 +201,16 @@ public static class InternalFlowHtmlGenerator
 
         sb.AppendLine("</table>");
         return sb.ToString();
+    }
+
+    internal static string CompressToBase64(string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        using var output = new MemoryStream();
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            gzip.Write(bytes, 0, bytes.Length);
+        }
+        return Convert.ToBase64String(output.ToArray());
     }
 }

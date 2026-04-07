@@ -150,6 +150,54 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
         Assert.Equal(string.Empty, result);
     }
 
+    [Fact]
+    public void GenerateWholeTestFlowHtml_FlameChart_uses_compressed_attribute()
+    {
+        var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = MakeSegment("test-1", span)
+        };
+
+        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+            segments, "test-1", [], WholeTestFlowVisualization.FlameChart);
+
+        Assert.Contains("data-flame-z=", result);
+        Assert.DoesNotContain("data-flame=\"", result);
+    }
+
+    [Fact]
+    public void GenerateWholeTestFlowHtml_ActivityDiagram_uses_compressed_attribute()
+    {
+        var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = MakeSegment("test-1", span)
+        };
+
+        var result = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
+            segments, "test-1", [], WholeTestFlowVisualization.ActivityDiagram);
+
+        Assert.Contains("data-plantuml-z=", result);
+        Assert.DoesNotContain("data-plantuml=\"", result);
+    }
+
+    [Fact]
+    public void CompressToBase64_round_trips_correctly()
+    {
+        var original = "{\"s\":[\"test\"],\"f\":[[0,\"operation\",1.23,45.67,0,100]]}";
+        var compressed = InternalFlowHtmlGenerator.CompressToBase64(original);
+
+        // Decompress to verify
+        var bytes = Convert.FromBase64String(compressed);
+        using var input = new System.IO.MemoryStream(bytes);
+        using var gzip = new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Decompress);
+        using var reader = new System.IO.StreamReader(gzip);
+        var decompressed = reader.ReadToEnd();
+
+        Assert.Equal(original, decompressed);
+    }
+
     // ── GenerateRelationshipPopupContent ──
 
     [Fact]

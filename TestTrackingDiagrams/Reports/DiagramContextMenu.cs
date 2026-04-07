@@ -310,10 +310,26 @@ public static class DiagramContextMenu
                         if (el.dataset.rendered) return;
                         el.dataset.rendered = '1';
                         observer.unobserve(el);
-                        renderQueue.push({ el: el, source: el.getAttribute('data-plantuml') });
-                        processQueue();
+                        var source = el.getAttribute('data-plantuml');
+                        if (source) {
+                            renderQueue.push({ el: el, source: source });
+                            processQueue();
+                        } else if (el.hasAttribute('data-plantuml-z')) {
+                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                el.setAttribute('data-plantuml', decoded);
+                                renderQueue.push({ el: el, source: decoded });
+                                processQueue();
+                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        }
                     });
                 }, { rootMargin: '200px' });
+                function decompressGzipBase64(base64) {
+                    var raw = atob(base64);
+                    var bytes = new Uint8Array(raw.length);
+                    for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+                    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                    return new Response(stream).text();
+                }
                 document.querySelectorAll('.plantuml-browser').forEach(function(el) {
                     observer.observe(el);
                 });
@@ -907,6 +923,15 @@ public static class DiagramContextMenu
                 return h;
             }
 
+            // Decompress gzip+base64 data (used for whole-test-flow compressed attributes)
+            function decompressBase64(base64) {
+                var raw = atob(base64);
+                var bytes = new Uint8Array(raw.length);
+                for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+                var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                return new Response(stream).text();
+            }
+
             // Render all data-flame elements within a container (or document)
             function renderFlameCharts(root) {
                 var els = (root || document).querySelectorAll('.iflow-flame[data-flame]');
@@ -916,6 +941,19 @@ public static class DiagramContextMenu
                         var data = JSON.parse(els[i].getAttribute('data-flame'));
                         renderFlameData(els[i], data);
                     } catch(e) {}
+                }
+                // Handle compressed flame data (whole-test-flow)
+                var zEls = (root || document).querySelectorAll('.iflow-flame[data-flame-z]');
+                for (var i = 0; i < zEls.length; i++) {
+                    if (zEls[i].dataset.flameRendered) continue;
+                    (function(el) {
+                        el.dataset.flameRendered = '1';
+                        decompressBase64(el.getAttribute('data-flame-z')).then(function(json) {
+                            el.dataset.flameRendered = '';
+                            var data = JSON.parse(json);
+                            renderFlameData(el, data);
+                        }).catch(function() {});
+                    })(zEls[i]);
                 }
                 var seqEls = (root || document).querySelectorAll('.iflow-sequential-tests[data-flame]');
                 for (var i = 0; i < seqEls.length; i++) {
