@@ -279,9 +279,9 @@ public static class ReportGenerator
                                          }
                                      }
                                      if (allMatch) {
-                                         matchingScenarios.push(s);
+                                         matchingScenarios.push(c.items[i].el);
                                      } else {
-                                         s.classList.add('search-hidden');
+                                         c.items[i].el.classList.add('search-hidden');
                                      }
                                  }
                              
