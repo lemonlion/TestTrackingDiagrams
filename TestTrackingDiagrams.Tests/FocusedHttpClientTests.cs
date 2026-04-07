@@ -19,7 +19,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         await _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name, x => x.Age)
-            .PostAsync("http://localhost/test", null);
+            .PostAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         // NoOpHandler doesn't consume focus, so it should still be pending
         var fields = DiagramFocus.ConsumePendingRequestFocus();
@@ -38,7 +38,7 @@ public class FocusedHttpClientTests : IDisposable
         // Trigger ApplyFocus indirectly — just call a terminal method
         // But first, let's verify the builder stores fields correctly
         // by calling a fire-and-forget method
-        _ = focused.GetAsync("http://localhost/test");
+        _ = focused.GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         // The static DiagramFocus was set by ApplyFocus, then consumed atomically
         // Since NoOpHandler doesn't consume focus, it should still be pending
@@ -54,7 +54,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest("Name", "Email")
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         var fields = DiagramFocus.ConsumePendingRequestFocus();
         Assert.NotNull(fields);
@@ -69,7 +69,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Status, x => x.Amount)
-            .PostAsync("http://localhost/test", null);
+            .PostAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         var fields = DiagramFocus.ConsumePendingResponseFocus();
         Assert.NotNull(fields);
@@ -83,7 +83,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse("Status", "Amount")
-            .PostAsync("http://localhost/test", null);
+            .PostAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         var fields = DiagramFocus.ConsumePendingResponseFocus();
         Assert.NotNull(fields);
@@ -99,7 +99,7 @@ public class FocusedHttpClientTests : IDisposable
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name)
             .OnResponse<SampleResponse>(x => x.Status)
-            .PostAsync("http://localhost/test", null);
+            .PostAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         var requestFields = DiagramFocus.ConsumePendingRequestFocus();
         var responseFields = DiagramFocus.ConsumePendingResponseFocus();
@@ -119,7 +119,7 @@ public class FocusedHttpClientTests : IDisposable
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Id)
             .OnRequest<SampleRequest>(x => x.Age)
-            .PutAsync("http://localhost/test", null);
+            .PutAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         var requestFields = DiagramFocus.ConsumePendingRequestFocus();
         var responseFields = DiagramFocus.ConsumePendingResponseFocus();
@@ -138,7 +138,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name)
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         var responseFields = DiagramFocus.ConsumePendingResponseFocus();
         Assert.Null(responseFields);
@@ -149,7 +149,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Status)
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         var requestFields = DiagramFocus.ConsumePendingRequestFocus();
         Assert.Null(requestFields);
@@ -162,7 +162,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Id)
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingResponseFocus());
     }
@@ -172,7 +172,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name)
-            .PostAsync("http://localhost/test", null);
+            .PostAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingRequestFocus());
     }
@@ -182,7 +182,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name)
-            .PutAsync("http://localhost/test", null);
+            .PutAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingRequestFocus());
     }
@@ -192,7 +192,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Name)
-            .PatchAsync("http://localhost/test", null);
+            .PatchAsync("http://localhost/test", null, TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingRequestFocus());
     }
@@ -202,7 +202,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Status)
-            .DeleteAsync("http://localhost/test");
+            .DeleteAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingResponseFocus());
     }
@@ -214,7 +214,7 @@ public class FocusedHttpClientTests : IDisposable
 
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Id)
-            .SendAsync(request);
+            .SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.NotNull(DiagramFocus.ConsumePendingResponseFocus());
     }
@@ -226,7 +226,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnRequest<SampleRequest>(x => x.Age, x => x.IsActive)
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         var fields = DiagramFocus.ConsumePendingRequestFocus();
         Assert.NotNull(fields);
@@ -239,7 +239,7 @@ public class FocusedHttpClientTests : IDisposable
     {
         _ = _httpClient.WithDiagramFocus()
             .OnResponse<SampleResponse>(x => x.Amount)
-            .GetAsync("http://localhost/test");
+            .GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
 
         var fields = DiagramFocus.ConsumePendingResponseFocus();
         Assert.NotNull(fields);
@@ -304,7 +304,7 @@ public class FocusedHttpClientTests : IDisposable
         Assert.Equal("Name", fields[0]);
 
         // The returned client is a real HttpClient we can call methods on
-        var response = await client.GetAsync("http://localhost/test");
+        var response = await client.GetAsync("http://localhost/test", TestContext.Current.CancellationToken);
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 

@@ -359,6 +359,17 @@ public static class DiagramContextMenu
             }
 
             function getBackgroundColor(svg) {
+                // 1. Check SVG inline style (PlantUML sets background here)
+                var svgStyle = svg.getAttribute('style') || '';
+                var bgMatch = svgStyle.match(/background\s*:\s*([^;]+)/);
+                if (bgMatch) {
+                    var val = bgMatch[1].trim();
+                    if (val && val !== 'none' && val !== 'transparent') return val;
+                }
+                // 2. Check computed style
+                var computed = window.getComputedStyle(svg).backgroundColor;
+                if (computed && computed !== 'rgba(0, 0, 0, 0)' && computed !== 'transparent') return computed;
+                // 3. Fall back to first rect fill
                 var rect = svg.querySelector('rect');
                 if (rect) {
                     var fill = rect.getAttribute('fill');
@@ -389,14 +400,7 @@ public static class DiagramContextMenu
 
             function svgToCanvasWithBg(svg, callback) {
                 var bg = getBackgroundColor(svg);
-                var clone = svg.cloneNode(true);
-                var ns = 'http://www.w3.org/2000/svg';
-                var bgRect = document.createElementNS(ns, 'rect');
-                bgRect.setAttribute('width', '100%');
-                bgRect.setAttribute('height', '100%');
-                bgRect.setAttribute('fill', bg);
-                clone.insertBefore(bgRect, clone.firstChild);
-                var svgData = new XMLSerializer().serializeToString(clone);
+                var svgData = serializeSvg(svg);
                 var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
                 var img = new Image();
                 var scale = 2;
@@ -406,6 +410,8 @@ public static class DiagramContextMenu
                     canvas.height = img.naturalHeight * scale;
                     var ctx = canvas.getContext('2d');
                     ctx.scale(scale, scale);
+                    ctx.fillStyle = bg;
+                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
                     ctx.drawImage(img, 0, 0);
                     callback(canvas);
                 };

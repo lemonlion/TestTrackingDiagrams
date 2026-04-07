@@ -73,7 +73,7 @@ public class InternalFlowSpanStoreTests : IDisposable
     }
 
     [Fact]
-    public void Thread_safe_concurrent_writes()
+    public async Task Thread_safe_concurrent_writes()
     {
         const int threadCount = 10;
         const int spansPerThread = 100;
@@ -90,7 +90,7 @@ public class InternalFlowSpanStoreTests : IDisposable
             }
         })).ToArray();
 
-        Task.WaitAll(tasks);
+        await Task.WhenAll(tasks);
 
         Assert.Equal(threadCount * spansPerThread,
             InternalFlowSpanStore.GetSpans().Count(s => s.Source.Name == _sourceName));

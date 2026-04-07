@@ -544,6 +544,56 @@ public class IflowPopupTests : IDisposable
         Assert.DoesNotContain("Copy PlantUML source", items);
     }
 
+    [Fact]
+    public void Save_as_PNG_no_transparency_produces_opaque_pixels()
+    {
+        var html = TestPageGenerator.GenerateIflowPopupTestPage(includeContextMenu: true);
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("trigger-seg-1")).Click();
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        WaitForActivityDiagramSvg(popup);
+
+        // Reproduce the svgToCanvasWithBg approach (canvas fillRect + drawImage)
+        // and check the top-left pixel is fully opaque
+        var alphaValue = ((IJavaScriptExecutor)_driver).ExecuteAsyncScript("""
+            var done = arguments[arguments.length - 1];
+            var svg = document.querySelector('.iflow-popup svg');
+            if (!svg) { done(-1); return; }
+
+            // Detect background the same way getBackgroundColor does
+            var bg = '#ffffff';
+            var svgStyle = svg.getAttribute('style') || '';
+            var bgMatch = svgStyle.match(/background\s*:\s*([^;]+)/);
+            if (bgMatch && bgMatch[1].trim() !== 'none') bg = bgMatch[1].trim();
+            else {
+                var computed = window.getComputedStyle(svg).backgroundColor;
+                if (computed && computed !== 'rgba(0, 0, 0, 0)') bg = computed;
+            }
+
+            var svgData = new XMLSerializer().serializeToString(svg);
+            var url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                var pixel = ctx.getImageData(0, 0, 1, 1).data;
+                done(pixel[3]);
+            };
+            img.onerror = function() { done(-2); };
+            img.src = url;
+        """);
+
+        Assert.NotNull(alphaValue);
+        var alpha = Convert.ToInt32(alphaValue);
+        Assert.Equal(255, alpha);
+    }
+
     private void RightClick(IWebElement element)
     {
         new OpenQA.Selenium.Interactions.Actions(_driver).ContextClick(element).Perform();
