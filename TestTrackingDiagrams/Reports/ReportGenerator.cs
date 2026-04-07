@@ -400,6 +400,7 @@ public static class ReportGenerator
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
             body.Append($"""
+                    <div class="header-row">
                     <div class="test-execution-summary">
                         <h2>Test Execution Summary</h2>
                         <table>
@@ -411,8 +412,6 @@ public static class ReportGenerator
                             <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
                         </table>
                     </div>
-                    
-                    <h2>Features Summary</h2>
                     """);
         }
 
@@ -435,10 +434,29 @@ public static class ReportGenerator
         }
 
         body.Append($"""
-                 <div class="filters">
-                    <div><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
+                 <div class="filtering-box">
+                    <h2>Filtering</h2>
+                    <div class="filters">
+                    <div class="filter-search"><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
+                    <div class="filter-row">
+                 """);
+
+        // Status filter toggles (always show all three statuses)
+        {
+            body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
+            foreach (var status in Enum.GetValues<ScenarioResult>().OrderBy(s => s))
+            {
+                var statusName = status.ToString();
+                body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
+            }
+            body.Append("</div>");
+        }
+
+        body.Append("""
                     <div class="happy-path-filters"><span class="happy-path-filters-label">Happy Paths:</span><button class="happy-path-toggle" onclick="toggle_happy_paths(this)">Happy Paths Only</button></div>
                  """);
+
+        body.Append("</div>"); // close filter-row
 
         if (allDependencies.Count > 0)
         {
@@ -450,19 +468,10 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
-        // Status filter toggles (always show all three statuses)
-        var allStatuses = features.SelectMany(f => f.Scenarios).Select(s => s.Result).Distinct().OrderBy(s => s).ToArray();
-        {
-            body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
-            foreach (var status in Enum.GetValues<ScenarioResult>().OrderBy(s => s))
-            {
-                var statusName = status.ToString();
-                body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
-            }
-            body.Append("</div>");
-        }
-
-        body.Append("</div>");
+        body.Append("</div>"); // close filters
+        body.Append("</div>"); // close filtering-box
+        body.Append("</div>"); // close header-row
+        body.Append("<h2>Features Summary</h2>");
         var plantUmlBrowserCounter = 0;
 
         // Pre-compute median span count for outlier detection

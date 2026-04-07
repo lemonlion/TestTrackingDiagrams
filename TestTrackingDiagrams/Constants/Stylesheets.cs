@@ -90,6 +90,7 @@ public class Stylesheets
                     background-color: rgb(224, 224, 224);
                     border-radius: 1em;
                     padding: 1em;
+                    flex-shrink: 0;
                 }
                 
                 .test-execution-summary h2 {
@@ -99,7 +100,51 @@ public class Stylesheets
                 .test-execution-summary table td {
                     padding: 0.25em;
                 }
-                
+
+                .header-row {
+                    display: flex;
+                    gap: 1em;
+                    align-items: stretch;
+                    margin-bottom: 1em;
+                }
+
+                .filtering-box {
+                    flex: 1;
+                    min-width: 0;
+                    background-color: rgb(224, 224, 224);
+                    border-radius: 1em;
+                    padding: 1em;
+                }
+
+                .filtering-box h2 {
+                    margin-top: 0;
+                }
+
+                .filters {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5em;
+                }
+
+                .filter-search {
+                    width: 100%;
+                }
+
+                #searchbar {
+                    padding: 0.5em;
+                    border-radius: 0.5em;
+                    width: 100%;
+                    box-sizing: border-box;
+                    border: 1px solid rgb(180, 180, 180);
+                }
+
+                .filter-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5em;
+                    align-items: center;
+                }
+
                 .failure-result {
                     padding: 1em;
                     border: 1px solid;
@@ -108,12 +153,12 @@ public class Stylesheets
                     color: rgb(191,0,0);
                     background-color: rgb(255,236,242);
                 }
-                
+
                 .example-diagrams[open] > pre {
                     border-bottom-left-radius: 0;
                     border-bottom-right-radius: 0;
                 }
-                
+
                 .failure-result pre {
                     overflow-x: scroll;
                     padding: 1em;
@@ -121,18 +166,6 @@ public class Stylesheets
 
                 .failed {
                     color: rgb(191,0,0);
-                }
-                
-                #searchbar {
-                    margin: 1em;
-                    margin-left: 0;
-                    padding: 0.5em;
-                    border-radius: 0.5em;
-                    width: 25em;
-                }
-                
-                .filters {
-                    margin-left: 1em;
                 }
                 
                 span.label {
@@ -172,7 +205,6 @@ public class Stylesheets
                 }
                 
                 .happy-path-filters, .dependency-filters, .status-filters {
-                    margin-top: 0.5em;
                     display: flex;
                     flex-wrap: wrap;
                     align-items: center;

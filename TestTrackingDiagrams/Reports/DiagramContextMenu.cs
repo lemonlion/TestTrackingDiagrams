@@ -347,6 +347,28 @@ public static class DiagramContextMenu
                 document.querySelectorAll('.plantuml-browser').forEach(function(el) {
                     observer.observe(el);
                 });
+                // Preload first scenario's diagrams immediately
+                var firstScenario = document.querySelector('.scenario');
+                if (firstScenario) {
+                    firstScenario.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                        if (el.dataset.rendered) return;
+                        el.dataset.rendered = '1';
+                        observer.unobserve(el);
+                        var source = el.getAttribute('data-plantuml');
+                        if (source) {
+                            renderQueue.push({ el: el, source: source });
+                        } else if (el.hasAttribute('data-plantuml-z')) {
+                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                el.setAttribute('data-plantuml', decoded);
+                                renderQueue.push({ el: el, source: decoded });
+                                processQueue();
+                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        }
+                    });
+                    processQueue();
+                    // Also render first scenario's flame charts
+                    if (window._renderFlameCharts) window._renderFlameCharts(firstScenario);
+                }
             });
         </script>
         """;
