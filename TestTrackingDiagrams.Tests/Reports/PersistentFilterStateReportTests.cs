@@ -3,8 +3,8 @@ using TestTrackingDiagrams.Reports;
 namespace TestTrackingDiagrams.Tests.Reports;
 
 /// <summary>
-/// Tests for the persistent filter state feature.
-/// Filter selections should be saved to localStorage and restored on page load.
+/// Tests that localStorage persistence has been removed from the report.
+/// Filters are only restored via URL hash, not localStorage.
 /// </summary>
 public class PersistentFilterStateReportTests
 {
@@ -34,36 +34,28 @@ public class PersistentFilterStateReportTests
     }
 
     [Fact]
-    public void Report_contains_save_filter_state_function()
+    public void Report_does_not_use_localstorage()
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
-        var content = GenerateReport(features, "PersistFilterSave.html");
-        Assert.Contains("save_filter_state", content);
+        var content = GenerateReport(features, "NoLocalStorage.html");
+        Assert.DoesNotContain("localStorage", content);
+        Assert.DoesNotContain("ttd-filter-state", content);
     }
 
     [Fact]
-    public void Report_contains_restore_filter_state_function()
+    public void Report_does_not_call_restore_filter_state_on_load()
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
-        var content = GenerateReport(features, "PersistFilterRestore.html");
-        Assert.Contains("restore_filter_state", content);
+        var content = GenerateReport(features, "NoRestoreOnLoad.html");
+        // restore_filter_state exists as no-op stub but is never called in DOMContentLoaded
+        Assert.DoesNotContain("restore_filter_state();", content);
     }
 
     [Fact]
-    public void Report_filter_state_uses_localstorage()
+    public void Report_still_parses_url_hash_on_load()
     {
         var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
-        var content = GenerateReport(features, "PersistFilterStorage.html");
-        Assert.Contains("localStorage", content);
-        Assert.Contains("ttd-filter-state", content);
-    }
-
-    [Fact]
-    public void Report_restores_filter_state_on_domcontentloaded()
-    {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
-        var content = GenerateReport(features, "PersistFilterOnLoad.html");
-        Assert.Contains("DOMContentLoaded", content);
-        Assert.Contains("restore_filter_state", content);
+        var content = GenerateReport(features, "UrlHashOnLoad.html");
+        Assert.Contains("parse_url_hash", content);
     }
 }

@@ -472,7 +472,6 @@ public static class ReportGenerator
                                          if (isNaN(threshold) || threshold <= 0) {
                                              for (var i = 0; i < c.items.length; i++) c.items[i].dur = false;
                                              applyVisibility(c);
-                                             save_filter_state();
                                              update_url_hash();
                                              return;
                                          }
@@ -482,7 +481,6 @@ public static class ReportGenerator
                                              c.items[i].dur = ms > 0 && ms < thresholdMs;
                                          }
                                          applyVisibility(c);
-                                         save_filter_state();
                                          update_url_hash();
                                      }
                                      function set_percentile(btn) {
@@ -551,70 +549,10 @@ public static class ReportGenerator
                              """;
 
         // Persistent filter state
+        // No-op stubs (localStorage persistence removed)
         var persistentFilterFunction = """
-                                       function save_filter_state() {
-                                           try {
-                                               var state = {};
-                                               var search = document.getElementById('searchbar');
-                                               if (search && search.value) state.search = search.value;
-                                               var statuses = [];
-                                               document.querySelectorAll('.status-toggle.status-active').forEach(function(b) { statuses.push(b.getAttribute('data-status')); });
-                                               if (statuses.length > 0) state.statuses = statuses;
-                                               var deps = [];
-                                               document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { deps.push(b.getAttribute('data-dependency')); });
-                                               if (deps.length > 0) state.deps = deps;
-                                               if (document.querySelector('.happy-path-toggle.happy-path-active')) state.happyPath = true;
-                                               var dur = document.getElementById('duration-threshold');
-                                               if (dur && dur.value) state.duration = dur.value;
-                                               var activeP = document.querySelector('.percentile-btn.percentile-active');
-                                               if (activeP) state.percentile = activeP.textContent;
-                                               localStorage.setItem('ttd-filter-state', JSON.stringify(state));
-                                           } catch(e) {}
-                                       }
-                                       function restore_filter_state() {
-                                           try {
-                                               var raw = localStorage.getItem('ttd-filter-state');
-                                               if (!raw) return;
-                                               var state = JSON.parse(raw);
-                                               if (state.search) {
-                                                   var sb = document.getElementById('searchbar');
-                                                   if (sb) { sb.value = state.search; run_search_scenarios(); }
-                                               }
-                                               if (state.statuses) {
-                                                   state.statuses.forEach(function(s) {
-                                                       var btn = document.querySelector('.status-toggle[data-status="' + s + '"]');
-                                                       if (btn) { btn.classList.add('status-active'); }
-                                                   });
-                                                   filter_statuses();
-                                               }
-                                               if (state.deps) {
-                                                   state.deps.forEach(function(d) {
-                                                       var btn = document.querySelector('.dependency-toggle[data-dependency="' + d + '"]');
-                                                       if (btn) { btn.classList.add('dependency-active'); }
-                                                   });
-                                                   filter_dependencies();
-                                               }
-                                               if (state.happyPath) {
-                                                   var hp = document.querySelector('.happy-path-toggle');
-                                                   if (hp) { hp.classList.add('happy-path-active'); filter_happy_paths(); }
-                                               }
-                                               if (state.percentile) {
-                                                   document.querySelectorAll('.percentile-btn').forEach(function(b) {
-                                                       if (b.textContent === state.percentile) {
-                                                           b.classList.add('percentile-active');
-                                                           if (b.getAttribute('data-custom') === '1') {
-                                                               var cw = document.getElementById('custom-duration-wrap');
-                                                               if (cw) cw.style.display = 'inline-flex';
-                                                           }
-                                                       }
-                                                   });
-                                               }
-                                               if (state.duration) {
-                                                   var dur = document.getElementById('duration-threshold');
-                                                   if (dur) { dur.value = state.duration; filter_duration(); }
-                                               }
-                                           } catch(e) {}
-                                       }
+                                       function save_filter_state() {}
+                                       function restore_filter_state() {}
                                        """;
 
         // URL-anchored filters
@@ -737,11 +675,9 @@ public static class ReportGenerator
         // Deep link + init script
         var initScript = """
                          document.addEventListener('DOMContentLoaded', function() {
-                             // Restore filters from URL hash first, then localStorage
+                             // Restore filters from URL hash if present
                              if (window.location.hash && window.location.hash.length > 1) {
                                  parse_url_hash();
-                             } else {
-                                 restore_filter_state();
                              }
                          });
                          """;
