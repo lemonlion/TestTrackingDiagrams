@@ -396,6 +396,31 @@ public static class DiagramContextMenu
                 return null;
             }
 
+            function getDiagramFilename(container, ext) {
+                var scenario = container.closest('details.scenario');
+                var baseName = 'diagram';
+                if (scenario) {
+                    var summary = scenario.querySelector(':scope > summary');
+                    if (summary) {
+                        var clone = summary.cloneNode(true);
+                        clone.querySelectorAll('button, a, .endpoint, .label, .duration-badge').forEach(function(e) { e.remove(); });
+                        baseName = (clone.textContent || '').trim();
+                    }
+                }
+                baseName = baseName.toLowerCase()
+                    .replace(/[\[\]]/g, '')
+                    .replace(/["']/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                if (!baseName) baseName = 'diagram';
+                var containers = scenario ? Array.from(scenario.querySelectorAll('[data-diagram-type]')) : [];
+                if (containers.length > 1) {
+                    var idx = containers.indexOf(container);
+                    baseName += '-dg' + (idx + 1);
+                }
+                return baseName + '.' + ext;
+            }
+
             function getSvg(container) {
                 return container.querySelector('svg');
             }
@@ -665,7 +690,7 @@ public static class DiagramContextMenu
                             canvas.toBlob(function(blob) {
                                 var a = document.createElement('a');
                                 a.href = URL.createObjectURL(blob);
-                                a.download = 'diagram.png';
+                                a.download = getDiagramFilename(container, 'png');
                                 a.click();
                                 URL.revokeObjectURL(a.href);
                             }, 'image/png');
@@ -676,7 +701,7 @@ public static class DiagramContextMenu
                             canvas.toBlob(function(blob) {
                                 var a = document.createElement('a');
                                 a.href = URL.createObjectURL(blob);
-                                a.download = 'diagram.png';
+                                a.download = getDiagramFilename(container, 'png');
                                 a.click();
                                 URL.revokeObjectURL(a.href);
                             }, 'image/png');
@@ -686,7 +711,7 @@ public static class DiagramContextMenu
                         var blob = new Blob([serializeSvg(svg)], { type: 'image/svg+xml' });
                         var a = document.createElement('a');
                         a.href = URL.createObjectURL(blob);
-                        a.download = 'diagram.svg';
+                        a.download = getDiagramFilename(container, 'svg');
                         a.click();
                         URL.revokeObjectURL(a.href);
                     }));
@@ -718,7 +743,7 @@ public static class DiagramContextMenu
                             canvas.toBlob(function(blob) {
                                 var a = document.createElement('a');
                                 a.href = URL.createObjectURL(blob);
-                                a.download = 'diagram.png';
+                                a.download = getDiagramFilename(container, 'png');
                                 a.click();
                                 URL.revokeObjectURL(a.href);
                             }, 'image/png');
