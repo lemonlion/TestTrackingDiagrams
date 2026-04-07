@@ -31,14 +31,14 @@ Each test case renders a diagram, then exports it to PNG and checks the corner p
 
 <div id="theme-selector">
   <strong>Theme to test:</strong>
-  <button onclick="renderAll('')">Default (no theme)</button>
-  <button onclick="renderAll('!theme cerulean')">Cerulean</button>
-  <button onclick="renderAll('!theme cyborg')">Cyborg (dark)</button>
-  <button onclick="renderAll('!theme superhero')">Superhero (dark)</button>
-  <button onclick="renderAll('!theme minty')">Minty</button>
-  <button onclick="renderAll('!theme sandstone')">Sandstone</button>
-  <button onclick="renderAll('!theme plain')">Plain</button>
-  <button onclick="renderAll('!theme sketchy-outline')">Sketchy Outline</button>
+  <button onclick="switchTheme('')">Default (no theme)</button>
+  <button onclick="switchTheme('!theme cerulean')">Cerulean</button>
+  <button onclick="switchTheme('!theme cyborg')">Cyborg (dark)</button>
+  <button onclick="switchTheme('!theme superhero')">Superhero (dark)</button>
+  <button onclick="switchTheme('!theme minty')">Minty</button>
+  <button onclick="switchTheme('!theme sandstone')">Sandstone</button>
+  <button onclick="switchTheme('!theme plain')">Plain</button>
+  <button onclick="switchTheme('!theme sketchy-outline')">Sketchy Outline</button>
 </div>
 
 <div id="test-cases"></div>
@@ -79,11 +79,15 @@ var testDiagrams = [
 
 var currentTheme = '';
 var allResults = [];
-var renderGeneration = 0;
+
+// Theme switching: reload the page with the theme in the hash.
+// plantuml-js has global singleton state that corrupts on re-render.
+function switchTheme(theme) {
+  window.location.hash = theme ? encodeURIComponent(theme) : '';
+  window.location.reload();
+}
 
 function renderAll(theme) {
-  renderGeneration++;
-  var thisGen = renderGeneration;
   currentTheme = theme;
   allResults = [];
   var container = document.getElementById('test-cases');
@@ -91,6 +95,7 @@ function renderAll(theme) {
   document.getElementById('results-summary').style.display = 'none';
 
   var renderQueue = [];
+  var genId = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   
   testDiagrams.forEach(function(td, idx) {
     var themedSource = td.source;
@@ -101,45 +106,37 @@ function renderAll(theme) {
   });
 
   container.innerHTML = '';
-  var gen = thisGen; // capture for closures
 
-  // Create all divs with generation-unique IDs to avoid plantuml-js cross-contamination
+  // Create all divs with unique IDs
   renderQueue.forEach(function(item) {
     var div = document.createElement('div');
     div.className = 'test-case';
-    div.id = 'test-' + gen + '-' + item.idx;
+    div.id = 'test-' + genId + '-' + item.idx;
     div.innerHTML = '<h3>' + item.name + '</h3>'
-      + '<div class="plantuml-browser" id="puml-' + gen + '-' + item.idx + '">Rendering...</div>'
-      + '<div class="output" id="output-' + gen + '-' + item.idx + '"></div>';
+      + '<div class="plantuml-browser" id="puml-' + genId + '-' + item.idx + '">Rendering...</div>'
+      + '<div class="output" id="output-' + genId + '-' + item.idx + '"></div>';
     container.appendChild(div);
   });
 
-  // Render sequentially (plantuml-js can only render one at a time)
-  // Small delay to let any in-flight plantuml-js work finish
+  // Render sequentially — wait for plantuml-js to finish each diagram
   var queueIdx = 0;
-  setTimeout(function() { renderNext(); }, 200);
-
   function renderNext() {
-    if (gen !== renderGeneration) return; // cancelled by newer renderAll
     if (queueIdx >= renderQueue.length) {
       showSummary();
       return;
     }
     var item = renderQueue[queueIdx];
-    var elId = 'puml-' + gen + '-' + item.idx;
+    var elId = 'puml-' + genId + '-' + item.idx;
     var el = document.getElementById(elId);
-    if (!el) return; // element was destroyed by a newer renderAll
+    if (!el) return;
     var lines = item.source.split('\n');
 
     var mo = new MutationObserver(function() {
-      if (gen !== renderGeneration) { mo.disconnect(); return; }
-      // Wait until an SVG actually exists (plantuml-js may fire intermediate mutations)
       var svg = el.querySelector('svg');
-      if (!svg) return;
+      if (!svg) return; // wait for SVG to appear
       mo.disconnect();
       setTimeout(function() {
-        if (gen !== renderGeneration) return;
-        runExportTests(gen, item.idx, item.name);
+        runExportTests(genId, item.idx, item.name);
         queueIdx++;
         renderNext();
       }, 300);
@@ -155,6 +152,7 @@ function renderAll(theme) {
       renderNext();
     }
   }
+  renderNext();
 }
 
 // ── Current approach (potentially broken) ──
@@ -502,9 +500,19 @@ function showSummary() {
   body.innerHTML = html;
 }
 
-// Auto-run with default theme on load
+// Auto-run: read theme from URL hash
 window.addEventListener('load', function() {
-  setTimeout(function() { renderAll(''); }, 500);
+  var hash = decodeURIComponent(window.location.hash.slice(1)) || '';
+  // Highlight the active theme button
+  var btns = document.querySelectorAll('#theme-selector button');
+  for (var i = 0; i < btns.length; i++) {
+    var btnTheme = (btns[i].getAttribute('onclick') || '').match(/switchTheme\('([^']*)'\)/);
+    if (btnTheme && btnTheme[1] === hash) {
+      btns[i].style.background = '#c8e6ff';
+      btns[i].style.fontWeight = 'bold';
+    }
+  }
+  setTimeout(function() { renderAll(hash); }, 500);
 });
 </script>
 

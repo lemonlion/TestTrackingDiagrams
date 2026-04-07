@@ -29,7 +29,7 @@ public static class InternalFlowRenderer
         return sb.ToString();
     }
 
-    public static string[] RenderActivityDiagramBatched(InternalFlowSegment segment, int maxSpansPerBatch = 150)
+    public static string[] RenderActivityDiagramBatched(InternalFlowSegment segment, int maxSpansPerBatch = 100)
     {
         if (segment.Spans.Length == 0)
             return [];
@@ -60,7 +60,7 @@ public static class InternalFlowRenderer
         if (currentBatch.Count > 0)
             batches.Add(currentBatch);
 
-        const int maxBatches = 4;
+        const int maxBatches = 3;
         var totalBatches = batches.Count;
         var truncated = totalBatches > maxBatches;
         var renderCount = truncated ? maxBatches : totalBatches;

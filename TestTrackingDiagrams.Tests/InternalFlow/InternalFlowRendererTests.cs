@@ -261,7 +261,7 @@ public class InternalFlowRendererTests : IDisposable
     [Fact]
     public void RenderActivityDiagramBatched_caps_at_4_batches()
     {
-        // Create 30 independent root spans, batch at 1 → 30 batches, capped at 4
+        // Create 30 independent root spans, batch at 1 → 30 batches, capped at 3
         var spans = new List<Activity>();
         for (int i = 0; i < 30; i++)
         {
@@ -275,9 +275,9 @@ public class InternalFlowRendererTests : IDisposable
 
         var results = InternalFlowRenderer.RenderActivityDiagramBatched(MakeSegment(spans.ToArray()), maxSpansPerBatch: 1);
 
-        Assert.Equal(4, results.Length);
-        Assert.Contains("Part 1 of 30 (showing first 4)", results[0]);
-        Assert.Contains("Part 4 of 30 (showing first 4)", results[3]);
+        Assert.Equal(3, results.Length);
+        Assert.Contains("Part 1 of 30 (showing first 3)", results[0]);
+        Assert.Contains("Part 3 of 30 (showing first 3)", results[2]);
     }
 
     // ── RenderCallTree ──
