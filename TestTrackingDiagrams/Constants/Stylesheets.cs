@@ -123,7 +123,7 @@ public class Stylesheets
                 .filters {
                     display: flex;
                     flex-direction: column;
-                    gap: 0.5em;
+                    gap: 1em;
                 }
 
                 .filter-search {
@@ -209,6 +209,10 @@ public class Stylesheets
                     flex-wrap: wrap;
                     align-items: center;
                     gap: 0.3em;
+                }
+
+                .happy-path-filters {
+                    margin-left: 1em;
                 }
                 
                 .happy-path-filters-label, .dependency-filters-label, .status-filters-label {
@@ -517,6 +521,13 @@ public class Stylesheets
                     display: none !important;
                 }
 
+                .features-summary-details {
+                    margin-top: 1em;
+                    margin-bottom: 1em;
+                    background-color: rgb(224, 224, 224);
+                    padding: 1em;
+                    border-radius: 10px;
+                }
                 .features-summary-details summary {
                     cursor: pointer;
                     list-style: revert;

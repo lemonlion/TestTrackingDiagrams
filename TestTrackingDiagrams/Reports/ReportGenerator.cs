@@ -398,17 +398,13 @@ public static class ReportGenerator
 
         // Collapse/Expand All
         var collapseExpandAllFunction = """
-                                        function expand_all() {
+                                        function toggle_expand_collapse(btn) {
+                                            var expanding = btn.textContent === 'Expand All';
                                             var features = document.querySelectorAll('details.feature');
                                             var scenarios = document.querySelectorAll('details.scenario');
-                                            for (var i = 0; i < features.length; i++) features[i].setAttribute('open', '');
-                                            for (var i = 0; i < scenarios.length; i++) scenarios[i].setAttribute('open', '');
-                                        }
-                                        function collapse_all() {
-                                            var features = document.querySelectorAll('details.feature');
-                                            var scenarios = document.querySelectorAll('details.scenario');
-                                            for (var i = 0; i < features.length; i++) features[i].removeAttribute('open');
-                                            for (var i = 0; i < scenarios.length; i++) scenarios[i].removeAttribute('open');
+                                            for (var i = 0; i < features.length; i++) { if (expanding) features[i].setAttribute('open', ''); else features[i].removeAttribute('open'); }
+                                            for (var i = 0; i < scenarios.length; i++) { if (expanding) scenarios[i].setAttribute('open', ''); else scenarios[i].removeAttribute('open'); }
+                                            btn.textContent = expanding ? 'Collapse All' : 'Expand All';
                                         }
                                         """;
 
@@ -934,8 +930,7 @@ public static class ReportGenerator
 
         // Toolbar row: Collapse/Expand All, Dark Mode, Export
         body.Append("""<div class="toolbar-row">""");
-        body.Append("""<button class="collapse-expand-all" onclick="expand_all()">Expand All</button>""");
-        body.Append("""<button class="collapse-expand-all" onclick="collapse_all()">Collapse All</button>""");
+        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this)">Expand All</button>""");
         body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
         body.Append("</div>");
 
