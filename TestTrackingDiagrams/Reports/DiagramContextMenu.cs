@@ -37,6 +37,7 @@ public static class DiagramContextMenu
         }
         .plantuml-browser {
             overflow-x: auto;
+            padding-left: 1em;
         }
         """;
 
