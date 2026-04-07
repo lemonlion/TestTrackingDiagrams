@@ -207,6 +207,7 @@ public static class DiagramContextMenu
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
                         bindIflowLinks(item.el, item.source);
+                        if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
                         rendering = false;
                         processQueue();
                     });
@@ -1184,6 +1185,219 @@ public static class DiagramContextMenu
                     mo.observe(el, { childList: true, subtree: true });
                 });
             });
+        })();
+        </script>
+        """;
+
+    public static string GetCollapsibleNotesScript() => """
+        <script>
+        (function() {
+            var SVGNS = 'http://www.w3.org/2000/svg';
+
+            function parseNoteBlocks(source) {
+                if (!source) return [];
+                var lines = source.split('\n');
+                var notes = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var trimmed = lines[i].trim();
+                    if (/^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
+                        var start = i;
+                        i++;
+                        var contentLines = [];
+                        while (i < lines.length && lines[i].trim() !== 'end note') {
+                            contentLines.push(lines[i]);
+                            i++;
+                        }
+                        notes.push({ start: start, end: i, contentLines: contentLines });
+                    }
+                }
+                return notes;
+            }
+
+            function getNotePreview(contentLines) {
+                var raw = contentLines.map(function(l) { return l.trim(); })
+                    .filter(function(l) { return !l.match(/^\$color\(gray\)/); })
+                    .join(' ').trim();
+                if (raw.length <= 20) return raw;
+                return raw.substring(0, 20) + '...';
+            }
+
+            function findNoteGroups(svg) {
+                var mainG = svg.children.length > 1 ? svg.children[1] : svg.children[0];
+                if (!mainG || mainG.tagName !== 'g') return [];
+                var children = Array.from(mainG.children);
+                var groups = [];
+                var ci = 0;
+                while (ci < children.length) {
+                    if (children[ci].tagName === 'g') { ci++; continue; }
+                    if (children[ci].tagName === 'path') {
+                        var grp = { paths: [], texts: [] };
+                        while (ci < children.length && children[ci].tagName === 'path') {
+                            grp.paths.push(children[ci]);
+                            ci++;
+                        }
+                        while (ci < children.length && children[ci].tagName === 'text') {
+                            grp.texts.push(children[ci]);
+                            ci++;
+                        }
+                        if (grp.paths.length > 0 && grp.texts.length > 0) {
+                            groups.push(grp);
+                        }
+                    } else {
+                        ci++;
+                    }
+                }
+                return groups;
+            }
+
+            function getNoteBBox(grp) {
+                var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                grp.paths.concat(grp.texts).forEach(function(el) {
+                    try {
+                        var bb = el.getBBox();
+                        if (bb.x < minX) minX = bb.x;
+                        if (bb.y < minY) minY = bb.y;
+                        if (bb.x + bb.width > maxX) maxX = bb.x + bb.width;
+                        if (bb.y + bb.height > maxY) maxY = bb.y + bb.height;
+                    } catch(e) {}
+                });
+                return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+            }
+
+            function createToggleIcon(svg, bbox, isCollapsed, onClick) {
+                var size = 12;
+                var pad = 3;
+                var ix = bbox.x + bbox.width - size - pad;
+                var iy = bbox.y + pad;
+
+                var g = document.createElementNS(SVGNS, 'g');
+                g.setAttribute('class', 'note-toggle-icon');
+                g.style.cursor = 'pointer';
+                g.style.opacity = '0';
+
+                var bg = document.createElementNS(SVGNS, 'rect');
+                bg.setAttribute('x', ix);
+                bg.setAttribute('y', iy);
+                bg.setAttribute('width', size);
+                bg.setAttribute('height', size);
+                bg.setAttribute('rx', '2');
+                bg.setAttribute('fill', '#ffffff');
+                bg.setAttribute('stroke', '#999');
+                bg.setAttribute('stroke-width', '0.5');
+                g.appendChild(bg);
+
+                var symbol = document.createElementNS(SVGNS, 'text');
+                symbol.setAttribute('x', ix + size / 2);
+                symbol.setAttribute('y', iy + size - 2.5);
+                symbol.setAttribute('text-anchor', 'middle');
+                symbol.setAttribute('font-size', '10');
+                symbol.setAttribute('font-family', 'sans-serif');
+                symbol.setAttribute('fill', '#666');
+                symbol.style.pointerEvents = 'none';
+                symbol.textContent = isCollapsed ? '+' : '\u2212';
+                g.appendChild(symbol);
+
+                // Show on hover over the note area
+                var hoverRect = document.createElementNS(SVGNS, 'rect');
+                hoverRect.setAttribute('x', bbox.x);
+                hoverRect.setAttribute('y', bbox.y);
+                hoverRect.setAttribute('width', bbox.width);
+                hoverRect.setAttribute('height', bbox.height);
+                hoverRect.setAttribute('fill', 'transparent');
+                hoverRect.style.pointerEvents = 'all';
+                hoverRect.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
+                hoverRect.addEventListener('mouseleave', function() { g.style.opacity = '0'; });
+                g.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
+
+                // For collapsed notes, always show the expand icon
+                if (isCollapsed) g.style.opacity = '0.6';
+
+                svg.appendChild(hoverRect);
+                bg.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    onClick();
+                });
+                svg.appendChild(g);
+            }
+
+            function makeNotesCollapsible(container) {
+                var svg = container.querySelector('svg');
+                if (!svg) return;
+                var source = container._noteOriginalSource || container.getAttribute('data-plantuml');
+                if (!source) return;
+                if (!container._noteOriginalSource) container._noteOriginalSource = source;
+
+                var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                if (noteBlocks.length === 0) return;
+                if (!container._collapsedNotes) container._collapsedNotes = {};
+
+                var noteGroups = findNoteGroups(svg);
+
+                for (var ni = 0; ni < Math.min(noteGroups.length, noteBlocks.length); ni++) {
+                    (function(idx) {
+                        var grp = noteGroups[idx];
+                        var bbox = getNoteBBox(grp);
+                        var isCollapsed = !!container._collapsedNotes[idx];
+                        createToggleIcon(svg, bbox, isCollapsed, function() {
+                            toggleNote(container, idx);
+                        });
+                    })(ni);
+                }
+            }
+
+            function toggleNote(container, noteIdx) {
+                if (!container._collapsedNotes) container._collapsedNotes = {};
+                container._collapsedNotes[noteIdx] = !container._collapsedNotes[noteIdx];
+
+                var origSource = container._noteOriginalSource;
+                var noteBlocks = parseNoteBlocks(origSource);
+                var lines = origSource.split('\n');
+                var newLines = [];
+                var nIdx = 0;
+                var inNote = false;
+                var skipping = false;
+
+                for (var i = 0; i < lines.length; i++) {
+                    var trimmed = lines[i].trim();
+                    if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
+                        inNote = true;
+                        newLines.push(lines[i]);
+                        if (container._collapsedNotes[nIdx]) {
+                            skipping = true;
+                            var preview = getNotePreview(noteBlocks[nIdx].contentLines);
+                            newLines.push(preview);
+                        }
+                        nIdx++;
+                        continue;
+                    }
+                    if (inNote && trimmed === 'end note') {
+                        inNote = false;
+                        skipping = false;
+                        newLines.push(lines[i]);
+                        continue;
+                    }
+                    if (skipping) continue;
+                    newLines.push(lines[i]);
+                }
+
+                var newSource = newLines.join('\n');
+                container.setAttribute('data-plantuml', newSource);
+
+                var mo = new MutationObserver(function() {
+                    mo.disconnect();
+                    if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
+                    makeNotesCollapsible(container);
+                });
+                mo.observe(container, { childList: true, subtree: true });
+
+                try {
+                    window.plantuml.render(newSource.split('\n'), container.id);
+                } catch(e) {
+                    mo.disconnect();
+                }
+            }
+
+            window._makeNotesCollapsible = makeNotesCollapsible;
         })();
         </script>
         """;

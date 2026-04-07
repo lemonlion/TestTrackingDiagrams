@@ -724,6 +724,7 @@ public static class ReportGenerator
         var hasInteractiveDiagrams = isMermaid || isPlantUmlBrowser || isInlineSvg;
         var mermaidScript = isMermaid ? DiagramContextMenu.GetMermaidScript() : "";
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
+        var collapsibleNotesScript = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesScript() : "";
         var contextMenuScript = hasInteractiveDiagrams || internalFlowTracking ? DiagramContextMenu.GetContextMenuScript() : "";
         var contextMenuStyles = hasInteractiveDiagrams || internalFlowTracking ? DiagramContextMenu.GetStyles() : "";
         var inlineSvgStyles = (isInlineSvg || isPlantUmlBrowser) ? DiagramContextMenu.GetInlineSvgStyles() : "";
@@ -761,6 +762,7 @@ public static class ReportGenerator
                             </script>
                             {{mermaidScript}}
                             {{plantUmlBrowserScript}}
+                            {{collapsibleNotesScript}}
                             {{contextMenuScript}}
                             {{flameChartRenderScript}}
                             {{internalFlowDataScript}}
