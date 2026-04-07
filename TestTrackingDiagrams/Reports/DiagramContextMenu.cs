@@ -369,14 +369,19 @@ public static class DiagramContextMenu
                 // 2. Check computed style
                 var computed = window.getComputedStyle(svg).backgroundColor;
                 if (computed && computed !== 'rgba(0, 0, 0, 0)' && computed !== 'transparent') return computed;
-                // 3. Fall back to first rect fill
-                var rect = svg.querySelector('rect');
-                if (rect) {
+                // 3. Fall back to first visible rect fill (skip transparent rects)
+                var rects = svg.querySelectorAll('rect');
+                for (var i = 0; i < rects.length; i++) {
+                    var rect = rects[i];
+                    var fo = rect.getAttribute('fill-opacity');
+                    if (fo !== null && parseFloat(fo) === 0) continue;
+                    var rstyle = rect.getAttribute('style') || '';
+                    var fom = rstyle.match(/fill-opacity\s*:\s*([^;]+)/);
+                    if (fom && parseFloat(fom[1]) === 0) continue;
                     var fill = rect.getAttribute('fill');
                     if (fill && fill !== 'none' && fill !== 'transparent') return fill;
-                    var style = rect.getAttribute('style') || '';
-                    var m = style.match(/fill\s*:\s*([^;]+)/);
-                    if (m && m[1].trim() !== 'none' && m[1].trim() !== 'transparent') return m[1].trim();
+                    var fm = rstyle.match(/fill\s*:\s*([^;]+)/);
+                    if (fm && fm[1].trim() !== 'none' && fm[1].trim() !== 'transparent') return fm[1].trim();
                 }
                 return '#ffffff';
             }
@@ -411,7 +416,7 @@ public static class DiagramContextMenu
                     var ctx = canvas.getContext('2d');
                     ctx.scale(scale, scale);
                     ctx.fillStyle = bg;
-                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
                     callback(canvas);
                 };

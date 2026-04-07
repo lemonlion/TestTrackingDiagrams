@@ -280,4 +280,98 @@ public static class TestPageGenerator
             </html>
             """;
     }
+
+    /// <summary>
+    /// Creates a test page that mimics FeaturesReport with a BrowserJs-rendered sequence diagram
+    /// inside a plantuml-browser container, including InlineSvgStyles and context menu.
+    /// </summary>
+    public static string GenerateBrowserJsSequenceDiagramPage()
+    {
+        var plantUmlSource = """
+            @startuml
+            participant Alice
+            participant Bob
+            Alice -> Bob: Hello
+            Bob --> Alice: Hi
+            @enduml
+            """;
+
+        var encoded = System.Net.WebUtility.HtmlEncode(plantUmlSource);
+        var plantUmlBrowserScript = DiagramContextMenu.GetPlantUmlBrowserRenderScript();
+        var contextMenuScript = DiagramContextMenu.GetContextMenuScript();
+        var contextMenuStyles = DiagramContextMenu.GetStyles();
+        var inlineSvgStyles = DiagramContextMenu.GetInlineSvgStyles();
+
+        return $$"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>BrowserJs Sequence Diagram Test</title>
+                <style>
+                    {{contextMenuStyles}}
+                    {{inlineSvgStyles}}
+                    body { font-family: sans-serif; padding: 20px; background: #fff; }
+                </style>
+                {{plantUmlBrowserScript}}
+                {{contextMenuScript}}
+            </head>
+            <body>
+                <h1>BrowserJs Sequence Diagram</h1>
+                <div class="plantuml-browser" id="puml-1" data-plantuml="{{encoded}}" data-diagram-type="plantuml">Loading diagram...</div>
+            </body>
+            </html>
+            """;
+    }
+
+    /// <summary>
+    /// Creates a test page that mimics FeaturesReport with an inline SVG sequence diagram
+    /// inside a plantuml-inline-svg container, including InlineSvgStyles and context menu.
+    /// </summary>
+    public static string GenerateInlineSvgSequenceDiagramPage()
+    {
+        // Minimal SVG mimicking PlantUML server output (background via style attribute, no bg rect,
+        // first rect has fill-opacity="0" like real PlantUML participant lifeline rects)
+        var inlineSvg = """
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                 style="width:300px;height:200px;background:#FFFFFF;" width="300px" height="200px"
+                 viewBox="0 0 300 200">
+                <defs/>
+                <g>
+                    <rect fill="#000000" fill-opacity="0.00000" height="160" width="8" x="80" y="30"/>
+                    <rect fill="#E2E2F0" height="30" rx="4" width="80" x="40" y="0"/>
+                    <text fill="#000000" font-size="13" x="60" y="20">Alice</text>
+                    <rect fill="#E2E2F0" height="30" rx="4" width="80" x="180" y="0"/>
+                    <text fill="#000000" font-size="13" x="200" y="20">Bob</text>
+                    <line stroke="#181818" x1="84" x2="224" y1="60" y2="60"/>
+                    <text fill="#000000" font-size="13" x="130" y="55">Hello</text>
+                    <line stroke="#181818" stroke-dasharray="2,2" x1="224" x2="84" y1="90" y2="90"/>
+                    <text fill="#000000" font-size="13" x="145" y="85">Hi</text>
+                </g>
+            </svg>
+            """;
+
+        var sourceEncoded = System.Net.WebUtility.HtmlEncode("@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: Hello\nBob --> Alice: Hi\n@enduml");
+        var contextMenuScript = DiagramContextMenu.GetContextMenuScript();
+        var contextMenuStyles = DiagramContextMenu.GetStyles();
+        var inlineSvgStyles = DiagramContextMenu.GetInlineSvgStyles();
+
+        return $$"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>InlineSvg Sequence Diagram Test</title>
+                <style>
+                    {{contextMenuStyles}}
+                    {{inlineSvgStyles}}
+                    body { font-family: sans-serif; padding: 20px; background: #fff; }
+                </style>
+                {{contextMenuScript}}
+            </head>
+            <body>
+                <h1>InlineSvg Sequence Diagram</h1>
+                <div class="plantuml-inline-svg" data-plantuml="{{sourceEncoded}}" data-diagram-type="plantuml">{{inlineSvg}}</div>
+            </body>
+            </html>
+            """;
+    }
 }

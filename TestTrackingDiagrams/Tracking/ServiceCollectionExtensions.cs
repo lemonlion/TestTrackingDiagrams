@@ -18,13 +18,15 @@ public static class ServiceCollectionHelper
     public static IServiceCollection TrackMessagesForDiagrams(
         this IServiceCollection services,
         string callingServiceName,
-        JsonSerializerOptions? serializerOptions = null)
+        JsonSerializerOptions? serializerOptions = null,
+        Func<(string Name, string Id)>? testInfoFallback = null)
     {
         services.AddHttpContextAccessor();
         services.AddSingleton(sp => new MessageTracker(
             sp.GetRequiredService<IHttpContextAccessor>(),
             callingServiceName,
-            serializerOptions));
+            serializerOptions,
+            testInfoFallback));
 
         return services;
     }
