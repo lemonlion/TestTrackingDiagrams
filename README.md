@@ -132,81 +132,6 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 
 ---
 
-## <a name="component-diagrams"></a>Component Diagrams (C4-style) [↑](#top)
-
-In addition to per-test sequence diagrams, TestTrackingDiagrams can **aggregate all tracked interactions across your entire test suite** to auto-generate a C4-style component diagram. This diagram shows every discovered participant (services, event brokers, databases) and their relationships — giving you a high-level architecture overview derived directly from real test traffic.
-
-This is an **opt-in** feature. Enable it by setting `GenerateComponentDiagram = true` on your `ReportConfigurationOptions`:
-
-```csharp
-var options = new ReportConfigurationOptions
-{
-    GenerateComponentDiagram = true,
-    ComponentDiagramOptions = new ComponentDiagramOptions
-    {
-        Title = "My Service Architecture",
-        // Optional: filter out participants you don't want in the diagram
-        ParticipantFilter = name => name != "InternalHelper"
-    }
-};
-```
-
-### Output
-
-When enabled, two additional files are generated alongside your existing reports:
-
-| File | Description |
-|------|-------------|
-| `ComponentDiagram.puml` | Raw PlantUML C4 source — version-controllable, diffable |
-| `ComponentDiagram.html` | Interactive HTML page with browser SVG rendering, clickable links, and focus mode |
-
-### Key Features
-
-- **Stats-driven labels** — Relationship arrows show P50 / P95 / P99 latency percentiles, error rates, and call counts
-- **Hotspot colouring** — Arrows are colour-coded by P95 latency (green < 50ms, orange 50–200ms, red > 200ms)
-- **Low-coverage warnings** — Relationships with few calls use dashed arrows
-- **Sortable performance summary table** — Aggregated stats for every relationship with click-to-sort columns and expandable per-endpoint breakdown rows
-- **Latency distribution bar chart** — Horizontal bar chart with Mean / P50 / P95 / P99 toggle buttons
-- **Latency variance (CV)** — Coefficient of Variation column in the performance table, colour-coded green (consistent) / orange / red (highly variable)
-- **Outlier detection** — Automatically flags tests with latency > mean + 2σ, showing a badge in the table and a dedicated section with threshold, count, and top 5 outlier tests
-- **Latency contribution** — Stacked bar showing what percentage of total test time each dependency consumes, averaged across all tests
-- **Request method distribution** — Colour-coded stacked bars showing GET / POST / PUT / DELETE / PATCH split per relationship (hidden when all calls use the same method)
-- **Error correlation** — Pairwise co-occurrence analysis: when relationship A errors, how often does B also error (≥50% threshold)
-- **Call ordering patterns** — Aggregates per-test call sequences into patterns like "80% of tests call Auth before Orders" (≥3 samples, ≥60% dominant)
-- **Status code distribution** — Per-relationship breakdown of HTTP status codes
-- **Payload size analysis** — Request and response mean/P95 payload sizes per relationship
-- **Concurrent call detection** — Identifies relationships with overlapping in-flight calls within the same test
-- **Interactive focus mode** — Click a service node to dim unrelated nodes (requires `PlantUmlRendering.BrowserJs`)
-- **Diff mode** — Compare component diagrams between test runs via `ComponentDiagramDiffer.Compare()`
-
-### Example Output
-
-```plantuml
-@startuml
-!include <C4/C4_Component>
-
-title My Service Architecture
-
-Person(webApp, "WebApp")
-System(orderService, "OrderService")
-System(paymentService, "PaymentService")
-System(kafka, "Kafka")
-
-Rel(webApp, orderService, "[[#iflow-rel-WebApp-OrderService HTTP: GET, POST]]\nP50: 42ms | P95: 120ms | P99: 250ms\n14 calls across 8 tests", $tags="#Orange")
-Rel(orderService, paymentService, "[[#iflow-rel-OrderService-PaymentService HTTP: POST]]\nP50: 150ms | P95: 400ms | P99: 500ms | 2% errors\n6 calls across 4 tests", $tags="#Red")
-Rel(orderService, kafka, "[[#iflow-rel-OrderService-Kafka Publish: Publish]]\nP50: 5ms | P95: 15ms | P99: 25ms\n3 calls across 2 tests", $tags="#Green")
-
-@enduml
-```
-
-**How participants are classified:**
-- A participant that **only appears as a caller** (never called by another service) is rendered as a `Person()` — typically your test client
-- All other participants are rendered as `System()` — your SUT, its dependencies, event brokers, databases, etc.
-
-For full configuration details (custom titles, themes, label formatters, participant filters, diff mode), see the [Component Diagrams](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams) wiki page.
-
----
-
 ## <a name="supported-frameworks"></a>Supported Frameworks & NuGet Packages [↑](#top)
 
 | Framework | Package | Test Runner | NuGet |
@@ -232,21 +157,6 @@ For full configuration details (custom titles, themes, label formatters, partici
 | **PlantUML IKVM** | `TestTrackingDiagrams.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.PlantUml.Ikvm)](https://www.nuget.org/packages/TestTrackingDiagrams.PlantUml.Ikvm) |
 
 All packages from 1.23.X onwards target **.NET 10.0** .
-
----
-
-## <a name="recommended-bdd"></a>Recommended BDD Framework [↑](#top)
-
-If you're choosing a BDD framework to pair with TestTrackingDiagrams, we recommend **[LightBDD](https://github.com/LightBDD/LightBDD)**.
-
-- **Composite (sub) steps** — LightBDD lets you nest steps inside other steps, creating a hierarchy of abstraction levels. These sub-steps appear in the generated reports, allowing you to read the high-level scenario at a glance and drill down into implementation details only when needed.
-- **Pure C#** — Scenarios are plain method calls with refactoring, IntelliSense, and compile-time safety. No `.feature` files to keep in sync.
-- **Rich built-in reporting** — LightBDD generates its own HTML reports with step timings, statuses, and categories. TestTrackingDiagrams hooks into this pipeline to embed sequence diagrams directly alongside the scenario results.
-- **Parameterised and tabular steps** — First-class support for data-driven steps with inline parameters, verifiable [tabular data](https://github.com/LightBDD/LightBDD/wiki/Advanced-Step-Parameters#tabular-parameters), and [tabular attributes](https://github.com/lemonlion/LightBdd.TabularAttributes), making it easy to express complex test inputs and expected outputs.
-- **DI container support** — Native integration with `Microsoft.Extensions.DependencyInjection` and Autofac, which aligns naturally with ASP.NET Core test setups.
-- **Active maintenance** — LightBDD is actively maintained with regular releases and good documentation.
-
-That said, all [supported frameworks](#supported-frameworks) work well with TestTrackingDiagrams — pick whichever fits your team best.
 
 ---
 
