@@ -49,4 +49,5 @@ public record ReportConfigurationOptions
     public bool PublishCiArtifacts { get; set; }
     public string CiArtifactName { get; set; } = "TestReports";
     public int CiArtifactRetentionDays { get; set; } = 1;
+    public string? FixedNameForReceivingService { get; set; }
 }
