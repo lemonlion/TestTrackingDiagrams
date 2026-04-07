@@ -577,9 +577,10 @@ public static class ReportGenerator
         body.Append("<div id=\"report-content\">");
         foreach (var feature in features)
         {
+            var hasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
+                        <summary class="h2{(hasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}</summary>
                      """);
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);

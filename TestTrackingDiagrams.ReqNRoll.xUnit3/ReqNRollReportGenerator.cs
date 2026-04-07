@@ -289,10 +289,11 @@ public static class ReqNRollReportGenerator
         foreach (var feature in features)
         {
             var featureDescription = allScenarios.FirstOrDefault(s => s.FeatureTitle == feature.DisplayName)?.FeatureDescription;
+            var hasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
 
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
+                        <summary class="h2{(hasFailures ? " failed" : "")}">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
                      """);
 
             if (!string.IsNullOrWhiteSpace(featureDescription))

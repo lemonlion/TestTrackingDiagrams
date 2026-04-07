@@ -246,12 +246,13 @@ public class MessageTrackerTests
     }
 
     [Fact]
-    public void TrackMessageRequest_throws_when_no_http_context_and_no_fallback()
+    public void TrackMessageRequest_returns_empty_guid_when_no_http_context_and_no_fallback()
     {
         var accessor = new HttpContextAccessor { HttpContext = null };
         var tracker = CreateTracker(accessor);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { }));
+        var id = tracker.TrackMessageRequest("ServiceBus", "Queue", new Uri("servicebus://queue"), new { });
+
+        Assert.Equal(Guid.Empty, id);
     }
 }

@@ -288,10 +288,11 @@ public static class BDDfyReportGenerator
         foreach (var feature in features)
         {
             var storyDescription = allScenarios.FirstOrDefault(s => s.StoryTitle == feature.DisplayName)?.StoryDescription;
+            var hasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
 
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
+                        <summary class="h2{(hasFailures ? " failed" : "")}">{WebUtility.HtmlEncode(feature.DisplayName)}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{WebUtility.HtmlEncode(feature.Endpoint)}</div>")}</summary>
                      """);
 
             if (!string.IsNullOrWhiteSpace(storyDescription))

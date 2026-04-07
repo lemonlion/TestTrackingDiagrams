@@ -43,13 +43,16 @@ public class MessageTracker
     /// <returns>A correlation ID that must be passed to <see cref="TrackMessageResponse"/> to pair the request and response.</returns>
     public Guid TrackMessageRequest(string protocol, string destinationName, Uri destinationUri, object payload)
     {
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return Guid.Empty;
+
         var requestResponseId = Guid.NewGuid();
         var content = JsonSerializer.Serialize(payload, _serializerOptions);
-        var testInfo = GetTestInfo();
 
         RequestResponseLogger.Log(new RequestResponseLog(
-            testInfo.TestName,
-            testInfo.TestId,
+            testInfo.Value.TestName,
+            testInfo.Value.TestId,
             protocol,
             content,
             destinationUri,
@@ -57,7 +60,7 @@ public class MessageTracker
             destinationName,
             _callingServiceName,
             RequestResponseType.Request,
-            testInfo.TraceId,
+            testInfo.Value.TraceId,
             requestResponseId,
             false,
             MetaType: RequestResponseMetaType.Event
@@ -81,14 +84,17 @@ public class MessageTracker
     /// <param name="responsePayload">Optional response payload (e.g. an acknowledgement). Will be JSON-serialised if provided.</param>
     public void TrackMessageResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null)
     {
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return;
+
         var content = responsePayload is not null
             ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
             : string.Empty;
-        var testInfo = GetTestInfo();
 
         RequestResponseLogger.Log(new RequestResponseLog(
-            testInfo.TestName,
-            testInfo.TestId,
+            testInfo.Value.TestName,
+            testInfo.Value.TestId,
             protocol,
             content,
             destinationUri,
@@ -96,7 +102,7 @@ public class MessageTracker
             destinationName,
             _callingServiceName,
             RequestResponseType.Response,
-            testInfo.TraceId,
+            testInfo.Value.TraceId,
             requestResponseId,
             false,
             "Responded",
@@ -109,7 +115,7 @@ public class MessageTracker
         });
     }
 
-    private (string TestName, string TestId, Guid TraceId) GetTestInfo()
+    private (string TestName, string TestId, Guid TraceId)? GetTestInfo()
     {
         var context = _httpContextAccessor.HttpContext;
         if (context is not null)
@@ -137,9 +143,6 @@ public class MessageTracker
             return (info.Name, info.Id, Guid.NewGuid());
         }
 
-        throw new InvalidOperationException(
-            "MessageTracker could not determine the current test identity. " +
-            "Either an HttpContext with test tracking headers must be active, " +
-            "or a testInfoFallback must be provided in the constructor.");
+        return null;
     }
 }
