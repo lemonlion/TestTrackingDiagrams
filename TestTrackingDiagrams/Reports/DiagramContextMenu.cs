@@ -160,7 +160,7 @@ public static class DiagramContextMenu
         .diagram-toggle-active { background: #4285f4; color: #fff; border-color: #4285f4; }
         .diagram-toggle-active:hover { background: #3367d6; }
         .diagram-toggle-spacer { flex: 1; }
-        .collapse-all-notes-btn {
+        .collapse-all-notes-btn, .toggle-headers-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
             background: #f5f5f5;
@@ -169,7 +169,7 @@ public static class DiagramContextMenu
             border-radius: 4px;
             margin-right: 1em;
         }
-        .collapse-all-notes-btn:hover { background: #e8f0fe; }
+        .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
         .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -339,12 +339,15 @@ public static class DiagramContextMenu
                         observer.unobserve(el);
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
+                            if (window._preProcessSource) source = window._preProcessSource(el, source);
                             renderQueue.push({ el: el, source: source });
                             processQueue();
                         } else if (el.hasAttribute('data-plantuml-z')) {
                             decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
                                 el.setAttribute('data-plantuml', decoded);
-                                renderQueue.push({ el: el, source: decoded });
+                                var src = decoded;
+                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                renderQueue.push({ el: el, source: src });
                                 processQueue();
                             }).catch(function() { el.textContent = 'Decompression error'; });
                         }
@@ -370,11 +373,14 @@ public static class DiagramContextMenu
                         observer.unobserve(el);
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
+                            if (window._preProcessSource) source = window._preProcessSource(el, source);
                             renderQueue.push({ el: el, source: source });
                         } else if (el.hasAttribute('data-plantuml-z')) {
                             decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
                                 el.setAttribute('data-plantuml', decoded);
-                                renderQueue.push({ el: el, source: decoded });
+                                var src = decoded;
+                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                renderQueue.push({ el: el, source: src });
                                 processQueue();
                             }).catch(function() { el.textContent = 'Decompression error'; });
                         }
@@ -1260,8 +1266,8 @@ public static class DiagramContextMenu
                         .join(' ').trim();
                 }
                 if (!raw) raw = '(collapsed)';
-                if (raw.length <= 20) return raw;
-                return raw.substring(0, 20) + '...';
+                if (raw.length <= 40) return raw;
+                return raw.substring(0, 40) + '...';
             }
 
             function hasNoteFill(pathEl) {
@@ -1398,7 +1404,7 @@ public static class DiagramContextMenu
                 }
             }
 
-            function buildSourceWithCollapsedNotes(origSource, collapsedNotes, noteBlocks) {
+            function buildSourceWithCollapsedNotes(origSource, collapsedNotes, noteBlocks, hideHeaders) {
                 var lines = origSource.split('\n');
                 var newLines = [];
                 var nIdx = 0;
@@ -1425,6 +1431,7 @@ public static class DiagramContextMenu
                         continue;
                     }
                     if (skipping) continue;
+                    if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
                     newLines.push(lines[i]);
                 }
                 return newLines.join('\n');
@@ -1437,7 +1444,7 @@ public static class DiagramContextMenu
 
                 var origSource = container._noteOriginalSource;
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = buildSourceWithCollapsedNotes(origSource, container._collapsedNotes, noteBlocks);
+                var newSource = buildSourceWithCollapsedNotes(origSource, container._collapsedNotes, noteBlocks, !!container._headersHidden);
 
                 container.setAttribute('data-plantuml', newSource);
                 container._noteRendering = true;
@@ -1490,36 +1497,32 @@ public static class DiagramContextMenu
 
             window._makeNotesCollapsible = makeNotesCollapsible;
 
-            window._toggleAllNotes = function(btn) {
-                var scenario = btn.closest('details.scenario');
-                if (!scenario) return;
-                var containers = scenario.querySelectorAll('[data-plantuml]');
-                var expanding = btn.textContent === 'Expand Details';
+            // Global defaults
+            window._detailsDefaultCollapsed = true;
+            window._headersHidden = false;
 
-                // Build queue of containers that need re-rendering
-                var queue = [];
-                containers.forEach(function(container) {
-                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
-                    var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
-                    if (noteBlocks.length === 0) return;
-                    if (!container._collapsedNotes) container._collapsedNotes = {};
-                    var needsUpdate = false;
+            // Pre-process source before initial render (no-flash default-collapsed)
+            window._preProcessSource = function(el, source) {
+                var noteBlocks = parseNoteBlocks(source);
+                if (noteBlocks.length === 0) return source;
+                el._noteOriginalSource = source;
+                if (window._detailsDefaultCollapsed) {
+                    el._collapsedNotes = {};
                     for (var i = 0; i < noteBlocks.length; i++) {
-                        var shouldCollapse = !expanding;
-                        if (!!container._collapsedNotes[i] !== shouldCollapse) {
-                            container._collapsedNotes[i] = shouldCollapse;
-                            needsUpdate = true;
-                        }
+                        el._collapsedNotes[i] = true;
                     }
-                    if (needsUpdate) queue.push({ container: container, noteBlocks: noteBlocks });
-                });
+                    return buildSourceWithCollapsedNotes(source, el._collapsedNotes, noteBlocks, false);
+                }
+                return source;
+            };
 
-                // Render one at a time — TeaVM engine uses shared global state
+            // Shared serialized render queue — TeaVM engine uses shared global state
+            function processRenderQueue(queue, onAllDone) {
                 function processNext() {
-                    if (queue.length === 0) return;
+                    if (queue.length === 0) { if (onAllDone) onAllDone(); return; }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, item.noteBlocks);
+                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, item.noteBlocks, !!container._headersHidden);
                     container.setAttribute('data-plantuml', newSource);
                     container._noteRendering = true;
                     var done = false;
@@ -1548,8 +1551,77 @@ public static class DiagramContextMenu
                     }, 100);
                 }
                 processNext();
+            }
 
-                btn.textContent = expanding ? 'Collapse Details' : 'Expand Details';
+            function buildDetailsQueue(containers, expanding) {
+                var queue = [];
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                    if (noteBlocks.length === 0) return;
+                    if (!container._collapsedNotes) container._collapsedNotes = {};
+                    var needsUpdate = false;
+                    for (var i = 0; i < noteBlocks.length; i++) {
+                        var shouldCollapse = !expanding;
+                        if (!!container._collapsedNotes[i] !== shouldCollapse) {
+                            container._collapsedNotes[i] = shouldCollapse;
+                            needsUpdate = true;
+                        }
+                    }
+                    if (needsUpdate) queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+                return queue;
+            }
+
+            function buildHeadersQueue(containers, hiding) {
+                var queue = [];
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                    if (noteBlocks.length === 0) return;
+                    if (!container._collapsedNotes) container._collapsedNotes = {};
+                    var wasHidden = !!container._headersHidden;
+                    if (wasHidden === hiding) return;
+                    container._headersHidden = hiding;
+                    queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+                return queue;
+            }
+
+            // Scenario-level: toggle details
+            window._toggleAllNotes = function(btn) {
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                var expanding = btn.textContent === 'Show Details';
+                processRenderQueue(buildDetailsQueue(containers, expanding));
+                btn.textContent = expanding ? 'Collapse Details' : 'Show Details';
+            };
+
+            // Report-level: toggle details for all scenarios
+            window._toggleReportDetails = function(btn) {
+                var expanding = btn.textContent === 'Show Details';
+                var containers = document.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildDetailsQueue(containers, expanding));
+                btn.textContent = expanding ? 'Collapse Details' : 'Show Details';
+                document.querySelectorAll('.collapse-all-notes-btn').forEach(function(b) {
+                    b.textContent = expanding ? 'Collapse Details' : 'Show Details';
+                });
+            };
+
+            // Toggle headers (works for both report-level and scenario-level)
+            window._toggleHeaders = function(btn) {
+                var scenario = btn.closest('details.scenario');
+                var scope = scenario || document;
+                var containers = scope.querySelectorAll('[data-plantuml]');
+                var hiding = btn.textContent === 'Hide Headers';
+                processRenderQueue(buildHeadersQueue(containers, hiding));
+                btn.textContent = hiding ? 'Show Headers' : 'Hide Headers';
+                if (!scenario) {
+                    document.querySelectorAll('.toggle-headers-btn').forEach(function(b) {
+                        b.textContent = hiding ? 'Show Headers' : 'Hide Headers';
+                    });
+                }
             };
         })();
         </script>
