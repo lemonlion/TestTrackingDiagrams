@@ -1494,7 +1494,10 @@ public static class DiagramContextMenu
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                var expanding = btn.textContent === 'Expand All Notes';
+                var expanding = btn.textContent === 'Expand Details';
+
+                // Build queue of containers that need re-rendering
+                var queue = [];
                 containers.forEach(function(container) {
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
@@ -1508,8 +1511,15 @@ public static class DiagramContextMenu
                             needsUpdate = true;
                         }
                     }
-                    if (!needsUpdate) return;
-                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, noteBlocks);
+                    if (needsUpdate) queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+
+                // Render one at a time — TeaVM engine uses shared global state
+                function processNext() {
+                    if (queue.length === 0) return;
+                    var item = queue.shift();
+                    var container = item.container;
+                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, item.noteBlocks);
                     container.setAttribute('data-plantuml', newSource);
                     container._noteRendering = true;
                     var done = false;
@@ -1519,6 +1529,7 @@ public static class DiagramContextMenu
                         container._noteRendering = false;
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
+                        processNext();
                     }
                     var mo = new MutationObserver(function() {
                         if (!container.querySelector('svg')) return;
@@ -1526,17 +1537,19 @@ public static class DiagramContextMenu
                         afterRender();
                     });
                     mo.observe(container, { childList: true, subtree: true });
-                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; }
+                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; processNext(); }
                     var pollCount = 0;
                     var poll = setInterval(function() {
                         pollCount++;
                         if (done) { clearInterval(poll); return; }
                         var svg = container.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 100) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; }
+                        if (pollCount > 100) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; processNext(); }
                     }, 100);
-                });
-                btn.textContent = expanding ? 'Collapse All Notes' : 'Expand All Notes';
+                }
+                processNext();
+
+                btn.textContent = expanding ? 'Collapse Details' : 'Expand Details';
             };
         })();
         </script>

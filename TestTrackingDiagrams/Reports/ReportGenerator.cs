@@ -1054,7 +1054,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                         body.Append(spanWarning);
                         if (isPlantUmlBrowser)
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse Details</button>");
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
@@ -1063,7 +1063,7 @@ public static class ReportGenerator
                         if (isPlantUmlBrowser)
                         {
                             body.Append("<div class=\"diagram-toggle\">");
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse Details</button>");
                             body.Append("</div>");
                         }
                     }
@@ -1080,7 +1080,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                             body.Append(spanWarning);
                             if (isPlantUmlBrowser)
-                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
+                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse Details</button>");
                             body.Append("</div>");
                         }
                         else if (hasActivity)
