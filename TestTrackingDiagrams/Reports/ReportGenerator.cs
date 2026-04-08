@@ -907,8 +907,10 @@ public static class ReportGenerator
         body.Append("</div>"); // close filtering-box
         body.Append("</div>"); // close header-row
 
-        // Toolbar row: Collapse/Expand All, Dark Mode, Export
+        // Toolbar row: Export on left, Collapse/Expand + Details/Headers on right
         body.Append("""<div class="toolbar-row">""");
+        body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
+        body.Append("""<div class="toolbar-right">""");
         body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button>""");
         body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         if (isPlantUmlBrowser)
@@ -916,7 +918,7 @@ public static class ReportGenerator
             body.Append("""<button class="collapse-expand-all" onclick="window._toggleReportDetails(this)">Show Details</button>""");
             body.Append("""<button class="collapse-expand-all" onclick="window._toggleHeaders(this)">Hide Headers</button>""");
         }
-        body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
+        body.Append("</div>");
         body.Append("</div>");
 
         var plantUmlBrowserCounter = 0;
