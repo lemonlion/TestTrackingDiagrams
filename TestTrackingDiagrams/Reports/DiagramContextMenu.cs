@@ -146,7 +146,7 @@ public static class DiagramContextMenu
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
         .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
-        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; }
+        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; display: flex; align-items: center; }
         .diagram-toggle-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
@@ -159,6 +159,17 @@ public static class DiagramContextMenu
         .diagram-toggle-btn:hover { background: #e8f0fe; }
         .diagram-toggle-active { background: #4285f4; color: #fff; border-color: #4285f4; }
         .diagram-toggle-active:hover { background: #3367d6; }
+        .diagram-toggle-spacer { flex: 1; }
+        .collapse-all-notes-btn {
+            padding: 4px 14px;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-right: 1em;
+        }
+        .collapse-all-notes-btn:hover { background: #e8f0fe; }
         .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -1478,6 +1489,55 @@ public static class DiagramContextMenu
             }
 
             window._makeNotesCollapsible = makeNotesCollapsible;
+
+            window._toggleAllNotes = function(btn) {
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                var expanding = btn.textContent === 'Expand All Notes';
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                    if (noteBlocks.length === 0) return;
+                    if (!container._collapsedNotes) container._collapsedNotes = {};
+                    var needsUpdate = false;
+                    for (var i = 0; i < noteBlocks.length; i++) {
+                        var shouldCollapse = !expanding;
+                        if (!!container._collapsedNotes[i] !== shouldCollapse) {
+                            container._collapsedNotes[i] = shouldCollapse;
+                            needsUpdate = true;
+                        }
+                    }
+                    if (!needsUpdate) return;
+                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, noteBlocks);
+                    container.setAttribute('data-plantuml', newSource);
+                    container._noteRendering = true;
+                    var done = false;
+                    function afterRender() {
+                        if (done) return;
+                        done = true;
+                        container._noteRendering = false;
+                        if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
+                        makeNotesCollapsible(container);
+                    }
+                    var mo = new MutationObserver(function() {
+                        if (!container.querySelector('svg')) return;
+                        mo.disconnect();
+                        afterRender();
+                    });
+                    mo.observe(container, { childList: true, subtree: true });
+                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; }
+                    var pollCount = 0;
+                    var poll = setInterval(function() {
+                        pollCount++;
+                        if (done) { clearInterval(poll); return; }
+                        var svg = container.querySelector('svg');
+                        if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
+                        if (pollCount > 100) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; }
+                    }, 100);
+                });
+                btn.textContent = expanding ? 'Collapse All Notes' : 'Expand All Notes';
+            };
         })();
         </script>
         """;

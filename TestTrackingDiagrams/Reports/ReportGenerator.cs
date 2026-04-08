@@ -1053,11 +1053,19 @@ public static class ReportGenerator
                         if (!string.IsNullOrEmpty(wholeTestContent!.Value.FlameHtml))
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                         body.Append(spanWarning);
+                        if (isPlantUmlBrowser)
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
                     {
                         body.Append("<summary class=\"h4\">Sequence Diagrams</summary>");
+                        if (isPlantUmlBrowser)
+                        {
+                            body.Append("<div class=\"diagram-toggle\">");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
+                            body.Append("</div>");
+                        }
                     }
                     else
                     {
@@ -1071,6 +1079,8 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"activity\">Activity Diagrams</button>");
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                             body.Append(spanWarning);
+                            if (isPlantUmlBrowser)
+                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Collapse All Notes</button>");
                             body.Append("</div>");
                         }
                         else if (hasActivity)

@@ -94,7 +94,7 @@ public class DiagramToggleReportTests : IDisposable
         var content = GenerateReport(MakeDiagrams(), MakeFeatures(), "ToggleSeqOnly.html");
 
         Assert.Contains("Sequence Diagrams</summary>", content);
-        Assert.DoesNotContain("diagram-toggle", content);
+        Assert.DoesNotContain("data-dtype=", content);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class DiagramToggleReportTests : IDisposable
             visualization: WholeTestFlowVisualization.Both);
 
         Assert.Contains("Sequence Diagrams</summary>", content);
-        Assert.DoesNotContain("<div class=\"diagram-toggle\"", content);
+        Assert.DoesNotContain("data-dtype=", content);
     }
 
     [Fact]
