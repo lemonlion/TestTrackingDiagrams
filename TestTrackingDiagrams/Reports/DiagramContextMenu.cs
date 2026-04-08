@@ -669,6 +669,54 @@ public static class DiagramContextMenu
                 menu = document.createElement('div');
                 menu.className = 'diagram-ctx-menu';
 
+                // Check if right-click is on a note
+                if (svg && window._findNoteGroups) {
+                    var noteGroups = window._findNoteGroups(svg);
+                    var clickedNoteIdx = -1;
+                    for (var ni = 0; ni < noteGroups.length; ni++) {
+                        var grp = noteGroups[ni];
+                        var els = grp.paths.concat(grp.texts);
+                        var found = false;
+                        for (var ei = 0; ei < els.length; ei++) {
+                            if (els[ei] === e.target || els[ei].contains(e.target)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            // Check by coordinate — handles transparent hoverRect overlays
+                            try {
+                                var bbox = window._getNoteBBox(grp);
+                                var pt = svg.createSVGPoint();
+                                pt.x = e.clientX; pt.y = e.clientY;
+                                var svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+                                if (svgPt.x >= bbox.x && svgPt.x <= bbox.x + bbox.width &&
+                                    svgPt.y >= bbox.y && svgPt.y <= bbox.y + bbox.height) {
+                                    found = true;
+                                }
+                            } catch(ex) {}
+                        }
+                        if (found) { clickedNoteIdx = ni; break; }
+                    }
+                    if (clickedNoteIdx >= 0) {
+                        // Get full original content from the original source
+                        var origSrc = container._noteOriginalSource || getSource(container);
+                        var noteBlocks = window._parseNoteBlocks(origSrc);
+                        var noteText;
+                        if (noteBlocks[clickedNoteIdx]) {
+                            noteText = noteBlocks[clickedNoteIdx].contentLines.map(function(l) {
+                                return l.replace(/^\s*\$color\(gray\)/, '');
+                            }).join('\n').trim();
+                        } else {
+                            noteText = noteGroups[clickedNoteIdx].texts.map(function(t) { return t.textContent; }).join('\n');
+                        }
+                        menu.appendChild(createMenuItem('Copy box text', function() {
+                            navigator.clipboard.writeText(noteText);
+                        }));
+                        menu.appendChild(createSeparator());
+                    }
+                }
+
                 var selectedText = (window.getSelection() || '').toString().trim();
                 if (selectedText) {
                     menu.appendChild(createMenuItem('Copy Highlighted Text', function() {
@@ -1562,6 +1610,9 @@ public static class DiagramContextMenu
             }
 
             window._makeNotesCollapsible = makeNotesCollapsible;
+            window._findNoteGroups = findNoteGroups;
+            window._getNoteBBox = getNoteBBox;
+            window._parseNoteBlocks = parseNoteBlocks;
 
             // Global defaults
             window._headersHidden = false;
