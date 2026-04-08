@@ -1260,14 +1260,9 @@ public static class DiagramContextMenu
                 var nonGray = contentLines.map(function(l) { return l.trim(); })
                     .filter(function(l) { return !l.match(/^\$color\(gray\)/); });
                 var raw = nonGray.join(' ').trim();
-                if (!raw) {
-                    // All lines are gray headers — use them stripped of the $color prefix
-                    raw = contentLines.map(function(l) { return l.trim().replace(/\$color\(gray\)/g, ''); })
-                        .join(' ').trim();
-                }
-                if (!raw) raw = '(collapsed)';
-                if (raw.length <= 40) return raw;
-                return raw.substring(0, 40) + '...';
+                if (!raw) return '...';
+                if (raw.length <= 60) return raw;
+                return raw.substring(0, 60) + '...';
             }
 
             function hasNoteFill(pathEl) {
