@@ -1385,13 +1385,13 @@ public static class DiagramContextMenu
 
                 if (isCollapsed && contentLines) {
                     var tipLines = contentLines.map(function(l) {
-                        return l.trim().replace(/^\$color\(gray\)/, '');
+                        return l.replace(/^\s*\$color\(gray\)/, '');
                     });
                     var tipText = tipLines.join('\n').trim();
                     if (tipText) {
                         var displayLines = tipText.split('\n');
-                        if (displayLines.length > 40) {
-                            tipText = displayLines.slice(0, 40).join('\n') + '\n...';
+                        if (displayLines.length > 20) {
+                            tipText = displayLines.slice(0, 20).join('\n') + '\n...';
                         }
                         var tooltip = document.querySelector('.note-tooltip');
                         if (!tooltip) {
@@ -1401,6 +1401,7 @@ public static class DiagramContextMenu
                         }
                         hoverRect.addEventListener('mouseenter', function(ev) {
                             tooltip.textContent = tipText;
+                            tooltip.style.whiteSpace = 'pre-wrap';
                             tooltip.style.display = 'block';
                             var tx = ev.clientX + 12;
                             var ty = ev.clientY + 12;

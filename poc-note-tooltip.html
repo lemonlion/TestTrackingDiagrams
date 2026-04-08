@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>POC: Note Tooltip with Whitespace Preservation</title>
+<style>
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 2em; }
+    .note-tooltip {
+        position: fixed;
+        z-index: 10000;
+        max-width: 600px;
+        max-height: 400px;
+        overflow: auto;
+        padding: 8px 10px;
+        background: #ffffee;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font: 12px/1.4 monospace;
+        white-space: pre-wrap;
+        word-break: break-all;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        pointer-events: none;
+        display: none;
+    }
+    .fake-note {
+        display: inline-block;
+        background: #ffffcc;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px 16px;
+        margin: 1em;
+        cursor: default;
+        font: 13px/1.5 monospace;
+    }
+    h3 { margin-top: 2em; }
+</style>
+</head>
+<body>
+<h2>POC: Note Tooltip — Whitespace Preservation + 25-line Truncation</h2>
+<p>Hover over each collapsed note box to see the tooltip.</p>
+
+<h3>1. JSON body with headers (typical case)</h3>
+<div class="fake-note" id="note1">...</div>
+
+<h3>2. Headers only (no body)</h3>
+<div class="fake-note" id="note2">...</div>
+
+<h3>3. Large JSON body (>25 lines, should truncate)</h3>
+<div class="fake-note" id="note3">...</div>
+
+<h3>4. Form-encoded body with headers</h3>
+<div class="fake-note" id="note4">...</div>
+
+<div class="note-tooltip" id="tooltip"></div>
+
+<script>
+// Simulate contentLines as they'd appear in PlantUML source (between "note left" and "end note")
+var notes = {
+    note1: [
+        '$color(gray)[Content-Type=application/json]',
+        '$color(gray)[Authorization=Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXV...]',
+        '$color(gray)[X-Correlation-Id=abc-123-def-456]',
+        '',
+        '{',
+        '  "merchantId": "M12345",',
+        '  "amount": 99.99,',
+        '  "currency": "GBP",',
+        '  "reference": "ORDER-2026-001",',
+        '  "metadata": {',
+        '    "source": "web",',
+        '    "channel": "mobile"',
+        '  }',
+        '}'
+    ],
+    note2: [
+        '$color(gray)[Content-Type=application/json]',
+        '$color(gray)[Authorization=Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXV...]',
+        '$color(gray)[X-Correlation-Id=abc-123-def-456]',
+        '$color(gray)[Cache-Control=no-cache]'
+    ],
+    note3: (function() {
+        var lines = [
+            '$color(gray)[Content-Type=application/json]',
+            '$color(gray)[Authorization=Bearer token123]',
+            '',
+            '{'
+        ];
+        for (var i = 1; i <= 30; i++) {
+            lines.push('  "field' + i + '": "value' + i + '",');
+        }
+        lines.push('  "lastField": "done"');
+        lines.push('}');
+        return lines;
+    })(),
+    note4: [
+        '$color(gray)[Content-Type=application/x-www-form-urlencoded]',
+        '$color(gray)[Accept=*/*]',
+        '',
+        'grant_type=client_credentials',
+        '&client_id=my-service',
+        '&client_secret=super-secret-value',
+        '&scope=api.read api.write'
+    ]
+};
+
+var tooltip = document.getElementById('tooltip');
+
+Object.keys(notes).forEach(function(id) {
+    var el = document.getElementById(id);
+    var contentLines = notes[id];
+
+    // Same logic as in DiagramContextMenu.cs
+    var tipLines = contentLines.map(function(l) {
+        return l.replace(/^\s*\$color\(gray\)/, '');
+    });
+    var tipText = tipLines.join('\n').trim();
+    if (tipText) {
+        var displayLines = tipText.split('\n');
+        if (displayLines.length > 20) {
+            tipText = displayLines.slice(0, 20).join('\n') + '\n...';
+        }
+
+        el.addEventListener('mouseenter', function(ev) {
+            tooltip.textContent = tipText;
+            tooltip.style.whiteSpace = 'pre-wrap';
+            tooltip.style.display = 'block';
+            var tx = ev.clientX + 12;
+            var ty = ev.clientY + 12;
+            if (tx + 600 > window.innerWidth) tx = Math.max(4, window.innerWidth - 610);
+            if (ty + 400 > window.innerHeight) ty = Math.max(4, ev.clientY - 412);
+            tooltip.style.left = tx + 'px';
+            tooltip.style.top = ty + 'px';
+        });
+        el.addEventListener('mouseleave', function() {
+            tooltip.style.display = 'none';
+        });
+    }
+});
+</script>
+</body>
+</html>
