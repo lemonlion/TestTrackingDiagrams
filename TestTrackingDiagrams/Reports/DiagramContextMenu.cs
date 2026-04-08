@@ -170,23 +170,6 @@ public static class DiagramContextMenu
             margin-right: 1em;
         }
         .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
-        .note-tooltip {
-            position: fixed;
-            z-index: 10000;
-            max-width: 600px;
-            max-height: 400px;
-            overflow: auto;
-            padding: 8px 10px;
-            background: #ffffee;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font: 12px/1.4 monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            pointer-events: none;
-            display: none;
-        }
         .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -1393,26 +1376,9 @@ public static class DiagramContextMenu
                         if (displayLines.length > 20) {
                             tipText = displayLines.slice(0, 20).join('\n') + '\n...';
                         }
-                        var tooltip = document.querySelector('.note-tooltip');
-                        if (!tooltip) {
-                            tooltip = document.createElement('div');
-                            tooltip.className = 'note-tooltip';
-                            document.body.appendChild(tooltip);
-                        }
-                        hoverRect.addEventListener('mouseenter', function(ev) {
-                            tooltip.textContent = tipText;
-                            tooltip.style.whiteSpace = 'pre-wrap';
-                            tooltip.style.display = 'block';
-                            var tx = ev.clientX + 12;
-                            var ty = ev.clientY + 12;
-                            if (tx + 600 > window.innerWidth) tx = Math.max(4, window.innerWidth - 610);
-                            if (ty + 400 > window.innerHeight) ty = Math.max(4, ev.clientY - 412);
-                            tooltip.style.left = tx + 'px';
-                            tooltip.style.top = ty + 'px';
-                        });
-                        hoverRect.addEventListener('mouseleave', function() {
-                            tooltip.style.display = 'none';
-                        });
+                        var titleEl = document.createElementNS(SVGNS, 'title');
+                        titleEl.textContent = tipText;
+                        hoverRect.appendChild(titleEl);
                     }
                 }
                 svg.appendChild(hoverRect);

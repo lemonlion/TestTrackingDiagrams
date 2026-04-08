@@ -1,56 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>POC: Note Tooltip with Whitespace Preservation</title>
+<title>POC: Note Tooltip — Native SVG title (no trim)</title>
 <style>
     body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 2em; }
-    .note-tooltip {
-        position: fixed;
-        z-index: 10000;
-        max-width: 600px;
-        max-height: 400px;
-        overflow: auto;
-        padding: 8px 10px;
-        background: #ffffee;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font: 12px/1.4 monospace;
-        white-space: pre-wrap;
-        word-break: break-all;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        pointer-events: none;
-        display: none;
-    }
-    .fake-note {
-        display: inline-block;
-        background: #ffffcc;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 8px 16px;
-        margin: 1em;
-        cursor: default;
-        font: 13px/1.5 monospace;
-    }
     h3 { margin-top: 2em; }
+    svg { display: block; margin: 1em 0; }
 </style>
 </head>
 <body>
-<h2>POC: Note Tooltip — Whitespace Preservation + 25-line Truncation</h2>
-<p>Hover over each collapsed note box to see the tooltip.</p>
+<h2>POC: Note Tooltip — Native SVG &lt;title&gt; (no trim)</h2>
+<p>Hover over each yellow box to see the native browser tooltip.</p>
 
 <h3>1. JSON body with headers (typical case)</h3>
-<div class="fake-note" id="note1">...</div>
+<svg id="note1" width="120" height="40"><rect width="120" height="40" fill="#ffffcc" stroke="#ccc"/><text x="60" y="25" text-anchor="middle" font-size="13">...</text></svg>
 
 <h3>2. Headers only (no body)</h3>
-<div class="fake-note" id="note2">...</div>
+<svg id="note2" width="120" height="40"><rect width="120" height="40" fill="#ffffcc" stroke="#ccc"/><text x="60" y="25" text-anchor="middle" font-size="13">...</text></svg>
 
-<h3>3. Large JSON body (>25 lines, should truncate)</h3>
-<div class="fake-note" id="note3">...</div>
+<h3>3. Large JSON body (&gt;20 lines, should truncate)</h3>
+<svg id="note3" width="120" height="40"><rect width="120" height="40" fill="#ffffcc" stroke="#ccc"/><text x="60" y="25" text-anchor="middle" font-size="13">...</text></svg>
 
 <h3>4. Form-encoded body with headers</h3>
-<div class="fake-note" id="note4">...</div>
-
-<div class="note-tooltip" id="tooltip"></div>
+<svg id="note4" width="120" height="40"><rect width="120" height="40" fill="#ffffcc" stroke="#ccc"/><text x="60" y="25" text-anchor="middle" font-size="13">...</text></svg>
 
 <script>
 // Simulate contentLines as they'd appear in PlantUML source (between "note left" and "end note")
@@ -102,13 +74,12 @@ var notes = {
     ]
 };
 
-var tooltip = document.getElementById('tooltip');
-
 Object.keys(notes).forEach(function(id) {
-    var el = document.getElementById(id);
+    var svg = document.getElementById(id);
+    var rect = svg.querySelector('rect');
     var contentLines = notes[id];
 
-    // Same logic as in DiagramContextMenu.cs
+    // Same logic as in DiagramContextMenu.cs — no .trim()
     var tipLines = contentLines.map(function(l) {
         return l.replace(/^\s*\$color\(gray\)/, '');
     });
@@ -118,21 +89,10 @@ Object.keys(notes).forEach(function(id) {
         if (displayLines.length > 20) {
             tipText = displayLines.slice(0, 20).join('\n') + '\n...';
         }
-
-        el.addEventListener('mouseenter', function(ev) {
-            tooltip.textContent = tipText;
-            tooltip.style.whiteSpace = 'pre-wrap';
-            tooltip.style.display = 'block';
-            var tx = ev.clientX + 12;
-            var ty = ev.clientY + 12;
-            if (tx + 600 > window.innerWidth) tx = Math.max(4, window.innerWidth - 610);
-            if (ty + 400 > window.innerHeight) ty = Math.max(4, ev.clientY - 412);
-            tooltip.style.left = tx + 'px';
-            tooltip.style.top = ty + 'px';
-        });
-        el.addEventListener('mouseleave', function() {
-            tooltip.style.display = 'none';
-        });
+        // Native SVG <title> — browser manages show/hide automatically
+        var titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        titleEl.textContent = tipText;
+        rect.appendChild(titleEl);
     }
 });
 </script>
