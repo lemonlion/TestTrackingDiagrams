@@ -1372,6 +1372,10 @@ public static class DiagramContextMenu
                 if (isCollapsed) g.style.opacity = '0.6';
 
                 svg.appendChild(hoverRect);
+                hoverRect.addEventListener('dblclick', function(ev) {
+                    ev.stopPropagation();
+                    onClick();
+                });
                 bg.addEventListener('click', function(ev) {
                     ev.stopPropagation();
                     onClick();
