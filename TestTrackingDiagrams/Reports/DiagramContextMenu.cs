@@ -700,6 +700,12 @@ public static class DiagramContextMenu
                         menu.appendChild(createMenuItem('Copy ' + typeLabel + ' source', function() {
                             navigator.clipboard.writeText(source);
                         }));
+                        var origSource = container._noteOriginalSource || source;
+                        if (origSource !== source) {
+                            menu.appendChild(createMenuItem('Copy original ' + typeLabel + ' source', function() {
+                                navigator.clipboard.writeText(origSource);
+                            }));
+                        }
                     }
                     menu.appendChild(createSeparator());
                     menu.appendChild(createMenuItem('Save as PNG', function() {
@@ -745,6 +751,13 @@ public static class DiagramContextMenu
                             var blob = new Blob([source], { type: 'text/plain' });
                             window.open(URL.createObjectURL(blob));
                         }));
+                        var origSource2 = container._noteOriginalSource || source;
+                        if (origSource2 !== source) {
+                            menu.appendChild(createMenuItem('Open original ' + typeLabel + ' source in new tab', function() {
+                                var blob = new Blob([origSource2], { type: 'text/plain' });
+                                window.open(URL.createObjectURL(blob));
+                            }));
+                        }
                     }
                 } else {
                     // HTML content (flame chart, call tree) — PNG only
