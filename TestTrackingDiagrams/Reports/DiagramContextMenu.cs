@@ -1318,7 +1318,7 @@ public static class DiagramContextMenu
                 return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
             }
 
-            function createToggleIcon(svg, bbox, isCollapsed, onClick) {
+            function createToggleIcon(svg, bbox, isCollapsed, onClick, contentLines) {
                 var size = 12;
                 var pad = 3;
                 var ix = bbox.x + bbox.width - size - pad;
@@ -1366,6 +1366,16 @@ public static class DiagramContextMenu
                 // For collapsed notes, always show the expand icon
                 if (isCollapsed) g.style.opacity = '0.6';
 
+                if (isCollapsed && contentLines) {
+                    var tipText = contentLines.map(function(l) {
+                        return l.trim().replace(/^\$color\(gray\)/, '');
+                    }).join('\n').trim();
+                    if (tipText) {
+                        var title = document.createElementNS(SVGNS, 'title');
+                        title.textContent = tipText;
+                        hoverRect.appendChild(title);
+                    }
+                }
                 svg.appendChild(hoverRect);
                 hoverRect.addEventListener('dblclick', function(ev) {
                     ev.stopPropagation();
@@ -1398,7 +1408,7 @@ public static class DiagramContextMenu
                         var isCollapsed = !!container._collapsedNotes[idx];
                         createToggleIcon(svg, bbox, isCollapsed, function() {
                             toggleNote(container, idx);
-                        });
+                        }, noteBlocks[idx].contentLines);
                     })(ni);
                 }
             }
