@@ -915,7 +915,9 @@ public static class ReportGenerator
         body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         if (isPlantUmlBrowser)
         {
-            body.Append("""<button class="collapse-expand-all" onclick="window._toggleReportDetails(this)">Show Details</button>""");
+            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('expanded')">Expand All Details</button>""");
+            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('truncated')">Truncate Details</button>""");
+            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('collapsed')">Collapse Details</button>""");
             body.Append("""<button class="collapse-expand-all" onclick="window._toggleHeaders(this)">Hide Headers</button>""");
         }
         body.Append("</div>");
@@ -1061,7 +1063,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                         body.Append(spanWarning);
                         if (isPlantUmlBrowser)
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Show Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
@@ -1070,7 +1072,7 @@ public static class ReportGenerator
                         if (isPlantUmlBrowser)
                         {
                             body.Append("<div class=\"diagram-toggle\">");
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Show Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                             body.Append("</div>");
                         }
                     }
@@ -1087,7 +1089,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                             body.Append(spanWarning);
                             if (isPlantUmlBrowser)
-                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._toggleAllNotes(this)\">Show Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                             body.Append("</div>");
                         }
                         else if (hasActivity)

@@ -1318,11 +1318,23 @@ public static class DiagramContextMenu
                 return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
             }
 
-            function createToggleIcon(svg, bbox, isCollapsed, onClick, contentLines) {
+            function isLongNote(contentLines) {
+                return contentLines && contentLines.length > 20;
+            }
+
+            // noteStep: 0=collapsed, 1=truncated, 2=expanded (3=truncated on way back down)
+            function noteStepState(step) {
+                if (step === 0) return 'collapsed';
+                if (step === 2) return 'expanded';
+                return 'truncated';
+            }
+
+            function createToggleIcon(svg, bbox, noteStep, onClick, contentLines) {
                 var size = 12;
                 var pad = 3;
                 var ix = bbox.x + bbox.width - size - pad;
                 var iy = bbox.y + pad;
+                var state = noteStepState(noteStep);
 
                 var g = document.createElementNS(SVGNS, 'g');
                 g.setAttribute('class', 'note-toggle-icon');
@@ -1348,7 +1360,7 @@ public static class DiagramContextMenu
                 symbol.setAttribute('font-family', 'sans-serif');
                 symbol.setAttribute('fill', '#666');
                 symbol.style.pointerEvents = 'none';
-                symbol.textContent = isCollapsed ? '+' : '\u2212';
+                symbol.textContent = state === 'collapsed' ? '+' : state === 'truncated' ? '\u2304' : '\u2212';
                 g.appendChild(symbol);
 
                 // Show on hover over the note area
@@ -1363,10 +1375,10 @@ public static class DiagramContextMenu
                 hoverRect.addEventListener('mouseleave', function() { g.style.opacity = '0'; });
                 g.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
 
-                // For collapsed notes, always show the expand icon
-                if (isCollapsed) g.style.opacity = '0.6';
+                // For non-expanded notes, always show the icon
+                if (state !== 'expanded') g.style.opacity = '0.6';
 
-                if (isCollapsed && contentLines) {
+                if (state === 'collapsed' && contentLines) {
                     var tipLines = contentLines.map(function(l) {
                         return l.replace(/^\s*\$color\(gray\)/, '');
                     });
@@ -1402,7 +1414,7 @@ public static class DiagramContextMenu
 
                 var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                 if (noteBlocks.length === 0) return;
-                if (!container._collapsedNotes) container._collapsedNotes = {};
+                if (!container._noteSteps) container._noteSteps = {};
 
                 var noteGroups = findNoteGroups(svg);
 
@@ -1410,41 +1422,62 @@ public static class DiagramContextMenu
                     (function(idx) {
                         var grp = noteGroups[idx];
                         var bbox = getNoteBBox(grp);
-                        var isCollapsed = !!container._collapsedNotes[idx];
-                        createToggleIcon(svg, bbox, isCollapsed, function() {
+                        var step = container._noteSteps[idx] || 0;
+                        // Short notes only have steps 0 (collapsed) and 2 (expanded)
+                        if (!isLongNote(noteBlocks[idx].contentLines) && step === 1) step = 2;
+                        createToggleIcon(svg, bbox, step, function() {
                             toggleNote(container, idx);
                         }, noteBlocks[idx].contentLines);
                     })(ni);
                 }
             }
 
-            function buildSourceWithCollapsedNotes(origSource, collapsedNotes, noteBlocks, hideHeaders) {
+            function buildSourceWithNoteStates(origSource, noteSteps, noteBlocks, hideHeaders) {
                 var lines = origSource.split('\n');
                 var newLines = [];
                 var nIdx = 0;
                 var inNote = false;
-                var skipping = false;
+                var noteMode = 'normal'; // 'normal', 'collapsed', 'truncated'
+                var truncateLineCount = 0;
 
                 for (var i = 0; i < lines.length; i++) {
                     var trimmed = lines[i].trim();
                     if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
                         inNote = true;
                         newLines.push(lines[i]);
-                        if (collapsedNotes[nIdx]) {
-                            skipping = true;
+                        var step = noteSteps[nIdx] || 0;
+                        var state = noteStepState(step);
+                        if (state === 'collapsed') {
+                            noteMode = 'collapsed';
                             var preview = getNotePreview(noteBlocks[nIdx].contentLines);
                             newLines.push(preview);
+                        } else if (state === 'truncated') {
+                            noteMode = 'truncated';
+                            truncateLineCount = 0;
+                        } else {
+                            noteMode = 'normal';
                         }
                         nIdx++;
                         continue;
                     }
                     if (inNote && trimmed === 'end note') {
+                        if (noteMode === 'truncated' && truncateLineCount > 20) {
+                            newLines.push('...');
+                        }
                         inNote = false;
-                        skipping = false;
+                        noteMode = 'normal';
                         newLines.push(lines[i]);
                         continue;
                     }
-                    if (skipping) continue;
+                    if (noteMode === 'collapsed') continue;
+                    if (noteMode === 'truncated') {
+                        if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
+                        truncateLineCount++;
+                        if (truncateLineCount <= 20) {
+                            newLines.push(lines[i]);
+                        }
+                        continue;
+                    }
                     if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
                     newLines.push(lines[i]);
                 }
@@ -1453,12 +1486,18 @@ public static class DiagramContextMenu
 
             function toggleNote(container, noteIdx) {
                 if (container._noteRendering) return;
-                if (!container._collapsedNotes) container._collapsedNotes = {};
-                container._collapsedNotes[noteIdx] = !container._collapsedNotes[noteIdx];
-
+                if (!container._noteSteps) container._noteSteps = {};
                 var origSource = container._noteOriginalSource;
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = buildSourceWithCollapsedNotes(origSource, container._collapsedNotes, noteBlocks, !!container._headersHidden);
+                var currentStep = container._noteSteps[noteIdx] || 0;
+                // Long notes: 4-step cycle 0→1→2→3→0; Short notes: 2-step cycle 0→2→0
+                if (isLongNote(noteBlocks[noteIdx].contentLines)) {
+                    container._noteSteps[noteIdx] = (currentStep + 1) % 4;
+                } else {
+                    container._noteSteps[noteIdx] = currentStep === 0 ? 2 : 0;
+                }
+
+                var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden);
 
                 container.setAttribute('data-plantuml', newSource);
                 container._noteRendering = true;
@@ -1512,21 +1551,13 @@ public static class DiagramContextMenu
             window._makeNotesCollapsible = makeNotesCollapsible;
 
             // Global defaults
-            window._detailsDefaultCollapsed = true;
             window._headersHidden = false;
 
-            // Pre-process source before initial render (no-flash default-collapsed)
+            // Pre-process source before initial render (default expanded — no transformation needed)
             window._preProcessSource = function(el, source) {
                 var noteBlocks = parseNoteBlocks(source);
                 if (noteBlocks.length === 0) return source;
                 el._noteOriginalSource = source;
-                if (window._detailsDefaultCollapsed) {
-                    el._collapsedNotes = {};
-                    for (var i = 0; i < noteBlocks.length; i++) {
-                        el._collapsedNotes[i] = true;
-                    }
-                    return buildSourceWithCollapsedNotes(source, el._collapsedNotes, noteBlocks, false);
-                }
                 return source;
             };
 
@@ -1536,7 +1567,7 @@ public static class DiagramContextMenu
                     if (queue.length === 0) { if (onAllDone) onAllDone(); return; }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = buildSourceWithCollapsedNotes(container._noteOriginalSource, container._collapsedNotes, item.noteBlocks, !!container._headersHidden);
+                    var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden);
                     container.setAttribute('data-plantuml', newSource);
                     container._noteRendering = true;
                     var done = false;
@@ -1567,18 +1598,25 @@ public static class DiagramContextMenu
                 processNext();
             }
 
-            function buildDetailsQueue(containers, expanding) {
+            function buildDetailsQueue(containers, targetState) {
                 var queue = [];
                 containers.forEach(function(container) {
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
-                    if (!container._collapsedNotes) container._collapsedNotes = {};
+                    if (!container._noteSteps) container._noteSteps = {};
                     var needsUpdate = false;
                     for (var i = 0; i < noteBlocks.length; i++) {
-                        var shouldCollapse = !expanding;
-                        if (!!container._collapsedNotes[i] !== shouldCollapse) {
-                            container._collapsedNotes[i] = shouldCollapse;
+                        var targetStep;
+                        if (targetState === 'expanded') {
+                            targetStep = 2;
+                        } else if (targetState === 'truncated') {
+                            targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2;
+                        } else {
+                            targetStep = 0;
+                        }
+                        if ((container._noteSteps[i] || 0) !== targetStep) {
+                            container._noteSteps[i] = targetStep;
                             needsUpdate = true;
                         }
                     }
@@ -1593,7 +1631,7 @@ public static class DiagramContextMenu
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
-                    if (!container._collapsedNotes) container._collapsedNotes = {};
+                    if (!container._noteSteps) container._noteSteps = {};
                     var wasHidden = !!container._headersHidden;
                     if (wasHidden === hiding) return;
                     container._headersHidden = hiding;
@@ -1602,25 +1640,18 @@ public static class DiagramContextMenu
                 return queue;
             }
 
-            // Scenario-level: toggle details
-            window._toggleAllNotes = function(btn) {
+            // Scenario-level: expand/truncate/collapse details
+            window._setAllNotes = function(btn, targetState) {
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                var expanding = btn.textContent === 'Show Details';
-                processRenderQueue(buildDetailsQueue(containers, expanding));
-                btn.textContent = expanding ? 'Collapse Details' : 'Show Details';
+                processRenderQueue(buildDetailsQueue(containers, targetState));
             };
 
-            // Report-level: toggle details for all scenarios
-            window._toggleReportDetails = function(btn) {
-                var expanding = btn.textContent === 'Show Details';
+            // Report-level: expand/truncate/collapse details for all scenarios
+            window._setReportDetails = function(targetState) {
                 var containers = document.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildDetailsQueue(containers, expanding));
-                btn.textContent = expanding ? 'Collapse Details' : 'Show Details';
-                document.querySelectorAll('.collapse-all-notes-btn').forEach(function(b) {
-                    b.textContent = expanding ? 'Collapse Details' : 'Show Details';
-                });
+                processRenderQueue(buildDetailsQueue(containers, targetState));
             };
 
             // Toggle headers (works for both report-level and scenario-level)
