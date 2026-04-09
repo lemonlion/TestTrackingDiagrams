@@ -1,6 +1,6 @@
-[![NuGet](https://img.shields.io/nuget/v/CosmosDB.InMemoryEmulator.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/CosmosDB.InMemoryEmulator.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
-[![CI](https://github.com/lemonlion/CosmosDB.InMemoryEmulator/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonlion/TestTrackingDiagrams/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/TestTrackingDiagrams.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/TestTrackingDiagrams.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
+[![CI](https://github.com/lemonlion/TestTrackingDiagrams/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonlion/TestTrackingDiagrams/actions/workflows/ci.yml)
 
 
 <a name="top"></a>
