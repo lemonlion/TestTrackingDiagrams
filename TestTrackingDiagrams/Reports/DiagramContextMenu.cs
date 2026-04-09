@@ -1410,41 +1410,65 @@ public static class DiagramContextMenu
                 return 'truncated';
             }
 
-            function createToggleIcon(svg, bbox, noteStep, onClick, contentLines) {
+            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, contentLines) {
                 var size = 12;
                 var pad = 3;
-                var ix = bbox.x + bbox.width - size - pad;
-                var iy = bbox.y + pad;
                 var state = noteStepState(noteStep);
+                var buttons = [];
 
-                var g = document.createElementNS(SVGNS, 'g');
-                g.setAttribute('class', 'note-toggle-icon');
-                g.style.cursor = 'pointer';
-                g.style.opacity = '0';
+                // Top-right contract button (−) — shown when expanded or truncated
+                if (state === 'expanded' || state === 'truncated') {
+                    var ix = bbox.x + bbox.width - size - pad;
+                    var iy = bbox.y + pad;
+                    var gc = document.createElementNS(SVGNS, 'g');
+                    gc.setAttribute('class', 'note-toggle-icon');
+                    gc.style.cursor = 'pointer';
+                    gc.style.opacity = '0';
+                    var bgC = document.createElementNS(SVGNS, 'rect');
+                    bgC.setAttribute('x', ix); bgC.setAttribute('y', iy);
+                    bgC.setAttribute('width', size); bgC.setAttribute('height', size);
+                    bgC.setAttribute('rx', '2'); bgC.setAttribute('fill', '#ffffff');
+                    bgC.setAttribute('stroke', '#999'); bgC.setAttribute('stroke-width', '0.5');
+                    gc.appendChild(bgC);
+                    var symC = document.createElementNS(SVGNS, 'text');
+                    symC.setAttribute('x', ix + size / 2); symC.setAttribute('y', iy + size - 2.5);
+                    symC.setAttribute('text-anchor', 'middle'); symC.setAttribute('font-size', '10');
+                    symC.setAttribute('font-family', 'sans-serif'); symC.setAttribute('fill', '#666');
+                    symC.style.pointerEvents = 'none';
+                    symC.textContent = '\u2212'; // −
+                    gc.appendChild(symC);
+                    bgC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                    buttons.push(gc);
+                }
 
-                var bg = document.createElementNS(SVGNS, 'rect');
-                bg.setAttribute('x', ix);
-                bg.setAttribute('y', iy);
-                bg.setAttribute('width', size);
-                bg.setAttribute('height', size);
-                bg.setAttribute('rx', '2');
-                bg.setAttribute('fill', '#ffffff');
-                bg.setAttribute('stroke', '#999');
-                bg.setAttribute('stroke-width', '0.5');
-                g.appendChild(bg);
+                // Bottom-center expand button (+) — shown when collapsed or truncated
+                if (state === 'collapsed' || state === 'truncated') {
+                    var expandW = size * 3;
+                    var expandH = size;
+                    var ex = bbox.x + (bbox.width - expandW) / 2;
+                    var ey = bbox.y + bbox.height - expandH - pad;
+                    var ge = document.createElementNS(SVGNS, 'g');
+                    ge.setAttribute('class', 'note-toggle-icon');
+                    ge.style.cursor = 'pointer';
+                    ge.style.opacity = '0';
+                    var bgE = document.createElementNS(SVGNS, 'rect');
+                    bgE.setAttribute('x', ex); bgE.setAttribute('y', ey);
+                    bgE.setAttribute('width', expandW); bgE.setAttribute('height', expandH);
+                    bgE.setAttribute('rx', '2'); bgE.setAttribute('fill', '#ffffff');
+                    bgE.setAttribute('stroke', '#999'); bgE.setAttribute('stroke-width', '0.5');
+                    ge.appendChild(bgE);
+                    var symE = document.createElementNS(SVGNS, 'text');
+                    symE.setAttribute('x', ex + expandW / 2); symE.setAttribute('y', ey + expandH - 2.5);
+                    symE.setAttribute('text-anchor', 'middle'); symE.setAttribute('font-size', '10');
+                    symE.setAttribute('font-family', 'sans-serif'); symE.setAttribute('fill', '#666');
+                    symE.style.pointerEvents = 'none';
+                    symE.textContent = '+';
+                    ge.appendChild(symE);
+                    bgE.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
+                    buttons.push(ge);
+                }
 
-                var symbol = document.createElementNS(SVGNS, 'text');
-                symbol.setAttribute('x', ix + size / 2);
-                symbol.setAttribute('y', iy + size - 2.5);
-                symbol.setAttribute('text-anchor', 'middle');
-                symbol.setAttribute('font-size', '10');
-                symbol.setAttribute('font-family', 'sans-serif');
-                symbol.setAttribute('fill', '#666');
-                symbol.style.pointerEvents = 'none';
-                symbol.textContent = state === 'collapsed' ? '+' : state === 'truncated' ? '\u2304' : '\u2212';
-                g.appendChild(symbol);
-
-                // Show on hover over the note area
+                // Hover detection rect over the whole note
                 var hoverRect = document.createElementNS(SVGNS, 'rect');
                 hoverRect.setAttribute('x', bbox.x);
                 hoverRect.setAttribute('y', bbox.y);
@@ -1452,13 +1476,19 @@ public static class DiagramContextMenu
                 hoverRect.setAttribute('height', bbox.height);
                 hoverRect.setAttribute('fill', 'transparent');
                 hoverRect.style.pointerEvents = 'all';
-                hoverRect.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
-                hoverRect.addEventListener('mouseleave', function() { g.style.opacity = '0'; });
-                g.addEventListener('mouseenter', function() { g.style.opacity = '1'; });
+                hoverRect.addEventListener('mouseenter', function() {
+                    buttons.forEach(function(b) { b.style.opacity = '1'; });
+                });
+                hoverRect.addEventListener('mouseleave', function() {
+                    buttons.forEach(function(b) { b.style.opacity = '0'; });
+                });
+                buttons.forEach(function(b) {
+                    b.addEventListener('mouseenter', function() {
+                        buttons.forEach(function(bb) { bb.style.opacity = '1'; });
+                    });
+                });
 
-                // For non-expanded notes, always show the icon
-                if (state !== 'expanded') g.style.opacity = '0.6';
-
+                // Tooltip for collapsed notes
                 if (state === 'collapsed' && contentLines) {
                     var tipLines = contentLines.map(function(l) {
                         return l.replace(/^\s*\$color\(gray\)/, '');
@@ -1474,16 +1504,9 @@ public static class DiagramContextMenu
                         hoverRect.appendChild(titleEl);
                     }
                 }
+
                 svg.appendChild(hoverRect);
-                hoverRect.addEventListener('dblclick', function(ev) {
-                    ev.stopPropagation();
-                    onClick();
-                });
-                bg.addEventListener('click', function(ev) {
-                    ev.stopPropagation();
-                    onClick();
-                });
-                svg.appendChild(g);
+                buttons.forEach(function(b) { svg.appendChild(b); });
             }
 
             function makeNotesCollapsible(container) {
@@ -1506,9 +1529,10 @@ public static class DiagramContextMenu
                         var step = container._noteSteps[idx] || 0;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
                         if (!isLongNote(noteBlocks[idx].contentLines) && step === 1) step = 2;
-                        createToggleIcon(svg, bbox, step, function() {
-                            toggleNote(container, idx);
-                        }, noteBlocks[idx].contentLines);
+                        createNoteButtons(svg, bbox, step,
+                            function() { setNoteState(container, idx, 2); },
+                            function() { setNoteState(container, idx, 0); },
+                            noteBlocks[idx].contentLines);
                     })(ni);
                 }
             }
@@ -1565,19 +1589,13 @@ public static class DiagramContextMenu
                 return newLines.join('\n');
             }
 
-            function toggleNote(container, noteIdx) {
+            function setNoteState(container, noteIdx, targetStep) {
                 if (container._noteRendering) return;
                 if (!container._noteSteps) container._noteSteps = {};
+                container._noteSteps[noteIdx] = targetStep;
+
                 var origSource = container._noteOriginalSource;
                 var noteBlocks = parseNoteBlocks(origSource);
-                var currentStep = container._noteSteps[noteIdx] || 0;
-                // Long notes: 4-step cycle 0→1→2→3→0; Short notes: 2-step cycle 0→2→0
-                if (isLongNote(noteBlocks[noteIdx].contentLines)) {
-                    container._noteSteps[noteIdx] = (currentStep + 1) % 4;
-                } else {
-                    container._noteSteps[noteIdx] = currentStep === 0 ? 2 : 0;
-                }
-
                 var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden);
 
                 container.setAttribute('data-plantuml', newSource);
