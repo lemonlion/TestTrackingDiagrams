@@ -295,6 +295,16 @@ public class DiagramContextMenuTests
         Assert.Contains("container._headersHidden", funcBody);
     }
 
+    // ─── syncRadioButtons ───────────────────────────────────
+
+    [Fact]
+    public void SyncRadioButtons_scopes_to_data_state_only()
+    {
+        var funcBody = GetFunction("syncRadioButtons");
+        // Must only target buttons with data-state attribute, not headers buttons (data-hstate)
+        Assert.Contains("[data-state]", funcBody);
+    }
+
     // ─── Globals ────────────────────────────────────────────
 
     [Fact]
@@ -352,21 +362,22 @@ public class DiagramContextMenuTests
     // ─── createNoteButtons — arrows and double-click ────────
 
     [Fact]
-    public void CreateNoteButtons_expand_uses_downward_arrow()
+    public void CreateNoteButtons_expand_uses_large_downward_arrow()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Bottom expand button uses ▾ (downward triangle) instead of +
-        Assert.Contains("\\u25BE", funcBody);
+        // Bottom expand button uses ▼ (large downward triangle)
+        Assert.Contains("\\u25BC", funcBody);
+        Assert.DoesNotContain("\\u25BE", funcBody); // not small ▾
         Assert.DoesNotContain("textContent = '+'", funcBody);
     }
 
     [Fact]
-    public void CreateNoteButtons_bottom_contract_for_expanded_long_notes()
+    public void CreateNoteButtons_bottom_contract_uses_large_upward_arrow()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Bottom-center ▴ contract button shown when expanded and long note
+        // Bottom-center ▲ contract button shown when expanded and long note
         Assert.Contains("state === 'expanded' && longNote", funcBody);
-        Assert.Contains("\\u25B4", funcBody); // ▴
+        Assert.Contains("\\u25B2", funcBody); // ▲ large
     }
 
     [Fact]
@@ -388,11 +399,38 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void CreateNoteButtons_accepts_onCycle_parameter()
+    public void CreateNoteButtons_accepts_onTruncate_and_onCycle_parameters()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Function signature includes onCycle parameter
-        Assert.Contains("onExpand, onContract, onCycle, contentLines", funcBody);
+        // Function signature includes onTruncate and onCycle parameters
+        Assert.Contains("onExpand, onContract, onTruncate, onCycle, contentLines", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_top_right_arrow_calls_onTruncate()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // The top-right ▴ arrow on expanded long notes calls onTruncate, not onContract
+        // Find the block for the ▴ arrow (uses bgA click handler)
+        Assert.Contains("onTruncate()", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_bottom_contract_calls_onTruncate()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // The bottom ▲ on expanded long notes calls onTruncate, not onContract
+        // bgBC click handler should call onTruncate
+        var bottomBlock = funcBody.Substring(funcBody.IndexOf("\\u25B2"));
+        Assert.Contains("onTruncate()", bottomBlock);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_minus_button_calls_onContract()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // The − (minus) button calls onContract for full collapse
+        Assert.Contains("onContract()", funcBody);
     }
 
     // ─── makeNotesCollapsible — double-click cycle logic ────
@@ -405,6 +443,14 @@ public class DiagramContextMenuTests
         Assert.Contains("curStep === 2", funcBody);
         Assert.Contains("curStep === 1", funcBody);
         Assert.Contains("long ? 1 : 0", funcBody);
+    }
+
+    [Fact]
+    public void MakeNotesCollapsible_passes_onTruncate_to_state_1()
+    {
+        var funcBody = GetFunction("makeNotesCollapsible");
+        // onTruncate callback sets state to 1 (truncated)
+        Assert.Contains("setNoteState(container, idx, 1)", funcBody);
     }
 
     // ─── buildSourceWithNoteStates — trailing space fix ─────

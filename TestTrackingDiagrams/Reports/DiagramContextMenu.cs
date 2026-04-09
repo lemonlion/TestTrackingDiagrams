@@ -1414,7 +1414,7 @@ public static class DiagramContextMenu
                 return 'truncated';
             }
 
-            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onCycle, contentLines) {
+            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines) {
                 var size = 12;
                 var pad = 3;
                 var state = noteStepState(noteStep);
@@ -1444,7 +1444,7 @@ public static class DiagramContextMenu
                         symA.style.pointerEvents = 'none';
                         symA.textContent = '\u25B4'; // ▴
                         ga.appendChild(symA);
-                        bgA.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                        bgA.addEventListener('click', function(ev) { ev.stopPropagation(); onTruncate(); });
                         buttons.push(ga);
                     }
                     // − (minus) button — top-right
@@ -1492,7 +1492,7 @@ public static class DiagramContextMenu
                     symE.setAttribute('text-anchor', 'middle'); symE.setAttribute('font-size', '10');
                     symE.setAttribute('font-family', 'sans-serif'); symE.setAttribute('fill', '#666');
                     symE.style.pointerEvents = 'none';
-                    symE.textContent = '\u25BE'; // ▾
+                    symE.textContent = '\u25BC'; // ▼
                     ge.appendChild(symE);
                     bgE.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
                     buttons.push(ge);
@@ -1519,9 +1519,9 @@ public static class DiagramContextMenu
                     symBC.setAttribute('text-anchor', 'middle'); symBC.setAttribute('font-size', '10');
                     symBC.setAttribute('font-family', 'sans-serif'); symBC.setAttribute('fill', '#666');
                     symBC.style.pointerEvents = 'none';
-                    symBC.textContent = '\u25B4'; // ▴
+                    symBC.textContent = '\u25B2'; // ▲
                     gbc.appendChild(symBC);
-                    bgBC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                    bgBC.addEventListener('click', function(ev) { ev.stopPropagation(); onTruncate(); });
                     buttons.push(gbc);
                 }
 
@@ -1592,6 +1592,7 @@ public static class DiagramContextMenu
                         createNoteButtons(svg, bbox, step,
                             function() { setNoteState(container, idx, 2); },
                             function() { setNoteState(container, idx, 0); },
+                            function() { setNoteState(container, idx, 1); },
                             function() {
                                 var curStep = container._noteSteps[idx] || 0;
                                 var long = isLongNote(noteBlocks[idx].contentLines);
@@ -1853,7 +1854,7 @@ public static class DiagramContextMenu
             }
 
             function syncRadioButtons(parent, targetState) {
-                parent.querySelectorAll('.details-radio-btn').forEach(function(b) {
+                parent.querySelectorAll('.details-radio-btn[data-state]').forEach(function(b) {
                     if (b.getAttribute('data-state') === targetState) b.classList.add('details-active');
                     else b.classList.remove('details-active');
                 });
