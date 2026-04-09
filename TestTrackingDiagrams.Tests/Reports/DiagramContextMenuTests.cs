@@ -433,6 +433,15 @@ public class DiagramContextMenuTests
         Assert.Contains("onContract()", funcBody);
     }
 
+    [Fact]
+    public void CreateNoteButtons_minus_button_uses_svg_line()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // The minus button uses an SVG line element instead of text
+        Assert.Contains("createElementNS(SVGNS, 'line')", funcBody);
+        Assert.Contains("stroke-linecap", funcBody);
+    }
+
     // ─── makeNotesCollapsible — double-click cycle logic ────
 
     [Fact]

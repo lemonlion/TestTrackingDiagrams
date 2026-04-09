@@ -1461,12 +1461,12 @@ public static class DiagramContextMenu
                     bgC.setAttribute('rx', '2'); bgC.setAttribute('fill', '#ffffff');
                     bgC.setAttribute('stroke', '#999'); bgC.setAttribute('stroke-width', '0.5');
                     gc.appendChild(bgC);
-                    var symC = document.createElementNS(SVGNS, 'text');
-                    symC.setAttribute('x', ix + size / 2); symC.setAttribute('y', iy + size - 2.5);
-                    symC.setAttribute('text-anchor', 'middle'); symC.setAttribute('font-size', '10');
-                    symC.setAttribute('font-family', 'sans-serif'); symC.setAttribute('fill', '#666');
+                    var symC = document.createElementNS(SVGNS, 'line');
+                    symC.setAttribute('x1', ix + 3); symC.setAttribute('y1', iy + size / 2);
+                    symC.setAttribute('x2', ix + size - 3); symC.setAttribute('y2', iy + size / 2);
+                    symC.setAttribute('stroke', '#666'); symC.setAttribute('stroke-width', '1.5');
+                    symC.setAttribute('stroke-linecap', 'round');
                     symC.style.pointerEvents = 'none';
-                    symC.textContent = '\u2212'; // −
                     gc.appendChild(symC);
                     bgC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
                     buttons.push(gc);
