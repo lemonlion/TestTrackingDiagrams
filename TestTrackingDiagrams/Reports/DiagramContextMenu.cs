@@ -1443,7 +1443,7 @@ public static class DiagramContextMenu
                         symA.setAttribute('text-anchor', 'middle'); symA.setAttribute('font-size', '10');
                         symA.setAttribute('font-family', 'sans-serif'); symA.setAttribute('fill', '#666');
                         symA.style.pointerEvents = 'none';
-                        symA.textContent = '\u25B4'; // ▴
+                        symA.textContent = '\u25B2'; // ▲
                         ga.appendChild(symA);
                         bgA.addEventListener('click', function(ev) { ev.stopPropagation(); onTruncate(); });
                         buttons.push(ga);
@@ -1462,9 +1462,9 @@ public static class DiagramContextMenu
                     bgC.setAttribute('stroke', '#999'); bgC.setAttribute('stroke-width', '0.5');
                     gc.appendChild(bgC);
                     var symC = document.createElementNS(SVGNS, 'line');
-                    symC.setAttribute('x1', ix + 3); symC.setAttribute('y1', iy + size / 2);
-                    symC.setAttribute('x2', ix + size - 3); symC.setAttribute('y2', iy + size / 2);
-                    symC.setAttribute('stroke', '#666'); symC.setAttribute('stroke-width', '1.5');
+                    symC.setAttribute('x1', ix + 2); symC.setAttribute('y1', iy + size / 2);
+                    symC.setAttribute('x2', ix + size - 2); symC.setAttribute('y2', iy + size / 2);
+                    symC.setAttribute('stroke', '#666'); symC.setAttribute('stroke-width', '2');
                     symC.setAttribute('stroke-linecap', 'round');
                     symC.style.pointerEvents = 'none';
                     gc.appendChild(symC);
