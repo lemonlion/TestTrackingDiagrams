@@ -127,6 +127,7 @@ if (!vizPath || !plantumlPath) {
 var OrigURL = globalThis.URL;
 var urlModule = require('url');
 var pathModule = require('path');
+var fsModule = require('fs');
 var vizDirUrl = urlModule.pathToFileURL(pathModule.dirname(pathModule.resolve(vizPath))).href + '/';
 globalThis.URL = class PatchedURL extends OrigURL {
     constructor(input, base) {
@@ -136,6 +137,34 @@ globalThis.URL = class PatchedURL extends OrigURL {
             super(input, base);
         }
     }
+};
+
+// Polyfill fetch for file:// URLs: viz-global.js uses fetch() to load its embedded
+// WASM binary, but Node.js built-in fetch doesn't support file:// URLs.
+var origFetch = globalThis.fetch;
+globalThis.fetch = function patchedFetch(input, init) {
+    var url = (typeof input === 'string') ? input : (input && input.url) || String(input);
+    if (url.startsWith('file://')) {
+        var filePath = urlModule.fileURLToPath(url);
+        return new Promise(function(resolve, reject) {
+            try {
+                var buffer = fsModule.readFileSync(filePath);
+                resolve({
+                    ok: true,
+                    status: 200,
+                    statusText: 'OK',
+                    headers: new Map(),
+                    arrayBuffer: function() { return Promise.resolve(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)); },
+                    text: function() { return Promise.resolve(buffer.toString('utf8')); },
+                    json: function() { return Promise.resolve(JSON.parse(buffer.toString('utf8'))); },
+                    blob: function() { return Promise.resolve(new Blob([buffer])); }
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    return origFetch ? origFetch.call(globalThis, input, init) : Promise.reject(new Error('fetch not available for: ' + url));
 };
 
 require(vizPath);
