@@ -2,8 +2,17 @@
 // Usage: node plantuml-render.js <viz-global.js-path> <plantuml.js-path>
 // stdin: PlantUML source code (one diagram)
 // stdout: SVG output
+//
+// Both viz-global.js and plantuml.js are designed for browsers (<script> tags).
+// We load them via vm.runInThisContext to simulate browser <script> tag loading,
+// avoiding CJS module wrapping that breaks their UMD/global interactions.
 
 'use strict';
+
+var vm = require('vm');
+var fs = require('fs');
+var path = require('path');
+var urlModule = require('url');
 
 // --- Minimal DOM polyfills for plantuml.js (TeaVM-compiled) ---
 
@@ -79,10 +88,12 @@ var mockDocument = {
     removeEventListener: function() {},
     querySelector: function() { return null; },
     querySelectorAll: function() { return []; },
-    implementation: { createHTMLDocument: function() { return mockDocument; } }
+    implementation: { createHTMLDocument: function() { return mockDocument; } },
+    currentScript: null,
+    baseURI: 'about:blank'
 };
 
-// --- Module paths ---
+// --- Arguments ---
 
 var vizPath = process.argv[2];
 var plantumlPath = process.argv[3];
@@ -92,100 +103,112 @@ if (!vizPath || !plantumlPath) {
     process.exit(1);
 }
 
-// --- Phase 1: Load Viz.js WITHOUT browser mocks ---
-// viz-global.js (Viz.js 3.x / Emscripten) detects the environment at load time:
-//   - If document is undefined: takes the Node.js CJS path (uses __filename for WASM URL)
-//   - If document is defined: takes the browser path (uses document.currentScript.src)
-// By NOT setting global.document yet, viz-global.js correctly detects Node.js
-// and resolves the embedded base64 WASM without needing URL or fetch polyfills.
-process.stderr.write('Phase 1: Loading viz-global.js...\n');
-var vizModule = require(vizPath);
+// --- Set up browser-like globals ---
 
-// viz-global.js uses UMD: in CJS mode it populates module.exports, not globalThis.Viz.
-// plantuml.js expects Viz to be global, so expose it.
-if (!globalThis.Viz) globalThis.Viz = {};
-Object.assign(globalThis.Viz, vizModule);
-process.stderr.write('Phase 1: Viz loaded. instance=' + typeof vizModule.instance + '\n');
+global.self = global;
+global.window = global;
+global.document = mockDocument;
+global.navigator = { userAgent: 'node', platform: 'node' };
+global.HTMLElement = MockElement;
+global.SVGElement = MockElement;
+global.Element = MockElement;
+global.Node = MockElement;
+global.DOMParser = class {
+    parseFromString(str) {
+        var el = new MockElement('div');
+        el.innerHTML = str;
+        el._svgContent = str;
+        return {
+            documentElement: el,
+            firstChild: el,
+            querySelector: function() { return el; },
+            querySelectorAll: function() { return [el]; }
+        };
+    }
+};
+global.XMLSerializer = class {
+    serializeToString(node) {
+        return node.outerHTML || node.innerHTML || node._svgContent || '';
+    }
+};
+global._mockElements = {};
 
-// --- Phase 2: Wait for WASM compilation, read stdin in parallel ---
-var inputResolve;
-var inputPromise = new Promise(function(resolve) { inputResolve = resolve; });
+// Catch silently swallowed Promise rejections
+process.on('unhandledRejection', function(err) {
+    process.stderr.write('UNHANDLED REJECTION: ' + (err && err.stack || err) + '\n');
+});
+
+// --- Load scripts like <script> tags (no CJS module wrapping) ---
+// vm.runInThisContext runs code in the V8 global context.
+// Unlike require(), it does NOT wrap code in (function(exports,require,module,...){}).
+// This means module/exports/require/__filename are NOT available inside the script,
+// so UMD wrappers (like viz-global.js) take the browser/global path instead of CJS.
+
+function loadScript(filePath, label) {
+    process.stderr.write('Loading ' + label + '...\n');
+    var code = fs.readFileSync(filePath, 'utf8');
+    vm.runInThisContext(code, { filename: filePath });
+    process.stderr.write(label + ' loaded.\n');
+}
+
+// Set document.currentScript to a mock <script> element pointing to viz-global.js.
+// viz-global.js reads currentScript.src at load time to resolve its WASM URL.
+// The WASM is base64-embedded so the exact URL doesn't matter for loading,
+// but the code requires a valid value.
+var vizScript = new MockElement('script');
+vizScript.src = urlModule.pathToFileURL(path.resolve(vizPath)).href;
+mockDocument.currentScript = vizScript;
+mockDocument.baseURI = urlModule.pathToFileURL(process.cwd()).href + '/';
+
+loadScript(vizPath, 'viz-global.js');
+process.stderr.write('  Viz=' + typeof globalThis.Viz + ', instance=' + typeof (globalThis.Viz && globalThis.Viz.instance) + '\n');
+
+// Browsers null currentScript between scripts
+mockDocument.currentScript = null;
+
+loadScript(plantumlPath, 'plantuml.js');
+process.stderr.write('  plantumlLoad=' + typeof globalThis.plantumlLoad + ', plantuml=' + typeof globalThis.plantuml + '\n');
+
+// --- Read stdin and render ---
+
 var input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', function(chunk) { input += chunk; });
-process.stdin.on('end', function() { inputResolve(input); });
-
-process.stderr.write('Phase 2: Waiting for WASM init...\n');
-Promise.all([vizModule.instance(), inputPromise]).then(function(results) {
-    var plantUml = results[1];
-    process.stderr.write('Phase 2: WASM ready, stdin received (' + plantUml.length + ' chars)\n');
-
-    // --- Phase 3: Set up browser mocks for plantuml.js ---
-    global.self = global;
-    global.window = global;
-    global.document = mockDocument;
-    global.navigator = { userAgent: 'node', platform: 'node' };
-    global.HTMLElement = MockElement;
-    global.SVGElement = MockElement;
-    global.Element = MockElement;
-    global.Node = MockElement;
-    global.DOMParser = class {
-        parseFromString(str) {
-            var el = new MockElement('div');
-            el.innerHTML = str;
-            el._svgContent = str;
-            var doc = {
-                documentElement: el,
-                firstChild: el,
-                querySelector: function() { return el; },
-                querySelectorAll: function() { return [el]; }
-            };
-            return doc;
-        }
-    };
-    global.XMLSerializer = class {
-        serializeToString(node) {
-            return node.outerHTML || node.innerHTML || node._svgContent || '';
-        }
-    };
-    global._mockElements = {};
-
-    // --- Phase 4: Load plantuml.js ---
-    process.stderr.write('Phase 3: Loading plantuml.js...\n');
-    var plantumlModule = require(plantumlPath);
-    process.stderr.write('Phase 3: plantuml.js loaded. plantumlLoad=' + typeof plantumlModule.plantumlLoad + '\n');
-
-    // --- Phase 5: Render ---
+process.stdin.on('end', function() {
     var targetId = '_render_target';
     var target = new MockElement('div');
     target.id = targetId;
     target.ownerDocument = mockDocument;
     global._mockElements[targetId] = target;
 
-    // Intercept innerHTML setter to capture SVG
+    // Intercept innerHTML setter to capture SVG output
     var svgResult = '';
     Object.defineProperty(target, 'innerHTML', {
         get: function() { return svgResult; },
-        set: function(value) {
-            svgResult = value;
-        },
+        set: function(value) { svgResult = value; },
         configurable: true
     });
 
-    plantumlModule.plantumlLoad([], function() {
-        var renderer = global.plantuml || (global.self && global.self.plantuml);
+    var loadFn = globalThis.plantumlLoad;
+    if (!loadFn) {
+        process.stderr.write('ERROR: plantumlLoad not found on global scope\n');
+        process.exit(1);
+    }
+
+    loadFn([], function() {
+        var renderer = globalThis.plantuml;
         if (!renderer || typeof renderer.render !== 'function') {
             process.stderr.write('ERROR: plantuml.render not available after plantumlLoad\n');
             process.exit(1);
         }
 
-        var lines = plantUml.trim().split('\n');
-        process.stderr.write('Phase 5: Rendering ' + lines.length + ' lines...\n');
+        var lines = input.trim().split('\n');
+        process.stderr.write('Rendering ' + lines.length + ' lines...\n');
 
         try {
             renderer.render(lines, targetId);
         } catch (e) {
-            process.stderr.write('ERROR during render: ' + e.message + '\n');
+            process.stderr.write('ERROR during render: ' + (e.stack || e.message) + '\n');
             process.exit(1);
         }
 
@@ -195,9 +218,9 @@ Promise.all([vizModule.instance(), inputPromise]).then(function(results) {
             process.exit(0);
         }
 
-        // Poll for async result
+        // Poll for async result (Viz WASM init + render is async)
         var attempts = 0;
-        var maxAttempts = 200; // 10 seconds max
+        var maxAttempts = 400; // 20 seconds max
         var check = function() {
             if (svgResult && svgResult.indexOf('<svg') !== -1) {
                 process.stdout.write(svgResult);
@@ -214,7 +237,4 @@ Promise.all([vizModule.instance(), inputPromise]).then(function(results) {
         };
         setTimeout(check, 50);
     });
-}).catch(function(err) {
-    process.stderr.write('ERROR: Initialization failed: ' + (err.stack || err.message || err) + '\n');
-    process.exit(1);
 });

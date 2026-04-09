@@ -62,10 +62,10 @@ public static class NodeJsPlantUmlRenderer
         var svgTask = process.StandardOutput.ReadToEndAsync();
         var errorTask = process.StandardError.ReadToEndAsync();
 
-        if (!process.WaitForExit(30_000))
+        if (!process.WaitForExit(60_000))
         {
             try { process.Kill(); } catch { /* best effort */ }
-            throw new TimeoutException("Node.js PlantUML render timed out after 30 seconds.");
+            throw new TimeoutException("Node.js PlantUML render timed out after 60 seconds.");
         }
 
         var svg = svgTask.GetAwaiter().GetResult();
