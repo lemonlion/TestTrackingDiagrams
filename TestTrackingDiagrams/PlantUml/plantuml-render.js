@@ -121,6 +121,23 @@ if (!vizPath || !plantumlPath) {
     process.exit(1);
 }
 
+// Patch URL constructor: viz-global.js calls new URL('viz-global.js') without a base,
+// which works in browsers (relative to page URL) but fails in Node.js.
+// Provide a file:// base pointing to the viz-global.js directory for relative URLs.
+var OrigURL = globalThis.URL;
+var urlModule = require('url');
+var pathModule = require('path');
+var vizDirUrl = urlModule.pathToFileURL(pathModule.dirname(pathModule.resolve(vizPath))).href + '/';
+globalThis.URL = class PatchedURL extends OrigURL {
+    constructor(input, base) {
+        if (base === undefined && typeof input === 'string' && !/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(input)) {
+            super(input, vizDirUrl);
+        } else {
+            super(input, base);
+        }
+    }
+};
+
 require(vizPath);
 var plantumlModule = require(plantumlPath);
 
