@@ -39,13 +39,15 @@ jobs:
               Example.Api/tests/Example.Api.Tests.Component.BDDfy.xUnit3
               Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit2
               Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit3
-          - name: Example.Api ReqNRoll & NUnit Tests
-            projects: >-
-              Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
-              Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
-              Example.Api/tests/Example.Api.Tests.Component.NUnit4
+          - name: Example.Api ReqNRoll.xUnit2 Tests
+            projects: Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
+          - name: Example.Api ReqNRoll.xUnit3 Tests
+            projects: Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
+          - name: Example.Api NUnit4 Tests
+            projects: Example.Api/tests/Example.Api.Tests.Component.NUnit4
           - name: Example.Api Integration Tests
             projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
     steps:
       - uses: actions/checkout@v5
 
@@ -56,6 +58,10 @@ jobs:
 
       - name: Pin SDK
         run: echo '{"sdk":{"version":"10.0.0","rollForward":"latestFeature"}}' > global.json
+
+      - name: Restore dependencies
+        if: matrix.restore-first
+        run: dotnet restore ${{ matrix.restore-first }}
 
       - name: Build & Test
         run: |
