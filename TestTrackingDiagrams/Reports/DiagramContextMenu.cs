@@ -1462,8 +1462,8 @@ public static class DiagramContextMenu
                     bgC.setAttribute('stroke', '#999'); bgC.setAttribute('stroke-width', '0.5');
                     gc.appendChild(bgC);
                     var symC = document.createElementNS(SVGNS, 'line');
-                    symC.setAttribute('x1', ix + 2); symC.setAttribute('y1', iy + size / 2);
-                    symC.setAttribute('x2', ix + size - 2); symC.setAttribute('y2', iy + size / 2);
+                    symC.setAttribute('x1', ix + 2.5); symC.setAttribute('y1', iy + size / 2);
+                    symC.setAttribute('x2', ix + size - 2.5); symC.setAttribute('y2', iy + size / 2);
                     symC.setAttribute('stroke', '#666'); symC.setAttribute('stroke-width', '2');
                     symC.setAttribute('stroke-linecap', 'round');
                     symC.style.pointerEvents = 'none';
