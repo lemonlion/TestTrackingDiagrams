@@ -7,9 +7,8 @@
 // We load them via vm.runInThisContext to simulate browser <script> tag loading,
 // avoiding CJS module wrapping that breaks their UMD/global interactions.
 //
-// CRITICAL: Viz.js compiles Graphviz WASM asynchronously. plantuml.render() calls
-// Viz synchronously and produces nothing if WASM isn't compiled yet. We MUST wait
-// for Viz.instance() to resolve before calling plantuml.render().
+// CRITICAL: Viz.js compiles Graphviz WASM asynchronously. We pre-compile it and
+// cache the instance so plantuml.js gets a ready-to-use Viz.
 
 'use strict';
 
@@ -66,17 +65,77 @@ class MockElement {
     removeEventListener() {}
     dispatchEvent() {}
     getBoundingClientRect() { return { x: 0, y: 0, width: 100, height: 100, top: 0, left: 0, bottom: 100, right: 100 }; }
+    getBBox() {
+        // PlantUML calls getBBox() on SVG text elements for layout measurement.
+        var fontSize = parseFloat(this.style && this.style.fontSize) || 14;
+        var text = this.textContent || '';
+        return { x: 0, y: 0, width: text.length * fontSize * 0.6, height: fontSize * 1.2 };
+    }
+    getContext(type) {
+        // PlantUML calls canvas.getContext('2d') for text measurement.
+        if (type === '2d') {
+            var ctx = {
+                font: '10px sans-serif',
+                measureText: function(text) {
+                    var fontSize = parseFloat(ctx.font) || 10;
+                    return { width: text.length * fontSize * 0.6 };
+                },
+                fillText: function() {},
+                clearRect: function() {},
+                fillRect: function() {},
+                strokeRect: function() {},
+                beginPath: function() {},
+                closePath: function() {},
+                moveTo: function() {},
+                lineTo: function() {},
+                stroke: function() {},
+                fill: function() {},
+                save: function() {},
+                restore: function() {},
+                scale: function() {},
+                translate: function() {},
+                rotate: function() {},
+                arc: function() {},
+                createLinearGradient: function() { return { addColorStop: function() {} }; },
+                fillStyle: '',
+                strokeStyle: '',
+                lineWidth: 1,
+                canvas: this
+            };
+            return ctx;
+        }
+        return null;
+    }
     focus() {}
     blur() {}
 }
 
+// Serialize a MockElement tree to an SVG/HTML string.
+function serializeElement(el) {
+    if (!el || typeof el !== 'object') return '';
+    if (el.nodeType === 3) return el.textContent || el.data || '';
+    var tag = (el.tagName || 'div').toLowerCase();
+    var attrs = '';
+    if (el._attributes) {
+        for (var k in el._attributes) {
+            attrs += ' ' + k + '="' + el._attributes[k] + '"';
+        }
+    }
+    var children = '';
+    if (el.childNodes && el.childNodes.length > 0) {
+        for (var i = 0; i < el.childNodes.length; i++) {
+            children += serializeElement(el.childNodes[i]);
+        }
+    }
+    var text = (!el.childNodes || el.childNodes.length === 0) ? (el.textContent || '') : '';
+    return '<' + tag + attrs + '>' + text + children + '</' + tag + '>';
+}
+
 var mockDocument = {
     getElementById: function(id) {
-        process.stderr.write('  [DOM] getElementById("' + id + '")\n');
         return global._mockElements[id] || null;
     },
     querySelector: function(sel) {
-        process.stderr.write('  [DOM] querySelector("' + sel + '")\n');
         if (sel && sel.startsWith('#')) return global._mockElements[sel.slice(1)] || null;
         return null;
     },
@@ -122,7 +181,9 @@ if (!vizPath || !plantumlPath) {
 global.self = global;
 global.window = global;
 global.document = mockDocument;
-global.navigator = { userAgent: 'node', platform: 'node' };
+// Node.js v24+ makes navigator read-only on globalThis
+try { global.navigator = { userAgent: 'node', platform: 'node' }; }
+catch (_) { Object.defineProperty(global, 'navigator', { value: { userAgent: 'node', platform: 'node' }, configurable: true, writable: true }); }
 global.HTMLElement = MockElement;
 global.SVGElement = MockElement;
 global.Element = MockElement;
@@ -147,7 +208,6 @@ global.XMLSerializer = class {
 };
 global._mockElements = {};
 
-// Catch silently swallowed errors
 process.on('unhandledRejection', function(err) {
     process.stderr.write('UNHANDLED REJECTION: ' + (err && err.stack || err) + '\n');
 });
@@ -158,11 +218,9 @@ process.on('uncaughtException', function(err) {
 
 // --- Load scripts like <script> tags (no CJS module wrapping) ---
 
-function loadScript(filePath, label) {
-    process.stderr.write('Loading ' + label + '...\n');
+function loadScript(filePath) {
     var code = fs.readFileSync(filePath, 'utf8');
     vm.runInThisContext(code, { filename: filePath });
-    process.stderr.write(label + ' loaded.\n');
 }
 
 // Read stdin in parallel with initialization
@@ -179,41 +237,41 @@ vizScript.src = urlModule.pathToFileURL(path.resolve(vizPath)).href;
 mockDocument.currentScript = vizScript;
 mockDocument.baseURI = urlModule.pathToFileURL(process.cwd()).href + '/';
 
-loadScript(vizPath, 'viz-global.js');
-process.stderr.write('  Viz=' + typeof globalThis.Viz + ', instance=' + typeof (globalThis.Viz && globalThis.Viz.instance) + '\n');
+loadScript(vizPath);
 mockDocument.currentScript = null;
 
 // --- Phase 2: Wait for WASM to compile BEFORE loading plantuml.js ---
-// plantuml.render() calls Viz synchronously. If WASM isn't compiled yet,
-// the render produces no output. We must ensure WASM is ready first.
-process.stderr.write('Waiting for Viz WASM compilation...\n');
 var vizReady = globalThis.Viz.instance().then(function(viz) {
-    process.stderr.write('Viz WASM ready. Testing...\n');
     var testSvg = viz.renderString('digraph { a -> b }', { format: 'svg' });
-    if (testSvg && testSvg.indexOf('<svg') !== -1) {
-        process.stderr.write('Viz test render OK (' + testSvg.length + ' chars)\n');
-    } else {
-        process.stderr.write('Viz test render FAILED: ' + (testSvg || '(empty)').substring(0, 200) + '\n');
+    if (!testSvg || testSvg.indexOf('<svg') === -1) {
+        process.stderr.write('Viz test render failed\n');
         process.exit(1);
     }
+    // Cache the instance so plantuml.js Viz.instance() calls reuse it
+    var origViz = globalThis.Viz;
+    globalThis.Viz = new Proxy(origViz, {
+        get: function(target, prop) {
+            if (prop === 'instance') {
+                return function() { return Promise.resolve(viz); };
+            }
+            return target[prop];
+        }
+    });
     return viz;
 }).catch(function(err) {
-    process.stderr.write('Viz WASM FAILED: ' + (err && err.stack || err) + '\n');
+    process.stderr.write('Viz WASM init failed: ' + (err && err.stack || err) + '\n');
     process.exit(1);
 });
 
 // --- Phase 3: Once WASM is ready, load plantuml.js and render ---
 Promise.all([vizReady, inputPromise]).then(function(results) {
     var plantUml = results[1];
-    process.stderr.write('stdin received (' + plantUml.length + ' chars)\n');
 
-    // Load plantuml.js AFTER Viz WASM is compiled
-    loadScript(plantumlPath, 'plantuml.js');
-    process.stderr.write('  plantumlLoad=' + typeof globalThis.plantumlLoad + '\n');
+    loadScript(plantumlPath);
 
     var loadFn = globalThis.plantumlLoad;
     if (!loadFn) {
-        process.stderr.write('ERROR: plantumlLoad not found\n');
+        process.stderr.write('ERROR: plantumlLoad not found after loading plantuml.js\n');
         process.exit(1);
     }
 
@@ -224,29 +282,32 @@ Promise.all([vizReady, inputPromise]).then(function(results) {
     target.ownerDocument = mockDocument;
     global._mockElements[targetId] = target;
 
-    // Intercept innerHTML setter to capture SVG output
+    // Track SVG result via innerHTML setter and appendChild
     var svgResult = '';
     Object.defineProperty(target, 'innerHTML', {
         get: function() { return svgResult; },
-        set: function(value) {
-            process.stderr.write('  [innerHTML set] ' + (value ? value.substring(0, 80) + '...' : '(empty)') + '\n');
-            svgResult = value;
-        },
+        set: function(value) { svgResult = value; },
         configurable: true
     });
+    var origAppendChild = target.appendChild.bind(target);
+    target.appendChild = function(child) {
+        origAppendChild(child);
+        // PlantUML builds SVG via DOM APIs; serialize the appended tree
+        var s = serializeElement(child);
+        if (s && s.indexOf('<svg') !== -1) {
+            svgResult = s;
+        }
+        return child;
+    };
 
     loadFn([], function() {
         var renderer = globalThis.plantuml;
-        process.stderr.write('plantumlLoad callback: plantuml=' + typeof renderer +
-            ', render=' + typeof (renderer && renderer.render) + '\n');
-
         if (!renderer || typeof renderer.render !== 'function') {
             process.stderr.write('ERROR: plantuml.render not available\n');
             process.exit(1);
         }
 
-        var lines = plantUml.trim().split('\n');
-        process.stderr.write('Rendering ' + lines.length + ' lines...\n');
+        var lines = plantUml.replace(/\r\n/g, '\n').trim().split('\n');
 
         try {
             renderer.render(lines, targetId);
@@ -255,27 +316,34 @@ Promise.all([vizReady, inputPromise]).then(function(results) {
             process.exit(1);
         }
 
-        process.stderr.write('render() returned. svgResult=' + (svgResult ? svgResult.length + ' chars' : 'empty') + '\n');
-
         // Check synchronous result
         if (svgResult && svgResult.indexOf('<svg') !== -1) {
             process.stdout.write(svgResult);
             process.exit(0);
         }
 
-        // Poll for async result
+        // Poll for async result (plantuml.js renders asynchronously via TeaVM threads)
         var attempts = 0;
         var maxAttempts = 400; // 20 seconds max
         var check = function() {
+            // Also check target's children in case appendChild wasn't intercepted
+            if (!svgResult || svgResult.indexOf('<svg') === -1) {
+                if (target.childNodes.length > 0) {
+                    var built = '';
+                    for (var i = 0; i < target.childNodes.length; i++) {
+                        built += serializeElement(target.childNodes[i]);
+                    }
+                    if (built && built.indexOf('<svg') !== -1) {
+                        svgResult = built;
+                    }
+                }
+            }
             if (svgResult && svgResult.indexOf('<svg') !== -1) {
                 process.stdout.write(svgResult);
                 process.exit(0);
             }
             if (++attempts > maxAttempts) {
                 process.stderr.write('ERROR: Timed out waiting for SVG render (' + maxAttempts * 50 + 'ms)\n');
-                if (svgResult) {
-                    process.stderr.write('Partial: ' + svgResult.substring(0, 500) + '\n');
-                }
                 process.exit(1);
             }
             setTimeout(check, 50);
