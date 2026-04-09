@@ -170,6 +170,26 @@ public static class DiagramContextMenu
             margin-right: 1em;
         }
         .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
+        .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
+        .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
+        .details-radio-btn {
+            padding: 0.25em 0.6em;
+            border: 1px solid rgb(180, 180, 180);
+            border-radius: 0.4em;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .details-radio-btn:hover { background: rgb(230, 240, 255); border-color: rgb(100, 150, 255); }
+        .details-radio-btn.details-active { background: rgb(66, 133, 244); color: white; border-color: rgb(66, 133, 244); }
+        .truncate-lines-select {
+            padding: 0.2em 0.3em;
+            border: 1px solid rgb(180, 180, 180);
+            border-radius: 0.4em;
+            font-size: 0.85em;
+            margin-left: 0.3em;
+        }
+        .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
         .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -1380,7 +1400,7 @@ public static class DiagramContextMenu
             }
 
             function isLongNote(contentLines) {
-                return contentLines && contentLines.length > 20;
+                return contentLines && contentLines.length > window._truncateLines;
             }
 
             // noteStep: 0=collapsed, 1=truncated, 2=expanded (3=truncated on way back down)
@@ -1446,8 +1466,8 @@ public static class DiagramContextMenu
                     var tipText = tipLines.join('\n').trim();
                     if (tipText) {
                         var displayLines = tipText.split('\n');
-                        if (displayLines.length > 20) {
-                            tipText = displayLines.slice(0, 20).join('\n') + '\n...';
+                        if (displayLines.length > window._truncateLines) {
+                            tipText = displayLines.slice(0, window._truncateLines).join('\n') + '\n...';
                         }
                         var titleEl = document.createElementNS(SVGNS, 'title');
                         titleEl.textContent = tipText;
@@ -1522,7 +1542,7 @@ public static class DiagramContextMenu
                         continue;
                     }
                     if (inNote && trimmed === 'end note') {
-                        if (noteMode === 'truncated' && truncateLineCount > 20) {
+                        if (noteMode === 'truncated' && truncateLineCount > window._truncateLines) {
                             newLines.push('...');
                         }
                         inNote = false;
@@ -1534,7 +1554,7 @@ public static class DiagramContextMenu
                     if (noteMode === 'truncated') {
                         if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
                         truncateLineCount++;
-                        if (truncateLineCount <= 20) {
+                        if (truncateLineCount <= window._truncateLines) {
                             newLines.push(lines[i]);
                         }
                         continue;
@@ -1616,6 +1636,7 @@ public static class DiagramContextMenu
 
             // Global defaults
             window._headersHidden = false;
+            window._truncateLines = 20;
 
             // Pre-process source before initial render (default expanded — no transformation needed)
             window._preProcessSource = function(el, source) {
@@ -1704,18 +1725,52 @@ public static class DiagramContextMenu
                 return queue;
             }
 
+            function syncRadioButtons(parent, targetState) {
+                parent.querySelectorAll('.details-radio-btn').forEach(function(b) {
+                    if (b.getAttribute('data-state') === targetState) b.classList.add('details-active');
+                    else b.classList.remove('details-active');
+                });
+                // Enable/disable dropdown
+                parent.querySelectorAll('.truncate-lines-select').forEach(function(sel) {
+                    sel.disabled = targetState !== 'truncated';
+                });
+            }
+
             // Scenario-level: expand/truncate/collapse details
             window._setAllNotes = function(btn, targetState) {
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
+                syncRadioButtons(scenario, targetState);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildDetailsQueue(containers, targetState));
             };
 
             // Report-level: expand/truncate/collapse details for all scenarios
             window._setReportDetails = function(targetState) {
+                syncRadioButtons(document.querySelector('.toolbar-right'), targetState);
+                // Reset all scenario-level radio buttons too
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncRadioButtons(sc, targetState);
+                });
                 var containers = document.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildDetailsQueue(containers, targetState));
+            };
+
+            // Change truncation line count (report-level only)
+            window._setTruncateLines = function(sel) {
+                window._truncateLines = parseInt(sel.value, 10) || 20;
+                // Sync all scenario-level dropdowns
+                document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
+                    s.value = String(window._truncateLines);
+                });
+                // Re-render all currently truncated containers
+                var containers = document.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildDetailsQueue(containers, 'truncated'));
+                // Update report + scenario radio buttons to truncated state
+                syncRadioButtons(document.querySelector('.toolbar-right'), 'truncated');
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncRadioButtons(sc, 'truncated');
+                });
             };
 
             // Toggle headers (works for both report-level and scenario-level)

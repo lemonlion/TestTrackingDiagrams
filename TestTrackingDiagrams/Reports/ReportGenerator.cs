@@ -915,9 +915,7 @@ public static class ReportGenerator
         body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         if (isPlantUmlBrowser)
         {
-            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('expanded')">Expand All Details</button>""");
-            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('truncated')">Truncate Details</button>""");
-            body.Append("""<button class="collapse-expand-all" onclick="window._setReportDetails('collapsed')">Collapse Details</button>""");
+            body.Append("""<span class="details-radio"><span class="details-radio-label">Details:</span><button class="details-radio-btn details-active" data-state="expanded" onclick="window._setReportDetails('expanded')">Expanded</button><button class="details-radio-btn" data-state="collapsed" onclick="window._setReportDetails('collapsed')">Collapsed</button><button class="details-radio-btn" data-state="truncated" onclick="window._setReportDetails('truncated')">Truncated</button><select class="truncate-lines-select" disabled onchange="window._setTruncateLines(this)"><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="10">10</option><option value="15">15</option><option value="20" selected>20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option></select><span class="truncate-lines-label">lines</span></span>""");
             body.Append("""<button class="collapse-expand-all" onclick="window._toggleHeaders(this)">Hide Headers</button>""");
         }
         body.Append("</div>");
@@ -1063,7 +1061,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                         body.Append(spanWarning);
                         if (isPlantUmlBrowser)
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><span class=\"details-radio\"><span class=\"details-radio-label\">Details:</span><button class=\"details-radio-btn details-active\" data-state=\"expanded\" onclick=\"window._setAllNotes(this,'expanded')\">Expanded</button><button class=\"details-radio-btn\" data-state=\"collapsed\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapsed</button><button class=\"details-radio-btn\" data-state=\"truncated\" onclick=\"window._setAllNotes(this,'truncated')\">Truncated</button></span><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
@@ -1072,7 +1070,7 @@ public static class ReportGenerator
                         if (isPlantUmlBrowser)
                         {
                             body.Append("<div class=\"diagram-toggle\">");
-                            body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                            body.Append("<span class=\"diagram-toggle-spacer\"></span><span class=\"details-radio\"><span class=\"details-radio-label\">Details:</span><button class=\"details-radio-btn details-active\" data-state=\"expanded\" onclick=\"window._setAllNotes(this,'expanded')\">Expanded</button><button class=\"details-radio-btn\" data-state=\"collapsed\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapsed</button><button class=\"details-radio-btn\" data-state=\"truncated\" onclick=\"window._setAllNotes(this,'truncated')\">Truncated</button></span><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                             body.Append("</div>");
                         }
                     }
@@ -1089,7 +1087,7 @@ public static class ReportGenerator
                             body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
                             body.Append(spanWarning);
                             if (isPlantUmlBrowser)
-                                body.Append("<span class=\"diagram-toggle-spacer\"></span><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'expanded')\">Expand All Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'truncated')\">Truncate Details</button><button class=\"collapse-all-notes-btn\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapse Details</button><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
+                                body.Append("<span class=\"diagram-toggle-spacer\"></span><span class=\"details-radio\"><span class=\"details-radio-label\">Details:</span><button class=\"details-radio-btn details-active\" data-state=\"expanded\" onclick=\"window._setAllNotes(this,'expanded')\">Expanded</button><button class=\"details-radio-btn\" data-state=\"collapsed\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapsed</button><button class=\"details-radio-btn\" data-state=\"truncated\" onclick=\"window._setAllNotes(this,'truncated')\">Truncated</button></span><button class=\"toggle-headers-btn\" onclick=\"window._toggleHeaders(this)\">Hide Headers</button>");
                             body.Append("</div>");
                         }
                         else if (hasActivity)
