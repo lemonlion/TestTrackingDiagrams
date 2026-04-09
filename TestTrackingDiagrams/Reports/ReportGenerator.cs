@@ -907,12 +907,10 @@ public static class ReportGenerator
         body.Append("</div>"); // close filtering-box
         body.Append("</div>"); // close header-row
 
-        // Toolbar row: Export on left, Collapse/Expand + Details/Headers on right
+        // Toolbar row: Export + Expand on left, Details/Headers on right
         body.Append("""<div class="toolbar-row">""");
-        body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button></div>""");
+        body.Append("""<div class="export-filtered"><button class="export-btn" onclick="export_html()">Export HTML</button><button class="export-btn" onclick="export_csv()">Export CSV</button><span style="width:1em"></span><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
         body.Append("""<div class="toolbar-right">""");
-        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button>""");
-        body.Append("""<button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         if (isPlantUmlBrowser)
         {
             body.Append("""<span class="details-radio"><span class="details-radio-label">Details:</span><button class="details-radio-btn details-active" data-state="expanded" onclick="window._setReportDetails('expanded')">Expanded</button><button class="details-radio-btn" data-state="collapsed" onclick="window._setReportDetails('collapsed')">Collapsed</button><button class="details-radio-btn" data-state="truncated" onclick="window._setReportDetails('truncated')">Truncated</button><select class="truncate-lines-select" disabled onchange="window._setTruncateLines(this)"><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="10">10</option><option value="15">15</option><option value="20" selected>20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option></select><span class="truncate-lines-label">lines</span></span>""");
