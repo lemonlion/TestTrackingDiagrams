@@ -82,36 +82,7 @@ var mockDocument = {
     implementation: { createHTMLDocument: function() { return mockDocument; } }
 };
 
-global.self = global;
-global.window = global;
-global.document = mockDocument;
-global.navigator = { userAgent: 'node', platform: 'node' };
-global.HTMLElement = MockElement;
-global.SVGElement = MockElement;
-global.Element = MockElement;
-global.Node = MockElement;
-global.DOMParser = class {
-    parseFromString(str) {
-        var el = new MockElement('div');
-        el.innerHTML = str;
-        el._svgContent = str;
-        var doc = {
-            documentElement: el,
-            firstChild: el,
-            querySelector: function() { return el; },
-            querySelectorAll: function() { return [el]; }
-        };
-        return doc;
-    }
-};
-global.XMLSerializer = class {
-    serializeToString(node) {
-        return node.outerHTML || node.innerHTML || node._svgContent || '';
-    }
-};
-global._mockElements = {};
-
-// --- Load libraries ---
+// --- Module paths ---
 
 var vizPath = process.argv[2];
 var plantumlPath = process.argv[3];
@@ -121,61 +92,70 @@ if (!vizPath || !plantumlPath) {
     process.exit(1);
 }
 
-// Patch URL constructor: viz-global.js calls new URL('viz-global.js') without a base,
-// which works in browsers (relative to page URL) but fails in Node.js.
-// Provide a file:// base pointing to the viz-global.js directory for relative URLs.
-var OrigURL = globalThis.URL;
-var urlModule = require('url');
-var pathModule = require('path');
-var fsModule = require('fs');
-var vizDirUrl = urlModule.pathToFileURL(pathModule.dirname(pathModule.resolve(vizPath))).href + '/';
-globalThis.URL = class PatchedURL extends OrigURL {
-    constructor(input, base) {
-        if (base === undefined && typeof input === 'string' && !/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(input)) {
-            super(input, vizDirUrl);
-        } else {
-            super(input, base);
-        }
-    }
-};
+// --- Phase 1: Load Viz.js WITHOUT browser mocks ---
+// viz-global.js (Viz.js 3.x / Emscripten) detects the environment at load time:
+//   - If document is undefined: takes the Node.js CJS path (uses __filename for WASM URL)
+//   - If document is defined: takes the browser path (uses document.currentScript.src)
+// By NOT setting global.document yet, viz-global.js correctly detects Node.js
+// and resolves the embedded base64 WASM without needing URL or fetch polyfills.
+process.stderr.write('Phase 1: Loading viz-global.js...\n');
+var vizModule = require(vizPath);
 
-// Polyfill fetch for file:// URLs: viz-global.js uses fetch() to load its embedded
-// WASM binary, but Node.js built-in fetch doesn't support file:// URLs.
-var origFetch = globalThis.fetch;
-globalThis.fetch = function patchedFetch(input, init) {
-    var url = (typeof input === 'string') ? input : (input && input.url) || String(input);
-    if (url.startsWith('file://')) {
-        var filePath = urlModule.fileURLToPath(url);
-        return new Promise(function(resolve, reject) {
-            try {
-                var buffer = fsModule.readFileSync(filePath);
-                resolve({
-                    ok: true,
-                    status: 200,
-                    statusText: 'OK',
-                    headers: new Map(),
-                    arrayBuffer: function() { return Promise.resolve(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)); },
-                    text: function() { return Promise.resolve(buffer.toString('utf8')); },
-                    json: function() { return Promise.resolve(JSON.parse(buffer.toString('utf8'))); },
-                    blob: function() { return Promise.resolve(new Blob([buffer])); }
-                });
-            } catch (e) {
-                reject(e);
-            }
-        });
-    }
-    return origFetch ? origFetch.call(globalThis, input, init) : Promise.reject(new Error('fetch not available for: ' + url));
-};
+// viz-global.js uses UMD: in CJS mode it populates module.exports, not globalThis.Viz.
+// plantuml.js expects Viz to be global, so expose it.
+if (!globalThis.Viz) globalThis.Viz = {};
+Object.assign(globalThis.Viz, vizModule);
+process.stderr.write('Phase 1: Viz loaded. instance=' + typeof vizModule.instance + '\n');
 
-require(vizPath);
-var plantumlModule = require(plantumlPath);
-
-// --- Read stdin and render ---
-
+// --- Phase 2: Wait for WASM compilation, read stdin in parallel ---
+var inputResolve;
+var inputPromise = new Promise(function(resolve) { inputResolve = resolve; });
 var input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', function(chunk) { input += chunk; });
-process.stdin.on('end', function() {
+process.stdin.on('end', function() { inputResolve(input); });
+
+process.stderr.write('Phase 2: Waiting for WASM init...\n');
+Promise.all([vizModule.instance(), inputPromise]).then(function(results) {
+    var plantUml = results[1];
+    process.stderr.write('Phase 2: WASM ready, stdin received (' + plantUml.length + ' chars)\n');
+
+    // --- Phase 3: Set up browser mocks for plantuml.js ---
+    global.self = global;
+    global.window = global;
+    global.document = mockDocument;
+    global.navigator = { userAgent: 'node', platform: 'node' };
+    global.HTMLElement = MockElement;
+    global.SVGElement = MockElement;
+    global.Element = MockElement;
+    global.Node = MockElement;
+    global.DOMParser = class {
+        parseFromString(str) {
+            var el = new MockElement('div');
+            el.innerHTML = str;
+            el._svgContent = str;
+            var doc = {
+                documentElement: el,
+                firstChild: el,
+                querySelector: function() { return el; },
+                querySelectorAll: function() { return [el]; }
+            };
+            return doc;
+        }
+    };
+    global.XMLSerializer = class {
+        serializeToString(node) {
+            return node.outerHTML || node.innerHTML || node._svgContent || '';
+        }
+    };
+    global._mockElements = {};
+
+    // --- Phase 4: Load plantuml.js ---
+    process.stderr.write('Phase 3: Loading plantuml.js...\n');
+    var plantumlModule = require(plantumlPath);
+    process.stderr.write('Phase 3: plantuml.js loaded. plantumlLoad=' + typeof plantumlModule.plantumlLoad + '\n');
+
+    // --- Phase 5: Render ---
     var targetId = '_render_target';
     var target = new MockElement('div');
     target.id = targetId;
@@ -199,7 +179,8 @@ process.stdin.on('end', function() {
             process.exit(1);
         }
 
-        var lines = input.trim().split('\n');
+        var lines = plantUml.trim().split('\n');
+        process.stderr.write('Phase 5: Rendering ' + lines.length + ' lines...\n');
 
         try {
             renderer.render(lines, targetId);
@@ -233,4 +214,7 @@ process.stdin.on('end', function() {
         };
         setTimeout(check, 50);
     });
+}).catch(function(err) {
+    process.stderr.write('ERROR: Initialization failed: ' + (err.stack || err.message || err) + '\n');
+    process.exit(1);
 });
