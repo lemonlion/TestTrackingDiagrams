@@ -70,7 +70,7 @@ public static class CiSummaryGenerator
             {
                 if (shown >= maxDiagrams) break;
 
-                sb.AppendLine($"### {EscapeMarkdown(feature.DisplayName)} — {EscapeMarkdown(scenario.DisplayName)}");
+                sb.AppendLine($"<details open><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
                 sb.AppendLine();
 
                 if (!string.IsNullOrEmpty(scenario.ErrorMessage))
@@ -92,6 +92,9 @@ public static class CiSummaryGenerator
                 }
 
                 AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+
+                sb.AppendLine("</details>");
+                sb.AppendLine();
                 shown++;
             }
             if (shown >= maxDiagrams) break;
@@ -131,9 +134,12 @@ public static class CiSummaryGenerator
         {
             if (shown >= maxDiagrams) break;
 
-            sb.AppendLine($"### {EscapeMarkdown(feature.DisplayName)} — {EscapeMarkdown(scenario.DisplayName)}");
+            sb.AppendLine($"<details><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
             sb.AppendLine();
             AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+
+            sb.AppendLine("</details>");
+            sb.AppendLine();
             shown++;
         }
 
@@ -192,6 +198,11 @@ public static class CiSummaryGenerator
     }
 
     private static string EscapeMarkdown(string text) => text.Replace("|", "\\|");
+
+    private static string EscapeHtml(string text) => text
+        .Replace("&", "&amp;")
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
 
     private static string FormatDuration(TimeSpan duration)
     {

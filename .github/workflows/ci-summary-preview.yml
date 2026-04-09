@@ -1,0 +1,35 @@
+name: CI Summary Preview
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  ci-preview:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "CI Preview — All Passing (10 tests)"
+            project: Example.Api/tests/Example.Api.Tests.CiPreview.AllPassing
+          - name: "CI Preview — All Failing (10 tests)"
+            project: Example.Api/tests/Example.Api.Tests.CiPreview.AllFailing
+          - name: "CI Preview — Mixed (5 pass, 5 fail)"
+            project: Example.Api/tests/Example.Api.Tests.CiPreview.Mixed
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pin SDK
+        run: echo '{"sdk":{"version":"10.0.0","rollForward":"latestFeature"}}' > global.json
+
+      - name: Build & Test
+        run: dotnet test "${{ matrix.project }}" --configuration Release --verbosity normal || true
