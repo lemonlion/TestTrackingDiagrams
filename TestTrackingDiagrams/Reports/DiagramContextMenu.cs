@@ -171,6 +171,7 @@ public static class DiagramContextMenu
         }
         .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
         .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
+        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; }
         .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
         .details-radio-btn {
             padding: 0.25em 0.6em;
@@ -1791,19 +1792,32 @@ public static class DiagramContextMenu
                 });
             };
 
-            // Toggle headers (works for both report-level and scenario-level)
-            window._toggleHeaders = function(btn) {
-                var scenario = btn.closest('details.scenario');
-                var scope = scenario || document;
-                var containers = scope.querySelectorAll('[data-plantuml]');
-                var hiding = btn.textContent === 'Hide Headers';
+            function syncHeadersRadio(parent, state) {
+                parent.querySelectorAll('.headers-radio-btn').forEach(function(b) {
+                    if (b.getAttribute('data-hstate') === state) b.classList.add('details-active');
+                    else b.classList.remove('details-active');
+                });
+            }
+
+            // Report-level: show/hide headers for all scenarios
+            window._setReportHeaders = function(state) {
+                var hiding = state === 'hidden';
+                syncHeadersRadio(document.querySelector('.toolbar-right'), state);
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncHeadersRadio(sc, state);
+                });
+                var containers = document.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildHeadersQueue(containers, hiding));
-                btn.textContent = hiding ? 'Show Headers' : 'Hide Headers';
-                if (!scenario) {
-                    document.querySelectorAll('.toggle-headers-btn').forEach(function(b) {
-                        b.textContent = hiding ? 'Show Headers' : 'Hide Headers';
-                    });
-                }
+            };
+
+            // Scenario-level: show/hide headers for one scenario
+            window._setScenarioHeaders = function(btn, state) {
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                var hiding = state === 'hidden';
+                syncHeadersRadio(scenario, state);
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildHeadersQueue(containers, hiding));
             };
         })();
         </script>
