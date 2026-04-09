@@ -929,6 +929,31 @@ public class PlantUmlCreatorTests
         }
     }
 
+    [Fact]
+    public void Higher_maxEncodedDiagramLength_produces_fewer_diagrams()
+    {
+        // Generate enough traces to split at default 2000 but not at 8000
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 200; i++)
+        {
+            logs.Add(MakeRequest(
+                content: $"{{\"payload_{i}\": \"{new string('X', 300)}\"}}",
+                headers: [("X-Trace", $"trace-{i}-{new string('H', 100)}")]));
+            logs.Add(MakeResponse(
+                content: $"{{\"result_{i}\": \"{new string('Y', 300)}\"}}",
+                headers: [("X-Response", $"resp-{i}-{new string('R', 100)}")]));
+        }
+
+        var defaultResults = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var defaultCount = defaultResults.Single().PlantUmls.Count();
+
+        var largerResults = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000).ToList();
+        var largerCount = largerResults.Single().PlantUmls.Count();
+
+        Assert.True(defaultCount > 1, "Default limit should produce multiple diagrams");
+        Assert.True(largerCount < defaultCount, $"8000 limit ({largerCount} diagrams) should produce fewer diagrams than default ({defaultCount})");
+    }
+
     // ─── Camelized names ────────────────────────────────────────
 
     [Fact]

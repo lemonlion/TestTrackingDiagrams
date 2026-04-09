@@ -14,7 +14,7 @@ public static partial class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
     private const string EventNoteClass = "eventNote";
-    private const int MaxEncodedDiagramLength = 2000;
+    private const int DefaultMaxEncodedDiagramLength = 2000;
     private const int MaxResponseNoteChunkLength = 15_000;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
@@ -38,7 +38,8 @@ public static partial class PlantUmlCreator
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
         string? plantUmlTheme = null,
-        bool internalFlowTracking = false)
+        bool internalFlowTracking = false,
+        int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -66,7 +67,8 @@ public static partial class PlantUmlCreator
                 focusEmphasis,
                 focusDeEmphasis,
                 plantUmlTheme,
-                internalFlowTracking);
+                internalFlowTracking,
+                maxEncodedDiagramLength);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -89,9 +91,10 @@ public static partial class PlantUmlCreator
         FocusEmphasis focusEmphasis,
         FocusDeEmphasis focusDeEmphasis,
         string? plantUmlTheme,
-        bool internalFlowTracking)
+        bool internalFlowTracking,
+        int maxEncodedDiagramLength)
     {
-        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme);
+        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength);
         var lastTrace = tracesForTest[^1];
 
         var currentlyOverriding = false;
@@ -424,7 +427,7 @@ public static partial class PlantUmlCreator
         return value.ChunksUpTo(100).Select(x => $"$color(gray){x}");
     }
 
-    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest, string? plantUmlTheme = null)
+    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest, string? plantUmlTheme = null, int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength)
     {
         private readonly List<PlantUmlResult> _results = [];
         private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1, plantUmlTheme));
@@ -457,16 +460,16 @@ public static partial class PlantUmlCreator
         {
             get
             {
-                if (_currentDiagram.Length <= MaxEncodedDiagramLength)
+                if (_currentDiagram.Length <= maxEncodedDiagramLength)
                     return false;
 
                 // Only re-encode when the diagram has grown meaningfully since the last check
                 if (_cachedEncoded is not null && _currentDiagram.Length - _lengthAtLastEncode < 200)
-                    return _cachedEncoded.Length > MaxEncodedDiagramLength;
+                    return _cachedEncoded.Length > maxEncodedDiagramLength;
 
                 _cachedEncoded = PlantUmlTextEncoder.Encode(_currentDiagram.ToString());
                 _lengthAtLastEncode = _currentDiagram.Length;
-                return _cachedEncoded.Length > MaxEncodedDiagramLength;
+                return _cachedEncoded.Length > maxEncodedDiagramLength;
             }
         }
 

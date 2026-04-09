@@ -97,7 +97,8 @@ public static class DefaultDiagramsFetcher
             focusEmphasis: options.FocusEmphasis,
             focusDeEmphasis: options.FocusDeEmphasis,
             plantUmlTheme: options.PlantUmlTheme,
-            internalFlowTracking: options.InternalFlowTracking).ToArray();
+            internalFlowTracking: options.InternalFlowTracking,
+            maxEncodedDiagramLength: options.PlantUmlRendering == PlantUmlRendering.BrowserJs ? 8000 : 2000).ToArray();
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)
