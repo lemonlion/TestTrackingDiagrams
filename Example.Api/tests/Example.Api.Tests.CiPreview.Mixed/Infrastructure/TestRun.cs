@@ -20,7 +20,7 @@ public class TestRun : DiagrammedTestRun, IDisposable
         DisposeHttpFakes();
 
         XUnitReportGenerator.CreateStandardReportsWithDiagrams(TestContexts, StartRunTime, EndRunTime,
-            new ReportConfigurationOptions { SpecificationsTitle = "CI Preview — Mixed Results" });
+            new ReportConfigurationOptions { SpecificationsTitle = "CI Preview — Mixed Results", WriteCiSummary = true });
     }
 
     private void StartHttpFakes()
