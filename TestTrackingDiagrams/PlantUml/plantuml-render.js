@@ -189,7 +189,7 @@ mockDocument.currentScript = null;
 process.stderr.write('Waiting for Viz WASM compilation...\n');
 var vizReady = globalThis.Viz.instance().then(function(viz) {
     process.stderr.write('Viz WASM ready. Testing...\n');
-    var testSvg = viz.renderString('digraph { a -> b }');
+    var testSvg = viz.renderString('digraph { a -> b }', { format: 'svg' });
     if (testSvg && testSvg.indexOf('<svg') !== -1) {
         process.stderr.write('Viz test render OK (' + testSvg.length + ' chars)\n');
     } else {
