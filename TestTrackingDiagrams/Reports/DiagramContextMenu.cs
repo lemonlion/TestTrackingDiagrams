@@ -1664,15 +1664,17 @@ public static class DiagramContextMenu
                 if (noteBlocks.length === 0) return source;
                 el._noteOriginalSource = source;
                 var state = window._detailsDefault;
+                // Always initialize _noteSteps so that subsequent headers toggle
+                // or details changes see the correct state (step 2 = expanded)
+                if (!el._noteSteps) el._noteSteps = {};
+                for (var i = 0; i < noteBlocks.length; i++) {
+                    var targetStep;
+                    if (state === 'expanded') { targetStep = 2; }
+                    else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
+                    else { targetStep = 0; }
+                    el._noteSteps[i] = targetStep;
+                }
                 if (state !== 'expanded' || window._headersHidden) {
-                    if (!el._noteSteps) el._noteSteps = {};
-                    for (var i = 0; i < noteBlocks.length; i++) {
-                        var targetStep;
-                        if (state === 'expanded') { targetStep = 2; }
-                        else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
-                        else { targetStep = 0; }
-                        el._noteSteps[i] = targetStep;
-                    }
                     el._headersHidden = window._headersHidden;
                     return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden);
                 }
