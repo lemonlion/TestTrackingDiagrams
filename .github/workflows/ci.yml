@@ -7,63 +7,46 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
-          sudo apt-get clean
-
-      - uses: actions/checkout@v5
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Pin SDK
-        run: echo '{"sdk":{"version":"10.0.0","rollForward":"latestFeature"}}' > global.json
-
-      - name: Build
-        run: dotnet build TestTrackingDiagrams.sln --configuration Release
-
-      - name: Build Example.Api
-        run: dotnet build Example.Api/Example.Api.sln --configuration Release
-
   test:
-    name: Test (${{ matrix.name }})
-    needs: build
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: core
+          - name: Core Tests
             projects: TestTrackingDiagrams.Tests
-          - name: adapters
+          - name: Adapter Tests
             projects: >-
               TestTrackingDiagrams.Tests.MSTest
               TestTrackingDiagrams.Tests.xUnit2
               TestTrackingDiagrams.Tests.xUnit3
               TestTrackingDiagrams.Tests.LightBDD.xUnit3
-          - name: extensions
+          - name: Extension Tests
             projects: >-
               TestTrackingDiagrams.Tests.CosmosDB
               TestTrackingDiagrams.Tests.EfCore.Relational
               TestTrackingDiagrams.Tests.Redis
               TestTrackingDiagrams.Tests.PlantUml.Ikvm
-          - name: selenium
+          - name: Selenium Tests
             projects: TestTrackingDiagrams.Tests.Selenium
-          - name: example-api
-            projects: Example.Api/Example.Api.sln
+          - name: Example.Api xUnit Tests
+            projects: >-
+              Example.Api/tests/Example.Api.Tests.Component.xUnit2
+              Example.Api/tests/Example.Api.Tests.Component.xUnit3
+          - name: Example.Api BDD Tests
+            projects: >-
+              Example.Api/tests/Example.Api.Tests.Component.BDDfy.xUnit3
+              Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit2
+              Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit3
+          - name: Example.Api ReqNRoll & NUnit Tests
+            projects: >-
+              Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
+              Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
+              Example.Api/tests/Example.Api.Tests.Component.NUnit4
+          - name: Example.Api Integration Tests
+            projects: Example.Api/tests/Example.Api.Tests.Integration
     steps:
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
-          sudo apt-get clean
-
       - uses: actions/checkout@v5
 
       - name: Setup .NET
@@ -74,7 +57,7 @@ jobs:
       - name: Pin SDK
         run: echo '{"sdk":{"version":"10.0.0","rollForward":"latestFeature"}}' > global.json
 
-      - name: Test
+      - name: Build & Test
         run: |
           for project in ${{ matrix.projects }}; do
             echo "::group::Testing $project"
