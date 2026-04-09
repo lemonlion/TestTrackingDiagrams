@@ -146,7 +146,7 @@ public static class DiagramContextMenu
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
         .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
-        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; display: flex; align-items: center; }
+        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; padding-right: 1em; display: flex; align-items: center; }
         .diagram-toggle-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
@@ -171,7 +171,7 @@ public static class DiagramContextMenu
         }
         .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
         .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
-        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; }
+        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
         .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
         .details-radio-btn {
             padding: 0.25em 0.6em;
