@@ -566,4 +566,12 @@ public class DiagramContextMenuTests
         Assert.Contains(".headers-radio", css);
         Assert.Contains(".truncate-lines-select", css);
     }
+
+    [Fact]
+    public void CollapsibleNotesStyles_note_toggle_icon_user_select_none()
+    {
+        var css = DiagramContextMenu.GetCollapsibleNotesStyles();
+        Assert.Contains(".note-toggle-icon", css);
+        Assert.Contains("user-select: none", css);
+    }
 }

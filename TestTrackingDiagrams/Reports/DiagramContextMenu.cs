@@ -63,6 +63,7 @@ public static class DiagramContextMenu
             margin-left: 0.3em;
         }
         .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
+        .note-toggle-icon { user-select: none; -webkit-user-select: none; }
         """;
 
     public static string GetInternalFlowPopupStyles() => """
