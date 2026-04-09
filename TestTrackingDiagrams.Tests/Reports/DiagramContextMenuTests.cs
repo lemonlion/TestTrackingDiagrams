@@ -137,8 +137,8 @@ public class DiagramContextMenuTests
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
         // When hideHeaders is true and note is in normal (expanded) mode,
-        // lines matching $color(gray) should be skipped
-        Assert.Contains(@"if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;", funcBody);
+        // lines matching $color(gray) should be skipped (setting justSkippedGray)
+        Assert.Contains(@"if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class DiagramContextMenuTests
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
         // In truncated mode, $color(gray) lines should be skippable when hideHeaders is true
-        Assert.Contains(@"if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;", funcBody);
+        Assert.Contains(@"if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
     }
 
     // ─── _preProcessSource ──────────────────────────────────
@@ -347,5 +347,177 @@ public class DiagramContextMenuTests
         // All buttons start with opacity 0 (hover only)
         Assert.DoesNotContain("opacity = '0.6'", funcBody);
         Assert.Contains("opacity = '0'", funcBody);
+    }
+
+    // ─── createNoteButtons — arrows and double-click ────────
+
+    [Fact]
+    public void CreateNoteButtons_expand_uses_downward_arrow()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Bottom expand button uses ▾ (downward triangle) instead of +
+        Assert.Contains("\\u25BE", funcBody);
+        Assert.DoesNotContain("textContent = '+'", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_bottom_contract_for_expanded_long_notes()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Bottom-center ▴ contract button shown when expanded and long note
+        Assert.Contains("state === 'expanded' && longNote", funcBody);
+        Assert.Contains("\\u25B4", funcBody); // ▴
+    }
+
+    [Fact]
+    public void CreateNoteButtons_top_right_arrow_for_expanded_long_notes()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // For expanded long notes: ▴ arrow appears to the left of −
+        // The ▴ block uses offset: size * 2 + pad * 2
+        Assert.Contains("bbox.x + bbox.width - size * 2 - pad * 2", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_double_click_cycles_state()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Hover rect has dblclick handler
+        Assert.Contains("dblclick", funcBody);
+        Assert.Contains("onCycle", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_accepts_onCycle_parameter()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Function signature includes onCycle parameter
+        Assert.Contains("onExpand, onContract, onCycle, contentLines", funcBody);
+    }
+
+    // ─── makeNotesCollapsible — double-click cycle logic ────
+
+    [Fact]
+    public void MakeNotesCollapsible_passes_cycle_callback()
+    {
+        var funcBody = GetFunction("makeNotesCollapsible");
+        // The cycle callback calculates next step based on current step
+        Assert.Contains("curStep === 2", funcBody);
+        Assert.Contains("curStep === 1", funcBody);
+        Assert.Contains("long ? 1 : 0", funcBody);
+    }
+
+    // ─── buildSourceWithNoteStates — trailing space fix ─────
+
+    [Fact]
+    public void BuildSourceWithNoteStates_skips_blank_lines_after_hidden_headers()
+    {
+        var funcBody = GetFunction("buildSourceWithNoteStates");
+        // justSkippedGray tracking removes blank lines left after hiding $color(gray) lines
+        Assert.Contains("justSkippedGray", funcBody);
+        Assert.Contains("justSkippedGray && trimmed === ''", funcBody);
+    }
+
+    // ─── setNoteState — performance ─────────────────────────
+
+    [Fact]
+    public void SetNoteState_short_circuits_unchanged_step()
+    {
+        var funcBody = GetFunction("setNoteState");
+        // Should return early if step hasn't changed
+        Assert.Contains("container._noteSteps[noteIdx] === targetStep", funcBody);
+    }
+
+    [Fact]
+    public void SetNoteState_uses_svg_cache()
+    {
+        var funcBody = GetFunction("setNoteState");
+        Assert.Contains("_svgCache[newSource]", funcBody);
+    }
+
+    [Fact]
+    public void SetNoteState_caches_rendered_svg()
+    {
+        var funcBody = GetFunction("setNoteState");
+        Assert.Contains("_svgCache[newSource] = container.innerHTML", funcBody);
+    }
+
+    // ─── processRenderQueue — performance ───────────────────
+
+    [Fact]
+    public void ProcessRenderQueue_uses_svg_cache()
+    {
+        var funcBody = GetFunction("processRenderQueue");
+        Assert.Contains("_svgCache[newSource]", funcBody);
+    }
+
+    [Fact]
+    public void ProcessRenderQueue_caches_rendered_svg()
+    {
+        var funcBody = GetFunction("processRenderQueue");
+        Assert.Contains("_svgCache[newSource] = container.innerHTML", funcBody);
+    }
+
+    // ─── buildDetailsQueue — force parameter ────────────────
+
+    [Fact]
+    public void BuildDetailsQueue_accepts_force_parameter()
+    {
+        var funcBody = GetFunction("buildDetailsQueue");
+        Assert.Contains("force", funcBody);
+        Assert.Contains("needsUpdate || force", funcBody);
+    }
+
+    // ─── _setTruncateLines ──────────────────────────────────
+
+    [Fact]
+    public void SetTruncateLines_passes_force_true()
+    {
+        var funcBody = GetFunction("_setTruncateLines");
+        Assert.Contains("'truncated', true", funcBody);
+    }
+
+    // ─── _setScenarioTruncateLines ──────────────────────────
+
+    [Fact]
+    public void SetScenarioTruncateLines_exists_and_scopes_to_scenario()
+    {
+        var funcBody = GetFunction("_setScenarioTruncateLines");
+        Assert.Contains("sel.closest('details.scenario')", funcBody);
+        Assert.Contains("window._truncateLines", funcBody);
+    }
+
+    [Fact]
+    public void SetScenarioTruncateLines_syncs_all_dropdowns()
+    {
+        var funcBody = GetFunction("_setScenarioTruncateLines");
+        Assert.Contains(".truncate-lines-select", funcBody);
+    }
+
+    [Fact]
+    public void SetScenarioTruncateLines_passes_force_true()
+    {
+        var funcBody = GetFunction("_setScenarioTruncateLines");
+        Assert.Contains("'truncated', true", funcBody);
+    }
+
+    // ─── SVG cache global ───────────────────────────────────
+
+    [Fact]
+    public void SvgCache_is_declared()
+    {
+        Assert.Contains("var _svgCache = {}", _notesScript);
+    }
+
+    // ─── GetCollapsibleNotesStyles ──────────────────────────
+
+    [Fact]
+    public void CollapsibleNotesStyles_contains_radio_button_css()
+    {
+        var css = DiagramContextMenu.GetCollapsibleNotesStyles();
+        Assert.Contains(".details-radio-btn", css);
+        Assert.Contains(".details-active", css);
+        Assert.Contains(".headers-radio", css);
+        Assert.Contains(".truncate-lines-select", css);
     }
 }

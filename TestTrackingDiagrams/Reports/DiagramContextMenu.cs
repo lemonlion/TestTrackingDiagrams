@@ -41,6 +41,30 @@ public static class DiagramContextMenu
         }
         """;
 
+    public static string GetCollapsibleNotesStyles() => """
+        .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
+        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
+        .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
+        .details-radio-btn {
+            padding: 0.25em 0.6em;
+            border: 1px solid rgb(180, 180, 180);
+            border-radius: 0.4em;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .details-radio-btn:hover { background: rgb(230, 240, 255); border-color: rgb(100, 150, 255); }
+        .details-radio-btn.details-active { background: rgb(66, 133, 244); color: white; border-color: rgb(66, 133, 244); }
+        .truncate-lines-select {
+            padding: 0.2em 0.3em;
+            border: 1px solid rgb(180, 180, 180);
+            border-radius: 0.4em;
+            font-size: 0.85em;
+            margin-left: 0.3em;
+        }
+        .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
+        """;
+
     public static string GetInternalFlowPopupStyles() => """
         .iflow-overlay {
             position: fixed;
@@ -170,27 +194,6 @@ public static class DiagramContextMenu
             margin-right: 1em;
         }
         .collapse-all-notes-btn:hover, .toggle-headers-btn:hover { background: #e8f0fe; }
-        .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
-        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
-        .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
-        .details-radio-btn {
-            padding: 0.25em 0.6em;
-            border: 1px solid rgb(180, 180, 180);
-            border-radius: 0.4em;
-            background: white;
-            cursor: pointer;
-            font-size: 0.85em;
-        }
-        .details-radio-btn:hover { background: rgb(230, 240, 255); border-color: rgb(100, 150, 255); }
-        .details-radio-btn.details-active { background: rgb(66, 133, 244); color: white; border-color: rgb(66, 133, 244); }
-        .truncate-lines-select {
-            padding: 0.2em 0.3em;
-            border: 1px solid rgb(180, 180, 180);
-            border-radius: 0.4em;
-            font-size: 0.85em;
-            margin-left: 0.3em;
-        }
-        .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
         .span-count-warning { color: #b30000; font-size: 12px; font-style: italic; margin-left: 8px; }
         .iflow-test-band { border-bottom: 1px solid #eee; padding: 4px 0; }
         .iflow-test-band-label { font: 11px/1.4 monospace; color: #888; padding: 2px 0; }
@@ -1411,14 +1414,40 @@ public static class DiagramContextMenu
                 return 'truncated';
             }
 
-            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, contentLines) {
+            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onCycle, contentLines) {
                 var size = 12;
                 var pad = 3;
                 var state = noteStepState(noteStep);
+                var longNote = isLongNote(contentLines);
                 var buttons = [];
 
-                // Top-right contract button (−) — shown when expanded or truncated
+                // Top-right area: contract buttons — shown when expanded or truncated
                 if (state === 'expanded' || state === 'truncated') {
+                    // For expanded long notes: ▴ arrow to the left of −
+                    if (state === 'expanded' && longNote) {
+                        var ax = bbox.x + bbox.width - size * 2 - pad * 2;
+                        var ay = bbox.y + pad;
+                        var ga = document.createElementNS(SVGNS, 'g');
+                        ga.setAttribute('class', 'note-toggle-icon');
+                        ga.style.cursor = 'pointer';
+                        ga.style.opacity = '0';
+                        var bgA = document.createElementNS(SVGNS, 'rect');
+                        bgA.setAttribute('x', ax); bgA.setAttribute('y', ay);
+                        bgA.setAttribute('width', size); bgA.setAttribute('height', size);
+                        bgA.setAttribute('rx', '2'); bgA.setAttribute('fill', '#ffffff');
+                        bgA.setAttribute('stroke', '#999'); bgA.setAttribute('stroke-width', '0.5');
+                        ga.appendChild(bgA);
+                        var symA = document.createElementNS(SVGNS, 'text');
+                        symA.setAttribute('x', ax + size / 2); symA.setAttribute('y', ay + size - 2.5);
+                        symA.setAttribute('text-anchor', 'middle'); symA.setAttribute('font-size', '10');
+                        symA.setAttribute('font-family', 'sans-serif'); symA.setAttribute('fill', '#666');
+                        symA.style.pointerEvents = 'none';
+                        symA.textContent = '\u25B4'; // ▴
+                        ga.appendChild(symA);
+                        bgA.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                        buttons.push(ga);
+                    }
+                    // − (minus) button — top-right
                     var ix = bbox.x + bbox.width - size - pad;
                     var iy = bbox.y + pad;
                     var gc = document.createElementNS(SVGNS, 'g');
@@ -1442,7 +1471,7 @@ public static class DiagramContextMenu
                     buttons.push(gc);
                 }
 
-                // Bottom-center expand button (+) — shown when collapsed or truncated
+                // Bottom-center expand button (▾) — shown when collapsed or truncated
                 if (state === 'collapsed' || state === 'truncated') {
                     var expandW = size * 3;
                     var expandH = size;
@@ -1463,10 +1492,37 @@ public static class DiagramContextMenu
                     symE.setAttribute('text-anchor', 'middle'); symE.setAttribute('font-size', '10');
                     symE.setAttribute('font-family', 'sans-serif'); symE.setAttribute('fill', '#666');
                     symE.style.pointerEvents = 'none';
-                    symE.textContent = '+';
+                    symE.textContent = '\u25BE'; // ▾
                     ge.appendChild(symE);
                     bgE.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
                     buttons.push(ge);
+                }
+
+                // Bottom-center contract button (▴) — shown when expanded and long note
+                if (state === 'expanded' && longNote) {
+                    var contractW = size * 3;
+                    var contractH = size;
+                    var cx = bbox.x + (bbox.width - contractW) / 2;
+                    var cy = bbox.y + bbox.height - contractH - pad;
+                    var gbc = document.createElementNS(SVGNS, 'g');
+                    gbc.setAttribute('class', 'note-toggle-icon');
+                    gbc.style.cursor = 'pointer';
+                    gbc.style.opacity = '0';
+                    var bgBC = document.createElementNS(SVGNS, 'rect');
+                    bgBC.setAttribute('x', cx); bgBC.setAttribute('y', cy);
+                    bgBC.setAttribute('width', contractW); bgBC.setAttribute('height', contractH);
+                    bgBC.setAttribute('rx', '2'); bgBC.setAttribute('fill', '#ffffff');
+                    bgBC.setAttribute('stroke', '#999'); bgBC.setAttribute('stroke-width', '0.5');
+                    gbc.appendChild(bgBC);
+                    var symBC = document.createElementNS(SVGNS, 'text');
+                    symBC.setAttribute('x', cx + contractW / 2); symBC.setAttribute('y', cy + contractH - 2.5);
+                    symBC.setAttribute('text-anchor', 'middle'); symBC.setAttribute('font-size', '10');
+                    symBC.setAttribute('font-family', 'sans-serif'); symBC.setAttribute('fill', '#666');
+                    symBC.style.pointerEvents = 'none';
+                    symBC.textContent = '\u25B4'; // ▴
+                    gbc.appendChild(symBC);
+                    bgBC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                    buttons.push(gbc);
                 }
 
                 // Hover detection rect over the whole note
@@ -1482,6 +1538,9 @@ public static class DiagramContextMenu
                 });
                 hoverRect.addEventListener('mouseleave', function() {
                     buttons.forEach(function(b) { b.style.opacity = '0'; });
+                });
+                hoverRect.addEventListener('dblclick', function(ev) {
+                    ev.stopPropagation(); ev.preventDefault(); onCycle();
                 });
                 buttons.forEach(function(b) {
                     b.addEventListener('mouseenter', function() {
@@ -1533,6 +1592,15 @@ public static class DiagramContextMenu
                         createNoteButtons(svg, bbox, step,
                             function() { setNoteState(container, idx, 2); },
                             function() { setNoteState(container, idx, 0); },
+                            function() {
+                                var curStep = container._noteSteps[idx] || 0;
+                                var long = isLongNote(noteBlocks[idx].contentLines);
+                                var nextStep;
+                                if (curStep === 2) nextStep = long ? 1 : 0;
+                                else if (curStep === 1) nextStep = 0;
+                                else nextStep = 2;
+                                setNoteState(container, idx, nextStep);
+                            },
                             noteBlocks[idx].contentLines);
                     })(ni);
                 }
@@ -1545,11 +1613,13 @@ public static class DiagramContextMenu
                 var inNote = false;
                 var noteMode = 'normal'; // 'normal', 'collapsed', 'truncated'
                 var truncateLineCount = 0;
+                var justSkippedGray = false;
 
                 for (var i = 0; i < lines.length; i++) {
                     var trimmed = lines[i].trim();
                     if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
                         inNote = true;
+                        justSkippedGray = false;
                         newLines.push(lines[i]);
                         var step = noteSteps[nIdx] || 0;
                         var state = noteStepState(step);
@@ -1572,27 +1642,35 @@ public static class DiagramContextMenu
                         }
                         inNote = false;
                         noteMode = 'normal';
+                        justSkippedGray = false;
                         newLines.push(lines[i]);
                         continue;
                     }
                     if (noteMode === 'collapsed') continue;
                     if (noteMode === 'truncated') {
-                        if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
+                        if (hideHeaders && /^\$color\(gray\)/.test(trimmed)) { justSkippedGray = true; continue; }
+                        if (justSkippedGray && trimmed === '') continue;
+                        justSkippedGray = false;
                         truncateLineCount++;
                         if (truncateLineCount <= window._truncateLines) {
                             newLines.push(lines[i]);
                         }
                         continue;
                     }
-                    if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) continue;
+                    if (inNote && hideHeaders && /^\$color\(gray\)/.test(trimmed)) { justSkippedGray = true; continue; }
+                    if (justSkippedGray && trimmed === '') continue;
+                    justSkippedGray = false;
                     newLines.push(lines[i]);
                 }
                 return newLines.join('\n');
             }
 
+            var _svgCache = {};
+
             function setNoteState(container, noteIdx, targetStep) {
                 if (container._noteRendering) return;
                 if (!container._noteSteps) container._noteSteps = {};
+                if (container._noteSteps[noteIdx] === targetStep) return;
                 container._noteSteps[noteIdx] = targetStep;
 
                 var origSource = container._noteOriginalSource;
@@ -1600,21 +1678,28 @@ public static class DiagramContextMenu
                 var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden);
 
                 container.setAttribute('data-plantuml', newSource);
+
+                // Check SVG cache — skip plantuml.js re-render if we have a cached result
+                if (_svgCache[newSource]) {
+                    container.innerHTML = _svgCache[newSource];
+                    if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
+                    makeNotesCollapsible(container);
+                    return;
+                }
+
                 container._noteRendering = true;
 
                 var done = false;
                 function afterRender() {
                     if (done) return;
                     done = true;
+                    _svgCache[newSource] = container.innerHTML;
                     container._noteRendering = false;
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
                 }
 
-                // plantuml.js internally clears the container (DGK) and appends the new SVG,
-                // so the MO will fire on the childList change without us needing to clear first
                 var mo = new MutationObserver(function(mutations) {
-                    // Only act when the new SVG is actually inserted
                     if (!container.querySelector('svg')) return;
                     mo.disconnect();
                     afterRender();
@@ -1628,8 +1713,6 @@ public static class DiagramContextMenu
                     container._noteRendering = false;
                 }
 
-                // Polling fallback: plantuml.js render is async (TeaVM consumer),
-                // MO may not fire reliably in all cases
                 var pollCount = 0;
                 var poll = setInterval(function() {
                     pollCount++;
@@ -1640,12 +1723,12 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         afterRender();
                     }
-                    if (pollCount > 100) { // 10 seconds max
+                    if (pollCount > 20) {
                         clearInterval(poll);
                         mo.disconnect();
                         container._noteRendering = false;
                     }
-                }, 100);
+                }, 250);
             }
 
             window._makeNotesCollapsible = makeNotesCollapsible;
@@ -1689,11 +1772,20 @@ public static class DiagramContextMenu
                     var container = item.container;
                     var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden);
                     container.setAttribute('data-plantuml', newSource);
+                    // Check SVG cache first
+                    if (_svgCache[newSource]) {
+                        container.innerHTML = _svgCache[newSource];
+                        if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
+                        makeNotesCollapsible(container);
+                        processNext();
+                        return;
+                    }
                     container._noteRendering = true;
                     var done = false;
                     function afterRender() {
                         if (done) return;
                         done = true;
+                        _svgCache[newSource] = container.innerHTML;
                         container._noteRendering = false;
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
@@ -1712,13 +1804,13 @@ public static class DiagramContextMenu
                         if (done) { clearInterval(poll); return; }
                         var svg = container.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 100) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; processNext(); }
-                    }, 100);
+                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; processNext(); }
+                    }, 250);
                 }
                 processNext();
             }
 
-            function buildDetailsQueue(containers, targetState) {
+            function buildDetailsQueue(containers, targetState, force) {
                 var queue = [];
                 containers.forEach(function(container) {
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
@@ -1740,7 +1832,7 @@ public static class DiagramContextMenu
                             needsUpdate = true;
                         }
                     }
-                    if (needsUpdate) queue.push({ container: container, noteBlocks: noteBlocks });
+                    if (needsUpdate || force) queue.push({ container: container, noteBlocks: noteBlocks });
                 });
                 return queue;
             }
@@ -1792,21 +1884,34 @@ public static class DiagramContextMenu
                 processRenderQueue(buildDetailsQueue(containers, targetState));
             };
 
-            // Change truncation line count (report-level only)
+            // Change truncation line count (report-level)
             window._setTruncateLines = function(sel) {
                 window._truncateLines = parseInt(sel.value, 10) || 20;
-                // Sync all scenario-level dropdowns
+                // Sync all dropdowns (report + scenario level)
                 document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
                     s.value = String(window._truncateLines);
                 });
-                // Re-render all currently truncated containers
+                // Force re-render all containers as truncated (even if already truncated — line count changed)
                 var containers = document.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildDetailsQueue(containers, 'truncated'));
+                processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 // Update report + scenario radio buttons to truncated state
                 syncRadioButtons(document.querySelector('.toolbar-right'), 'truncated');
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
                     syncRadioButtons(sc, 'truncated');
                 });
+            };
+
+            // Change truncation line count (scenario-level)
+            window._setScenarioTruncateLines = function(sel) {
+                var scenario = sel.closest('details.scenario');
+                if (!scenario) return;
+                window._truncateLines = parseInt(sel.value, 10) || 20;
+                document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
+                    s.value = String(window._truncateLines);
+                });
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
+                syncRadioButtons(scenario, 'truncated');
             };
 
             function syncHeadersRadio(parent, state) {
