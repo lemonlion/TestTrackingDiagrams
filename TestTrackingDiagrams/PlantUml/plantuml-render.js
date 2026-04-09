@@ -6,6 +6,10 @@
 // Both viz-global.js and plantuml.js are designed for browsers (<script> tags).
 // We load them via vm.runInThisContext to simulate browser <script> tag loading,
 // avoiding CJS module wrapping that breaks their UMD/global interactions.
+//
+// CRITICAL: Viz.js compiles Graphviz WASM asynchronously. plantuml.render() calls
+// Viz synchronously and produces nothing if WASM isn't compiled yet. We MUST wait
+// for Viz.instance() to resolve before calling plantuml.render().
 
 'use strict';
 
@@ -51,7 +55,10 @@ class MockElement {
     insertBefore(newChild, refChild) { return this.appendChild(newChild); }
     replaceChild(newChild, oldChild) { this.removeChild(oldChild); return this.appendChild(newChild); }
     cloneNode() { return new MockElement(this.tagName); }
-    querySelector() { return null; }
+    querySelector(sel) {
+        if (sel && sel.startsWith('#')) return global._mockElements[sel.slice(1)] || null;
+        return null;
+    }
     querySelectorAll() { return []; }
     getElementsByTagName() { return []; }
     getElementsByClassName() { return []; }
@@ -64,7 +71,15 @@ class MockElement {
 }
 
 var mockDocument = {
-    getElementById: function(id) { return global._mockElements[id] || null; },
+    getElementById: function(id) {
+        process.stderr.write('  [DOM] getElementById("' + id + '")\n');
+        return global._mockElements[id] || null;
+    },
+    querySelector: function(sel) {
+        process.stderr.write('  [DOM] querySelector("' + sel + '")\n');
+        if (sel && sel.startsWith('#')) return global._mockElements[sel.slice(1)] || null;
+        return null;
+    },
     createElement: function(tag) {
         var el = new MockElement(tag);
         el.ownerDocument = mockDocument;
@@ -86,7 +101,6 @@ var mockDocument = {
     documentElement: new MockElement('html'),
     addEventListener: function() {},
     removeEventListener: function() {},
-    querySelector: function() { return null; },
     querySelectorAll: function() { return []; },
     implementation: { createHTMLDocument: function() { return mockDocument; } },
     currentScript: null,
@@ -133,16 +147,16 @@ global.XMLSerializer = class {
 };
 global._mockElements = {};
 
-// Catch silently swallowed Promise rejections
+// Catch silently swallowed errors
 process.on('unhandledRejection', function(err) {
     process.stderr.write('UNHANDLED REJECTION: ' + (err && err.stack || err) + '\n');
 });
+process.on('uncaughtException', function(err) {
+    process.stderr.write('UNCAUGHT EXCEPTION: ' + (err && err.stack || err) + '\n');
+    process.exit(1);
+});
 
 // --- Load scripts like <script> tags (no CJS module wrapping) ---
-// vm.runInThisContext runs code in the V8 global context.
-// Unlike require(), it does NOT wrap code in (function(exports,require,module,...){}).
-// This means module/exports/require/__filename are NOT available inside the script,
-// so UMD wrappers (like viz-global.js) take the browser/global path instead of CJS.
 
 function loadScript(filePath, label) {
     process.stderr.write('Loading ' + label + '...\n');
@@ -151,10 +165,15 @@ function loadScript(filePath, label) {
     process.stderr.write(label + ' loaded.\n');
 }
 
-// Set document.currentScript to a mock <script> element pointing to viz-global.js.
-// viz-global.js reads currentScript.src at load time to resolve its WASM URL.
-// The WASM is base64-embedded so the exact URL doesn't matter for loading,
-// but the code requires a valid value.
+// Read stdin in parallel with initialization
+var inputResolve;
+var inputPromise = new Promise(function(resolve) { inputResolve = resolve; });
+var input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', function(chunk) { input += chunk; });
+process.stdin.on('end', function() { inputResolve(input); });
+
+// --- Phase 1: Load viz-global.js ---
 var vizScript = new MockElement('script');
 vizScript.src = urlModule.pathToFileURL(path.resolve(vizPath)).href;
 mockDocument.currentScript = vizScript;
@@ -162,19 +181,43 @@ mockDocument.baseURI = urlModule.pathToFileURL(process.cwd()).href + '/';
 
 loadScript(vizPath, 'viz-global.js');
 process.stderr.write('  Viz=' + typeof globalThis.Viz + ', instance=' + typeof (globalThis.Viz && globalThis.Viz.instance) + '\n');
-
-// Browsers null currentScript between scripts
 mockDocument.currentScript = null;
 
-loadScript(plantumlPath, 'plantuml.js');
-process.stderr.write('  plantumlLoad=' + typeof globalThis.plantumlLoad + ', plantuml=' + typeof globalThis.plantuml + '\n');
+// --- Phase 2: Wait for WASM to compile BEFORE loading plantuml.js ---
+// plantuml.render() calls Viz synchronously. If WASM isn't compiled yet,
+// the render produces no output. We must ensure WASM is ready first.
+process.stderr.write('Waiting for Viz WASM compilation...\n');
+var vizReady = globalThis.Viz.instance().then(function(viz) {
+    process.stderr.write('Viz WASM ready. Testing...\n');
+    var testSvg = viz.renderString('digraph { a -> b }');
+    if (testSvg && testSvg.indexOf('<svg') !== -1) {
+        process.stderr.write('Viz test render OK (' + testSvg.length + ' chars)\n');
+    } else {
+        process.stderr.write('Viz test render FAILED: ' + (testSvg || '(empty)').substring(0, 200) + '\n');
+        process.exit(1);
+    }
+    return viz;
+}).catch(function(err) {
+    process.stderr.write('Viz WASM FAILED: ' + (err && err.stack || err) + '\n');
+    process.exit(1);
+});
 
-// --- Read stdin and render ---
+// --- Phase 3: Once WASM is ready, load plantuml.js and render ---
+Promise.all([vizReady, inputPromise]).then(function(results) {
+    var plantUml = results[1];
+    process.stderr.write('stdin received (' + plantUml.length + ' chars)\n');
 
-var input = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', function(chunk) { input += chunk; });
-process.stdin.on('end', function() {
+    // Load plantuml.js AFTER Viz WASM is compiled
+    loadScript(plantumlPath, 'plantuml.js');
+    process.stderr.write('  plantumlLoad=' + typeof globalThis.plantumlLoad + '\n');
+
+    var loadFn = globalThis.plantumlLoad;
+    if (!loadFn) {
+        process.stderr.write('ERROR: plantumlLoad not found\n');
+        process.exit(1);
+    }
+
+    // Set up render target
     var targetId = '_render_target';
     var target = new MockElement('div');
     target.id = targetId;
@@ -185,24 +228,24 @@ process.stdin.on('end', function() {
     var svgResult = '';
     Object.defineProperty(target, 'innerHTML', {
         get: function() { return svgResult; },
-        set: function(value) { svgResult = value; },
+        set: function(value) {
+            process.stderr.write('  [innerHTML set] ' + (value ? value.substring(0, 80) + '...' : '(empty)') + '\n');
+            svgResult = value;
+        },
         configurable: true
     });
 
-    var loadFn = globalThis.plantumlLoad;
-    if (!loadFn) {
-        process.stderr.write('ERROR: plantumlLoad not found on global scope\n');
-        process.exit(1);
-    }
-
     loadFn([], function() {
         var renderer = globalThis.plantuml;
+        process.stderr.write('plantumlLoad callback: plantuml=' + typeof renderer +
+            ', render=' + typeof (renderer && renderer.render) + '\n');
+
         if (!renderer || typeof renderer.render !== 'function') {
-            process.stderr.write('ERROR: plantuml.render not available after plantumlLoad\n');
+            process.stderr.write('ERROR: plantuml.render not available\n');
             process.exit(1);
         }
 
-        var lines = input.trim().split('\n');
+        var lines = plantUml.trim().split('\n');
         process.stderr.write('Rendering ' + lines.length + ' lines...\n');
 
         try {
@@ -212,13 +255,15 @@ process.stdin.on('end', function() {
             process.exit(1);
         }
 
-        // Check synchronous result first
+        process.stderr.write('render() returned. svgResult=' + (svgResult ? svgResult.length + ' chars' : 'empty') + '\n');
+
+        // Check synchronous result
         if (svgResult && svgResult.indexOf('<svg') !== -1) {
             process.stdout.write(svgResult);
             process.exit(0);
         }
 
-        // Poll for async result (Viz WASM init + render is async)
+        // Poll for async result
         var attempts = 0;
         var maxAttempts = 400; // 20 seconds max
         var check = function() {
@@ -229,7 +274,7 @@ process.stdin.on('end', function() {
             if (++attempts > maxAttempts) {
                 process.stderr.write('ERROR: Timed out waiting for SVG render (' + maxAttempts * 50 + 'ms)\n');
                 if (svgResult) {
-                    process.stderr.write('Partial content: ' + svgResult.substring(0, 500) + '\n');
+                    process.stderr.write('Partial: ' + svgResult.substring(0, 500) + '\n');
                 }
                 process.exit(1);
             }
@@ -237,4 +282,7 @@ process.stdin.on('end', function() {
         };
         setTimeout(check, 50);
     });
+}).catch(function(err) {
+    process.stderr.write('FATAL: ' + (err && err.stack || err) + '\n');
+    process.exit(1);
 });
