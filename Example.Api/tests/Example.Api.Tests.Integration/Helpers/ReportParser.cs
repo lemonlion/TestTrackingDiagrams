@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Net;
+using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 
@@ -40,8 +42,17 @@ public static class ReportParser
 
         // BrowserJs / InlineSvg mode: data-plantuml inside scenario containers
         // Filter to sequence diagrams only (exclude activity/component diagrams)
-        return document.QuerySelectorAll("details.scenario [data-plantuml], div.scenario [data-plantuml]")
+        sources = document.QuerySelectorAll("details.scenario [data-plantuml], div.scenario [data-plantuml]")
             .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
+            .Where(s => s.Length > 0 && s.Contains("participant "))
+            .ToArray();
+
+        if (sources.Length > 0)
+            return sources;
+
+        // BrowserJs / InlineSvg mode: data-plantuml-z (gzip+base64 compressed)
+        return document.QuerySelectorAll("details.scenario [data-plantuml-z], div.scenario [data-plantuml-z]")
+            .Select(el => DecompressFromBase64(el.GetAttribute("data-plantuml-z") ?? ""))
             .Where(s => s.Length > 0 && s.Contains("participant "))
             .ToArray();
     }
@@ -72,6 +83,15 @@ public static class ReportParser
             {
                 plantUmlSources = scenario.QuerySelectorAll("[data-plantuml]")
                     .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
+                    .Where(s => s.Length > 0)
+                    .ToArray();
+            }
+
+            // Compressed fallback (data-plantuml-z)
+            if (plantUmlSources.Length == 0)
+            {
+                plantUmlSources = scenario.QuerySelectorAll("[data-plantuml-z]")
+                    .Select(el => DecompressFromBase64(el.GetAttribute("data-plantuml-z") ?? ""))
                     .Where(s => s.Length > 0)
                     .ToArray();
             }
@@ -109,5 +129,17 @@ public static class ReportParser
                 img.GetAttribute("loading") == "lazy"))
             .Where(d => d.Src.Length > 0)
             .ToArray();
+    }
+
+    private static string DecompressFromBase64(string base64)
+    {
+        if (string.IsNullOrEmpty(base64))
+            return "";
+
+        var bytes = Convert.FromBase64String(base64);
+        using var input = new MemoryStream(bytes);
+        using var gzip = new GZipStream(input, CompressionMode.Decompress);
+        using var reader = new StreamReader(gzip, Encoding.UTF8);
+        return reader.ReadToEnd().Trim();
     }
 }
