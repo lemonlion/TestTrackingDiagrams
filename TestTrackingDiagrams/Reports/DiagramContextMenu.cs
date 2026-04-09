@@ -1534,6 +1534,7 @@ public static class DiagramContextMenu
                 hoverRect.setAttribute('height', bbox.height);
                 hoverRect.setAttribute('fill', 'transparent');
                 hoverRect.style.pointerEvents = 'all';
+                hoverRect.style.cursor = 'text';
                 hoverRect.addEventListener('mouseenter', function() {
                     buttons.forEach(function(b) { b.style.opacity = '1'; });
                 });
@@ -1542,6 +1543,15 @@ public static class DiagramContextMenu
                 });
                 hoverRect.addEventListener('dblclick', function(ev) {
                     ev.stopPropagation(); ev.preventDefault(); onCycle();
+                });
+                // Allow text selection: on mousedown, temporarily remove pointer-events
+                // so the browser can start selecting text underneath
+                hoverRect.addEventListener('mousedown', function() {
+                    hoverRect.style.pointerEvents = 'none';
+                    document.addEventListener('mouseup', function restore() {
+                        hoverRect.style.pointerEvents = 'all';
+                        document.removeEventListener('mouseup', restore);
+                    });
                 });
                 buttons.forEach(function(b) {
                     b.addEventListener('mouseenter', function() {
@@ -1566,6 +1576,7 @@ public static class DiagramContextMenu
                     }
                 }
 
+                // Insert hoverRect on top for hover detection, then buttons
                 svg.appendChild(hoverRect);
                 buttons.forEach(function(b) { svg.appendChild(b); });
             }
@@ -1907,13 +1918,14 @@ public static class DiagramContextMenu
             window._setScenarioTruncateLines = function(sel) {
                 var scenario = sel.closest('details.scenario');
                 if (!scenario) return;
-                window._truncateLines = parseInt(sel.value, 10) || 20;
-                document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
-                    s.value = String(window._truncateLines);
-                });
+                var scenarioLines = parseInt(sel.value, 10) || 20;
+                // Temporarily set global for rendering, then restore
+                var prev = window._truncateLines;
+                window._truncateLines = scenarioLines;
                 var containers = scenario.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 syncRadioButtons(scenario, 'truncated');
+                window._truncateLines = prev;
             };
 
             function syncHeadersRadio(parent, state) {

@@ -543,10 +543,20 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void SetScenarioTruncateLines_syncs_all_dropdowns()
+    public void SetScenarioTruncateLines_does_not_sync_all_dropdowns()
     {
         var funcBody = GetFunction("_setScenarioTruncateLines");
-        Assert.Contains(".truncate-lines-select", funcBody);
+        // Scenario-level should NOT sync all dropdowns — only report-level does
+        Assert.DoesNotContain(".truncate-lines-select", funcBody);
+    }
+
+    [Fact]
+    public void SetScenarioTruncateLines_restores_global_truncate_lines()
+    {
+        var funcBody = GetFunction("_setScenarioTruncateLines");
+        // Should save and restore window._truncateLines after rendering
+        Assert.Contains("var prev = window._truncateLines", funcBody);
+        Assert.Contains("window._truncateLines = prev", funcBody);
     }
 
     [Fact]
