@@ -45,9 +45,34 @@ jobs:
             projects: Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
           - name: Example.Api NUnit4 Tests
             projects: Example.Api/tests/Example.Api.Tests.Component.NUnit4
-          - name: Example.Api Integration Tests
+          - name: Integration (xUnit2)
             projects: Example.Api/tests/Example.Api.Tests.Integration
             restore-first: Example.Api/Example.Api.sln
+            filter: Component.xUnit2
+          - name: Integration (xUnit3)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.xUnit3
+          - name: Integration (NUnit4)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.NUnit4
+          - name: Integration (LightBDD)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.LightBDD
+          - name: Integration (BDDfy)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.BDDfy
+          - name: Integration (ReqNRoll.xUnit2)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.ReqNRoll.xUnit2
+          - name: Integration (ReqNRoll.xUnit3)
+            projects: Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: Example.Api/Example.Api.sln
+            filter: Component.ReqNRoll.xUnit3
     steps:
       - uses: actions/checkout@v5
 
@@ -65,8 +90,12 @@ jobs:
 
       - name: Build & Test
         run: |
+          FILTER_ARG=""
+          if [ -n "${{ matrix.filter }}" ]; then
+            FILTER_ARG="--filter DisplayName~${{ matrix.filter }}"
+          fi
           for project in ${{ matrix.projects }}; do
             echo "::group::Testing $project"
-            dotnet test "$project" --configuration Release --verbosity normal
+            dotnet test "$project" --configuration Release --verbosity normal $FILTER_ARG
             echo "::endgroup::"
           done
