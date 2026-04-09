@@ -4,5 +4,6 @@ public enum PlantUmlRendering
 {
     Server,
     BrowserJs,
-    Local
+    Local,
+    NodeJs
 }

@@ -20,7 +20,7 @@ public class TestRun : DiagrammedTestRun, IDisposable
         DisposeHttpFakes();
 
         XUnitReportGenerator.CreateStandardReportsWithDiagrams(TestContexts, StartRunTime, EndRunTime,
-            new ReportConfigurationOptions { SpecificationsTitle = "CI Preview — All Passing", WriteCiSummary = true });
+            new ReportConfigurationOptions { SpecificationsTitle = "CI Preview — All Passing", WriteCiSummary = true, CiSummaryPlantUmlRendering = PlantUmlRendering.NodeJs });
     }
 
     private void StartHttpFakes()

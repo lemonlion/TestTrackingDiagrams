@@ -20,9 +20,12 @@ public static class ComponentDiagramReportGenerator
         var options = reportOptions.ComponentDiagramOptions ?? new ComponentDiagramOptions();
         var plantUmlServerBaseUrl = reportOptions.PlantUmlServerBaseUrl;
         var imageFormat = reportOptions.PlantUmlImageFormat;
-        var localDiagramRenderer = reportOptions.PlantUmlRendering == PlantUmlRendering.Local
-            ? reportOptions.LocalDiagramRenderer
-            : null;
+        var localDiagramRenderer = reportOptions.PlantUmlRendering switch
+        {
+            PlantUmlRendering.Local => reportOptions.LocalDiagramRenderer,
+            PlantUmlRendering.NodeJs => PlantUml.NodeJsPlantUmlRenderer.Render,
+            _ => null
+        };
         var useBrowserJs = reportOptions.PlantUmlRendering == PlantUmlRendering.BrowserJs;
 
         var logsArray = logs as RequestResponseLog[] ?? logs.ToArray();

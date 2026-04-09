@@ -12,7 +12,7 @@ public static class ReportGenerator
     {
         if (options.InternalFlowTracking && options.DiagramFormat == DiagramFormat.PlantUml)
         {
-            if (options.PlantUmlRendering is PlantUmlRendering.Server or PlantUmlRendering.Local)
+            if (options.PlantUmlRendering is PlantUmlRendering.Server or PlantUmlRendering.Local or PlantUmlRendering.NodeJs)
             {
                 options.InlineSvgRendering = true;
                 options.PlantUmlImageFormat = PlantUmlImageFormat.Svg;

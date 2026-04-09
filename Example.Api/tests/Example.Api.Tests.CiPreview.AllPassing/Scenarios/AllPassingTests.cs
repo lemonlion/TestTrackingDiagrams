@@ -60,6 +60,31 @@ public class Cake_Feature : BaseFixture
         var cake = await response.Content.ReadFromJsonAsync<CakeResponse>();
         cake!.Ingredients.Should().HaveCount(3);
     }
+
+    /// <summary>Produces verbose request headers to trigger note truncation in CI summary.</summary>
+    [Fact]
+    public async Task Creating_a_cake_with_tracing_headers_returns_success()
+    {
+        var milk = (await Client.GetFromJsonAsync<MilkResponse>("milk"))!;
+        var eggs = (await Client.GetFromJsonAsync<EggsResponse>("eggs"))!;
+        var flour = (await Client.GetFromJsonAsync<FlourResponse>("flour"))!;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "cake");
+        request.Content = JsonContent.Create(new CakeRequest { Milk = milk.Milk, Eggs = eggs.Eggs, Flour = flour.Flour });
+        request.Headers.Add("X-Correlation-Id", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Request-Id", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Trace-Id", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Session-Id", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Client-Version", "2.0.43-beta");
+        request.Headers.Add("X-Feature-Flags", "dark-mode,new-checkout,beta-recipes,seasonal-menu");
+        request.Headers.Add("X-Region", "eu-west-1");
+        request.Headers.Add("X-Retry-Count", "0");
+        request.Headers.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Source-Service", "order-orchestrator");
+        request.Headers.Add("X-Priority", "high");
+        request.Headers.Add("X-Tenant-Id", "dessert-factory-uk");
+        var response = await Client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }
 
 [Endpoint("/milk")]

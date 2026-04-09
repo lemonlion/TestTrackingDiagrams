@@ -44,7 +44,7 @@ public class ReportGeneratorCiSummaryTests : IDisposable
         var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
         Assert.True(File.Exists(ciSummaryPath));
         var content = File.ReadAllText(ciSummaryPath);
-        Assert.Contains("# Test Run Summary", content);
+        Assert.Contains("# Diagrammed Test Run Summary", content);
         Assert.Contains("Passed", content);
     }
 

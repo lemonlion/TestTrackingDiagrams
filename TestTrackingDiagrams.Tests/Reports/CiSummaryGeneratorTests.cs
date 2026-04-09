@@ -183,7 +183,7 @@ public class CiSummaryGeneratorTests
     {
         var markdown = CiSummaryGenerator.GenerateMarkdown([], [], Start, End);
 
-        Assert.Contains("# Test Run Summary", markdown);
+        Assert.Contains("# Diagrammed Test Run Summary", markdown);
         Assert.Contains("0", markdown);
     }
 
@@ -242,5 +242,81 @@ public class CiSummaryGeneratorTests
         Assert.Contains("1", markdown); // failed
         Assert.Contains("1", markdown); // skipped
         Assert.Contains("3", markdown); // total
+    }
+
+    [Fact]
+    public void TruncateNotes_returns_original_when_notes_are_short()
+    {
+        var plantUml = "@startuml\nnote left\nline1\nline2\nend note\n@enduml\n";
+        var result = CiSummaryGenerator.TruncateNotes(plantUml);
+        Assert.Equal(plantUml, result);
+    }
+
+    [Fact]
+    public void TruncateNotes_truncates_notes_exceeding_10_lines()
+    {
+        var noteLines = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"line{i}"));
+        var plantUml = $"@startuml\nnote left\n{noteLines}\nend note\n@enduml\n";
+        var result = CiSummaryGenerator.TruncateNotes(plantUml);
+
+        Assert.Contains("line10", result);
+        Assert.Contains("...", result);
+        Assert.DoesNotContain("line11", result);
+        Assert.Contains("end note", result);
+        Assert.Contains("@startuml", result);
+        Assert.Contains("@enduml", result);
+    }
+
+    [Fact]
+    public void TruncateNotes_preserves_notes_with_exactly_10_lines()
+    {
+        var noteLines = string.Join("\n", Enumerable.Range(1, 10).Select(i => $"line{i}"));
+        var plantUml = $"@startuml\nnote left\n{noteLines}\nend note\n@enduml\n";
+        var result = CiSummaryGenerator.TruncateNotes(plantUml);
+        Assert.Equal(plantUml, result);
+    }
+
+    [Fact]
+    public void TruncateNotes_handles_multiple_notes_only_truncates_long_ones()
+    {
+        var shortNote = "line1\nline2";
+        var longNote = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"long{i}"));
+        var plantUml = $"@startuml\nnote left\n{shortNote}\nend note\nnote right\n{longNote}\nend note\n@enduml\n";
+        var result = CiSummaryGenerator.TruncateNotes(plantUml);
+
+        Assert.Contains("line1", result);
+        Assert.Contains("line2", result);
+        Assert.Contains("long10", result);
+        Assert.Contains("...", result);
+        Assert.DoesNotContain("long11", result);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_failed_scenario_uses_darkred_styling()
+    {
+        var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+
+        Assert.Contains("color: darkred", markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_failed_scenario_stack_trace_is_open_by_default()
+    {
+        var features = new[] { MakeFeature("Orders", Failed("Bad order", "err", "at Test.cs:1")) };
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+
+        Assert.Contains("<details open><summary>Stack Trace</summary>", markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_failed_scenario_is_collapsed_by_default()
+    {
+        var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+
+        // Should NOT have <details open> for the outer scenario
+        Assert.DoesNotContain("<details open><summary><strong", markdown);
+        Assert.Contains("<details><summary><strong", markdown);
     }
 }

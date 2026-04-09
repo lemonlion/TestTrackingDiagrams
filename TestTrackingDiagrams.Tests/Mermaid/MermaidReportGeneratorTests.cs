@@ -173,13 +173,14 @@ public class MermaidReportGeneratorTests
     }
 
     [Fact]
-    public void PlantUmlRendering_enum_has_exactly_three_values()
+    public void PlantUmlRendering_enum_has_exactly_four_values()
     {
         var values = Enum.GetValues<PlantUmlRendering>();
 
-        Assert.Equal(3, values.Length);
+        Assert.Equal(4, values.Length);
         Assert.Contains(PlantUmlRendering.Server, values);
         Assert.Contains(PlantUmlRendering.BrowserJs, values);
         Assert.Contains(PlantUmlRendering.Local, values);
+        Assert.Contains(PlantUmlRendering.NodeJs, values);
     }
 }

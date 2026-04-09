@@ -25,6 +25,7 @@ public static class DefaultDiagramsFetcher
             {
                 PlantUmlRendering.BrowserJs => GetPlantUmlBrowserDiagrams(options),
                 PlantUmlRendering.Local => GetLocallyRenderedDiagrams(options),
+                PlantUmlRendering.NodeJs => GetNodeJsRenderedDiagrams(options),
                 _ => GetServerRenderedDiagrams(options)
             };
         };
@@ -98,7 +99,7 @@ public static class DefaultDiagramsFetcher
             focusDeEmphasis: options.FocusDeEmphasis,
             plantUmlTheme: options.PlantUmlTheme,
             internalFlowTracking: options.InternalFlowTracking,
-            maxEncodedDiagramLength: options.PlantUmlRendering == PlantUmlRendering.BrowserJs ? 8000 : 2000).ToArray();
+            maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000).ToArray();
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)
@@ -156,6 +157,32 @@ public static class DefaultDiagramsFetcher
         return perTestId
             .SelectMany(test => test.PlantUmls.Select(plantUml =>
                 new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText)))
+            .ToArray();
+    }
+
+    private static DiagramAsCode[] GetNodeJsRenderedDiagrams(DiagramsFetcherOptions options)
+    {
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: false);
+
+        if (options.InlineSvgRendering)
+        {
+            return perTestId
+                .SelectMany(test => test.PlantUmls.Select(plantUml =>
+                {
+                    var imageBytes = NodeJsPlantUmlRenderer.Render(plantUml.PlainText, PlantUmlImageFormat.Svg);
+                    var svgContent = Encoding.UTF8.GetString(imageBytes);
+                    return new DiagramAsCode(test.TestId, StripXmlDeclaration(svgContent), plantUml.PlainText);
+                }))
+                .ToArray();
+        }
+
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+            {
+                var imageBytes = NodeJsPlantUmlRenderer.Render(plantUml.PlainText, PlantUmlImageFormat.Svg);
+                var base64 = Convert.ToBase64String(imageBytes);
+                return new DiagramAsCode(test.TestId, $"data:image/svg+xml;base64,{base64}", plantUml.PlainText);
+            }))
             .ToArray();
     }
 

@@ -1,10 +1,13 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using TestTrackingDiagrams.PlantUml;
 
 namespace TestTrackingDiagrams.Reports;
 
-public static class CiSummaryGenerator
+public static partial class CiSummaryGenerator
 {
+    private const int NoteTruncateLines = 10;
+
     public static string GenerateMarkdown(
         Feature[] features,
         DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
@@ -26,7 +29,7 @@ public static class CiSummaryGenerator
         var status = hasFailed ? "❌ Failed" : "✅ Passed";
         var duration = FormatDuration(endRunTime - startRunTime);
 
-        sb.AppendLine("# Test Run Summary");
+        sb.AppendLine("# Diagrammed Test Run Summary");
         sb.AppendLine();
         sb.AppendLine("| Metric | Value |");
         sb.AppendLine("|---|---|");
@@ -70,7 +73,9 @@ public static class CiSummaryGenerator
             {
                 if (shown >= maxDiagrams) break;
 
-                sb.AppendLine($"<details open><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
+                sb.AppendLine($"<details><summary><strong style=\"color: darkred\">{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
+                sb.AppendLine();
+                sb.AppendLine("<div style=\"color: darkred\">");
                 sb.AppendLine();
 
                 if (!string.IsNullOrEmpty(scenario.ErrorMessage))
@@ -81,7 +86,7 @@ public static class CiSummaryGenerator
 
                 if (!string.IsNullOrEmpty(scenario.ErrorStackTrace))
                 {
-                    sb.AppendLine("<details><summary>Stack Trace</summary>");
+                    sb.AppendLine("<details open><summary>Stack Trace</summary>");
                     sb.AppendLine();
                     sb.AppendLine("```");
                     sb.AppendLine(scenario.ErrorStackTrace);
@@ -93,6 +98,8 @@ public static class CiSummaryGenerator
 
                 AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
 
+                sb.AppendLine("</div>");
+                sb.AppendLine();
                 sb.AppendLine("</details>");
                 sb.AppendLine();
                 shown++;
@@ -168,16 +175,54 @@ public static class CiSummaryGenerator
                 sb.AppendLine("```");
                 sb.AppendLine();
             }
-            else if (ciSummaryPlantUmlRendering == PlantUmlRendering.Local)
+            else if (ciSummaryPlantUmlRendering is PlantUmlRendering.Local or PlantUmlRendering.NodeJs)
             {
-                if (localDiagramRenderer is null)
+                Func<string, PlantUmlImageFormat, byte[]> renderer;
+
+                if (ciSummaryPlantUmlRendering == PlantUmlRendering.NodeJs)
+                {
+                    renderer = NodeJsPlantUmlRenderer.Render;
+                }
+                else if (localDiagramRenderer is not null)
+                {
+                    renderer = localDiagramRenderer;
+                }
+                else
+                {
                     throw new InvalidOperationException(
                         "CiSummaryPlantUmlRendering.Local requires a LocalDiagramRenderer to be configured. " +
                         "Install the TestTrackingDiagrams.PlantUml.Ikvm package and set LocalDiagramRenderer = IkvmPlantUmlRenderer.Render.");
+                }
 
-                var imageBytes = localDiagramRenderer(diagram.CodeBehind, PlantUmlImageFormat.Svg);
-                var base64 = Convert.ToBase64String(imageBytes);
-                sb.AppendLine($"![diagram](data:image/svg+xml;base64,{base64})");
+                var truncatedPlantUml = TruncateNotes(diagram.CodeBehind);
+                var wasTruncated = truncatedPlantUml != diagram.CodeBehind;
+
+                if (wasTruncated)
+                {
+                    var truncatedBytes = renderer(truncatedPlantUml, PlantUmlImageFormat.Svg);
+                    var truncatedBase64 = Convert.ToBase64String(truncatedBytes);
+                    sb.AppendLine("<details open><summary>Truncated Sequence Diagram</summary>");
+                    sb.AppendLine();
+                    sb.AppendLine($"![diagram](data:image/svg+xml;base64,{truncatedBase64})");
+                    sb.AppendLine();
+                    sb.AppendLine("</details>");
+                    sb.AppendLine();
+                }
+
+                var fullBytes = renderer(diagram.CodeBehind, PlantUmlImageFormat.Svg);
+                var fullBase64 = Convert.ToBase64String(fullBytes);
+                if (wasTruncated)
+                {
+                    sb.AppendLine("<details><summary>Full Sequence Diagram</summary>");
+                    sb.AppendLine();
+                    sb.AppendLine($"![diagram](data:image/svg+xml;base64,{fullBase64})");
+                    sb.AppendLine();
+                    sb.AppendLine("</details>");
+                }
+                else
+                {
+                    sb.AppendLine($"![diagram](data:image/svg+xml;base64,{fullBase64})");
+                }
                 sb.AppendLine();
             }
             else
@@ -196,6 +241,61 @@ public static class CiSummaryGenerator
             }
         }
     }
+
+    internal static string TruncateNotes(string plantUml)
+    {
+        var lines = plantUml.Split('\n');
+        var result = new StringBuilder();
+        var inNote = false;
+        var noteLines = new List<string>();
+        var anyTruncated = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+
+            if (!inNote && NoteStartRegex().IsMatch(trimmed))
+            {
+                inNote = true;
+                noteLines.Clear();
+                result.AppendLine(line.TrimEnd('\r'));
+                continue;
+            }
+
+            if (inNote)
+            {
+                if (trimmed.TrimEnd('\r') == "end note")
+                {
+                    inNote = false;
+                    if (noteLines.Count > NoteTruncateLines)
+                    {
+                        anyTruncated = true;
+                        for (var i = 0; i < NoteTruncateLines; i++)
+                            result.AppendLine(noteLines[i]);
+                        result.AppendLine("...");
+                    }
+                    else
+                    {
+                        foreach (var noteLine in noteLines)
+                            result.AppendLine(noteLine);
+                    }
+                    result.AppendLine("end note");
+                }
+                else
+                {
+                    noteLines.Add(line.TrimEnd('\r'));
+                }
+                continue;
+            }
+
+            result.AppendLine(line.TrimEnd('\r'));
+        }
+
+        return anyTruncated ? result.ToString().TrimEnd() + "\n" : plantUml;
+    }
+
+    [GeneratedRegex(@"^note\s*(left|right|over)", RegexOptions.IgnoreCase)]
+    private static partial Regex NoteStartRegex();
 
     private static string EscapeMarkdown(string text) => text.Replace("|", "\\|");
 
