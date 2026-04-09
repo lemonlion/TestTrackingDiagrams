@@ -44,7 +44,7 @@ public static class ReportParser
         // Filter to sequence diagrams only (exclude activity/component diagrams)
         sources = document.QuerySelectorAll("details.scenario [data-plantuml], div.scenario [data-plantuml]")
             .Select(el => WebUtility.HtmlDecode(el.GetAttribute("data-plantuml") ?? "").Trim())
-            .Where(s => s.Length > 0 && s.Contains("participant "))
+            .Where(s => s.Length > 0 && IsSequenceDiagram(s))
             .ToArray();
 
         if (sources.Length > 0)
@@ -53,7 +53,7 @@ public static class ReportParser
         // BrowserJs / InlineSvg mode: data-plantuml-z (gzip+base64 compressed)
         return document.QuerySelectorAll("details.scenario [data-plantuml-z], div.scenario [data-plantuml-z]")
             .Select(el => DecompressFromBase64(el.GetAttribute("data-plantuml-z") ?? ""))
-            .Where(s => s.Length > 0 && s.Contains("participant "))
+            .Where(s => s.Length > 0 && IsSequenceDiagram(s))
             .ToArray();
     }
 
@@ -130,6 +130,9 @@ public static class ReportParser
             .Where(d => d.Src.Length > 0)
             .ToArray();
     }
+
+    private static bool IsSequenceDiagram(string puml) =>
+        puml.Contains("participant ") || puml.Contains("actor ") || puml.Contains("entity ");
 
     private static string DecompressFromBase64(string base64)
     {
