@@ -1656,12 +1656,26 @@ public static class DiagramContextMenu
             // Global defaults
             window._headersHidden = false;
             window._truncateLines = 20;
+            window._detailsDefault = 'expanded';
 
-            // Pre-process source before initial render (default expanded — no transformation needed)
+            // Pre-process source before initial render — applies current report-level defaults
             window._preProcessSource = function(el, source) {
                 var noteBlocks = parseNoteBlocks(source);
                 if (noteBlocks.length === 0) return source;
                 el._noteOriginalSource = source;
+                var state = window._detailsDefault;
+                if (state !== 'expanded' || window._headersHidden) {
+                    if (!el._noteSteps) el._noteSteps = {};
+                    for (var i = 0; i < noteBlocks.length; i++) {
+                        var targetStep;
+                        if (state === 'expanded') { targetStep = 2; }
+                        else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
+                        else { targetStep = 0; }
+                        el._noteSteps[i] = targetStep;
+                    }
+                    el._headersHidden = window._headersHidden;
+                    return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden);
+                }
                 return source;
             };
 
@@ -1766,6 +1780,7 @@ public static class DiagramContextMenu
 
             // Report-level: expand/truncate/collapse details for all scenarios
             window._setReportDetails = function(targetState) {
+                window._detailsDefault = targetState;
                 syncRadioButtons(document.querySelector('.toolbar-right'), targetState);
                 // Reset all scenario-level radio buttons too
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
@@ -1802,6 +1817,7 @@ public static class DiagramContextMenu
             // Report-level: show/hide headers for all scenarios
             window._setReportHeaders = function(state) {
                 var hiding = state === 'hidden';
+                window._headersHidden = hiding;
                 syncHeadersRadio(document.querySelector('.toolbar-right'), state);
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
                     syncHeadersRadio(sc, state);
