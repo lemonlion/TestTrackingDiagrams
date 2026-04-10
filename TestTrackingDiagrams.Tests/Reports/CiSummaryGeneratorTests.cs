@@ -301,16 +301,27 @@ public class CiSummaryGeneratorTests
     }
 
     [Fact]
-    public void GenerateMarkdown_failed_scenario_uses_darkred_styling()
+    public void TruncateNotes_truncates_event_notes_with_class_syntax()
+    {
+        var longNote = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"event{i}"));
+        var plantUml = $"@startuml\nnote<<eventNote>> left\n{longNote}\nend note\nnote<<eventNote>> right\n{longNote}\nend note\n@enduml\n";
+        var result = CiSummaryGenerator.TruncateNotes(plantUml);
+
+        Assert.Contains("event10", result);
+        Assert.Contains("...", result);
+        Assert.DoesNotContain("event11", result);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_failed_scenario_has_red_cross_prefix()
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
 
-        Assert.Contains("color: darkred", markdown);
-        // The darkred div must wrap the details block so the summary title inherits the color
-        var darkredIndex = markdown.IndexOf("color: darkred");
-        var detailsIndex = markdown.IndexOf("<details><summary><strong>", darkredIndex);
-        Assert.True(detailsIndex > darkredIndex, "darkred div should wrap the details block");
+        // Failed scenarios should have ❌ prefix in the summary title
+        Assert.Contains("<details><summary>❌ <strong>Orders — Bad order</strong></summary>", markdown);
+        // Should NOT use div/style approach (GitHub strips style attrs)
+        Assert.DoesNotContain("color: darkred", markdown);
     }
 
     [Fact]
@@ -329,8 +340,8 @@ public class CiSummaryGeneratorTests
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
 
         // Should NOT have <details open> for the outer scenario
-        Assert.DoesNotContain("<details open><summary><strong", markdown);
-        Assert.Contains("<details><summary><strong", markdown);
+        Assert.DoesNotContain("<details open><summary>❌", markdown);
+        Assert.Contains("<details><summary>❌", markdown);
     }
 
     [Fact]
