@@ -15,7 +15,6 @@ public static partial class CiSummaryGenerator
         DateTime endRunTime,
         int maxDiagrams = 10,
         DiagramFormat diagramFormat = DiagramFormat.PlantUml,
-        PlantUmlRendering ciSummaryPlantUmlRendering = PlantUmlRendering.BrowserJs,
         string plantUmlServerBaseUrl = "https://plantuml.com/plantuml",
         Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer = null)
     {
@@ -156,8 +155,15 @@ public static partial class CiSummaryGenerator
         DiagramFormat diagramFormat,
         string plantUmlServerBaseUrl)
     {
-        foreach (var diagram in diagrams)
+        var diagramList = diagrams.ToArray();
+        var isMultiPart = diagramList.Length > 1;
+        var partIndex = 0;
+
+        foreach (var diagram in diagramList)
         {
+            partIndex++;
+            var partSuffix = isMultiPart ? $" (Part {partIndex})" : "";
+
             if (diagramFormat == DiagramFormat.Mermaid)
             {
                 sb.AppendLine("```mermaid");
@@ -176,7 +182,7 @@ public static partial class CiSummaryGenerator
                 if (wasTruncated)
                 {
                     var truncatedEncoded = PlantUmlTextEncoder.Encode(truncatedPlantUml);
-                    sb.AppendLine("<details open><summary>Truncated Sequence Diagram</summary>");
+                    sb.AppendLine($"<details open><summary>Truncated Sequence Diagram{partSuffix}</summary>");
                     sb.AppendLine();
                     sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{truncatedEncoded})");
                     sb.AppendLine();
@@ -187,7 +193,7 @@ public static partial class CiSummaryGenerator
                 var fullEncoded = PlantUmlTextEncoder.Encode(preparedPlantUml);
                 if (wasTruncated)
                 {
-                    sb.AppendLine("<details><summary>Full Sequence Diagram</summary>");
+                    sb.AppendLine($"<details><summary>Full Sequence Diagram{partSuffix}</summary>");
                     sb.AppendLine();
                     sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
                     sb.AppendLine();

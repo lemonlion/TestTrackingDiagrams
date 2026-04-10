@@ -14,7 +14,7 @@ public static partial class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
     private const string EventNoteClass = "eventNote";
-    private const int DefaultMaxEncodedDiagramLength = 2000;
+    public const int DefaultMaxEncodedDiagramLength = 2000;
     private const int MaxResponseNoteChunkLength = 15_000;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];

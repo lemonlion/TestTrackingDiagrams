@@ -83,6 +83,12 @@ public static class DefaultDiagramsFetcher
 
     private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages)
     {
+        return GetPlantUmlPerTestId(options, lazyLoadImages,
+            maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000);
+    }
+
+    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages, int maxEncodedDiagramLength)
+    {
         return PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
             RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
             requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
@@ -99,7 +105,17 @@ public static class DefaultDiagramsFetcher
             focusDeEmphasis: options.FocusDeEmphasis,
             plantUmlTheme: options.PlantUmlTheme,
             internalFlowTracking: options.InternalFlowTracking,
-            maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000).ToArray();
+            maxEncodedDiagramLength: maxEncodedDiagramLength).ToArray();
+    }
+
+    public static DiagramAsCode[] GetCiSummaryDiagrams(DiagramsFetcherOptions options)
+    {
+        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: false, maxEncodedDiagramLength: PlantUmlCreator.DefaultMaxEncodedDiagramLength);
+
+        return perTestId
+            .SelectMany(test => test.PlantUmls.Select(plantUml =>
+                new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText)))
+            .ToArray();
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)

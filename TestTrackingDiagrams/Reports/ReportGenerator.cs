@@ -93,8 +93,9 @@ public static class ReportGenerator
 
         if (options.WriteCiSummary)
         {
-            var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams,
-                options.DiagramFormat, options.CiSummaryPlantUmlRendering, options.PlantUmlServerBaseUrl, options.LocalDiagramRenderer);
+            var ciDiagrams = DefaultDiagramsFetcher.GetCiSummaryDiagrams(fetcherOptions);
+            var markdown = CiSummaryGenerator.GenerateMarkdown(features, ciDiagrams, startRunTime, endRunTime, options.MaxCiSummaryDiagrams,
+                options.DiagramFormat, options.PlantUmlServerBaseUrl, options.LocalDiagramRenderer);
 
             var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
             Directory.CreateDirectory(directory);
