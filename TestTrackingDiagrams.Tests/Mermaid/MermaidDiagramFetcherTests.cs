@@ -12,11 +12,13 @@ public class MermaidDiagramFetcherTests : IDisposable
     public MermaidDiagramFetcherTests()
     {
         DiagramsField.SetValue(null, null);
+        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
+        RequestResponseLogger.Clear();
     }
 
     private static string SeedLog()

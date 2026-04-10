@@ -8,4 +8,5 @@ public static class RequestResponseLogger
 
     public static void Log(RequestResponseLog log) => RequestsAndResponses.Enqueue(log);
     public static RequestResponseLog[] RequestAndResponseLogs => RequestsAndResponses.ToArray();
+    public static void Clear() => RequestsAndResponses.Clear();
 }

@@ -12,11 +12,13 @@ public class DefaultDiagramsFetcherTests : IDisposable
     public DefaultDiagramsFetcherTests()
     {
         DiagramsField.SetValue(null, null);
+        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
+        RequestResponseLogger.Clear();
     }
 
     private static string SeedLog()

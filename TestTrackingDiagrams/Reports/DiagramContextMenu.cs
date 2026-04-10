@@ -1346,7 +1346,7 @@ public static class DiagramContextMenu
                 var nonGray = contentLines.map(function(l) { return l.trim(); })
                     .filter(function(l) { return !l.match(/^\$color\(gray\)/); });
                 var raw = nonGray.join(' ').trim();
-                if (!raw) return '...';
+                if (!raw) return '';
                 if (raw.length <= 60) return raw;
                 return raw.substring(0, 60) + '...';
             }
@@ -1639,7 +1639,7 @@ public static class DiagramContextMenu
                         if (state === 'collapsed') {
                             noteMode = 'collapsed';
                             var preview = getNotePreview(noteBlocks[nIdx].contentLines);
-                            newLines.push(preview);
+                            if (preview) newLines.push(preview);
                         } else if (state === 'truncated') {
                             noteMode = 'truncated';
                             truncateLineCount = 0;

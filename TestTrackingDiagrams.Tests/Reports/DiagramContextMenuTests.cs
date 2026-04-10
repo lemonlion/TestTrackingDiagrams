@@ -593,4 +593,25 @@ public class DiagramContextMenuTests
         Assert.Contains(".note-toggle-icon", css);
         Assert.Contains("user-select: none", css);
     }
+
+    // ─── getNotePreview — empty note handling ───────────────
+
+    [Fact]
+    public void GetNotePreview_returns_empty_string_for_empty_content()
+    {
+        var funcBody = GetFunction("getNotePreview");
+        // When all content lines are empty (or only gray), the preview should be
+        // empty — not '...' — so collapsed notes aren't bigger than expanded ones
+        Assert.Contains("if (!raw) return '';", funcBody);
+        Assert.DoesNotContain("if (!raw) return '...';", funcBody);
+    }
+
+    [Fact]
+    public void BuildSourceWithNoteStates_skips_empty_preview_for_collapsed_notes()
+    {
+        var funcBody = GetFunction("buildSourceWithNoteStates");
+        // When a collapsed note has an empty preview, don't push it into the output
+        // (avoids an empty line between "note left" and "end note")
+        Assert.Contains("if (preview)", funcBody);
+    }
 }
