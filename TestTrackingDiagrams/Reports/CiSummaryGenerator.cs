@@ -44,9 +44,9 @@ public static partial class CiSummaryGenerator
         var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
 
         if (hasFailed)
-            AppendFailedScenarios(sb, features, diagramsByTestId, failed, maxDiagrams, diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+            AppendFailedScenarios(sb, features, diagramsByTestId, failed, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
         else
-            AppendPassedDiagrams(sb, features, diagramsByTestId, total, maxDiagrams, diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+            AppendPassedDiagrams(sb, features, diagramsByTestId, total, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
 
         return sb.ToString();
     }
@@ -58,9 +58,7 @@ public static partial class CiSummaryGenerator
         int totalFailed,
         int maxDiagrams,
         DiagramFormat diagramFormat,
-        PlantUmlRendering ciSummaryPlantUmlRendering,
-        string plantUmlServerBaseUrl,
-        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
+        string plantUmlServerBaseUrl)
     {
         sb.AppendLine($"## ❌ Failed Scenarios ({totalFailed})");
         sb.AppendLine();
@@ -73,9 +71,9 @@ public static partial class CiSummaryGenerator
             {
                 if (shown >= maxDiagrams) break;
 
-                sb.AppendLine($"<details><summary><strong style=\"color: darkred\">{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
-                sb.AppendLine();
                 sb.AppendLine("<div style=\"color: darkred\">");
+                sb.AppendLine();
+                sb.AppendLine($"<details><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
                 sb.AppendLine();
 
                 if (!string.IsNullOrEmpty(scenario.ErrorMessage))
@@ -96,11 +94,11 @@ public static partial class CiSummaryGenerator
                     sb.AppendLine();
                 }
 
-                AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+                AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
-                sb.AppendLine("</div>");
-                sb.AppendLine();
                 sb.AppendLine("</details>");
+                sb.AppendLine();
+                sb.AppendLine("</div>");
                 sb.AppendLine();
                 shown++;
             }
@@ -122,9 +120,7 @@ public static partial class CiSummaryGenerator
         int totalScenarios,
         int maxDiagrams,
         DiagramFormat diagramFormat,
-        PlantUmlRendering ciSummaryPlantUmlRendering,
-        string plantUmlServerBaseUrl,
-        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
+        string plantUmlServerBaseUrl)
     {
         var scenariosWithDiagrams = features
             .SelectMany(f => f.Scenarios.Select(s => (Feature: f, Scenario: s)))
@@ -143,7 +139,7 @@ public static partial class CiSummaryGenerator
 
             sb.AppendLine($"<details><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
             sb.AppendLine();
-            AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, ciSummaryPlantUmlRendering, plantUmlServerBaseUrl, localDiagramRenderer);
+            AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
             sb.AppendLine("</details>");
             sb.AppendLine();
@@ -162,9 +158,7 @@ public static partial class CiSummaryGenerator
         StringBuilder sb,
         IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> diagrams,
         DiagramFormat diagramFormat,
-        PlantUmlRendering ciSummaryPlantUmlRendering,
-        string plantUmlServerBaseUrl,
-        Func<string, PlantUmlImageFormat, byte[]>? localDiagramRenderer)
+        string plantUmlServerBaseUrl)
     {
         foreach (var diagram in diagrams)
         {
@@ -175,12 +169,13 @@ public static partial class CiSummaryGenerator
                 sb.AppendLine("```");
                 sb.AppendLine();
             }
-            else if (ciSummaryPlantUmlRendering is PlantUmlRendering.Local or PlantUmlRendering.NodeJs)
+            else
             {
                 // GitHub's HTML sanitizer strips <svg> elements and data: URIs from job summaries.
-                // We must use PlantUml server URLs (the only image approach GitHub allows).
-                var truncatedPlantUml = TruncateNotes(diagram.CodeBehind);
-                var wasTruncated = truncatedPlantUml != diagram.CodeBehind;
+                // PlantUml server URLs are the only image approach GitHub allows.
+                var preparedPlantUml = DeactivateUrls(diagram.CodeBehind);
+                var truncatedPlantUml = TruncateNotes(preparedPlantUml);
+                var wasTruncated = truncatedPlantUml != preparedPlantUml;
 
                 if (wasTruncated)
                 {
@@ -193,7 +188,7 @@ public static partial class CiSummaryGenerator
                     sb.AppendLine();
                 }
 
-                var fullEncoded = PlantUmlTextEncoder.Encode(diagram.CodeBehind);
+                var fullEncoded = PlantUmlTextEncoder.Encode(preparedPlantUml);
                 if (wasTruncated)
                 {
                     sb.AppendLine("<details><summary>Full Sequence Diagram</summary>");
@@ -205,20 +200,6 @@ public static partial class CiSummaryGenerator
                 else
                 {
                     sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
-                }
-                sb.AppendLine();
-            }
-            else
-            {
-                // Server rendering (default, also fallback for BrowserJs)
-                if (!string.IsNullOrEmpty(diagram.ImgSrc))
-                {
-                    sb.AppendLine($"![diagram]({diagram.ImgSrc})");
-                }
-                else
-                {
-                    var encoded = PlantUmlTextEncoder.Encode(diagram.CodeBehind);
-                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
                 }
                 sb.AppendLine();
             }
@@ -279,6 +260,18 @@ public static partial class CiSummaryGenerator
 
     [GeneratedRegex(@"^note\s*(left|right|over)", RegexOptions.IgnoreCase)]
     private static partial Regex NoteStartRegex();
+
+    /// <summary>
+    /// Breaks URL patterns in PlantUML source so the server doesn't render them as
+    /// SVG hyperlinks (which are non-clickable inside img tags and look broken).
+    /// Replaces "://" with "&#58;//" — PlantUML renders &#58; as ":" but doesn't
+    /// recognize it as a URL protocol prefix.
+    /// </summary>
+    internal static string DeactivateUrls(string plantUml) =>
+        UrlProtocolRegex().Replace(plantUml, "${proto}&#58;//");
+
+    [GeneratedRegex(@"(?<proto>https?)://")]
+    private static partial Regex UrlProtocolRegex();
 
     private static string EscapeMarkdown(string text) => text.Replace("|", "\\|");
 

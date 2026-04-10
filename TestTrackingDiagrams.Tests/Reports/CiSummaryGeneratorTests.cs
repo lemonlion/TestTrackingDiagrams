@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Reports;
@@ -19,8 +20,10 @@ public class CiSummaryGeneratorTests
     private static Scenario Skipped(string name) =>
         new() { Id = Guid.NewGuid().ToString(), DisplayName = name, Result = ScenarioResult.Skipped };
 
-    private static DefaultDiagramsFetcher.DiagramAsCode Diagram(string testId, string imgSrc = "https://plantuml.com/plantuml/png/abc123") =>
-        new(testId, imgSrc, "@startuml\nA -> B\n@enduml");
+    private static DefaultDiagramsFetcher.DiagramAsCode Diagram(string testId, string codeBehind = "@startuml\nA -> B\n@enduml") =>
+        new(testId, "", codeBehind);
+
+    private static string Encoded(string plantUml) => PlantUmlTextEncoder.Encode(plantUml);
 
     [Fact]
     public void GenerateMarkdown_all_passed_shows_passed_status()
@@ -42,13 +45,15 @@ public class CiSummaryGeneratorTests
         {
             MakeFeature("Orders", Passed("Create order", id1), Passed("Delete order", id2))
         };
-        var diagrams = new[] { Diagram(id1, "https://plantuml.com/img1"), Diagram(id2, "https://plantuml.com/img2") };
+        var code1 = "@startuml\nA -> B : create\n@enduml";
+        var code2 = "@startuml\nC -> D : delete\n@enduml";
+        var diagrams = new[] { Diagram(id1, code1), Diagram(id2, code2) };
 
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
 
-        Assert.Contains("![", markdown);
-        Assert.Contains("https://plantuml.com/img1", markdown);
-        Assert.Contains("https://plantuml.com/img2", markdown);
+        Assert.Contains("![diagram]", markdown);
+        Assert.Contains(Encoded(code1), markdown);
+        Assert.Contains(Encoded(code2), markdown);
     }
 
     [Fact]
@@ -57,7 +62,7 @@ public class CiSummaryGeneratorTests
         var scenarios = Enumerable.Range(1, 5).Select(i =>
         {
             var id = $"test-{i}";
-            return (scenario: Passed($"Scenario {i}", id), diagram: Diagram(id, $"https://plantuml.com/img{i}"));
+            return (scenario: Passed($"Scenario {i}", id), diagram: Diagram(id, $"@startuml\nA -> B : step{i}\n@enduml"));
         }).ToArray();
 
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
@@ -65,9 +70,9 @@ public class CiSummaryGeneratorTests
 
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
 
-        Assert.Contains("https://plantuml.com/img1", markdown);
-        Assert.Contains("https://plantuml.com/img2", markdown);
-        Assert.DoesNotContain("https://plantuml.com/img3", markdown);
+        Assert.Contains(Encoded("@startuml\nA -> B : step1\n@enduml"), markdown);
+        Assert.Contains(Encoded("@startuml\nA -> B : step2\n@enduml"), markdown);
+        Assert.DoesNotContain(Encoded("@startuml\nA -> B : step3\n@enduml"), markdown);
     }
 
     [Fact]
@@ -103,16 +108,18 @@ public class CiSummaryGeneratorTests
     {
         var passedId = "passed-1";
         var failedId = "failed-1";
+        var passedCode = "@startuml\nA -> B : pass\n@enduml";
+        var failedCode = "@startuml\nA -> B : fail\n@enduml";
         var features = new[]
         {
             MakeFeature("Orders", Passed("Good order", passedId), Failed("Bad order", id: failedId))
         };
-        var diagrams = new[] { Diagram(passedId, "https://plantuml.com/passed"), Diagram(failedId, "https://plantuml.com/failed") };
+        var diagrams = new[] { Diagram(passedId, passedCode), Diagram(failedId, failedCode) };
 
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
 
-        Assert.Contains("https://plantuml.com/failed", markdown);
-        Assert.DoesNotContain("https://plantuml.com/passed", markdown);
+        Assert.Contains(Encoded(failedCode), markdown);
+        Assert.DoesNotContain(Encoded(passedCode), markdown);
     }
 
     [Fact]
@@ -132,7 +139,7 @@ public class CiSummaryGeneratorTests
         var scenarios = Enumerable.Range(1, 5).Select(i =>
         {
             var id = $"fail-{i}";
-            return (scenario: Failed($"Failure {i}", id: id), diagram: Diagram(id, $"https://plantuml.com/fail{i}"));
+            return (scenario: Failed($"Failure {i}", id: id), diagram: Diagram(id, $"@startuml\nA -> B : fail{i}\n@enduml"));
         }).ToArray();
 
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
@@ -140,9 +147,9 @@ public class CiSummaryGeneratorTests
 
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
 
-        Assert.Contains("https://plantuml.com/fail1", markdown);
-        Assert.Contains("https://plantuml.com/fail2", markdown);
-        Assert.DoesNotContain("https://plantuml.com/fail3", markdown);
+        Assert.Contains(Encoded("@startuml\nA -> B : fail1\n@enduml"), markdown);
+        Assert.Contains(Encoded("@startuml\nA -> B : fail2\n@enduml"), markdown);
+        Assert.DoesNotContain(Encoded("@startuml\nA -> B : fail3\n@enduml"), markdown);
     }
 
     [Fact]
@@ -150,15 +157,17 @@ public class CiSummaryGeneratorTests
     {
         var passedId = "passed-1";
         var failedId = "failed-1";
+        var passedCode = "@startuml\nA -> B : passed\n@enduml";
+        var failedCode = "@startuml\nA -> B : failed\n@enduml";
         var features = new[]
         {
             MakeFeature("Orders", Passed("Good", passedId), Failed("Bad", id: failedId))
         };
-        var diagrams = new[] { Diagram(passedId, "https://plantuml.com/passed-img"), Diagram(failedId, "https://plantuml.com/failed-img") };
+        var diagrams = new[] { Diagram(passedId, passedCode), Diagram(failedId, failedCode) };
 
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
 
-        Assert.DoesNotContain("https://plantuml.com/passed-img", markdown);
+        Assert.DoesNotContain(Encoded(passedCode), markdown);
     }
 
     [Fact]
@@ -298,6 +307,10 @@ public class CiSummaryGeneratorTests
         var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
 
         Assert.Contains("color: darkred", markdown);
+        // The darkred div must wrap the details block so the summary title inherits the color
+        var darkredIndex = markdown.IndexOf("color: darkred");
+        var detailsIndex = markdown.IndexOf("<details><summary><strong>", darkredIndex);
+        Assert.True(detailsIndex > darkredIndex, "darkred div should wrap the details block");
     }
 
     [Fact]
@@ -318,5 +331,25 @@ public class CiSummaryGeneratorTests
         // Should NOT have <details open> for the outer scenario
         Assert.DoesNotContain("<details open><summary><strong", markdown);
         Assert.Contains("<details><summary><strong", markdown);
+    }
+
+    [Fact]
+    public void DeactivateUrls_breaks_http_and_https_url_patterns()
+    {
+        var input = "@startuml\nnote left\nhttps://example.com/path\nhttp://other.com\nend note\n@enduml";
+        var result = CiSummaryGenerator.DeactivateUrls(input);
+
+        Assert.DoesNotContain("https://", result);
+        Assert.DoesNotContain("http://", result);
+        Assert.Contains("https&#58;//example.com/path", result);
+        Assert.Contains("http&#58;//other.com", result);
+    }
+
+    [Fact]
+    public void DeactivateUrls_preserves_non_url_content()
+    {
+        var input = "@startuml\nA -> B : hello\n@enduml";
+        var result = CiSummaryGenerator.DeactivateUrls(input);
+        Assert.Equal(input, result);
     }
 }
