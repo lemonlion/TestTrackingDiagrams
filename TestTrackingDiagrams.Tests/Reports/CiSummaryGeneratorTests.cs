@@ -30,7 +30,7 @@ public class CiSummaryGeneratorTests
     {
         var features = new[] { MakeFeature("Orders", Passed("Create order")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.Contains("✅ Passed", markdown);
         Assert.DoesNotContain("❌", markdown);
@@ -49,7 +49,7 @@ public class CiSummaryGeneratorTests
         var code2 = "@startuml\nC -> D : delete\n@enduml";
         var diagrams = new[] { Diagram(id1, code1), Diagram(id2, code2) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End);
 
         Assert.Contains("![diagram]", markdown);
         Assert.Contains(Encoded(code1), markdown);
@@ -68,7 +68,7 @@ public class CiSummaryGeneratorTests
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
         var diagrams = scenarios.Select(s => s.diagram).ToArray();
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End, maxDiagrams: 2);
 
         Assert.Contains(Encoded("@startuml\nA -> B : step1\n@enduml"), markdown);
         Assert.Contains(Encoded("@startuml\nA -> B : step2\n@enduml"), markdown);
@@ -87,7 +87,7 @@ public class CiSummaryGeneratorTests
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
         var diagrams = scenarios.Select(s => s.diagram).ToArray();
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End, maxDiagrams: 2);
 
         Assert.Contains("3 more", markdown);
         Assert.Contains("full report", markdown.ToLower());
@@ -98,7 +98,7 @@ public class CiSummaryGeneratorTests
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.Contains("❌ Failed", markdown);
     }
@@ -116,7 +116,7 @@ public class CiSummaryGeneratorTests
         };
         var diagrams = new[] { Diagram(passedId, passedCode), Diagram(failedId, failedCode) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End);
 
         Assert.Contains(Encoded(failedCode), markdown);
         Assert.DoesNotContain(Encoded(passedCode), markdown);
@@ -127,7 +127,7 @@ public class CiSummaryGeneratorTests
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order", "Expected 200 but got 500", "at OrderTests.cs:line 42")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.Contains("Expected 200 but got 500", markdown);
         Assert.Contains("at OrderTests.cs:line 42", markdown);
@@ -145,7 +145,7 @@ public class CiSummaryGeneratorTests
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
         var diagrams = scenarios.Select(s => s.diagram).ToArray();
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End, maxDiagrams: 2);
 
         Assert.Contains(Encoded("@startuml\nA -> B : fail1\n@enduml"), markdown);
         Assert.Contains(Encoded("@startuml\nA -> B : fail2\n@enduml"), markdown);
@@ -165,7 +165,7 @@ public class CiSummaryGeneratorTests
         };
         var diagrams = new[] { Diagram(passedId, passedCode), Diagram(failedId, failedCode) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End);
 
         Assert.DoesNotContain(Encoded(passedCode), markdown);
     }
@@ -182,7 +182,7 @@ public class CiSummaryGeneratorTests
         var features = new[] { MakeFeature("Feature", scenarios.Select(s => s.scenario).ToArray()) };
         var diagrams = scenarios.Select(s => s.diagram).ToArray();
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, Start, End, maxDiagrams: 2);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End, maxDiagrams: 2);
 
         Assert.Contains("3 more", markdown);
     }
@@ -190,7 +190,7 @@ public class CiSummaryGeneratorTests
     [Fact]
     public void GenerateMarkdown_with_no_features_returns_minimal_summary()
     {
-        var markdown = CiSummaryGenerator.GenerateMarkdown([], [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown([], [], [], Start, End);
 
         Assert.Contains("# Diagrammed Test Run Summary", markdown);
         Assert.Contains("0", markdown);
@@ -203,7 +203,7 @@ public class CiSummaryGeneratorTests
         var end = new DateTime(2026, 1, 1, 0, 0, 45, DateTimeKind.Utc);
         var features = new[] { MakeFeature("F", Passed("S")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], start, end);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], start, end);
 
         Assert.Contains("45s", markdown);
     }
@@ -211,7 +211,7 @@ public class CiSummaryGeneratorTests
     [Fact]
     public void GenerateMarkdown_formats_duration_minutes_correctly()
     {
-        var markdown = CiSummaryGenerator.GenerateMarkdown(new[] { MakeFeature("F", Passed("S")) }, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(new[] { MakeFeature("F", Passed("S")) }, [], [], Start, End);
 
         Assert.Contains("2m 34s", markdown);
     }
@@ -221,7 +221,7 @@ public class CiSummaryGeneratorTests
     {
         var features = new[] { MakeFeature("Orders", Passed("Scenario with | pipe")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         // Pipe characters must be escaped in Markdown tables
         Assert.DoesNotContain("| pipe |", markdown);
@@ -232,7 +232,7 @@ public class CiSummaryGeneratorTests
     {
         var features = new[] { MakeFeature("Orders", Passed("No diagram scenario", "orphan-id")) };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.DoesNotContain("![", markdown);
     }
@@ -245,7 +245,7 @@ public class CiSummaryGeneratorTests
             MakeFeature("Orders", Passed("Good"), Skipped("WIP"), Failed("Bad"))
         };
 
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.Contains("1", markdown); // passed
         Assert.Contains("1", markdown); // failed
@@ -254,69 +254,10 @@ public class CiSummaryGeneratorTests
     }
 
     [Fact]
-    public void TruncateNotes_returns_original_when_notes_are_short()
-    {
-        var plantUml = "@startuml\nnote left\nline1\nline2\nend note\n@enduml\n";
-        var result = CiSummaryGenerator.TruncateNotes(plantUml);
-        Assert.Equal(plantUml, result);
-    }
-
-    [Fact]
-    public void TruncateNotes_truncates_notes_exceeding_10_lines()
-    {
-        var noteLines = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"line{i}"));
-        var plantUml = $"@startuml\nnote left\n{noteLines}\nend note\n@enduml\n";
-        var result = CiSummaryGenerator.TruncateNotes(plantUml);
-
-        Assert.Contains("line10", result);
-        Assert.Contains("...", result);
-        Assert.DoesNotContain("line11", result);
-        Assert.Contains("end note", result);
-        Assert.Contains("@startuml", result);
-        Assert.Contains("@enduml", result);
-    }
-
-    [Fact]
-    public void TruncateNotes_preserves_notes_with_exactly_10_lines()
-    {
-        var noteLines = string.Join("\n", Enumerable.Range(1, 10).Select(i => $"line{i}"));
-        var plantUml = $"@startuml\nnote left\n{noteLines}\nend note\n@enduml\n";
-        var result = CiSummaryGenerator.TruncateNotes(plantUml);
-        Assert.Equal(plantUml, result);
-    }
-
-    [Fact]
-    public void TruncateNotes_handles_multiple_notes_only_truncates_long_ones()
-    {
-        var shortNote = "line1\nline2";
-        var longNote = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"long{i}"));
-        var plantUml = $"@startuml\nnote left\n{shortNote}\nend note\nnote right\n{longNote}\nend note\n@enduml\n";
-        var result = CiSummaryGenerator.TruncateNotes(plantUml);
-
-        Assert.Contains("line1", result);
-        Assert.Contains("line2", result);
-        Assert.Contains("long10", result);
-        Assert.Contains("...", result);
-        Assert.DoesNotContain("long11", result);
-    }
-
-    [Fact]
-    public void TruncateNotes_truncates_event_notes_with_class_syntax()
-    {
-        var longNote = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"event{i}"));
-        var plantUml = $"@startuml\nnote<<eventNote>> left\n{longNote}\nend note\nnote<<eventNote>> right\n{longNote}\nend note\n@enduml\n";
-        var result = CiSummaryGenerator.TruncateNotes(plantUml);
-
-        Assert.Contains("event10", result);
-        Assert.Contains("...", result);
-        Assert.DoesNotContain("event11", result);
-    }
-
-    [Fact]
     public void GenerateMarkdown_failed_scenario_has_red_cross_prefix()
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         // Failed scenarios should have ❌ prefix in the summary title
         Assert.Contains("<details><summary>❌ <strong>Orders — Bad order</strong></summary>", markdown);
@@ -328,7 +269,7 @@ public class CiSummaryGeneratorTests
     public void GenerateMarkdown_failed_scenario_stack_trace_is_open_by_default()
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order", "err", "at Test.cs:1")) };
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         Assert.Contains("<details open><summary>Stack Trace</summary>", markdown);
     }
@@ -337,7 +278,7 @@ public class CiSummaryGeneratorTests
     public void GenerateMarkdown_failed_scenario_is_collapsed_by_default()
     {
         var features = new[] { MakeFeature("Orders", Failed("Bad order")) };
-        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], Start, End);
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, [], [], Start, End);
 
         // Should NOT have <details open> for the outer scenario
         Assert.DoesNotContain("<details open><summary>❌", markdown);

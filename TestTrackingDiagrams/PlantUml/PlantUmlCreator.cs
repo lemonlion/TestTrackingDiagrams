@@ -39,7 +39,9 @@ public static partial class PlantUmlCreator
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
         string? plantUmlTheme = null,
         bool internalFlowTracking = false,
-        int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength)
+        int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength,
+        int truncateNotesAfterLines = 0,
+        bool excludeAllHeaders = false)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -68,7 +70,9 @@ public static partial class PlantUmlCreator
                 focusDeEmphasis,
                 plantUmlTheme,
                 internalFlowTracking,
-                maxEncodedDiagramLength);
+                maxEncodedDiagramLength,
+                truncateNotesAfterLines,
+                excludeAllHeaders);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -92,7 +96,9 @@ public static partial class PlantUmlCreator
         FocusDeEmphasis focusDeEmphasis,
         string? plantUmlTheme,
         bool internalFlowTracking,
-        int maxEncodedDiagramLength)
+        int maxEncodedDiagramLength,
+        int truncateNotesAfterLines = 0,
+        bool excludeAllHeaders = false)
     {
         var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength);
         var lastTrace = tracesForTest[^1];
@@ -157,7 +163,7 @@ public static partial class PlantUmlCreator
                     if (requestPreFormattingProcessor is not null)
                         content = requestPreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (requestPostFormattingProcessor is not null)
                         noteContent = requestPostFormattingProcessor(noteContent);
@@ -175,7 +181,7 @@ public static partial class PlantUmlCreator
                     if (!string.IsNullOrEmpty(noteContent))
                     {
                         builder.AppendLine($"note{GetNoteClass(trace.MetaType)} left");
-                        builder.AppendLine(noteContent);
+                        builder.AppendLine(TruncateNoteContent(noteContent, truncateNotesAfterLines));
                         builder.AppendLine("end note");
                     }
 
@@ -186,12 +192,12 @@ public static partial class PlantUmlCreator
                     if (responsePreFormattingProcessor is not null)
                         content = responsePreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(trace.Headers, content, excludedHeaders, RequestResponseType.Response, responseMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Response, responseMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);
 
-                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName, internalFlowTracking);
+                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName, internalFlowTracking, truncateNotesAfterLines);
                     break;
                 }
             }
@@ -209,13 +215,22 @@ public static partial class PlantUmlCreator
     private static string GetNoteClass(RequestResponseMetaType metaType) =>
         metaType == RequestResponseMetaType.Event ? $"<<{EventNoteClass}>>" : "";
 
+    private static string TruncateNoteContent(string noteContent, int maxLines)
+    {
+        if (maxLines <= 0) return noteContent;
+        var lines = noteContent.Split('\n');
+        if (lines.Length <= maxLines) return noteContent;
+        return string.Join("\n", lines.Take(maxLines)) + "\n...";
+    }
+
     private static void AppendResponseNoteContent(
         DiagramBuilder builder,
         string noteContent,
         RequestResponseLog trace,
         string serviceShortName,
         string callerShortName,
-        bool internalFlowTracking = false)
+        bool internalFlowTracking = false,
+        int truncateNotesAfterLines = 0)
     {
         var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
         var suffix = Environment.NewLine + "..Continued On Next Diagram..";
@@ -233,7 +248,7 @@ public static partial class PlantUmlCreator
                 if (!isFirst) chunk = prefix + chunk;
                 if (!isLast) chunk += suffix;
 
-                AppendResponseNoteContent(builder, chunk, trace, serviceShortName, callerShortName, internalFlowTracking);
+                AppendResponseNoteContent(builder, chunk, trace, serviceShortName, callerShortName, internalFlowTracking, truncateNotesAfterLines);
 
                 if (!isLast)
                     builder.FinishAndStartNewDiagram();
@@ -252,7 +267,7 @@ public static partial class PlantUmlCreator
             if (!string.IsNullOrEmpty(noteContent))
             {
                 builder.AppendLine($"note{GetNoteClass(trace!.MetaType)} right");
-                builder.AppendLine(noteContent);
+                builder.AppendLine(TruncateNoteContent(noteContent, truncateNotesAfterLines));
                 builder.AppendLine("end note");
             }
         }

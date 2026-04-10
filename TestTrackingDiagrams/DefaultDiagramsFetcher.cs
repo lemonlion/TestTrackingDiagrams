@@ -87,7 +87,7 @@ public static class DefaultDiagramsFetcher
             maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000);
     }
 
-    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages, int maxEncodedDiagramLength)
+    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages, int maxEncodedDiagramLength, int truncateNotesAfterLines = 0, bool excludeAllHeaders = false)
     {
         return PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
             RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
@@ -105,17 +105,27 @@ public static class DefaultDiagramsFetcher
             focusDeEmphasis: options.FocusDeEmphasis,
             plantUmlTheme: options.PlantUmlTheme,
             internalFlowTracking: options.InternalFlowTracking,
-            maxEncodedDiagramLength: maxEncodedDiagramLength).ToArray();
+            maxEncodedDiagramLength: maxEncodedDiagramLength,
+            truncateNotesAfterLines: truncateNotesAfterLines,
+            excludeAllHeaders: excludeAllHeaders).ToArray();
     }
 
-    public static DiagramAsCode[] GetCiSummaryDiagrams(DiagramsFetcherOptions options)
+    public static (DiagramAsCode[] TruncatedDiagrams, DiagramAsCode[] FullDiagrams) GetCiSummaryDiagrams(DiagramsFetcherOptions options, int truncateNotesAfterLines = 10)
     {
-        var perTestId = GetPlantUmlPerTestId(options, lazyLoadImages: false, maxEncodedDiagramLength: PlantUmlCreator.DefaultMaxEncodedDiagramLength);
+        var truncated = GetPlantUmlPerTestId(options, lazyLoadImages: false,
+            maxEncodedDiagramLength: PlantUmlCreator.DefaultMaxEncodedDiagramLength,
+            truncateNotesAfterLines: truncateNotesAfterLines,
+            excludeAllHeaders: true);
 
-        return perTestId
-            .SelectMany(test => test.PlantUmls.Select(plantUml =>
-                new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText)))
-            .ToArray();
+        var full = GetPlantUmlPerTestId(options, lazyLoadImages: false,
+            maxEncodedDiagramLength: PlantUmlCreator.DefaultMaxEncodedDiagramLength);
+
+        return (
+            truncated.SelectMany(test => test.PlantUmls.Select(plantUml =>
+                new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText))).ToArray(),
+            full.SelectMany(test => test.PlantUmls.Select(plantUml =>
+                new DiagramAsCode(test.TestId, string.Empty, plantUml.PlainText))).ToArray()
+        );
     }
 
     private static DiagramAsCode[] RenderLocally(PlantUmlCreator.PlantUmlForTest[] perTestId, DiagramsFetcherOptions options)

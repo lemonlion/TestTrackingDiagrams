@@ -6,11 +6,11 @@ namespace TestTrackingDiagrams.Reports;
 
 public static partial class CiSummaryGenerator
 {
-    private const int NoteTruncateLines = 10;
 
     public static string GenerateMarkdown(
         Feature[] features,
-        DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
+        DefaultDiagramsFetcher.DiagramAsCode[] truncatedDiagrams,
+        DefaultDiagramsFetcher.DiagramAsCode[] fullDiagrams,
         DateTime startRunTime,
         DateTime endRunTime,
         int maxDiagrams = 10,
@@ -40,12 +40,13 @@ public static partial class CiSummaryGenerator
         sb.AppendLine($"| Duration | {duration} |");
         sb.AppendLine();
 
-        var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
+        var truncatedByTestId = truncatedDiagrams.ToLookup(d => d.TestRuntimeId);
+        var fullByTestId = fullDiagrams.ToLookup(d => d.TestRuntimeId);
 
         if (hasFailed)
-            AppendFailedScenarios(sb, features, diagramsByTestId, failed, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
+            AppendFailedScenarios(sb, features, truncatedByTestId, fullByTestId, failed, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
         else
-            AppendPassedDiagrams(sb, features, diagramsByTestId, total, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
+            AppendPassedDiagrams(sb, features, truncatedByTestId, fullByTestId, total, maxDiagrams, diagramFormat, plantUmlServerBaseUrl);
 
         return sb.ToString();
     }
@@ -53,7 +54,8 @@ public static partial class CiSummaryGenerator
     private static void AppendFailedScenarios(
         StringBuilder sb,
         Feature[] features,
-        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
+        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> truncatedByTestId,
+        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> fullByTestId,
         int totalFailed,
         int maxDiagrams,
         DiagramFormat diagramFormat,
@@ -91,7 +93,7 @@ public static partial class CiSummaryGenerator
                     sb.AppendLine();
                 }
 
-                AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
+                AppendDiagramImages(sb, truncatedByTestId[scenario.Id], fullByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
                 sb.AppendLine("</details>");
                 sb.AppendLine();
@@ -111,7 +113,8 @@ public static partial class CiSummaryGenerator
     private static void AppendPassedDiagrams(
         StringBuilder sb,
         Feature[] features,
-        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
+        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> truncatedByTestId,
+        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> fullByTestId,
         int totalScenarios,
         int maxDiagrams,
         DiagramFormat diagramFormat,
@@ -119,7 +122,7 @@ public static partial class CiSummaryGenerator
     {
         var scenariosWithDiagrams = features
             .SelectMany(f => f.Scenarios.Select(s => (Feature: f, Scenario: s)))
-            .Where(x => diagramsByTestId[x.Scenario.Id].Any())
+            .Where(x => truncatedByTestId[x.Scenario.Id].Any())
             .ToArray();
 
         if (scenariosWithDiagrams.Length == 0) return;
@@ -134,7 +137,7 @@ public static partial class CiSummaryGenerator
 
             sb.AppendLine($"<details><summary>✅ <strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
             sb.AppendLine();
-            AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
+            AppendDiagramImages(sb, truncatedByTestId[scenario.Id], fullByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
             sb.AppendLine("</details>");
             sb.AppendLine();
@@ -151,117 +154,84 @@ public static partial class CiSummaryGenerator
 
     private static void AppendDiagramImages(
         StringBuilder sb,
-        IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> diagrams,
+        IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> truncatedDiagrams,
+        IEnumerable<DefaultDiagramsFetcher.DiagramAsCode> fullDiagrams,
         DiagramFormat diagramFormat,
         string plantUmlServerBaseUrl)
     {
-        var diagramList = diagrams.ToArray();
-        var isMultiPart = diagramList.Length > 1;
-        var partIndex = 0;
+        var truncatedList = truncatedDiagrams.ToArray();
+        var fullList = fullDiagrams.ToArray();
 
-        foreach (var diagram in diagramList)
+        if (diagramFormat == DiagramFormat.Mermaid)
         {
-            partIndex++;
-            var partSuffix = isMultiPart ? $" (Part {partIndex})" : "";
-
-            if (diagramFormat == DiagramFormat.Mermaid)
+            foreach (var diagram in truncatedList)
             {
                 sb.AppendLine("```mermaid");
                 sb.AppendLine(diagram.CodeBehind);
                 sb.AppendLine("```");
                 sb.AppendLine();
             }
-            else
+            return;
+        }
+
+        // Check if truncation actually changed anything by comparing content
+        var wasTruncated = truncatedList.Length != fullList.Length ||
+            !truncatedList.Select(d => d.CodeBehind).SequenceEqual(fullList.Select(d => d.CodeBehind));
+
+        if (wasTruncated)
+        {
+            // Render all truncated diagram parts first
+            var isMultiPart = truncatedList.Length > 1;
+            for (var i = 0; i < truncatedList.Length; i++)
             {
-                // GitHub's HTML sanitizer strips <svg> elements and data: URIs from job summaries.
-                // PlantUml server URLs are the only image approach GitHub allows.
-                var preparedPlantUml = DeactivateUrls(diagram.CodeBehind);
-                var truncatedPlantUml = TruncateNotes(preparedPlantUml);
-                var wasTruncated = truncatedPlantUml != preparedPlantUml;
+                var partSuffix = isMultiPart ? $" (Part {i + 1})" : "";
+                var encoded = PlantUmlTextEncoder.Encode(DeactivateUrls(truncatedList[i].CodeBehind));
+                sb.AppendLine($"<details open><summary>Truncated Sequence Diagram{partSuffix}</summary>");
+                sb.AppendLine();
+                sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
+                sb.AppendLine();
+                sb.AppendLine("</details>");
+                sb.AppendLine();
+            }
 
-                if (wasTruncated)
+            // Then render all full diagram parts
+            isMultiPart = fullList.Length > 1;
+            for (var i = 0; i < fullList.Length; i++)
+            {
+                var partSuffix = isMultiPart ? $" (Part {i + 1})" : "";
+                var encoded = PlantUmlTextEncoder.Encode(DeactivateUrls(fullList[i].CodeBehind));
+                sb.AppendLine($"<details><summary>Full Sequence Diagram{partSuffix}</summary>");
+                sb.AppendLine();
+                sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
+                sb.AppendLine();
+                sb.AppendLine("</details>");
+                sb.AppendLine();
+            }
+        }
+        else
+        {
+            // No truncation — render diagrams directly
+            var isMultiPart = truncatedList.Length > 1;
+            for (var i = 0; i < truncatedList.Length; i++)
+            {
+                var partSuffix = isMultiPart ? $" (Part {i + 1})" : "";
+                var encoded = PlantUmlTextEncoder.Encode(DeactivateUrls(truncatedList[i].CodeBehind));
+                if (isMultiPart)
                 {
-                    var truncatedEncoded = PlantUmlTextEncoder.Encode(truncatedPlantUml);
-                    sb.AppendLine($"<details open><summary>Truncated Sequence Diagram{partSuffix}</summary>");
+                    sb.AppendLine($"<details open><summary>Sequence Diagram{partSuffix}</summary>");
                     sb.AppendLine();
-                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{truncatedEncoded})");
-                    sb.AppendLine();
-                    sb.AppendLine("</details>");
-                    sb.AppendLine();
-                }
-
-                var fullEncoded = PlantUmlTextEncoder.Encode(preparedPlantUml);
-                if (wasTruncated)
-                {
-                    sb.AppendLine($"<details><summary>Full Sequence Diagram{partSuffix}</summary>");
-                    sb.AppendLine();
-                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
                     sb.AppendLine();
                     sb.AppendLine("</details>");
                 }
                 else
                 {
-                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
                 }
                 sb.AppendLine();
             }
         }
     }
-
-    internal static string TruncateNotes(string plantUml)
-    {
-        var lines = plantUml.Split('\n');
-        var result = new StringBuilder();
-        var inNote = false;
-        var noteLines = new List<string>();
-        var anyTruncated = false;
-
-        foreach (var line in lines)
-        {
-            var trimmed = line.TrimStart();
-
-            if (!inNote && NoteStartRegex().IsMatch(trimmed))
-            {
-                inNote = true;
-                noteLines.Clear();
-                result.AppendLine(line.TrimEnd('\r'));
-                continue;
-            }
-
-            if (inNote)
-            {
-                if (trimmed.TrimEnd('\r') == "end note")
-                {
-                    inNote = false;
-                    if (noteLines.Count > NoteTruncateLines)
-                    {
-                        anyTruncated = true;
-                        for (var i = 0; i < NoteTruncateLines; i++)
-                            result.AppendLine(noteLines[i]);
-                        result.AppendLine("...");
-                    }
-                    else
-                    {
-                        foreach (var noteLine in noteLines)
-                            result.AppendLine(noteLine);
-                    }
-                    result.AppendLine("end note");
-                }
-                else
-                {
-                    noteLines.Add(line.TrimEnd('\r'));
-                }
-                continue;
-            }
-
-            result.AppendLine(line.TrimEnd('\r'));
-        }
-
-        return anyTruncated ? result.ToString().TrimEnd() + "\n" : plantUml;
-    }
-
-    [GeneratedRegex(@"^note\S*\s+(left|right|over)", RegexOptions.IgnoreCase)]
-    private static partial Regex NoteStartRegex();
 
     /// <summary>
     /// Breaks URL patterns in PlantUML source so the server doesn't render them as
