@@ -71,9 +71,7 @@ public static partial class CiSummaryGenerator
             {
                 if (shown >= maxDiagrams) break;
 
-                sb.AppendLine("<div style=\"color: darkred\">");
-                sb.AppendLine();
-                sb.AppendLine($"<details><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
+                sb.AppendLine($"<details><summary>❌ <strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
                 sb.AppendLine();
 
                 if (!string.IsNullOrEmpty(scenario.ErrorMessage))
@@ -97,8 +95,6 @@ public static partial class CiSummaryGenerator
                 AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
                 sb.AppendLine("</details>");
-                sb.AppendLine();
-                sb.AppendLine("</div>");
                 sb.AppendLine();
                 shown++;
             }
@@ -258,7 +254,7 @@ public static partial class CiSummaryGenerator
         return anyTruncated ? result.ToString().TrimEnd() + "\n" : plantUml;
     }
 
-    [GeneratedRegex(@"^note\s*(left|right|over)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^note\S*\s+(left|right|over)", RegexOptions.IgnoreCase)]
     private static partial Regex NoteStartRegex();
 
     /// <summary>
