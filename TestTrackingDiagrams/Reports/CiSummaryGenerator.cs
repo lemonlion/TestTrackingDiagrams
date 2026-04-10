@@ -177,51 +177,34 @@ public static partial class CiSummaryGenerator
             }
             else if (ciSummaryPlantUmlRendering is PlantUmlRendering.Local or PlantUmlRendering.NodeJs)
             {
-                Func<string, PlantUmlImageFormat, byte[]> renderer;
-
-                if (ciSummaryPlantUmlRendering == PlantUmlRendering.NodeJs)
-                {
-                    renderer = NodeJsPlantUmlRenderer.Render;
-                }
-                else if (localDiagramRenderer is not null)
-                {
-                    renderer = localDiagramRenderer;
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        "CiSummaryPlantUmlRendering.Local requires a LocalDiagramRenderer to be configured. " +
-                        "Install the TestTrackingDiagrams.PlantUml.Ikvm package and set LocalDiagramRenderer = IkvmPlantUmlRenderer.Render.");
-                }
-
+                // GitHub's HTML sanitizer strips <svg> elements and data: URIs from job summaries.
+                // We must use PlantUml server URLs (the only image approach GitHub allows).
                 var truncatedPlantUml = TruncateNotes(diagram.CodeBehind);
                 var wasTruncated = truncatedPlantUml != diagram.CodeBehind;
 
                 if (wasTruncated)
                 {
-                    var truncatedBytes = renderer(truncatedPlantUml, PlantUmlImageFormat.Svg);
-                    var truncatedSvg = StripXmlDeclaration(Encoding.UTF8.GetString(truncatedBytes));
+                    var truncatedEncoded = PlantUmlTextEncoder.Encode(truncatedPlantUml);
                     sb.AppendLine("<details open><summary>Truncated Sequence Diagram</summary>");
                     sb.AppendLine();
-                    sb.AppendLine(truncatedSvg);
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{truncatedEncoded})");
                     sb.AppendLine();
                     sb.AppendLine("</details>");
                     sb.AppendLine();
                 }
 
-                var fullBytes = renderer(diagram.CodeBehind, PlantUmlImageFormat.Svg);
-                var fullSvg = StripXmlDeclaration(Encoding.UTF8.GetString(fullBytes));
+                var fullEncoded = PlantUmlTextEncoder.Encode(diagram.CodeBehind);
                 if (wasTruncated)
                 {
                     sb.AppendLine("<details><summary>Full Sequence Diagram</summary>");
                     sb.AppendLine();
-                    sb.AppendLine(fullSvg);
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
                     sb.AppendLine();
                     sb.AppendLine("</details>");
                 }
                 else
                 {
-                    sb.AppendLine(fullSvg);
+                    sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{fullEncoded})");
                 }
                 sb.AppendLine();
             }
@@ -296,12 +279,6 @@ public static partial class CiSummaryGenerator
 
     [GeneratedRegex(@"^note\s*(left|right|over)", RegexOptions.IgnoreCase)]
     private static partial Regex NoteStartRegex();
-
-    private static string StripXmlDeclaration(string svg) =>
-        XmlDeclarationRegex().Replace(svg, "").TrimStart();
-
-    [GeneratedRegex(@"<\?xml[^?]*\?>")]
-    private static partial Regex XmlDeclarationRegex();
 
     private static string EscapeMarkdown(string text) => text.Replace("|", "\\|");
 

@@ -100,7 +100,6 @@ public static class NodeJsPlantUmlRenderer
     private static void ExtractRenderScript()
     {
         var targetPath = Path.Combine(CacheDir, RenderScriptName);
-        if (File.Exists(targetPath)) return;
 
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = assembly.GetManifestResourceNames()

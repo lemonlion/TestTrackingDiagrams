@@ -267,6 +267,13 @@ var vizReady = globalThis.Viz.instance().then(function(viz) {
 Promise.all([vizReady, inputPromise]).then(function(results) {
     var plantUml = results[1];
 
+    // Suppress console.log during plantuml.js load & render — the PlantUML engine
+    // writes verbose debug/trace logs (e.g. "[14 ms] PlantUML version ...",
+    // "[PSystemBuilder2] createDiagram start") to console.log, which would pollute
+    // the SVG output on stdout.
+    var origLog = console.log;
+    console.log = function() {};
+
     loadScript(plantumlPath);
 
     var loadFn = globalThis.plantumlLoad;
