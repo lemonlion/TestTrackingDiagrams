@@ -133,7 +133,7 @@ public static partial class CiSummaryGenerator
         {
             if (shown >= maxDiagrams) break;
 
-            sb.AppendLine($"<details><summary><strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
+            sb.AppendLine($"<details><summary>✅ <strong>{EscapeHtml(feature.DisplayName)} — {EscapeHtml(scenario.DisplayName)}</strong></summary>");
             sb.AppendLine();
             AppendDiagramImages(sb, diagramsByTestId[scenario.Id], diagramFormat, plantUmlServerBaseUrl);
 
