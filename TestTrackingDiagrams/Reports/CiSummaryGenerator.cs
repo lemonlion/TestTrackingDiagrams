@@ -207,6 +207,20 @@ public static partial class CiSummaryGenerator
                 sb.AppendLine("</details>");
                 sb.AppendLine();
             }
+
+            // PlantUML source for all full diagram parts
+            for (var i = 0; i < fullList.Length; i++)
+            {
+                var partSuffix = isMultiPart ? $" (Part {i + 1})" : "";
+                sb.AppendLine($"<details><summary>Full Sequence Diagram{partSuffix} - PlantUML</summary>");
+                sb.AppendLine();
+                sb.AppendLine("```plantuml");
+                sb.AppendLine(fullList[i].CodeBehind);
+                sb.AppendLine("```");
+                sb.AppendLine();
+                sb.AppendLine("</details>");
+                sb.AppendLine();
+            }
         }
         else
         {
@@ -228,6 +242,21 @@ public static partial class CiSummaryGenerator
                 {
                     sb.AppendLine($"![diagram]({plantUmlServerBaseUrl}/svg/{encoded})");
                 }
+                sb.AppendLine();
+            }
+
+            // PlantUML source for all diagram parts
+            for (var i = 0; i < truncatedList.Length; i++)
+            {
+                var partSuffix = isMultiPart ? $" (Part {i + 1})" : "";
+                var label = isMultiPart ? $"Sequence Diagram{partSuffix} - PlantUML" : "Sequence Diagram - PlantUML";
+                sb.AppendLine($"<details><summary>{label}</summary>");
+                sb.AppendLine();
+                sb.AppendLine("```plantuml");
+                sb.AppendLine(truncatedList[i].CodeBehind);
+                sb.AppendLine("```");
+                sb.AppendLine();
+                sb.AppendLine("</details>");
                 sb.AppendLine();
             }
         }

@@ -304,4 +304,93 @@ public class CiSummaryGeneratorTests
         var result = CiSummaryGenerator.DeactivateUrls(input);
         Assert.Equal(input, result);
     }
+
+    // ─── PlantUML source text blocks ────────────────────────
+
+    [Fact]
+    public void GenerateMarkdown_truncated_diagram_includes_plantuml_source_after_full_image()
+    {
+        var id = "test-1";
+        var code = "@startuml\nA -> B : hello\n@enduml";
+        var truncatedCode = "@startuml\nA -> B\n@enduml";
+        var features = new[] { MakeFeature("Orders", Passed("Create order", id)) };
+        var fullDiagrams = new[] { Diagram(id, code) };
+        var truncatedDiagrams = new[] { Diagram(id, truncatedCode) };
+
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, truncatedDiagrams, fullDiagrams, Start, End);
+
+        // Should have a PlantUML source section after the full diagram image
+        Assert.Contains("Full Sequence Diagram - PlantUML", markdown);
+        Assert.Contains("```plantuml", markdown);
+        Assert.Contains(code, markdown);
+        Assert.Contains("```", markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_truncated_multipart_includes_plantuml_source_for_each_part()
+    {
+        var id = "test-1";
+        var code1 = "@startuml\nA -> B : part1\n@enduml";
+        var code2 = "@startuml\nC -> D : part2\n@enduml";
+        var trunc1 = "@startuml\nA -> B\n@enduml";
+        var trunc2 = "@startuml\nC -> D\n@enduml";
+        var features = new[] { MakeFeature("Orders", Passed("Create order", id)) };
+        var fullDiagrams = new[] { Diagram(id, code1), Diagram(id, code2) };
+        var truncatedDiagrams = new[] { Diagram(id, trunc1), Diagram(id, trunc2) };
+
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, truncatedDiagrams, fullDiagrams, Start, End);
+
+        Assert.Contains("Full Sequence Diagram (Part 1) - PlantUML", markdown);
+        Assert.Contains("Full Sequence Diagram (Part 2) - PlantUML", markdown);
+        Assert.Contains(code1, markdown);
+        Assert.Contains(code2, markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_non_truncated_includes_plantuml_source()
+    {
+        var id = "test-1";
+        var code = "@startuml\nA -> B : hello\n@enduml";
+        var features = new[] { MakeFeature("Orders", Passed("Create order", id)) };
+        var diagrams = new[] { Diagram(id, code) };
+
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End);
+
+        Assert.Contains("Sequence Diagram - PlantUML", markdown);
+        Assert.Contains("```plantuml", markdown);
+        Assert.Contains(code, markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_non_truncated_multipart_includes_plantuml_source_for_each_part()
+    {
+        var id = "test-1";
+        var code1 = "@startuml\nA -> B : part1\n@enduml";
+        var code2 = "@startuml\nC -> D : part2\n@enduml";
+        var features = new[] { MakeFeature("Orders", Passed("Create order", id)) };
+        var diagrams = new[] { Diagram(id, code1), Diagram(id, code2) };
+
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, diagrams, diagrams, Start, End);
+
+        Assert.Contains("Sequence Diagram (Part 1) - PlantUML", markdown);
+        Assert.Contains("Sequence Diagram (Part 2) - PlantUML", markdown);
+        Assert.Contains(code1, markdown);
+        Assert.Contains(code2, markdown);
+    }
+
+    [Fact]
+    public void GenerateMarkdown_plantuml_source_is_inside_collapsed_details()
+    {
+        var id = "test-1";
+        var code = "@startuml\nA -> B : hello\n@enduml";
+        var truncatedCode = "@startuml\nA -> B\n@enduml";
+        var features = new[] { MakeFeature("Orders", Passed("Create order", id)) };
+        var fullDiagrams = new[] { Diagram(id, code) };
+        var truncatedDiagrams = new[] { Diagram(id, truncatedCode) };
+
+        var markdown = CiSummaryGenerator.GenerateMarkdown(features, truncatedDiagrams, fullDiagrams, Start, End);
+
+        // PlantUML source block should be in a collapsed <details> (no "open")
+        Assert.Contains("<details><summary>Full Sequence Diagram - PlantUML</summary>", markdown);
+    }
 }
