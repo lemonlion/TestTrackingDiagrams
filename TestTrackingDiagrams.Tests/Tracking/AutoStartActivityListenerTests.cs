@@ -10,6 +10,7 @@ namespace TestTrackingDiagrams.Tests.Tracking;
 /// All tests use well-known sources + unique operation names for parallel safety.
 /// No <c>ResetForTesting</c> — the static singleton is process-wide and shared.
 /// </summary>
+[Collection("InternalFlowSpanStore")]
 public class AutoStartActivityListenerTests
 {
     [Fact]

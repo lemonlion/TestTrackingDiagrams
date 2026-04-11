@@ -8,6 +8,7 @@ namespace TestTrackingDiagrams.Tests.InternalFlow;
 /// BCL ActivityListener that captures spans without touching the OTel SDK.
 /// All assertions filter by unique source name for parallel safety.
 /// </summary>
+[Collection("InternalFlowSpanStore")]
 public class InternalFlowActivityListenerTests : IDisposable
 {
     private InternalFlowActivityListener? _listener;

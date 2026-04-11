@@ -11,6 +11,7 @@ namespace TestTrackingDiagrams.Tests.OpenTelemetry;
 /// still works and writes to <see cref="InternalFlowSpanStore"/>.
 /// All assertions filter by unique source name for parallel safety.
 /// </summary>
+[Collection("InternalFlowSpanStore")]
 public class AddTestTrackingExporterTests : IDisposable
 {
     private ServiceProvider? _provider;

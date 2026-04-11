@@ -7,7 +7,9 @@ namespace TestTrackingDiagrams.Tests.InternalFlow;
 /// Tests for <see cref="InternalFlowSpanStore"/>.
 /// All tests use unique source names and filter assertions by source
 /// to avoid contamination from parallel test execution.
+/// Serialized via collection because <see cref="Clear_removes_all_spans"/> wipes the global store.
 /// </summary>
+[Collection("InternalFlowSpanStore")]
 public class InternalFlowSpanStoreTests : IDisposable
 {
     private readonly string _sourceName = $"StoreTest.{Guid.NewGuid():N}";
