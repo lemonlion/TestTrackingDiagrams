@@ -45,8 +45,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Api.Tests.Component
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.xUnit3", "..\TestTrackingDiagrams.LightBDD.xUnit3\TestTrackingDiagrams.LightBDD.xUnit3.csproj", "{808D6B91-6384-46E3-B935-EF4774256B43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightBDD.Contrib.ReportingEnhancements", "..\LightBDD.Contrib.ReportingEnhancements\LightBDD.Contrib.ReportingEnhancements.csproj", "{E824DC06-0574-486F-BD2E-C2DC4A515B31}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Api.Tests.CiPreview.AllPassing", "tests\Example.Api.Tests.CiPreview.AllPassing\Example.Api.Tests.CiPreview.AllPassing.csproj", "{869A2953-7020-48D3-9286-CCEECBBD1752}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.xUnit3", "..\TestTrackingDiagrams.xUnit3\TestTrackingDiagrams.xUnit3.csproj", "{792C1E0B-75DF-49BA-ACB5-D3ABD85D8244}"
@@ -305,18 +303,6 @@ Global
 		{808D6B91-6384-46E3-B935-EF4774256B43}.Release|x64.Build.0 = Release|Any CPU
 		{808D6B91-6384-46E3-B935-EF4774256B43}.Release|x86.ActiveCfg = Release|Any CPU
 		{808D6B91-6384-46E3-B935-EF4774256B43}.Release|x86.Build.0 = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|x64.Build.0 = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Debug|x86.Build.0 = Debug|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|x64.ActiveCfg = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|x64.Build.0 = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|x86.ActiveCfg = Release|Any CPU
-		{E824DC06-0574-486F-BD2E-C2DC4A515B31}.Release|x86.Build.0 = Release|Any CPU
 		{869A2953-7020-48D3-9286-CCEECBBD1752}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{869A2953-7020-48D3-9286-CCEECBBD1752}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{869A2953-7020-48D3-9286-CCEECBBD1752}.Debug|x64.ActiveCfg = Debug|Any CPU

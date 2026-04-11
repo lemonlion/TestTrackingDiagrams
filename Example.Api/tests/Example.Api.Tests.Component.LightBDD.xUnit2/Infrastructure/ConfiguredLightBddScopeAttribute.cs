@@ -1,4 +1,3 @@
-using System.Reflection;
 using Example.Api.Tests.Component.LightBDD.xUnit2.Infrastructure;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.Shared.HttpFakes;
@@ -22,8 +21,6 @@ internal class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
 
     protected override void OnConfigure(LightBddConfiguration configuration)
     {
-        var testAssembly = Assembly.GetAssembly(typeof(ConfiguredLightBddScopeAttribute))!;
-
         // When run by the integration test project, configuration is provided via environment variables.
         // Otherwise, the hardcoded values below serve as a readable example for users.
         var reportOptions = IntegrationTestConfiguration.IsIntegrationTestMode
@@ -34,7 +31,7 @@ internal class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
                 SeparateSetup = true,
             };
 
-        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(testAssembly, reportOptions);
+        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(reportOptions);
 
         // To stop the output repeating the step name for each step
         configuration.ProgressNotifierConfiguration().Clear().Append(new ConfigurableProgressNotifier());

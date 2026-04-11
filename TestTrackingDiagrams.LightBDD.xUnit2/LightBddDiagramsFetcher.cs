@@ -1,12 +1,9 @@
-﻿using LightBDD.Contrib.ReportingEnhancements.Reports;
-
-namespace TestTrackingDiagrams.LightBDD.xUnit2;
+﻿namespace TestTrackingDiagrams.LightBDD.xUnit2;
 
 public static class LightBddDiagramsFetcher
 {
-    public static Func<DiagramAsCode[]> GetDiagramsFetcher(DiagramsFetcherOptions? options = null)
+    public static Func<DefaultDiagramsFetcher.DiagramAsCode[]> GetDiagramsFetcher(DiagramsFetcherOptions? options = null)
     {
-        return () => DefaultDiagramsFetcher.GetDiagramsFetcher(options)()
-            .Select(x => new DiagramAsCode(Guid.Parse(x.TestRuntimeId), x.ImgSrc, x.CodeBehind)).ToArray();
+        return DefaultDiagramsFetcher.GetDiagramsFetcher(options);
     }
 }

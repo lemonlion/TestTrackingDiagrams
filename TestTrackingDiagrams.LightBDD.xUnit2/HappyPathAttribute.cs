@@ -1,6 +1,6 @@
-﻿using LightBDD.Framework;
+using LightBDD.Framework;
 
-namespace LightBDD.Contrib.ReportingEnhancements.Reports;
+namespace TestTrackingDiagrams.LightBDD.xUnit2;
 
 public class HappyPathAttribute : LabelAttribute
 {

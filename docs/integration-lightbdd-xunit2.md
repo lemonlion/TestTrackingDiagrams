@@ -251,7 +251,7 @@ public partial class Cake_Feature : BaseFixture
 
 **Key points:**
 - `[FeatureDescription("/cake")]` sets the endpoint label in the report (equivalent to `@endpoint:/cake` in Gherkin).
-- `[HappyPath]` marks a scenario as a happy path (from `LightBDD.Contrib.ReportingEnhancements`).
+- `[HappyPath]` marks a scenario as a happy path (from `TestTrackingDiagrams.LightBDD.xUnit2`).
 - Steps are regular `async Task` methods — method names are converted to readable text by LightBDD (underscores become spaces).
 
 ---

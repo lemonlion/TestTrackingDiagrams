@@ -261,7 +261,7 @@ public partial class Cake_Feature : BaseFixture
 
 **Key points:**
 - `[FeatureDescription("/cake")]` sets the endpoint label in the report (equivalent to `@endpoint:/cake` in Gherkin).
-- `[HappyPath]` marks a scenario as a happy path (from `LightBDD.Contrib.ReportingEnhancements`).
+- `[HappyPath]` marks a scenario as a happy path (from `TestTrackingDiagrams.LightBDD.xUnit3`).
 - Steps are regular `async Task` methods — method names are converted to readable text by LightBDD (underscores become spaces).
 
 ---
@@ -396,7 +396,7 @@ Current versions of ReSharper may not recognise `[assembly: TestPipelineStartup]
 
 A new `UnifiedReportFormatter` is available that converts LightBDD's `IFeatureResult[]` into the TTD unified data model (`Feature[]`/`Scenario[]`/`ScenarioStep[]`) and generates reports through the standard `ReportGenerator` pipeline. This gives LightBDD tests access to all TTD report features (search, keyboard navigation, deep linking, CI summaries, etc.) while preserving full step/label/category/parameter data.
 
-The existing `CustomisableHtmlReportFormatter` (via `LightBDD.Contrib.ReportingEnhancements`) continues to work.
+The `LightBDD.Contrib.ReportingEnhancements` package (and its `CustomisableHtmlReportFormatter`) has been retired. `UnifiedReportFormatter` is now the only report path.
 
 ### Full Parameter Data
 

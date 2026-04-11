@@ -1,6 +1,8 @@
 using LightBDD.Core.Results;
 using LightBDD.Framework.Reporting.Formatters;
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD.xUnit2;
 
@@ -16,6 +18,14 @@ public class UnifiedReportFormatter : IReportFormatter
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;
     public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
     public bool LazyLoadImages { get; set; } = true;
+    public string? Stylesheet { get; set; }
+    public bool GenerateBlankOnFailedTests { get; set; }
+    public bool InlineSvgRendering { get; set; }
+    public bool InternalFlowTracking { get; set; }
+    public string InternalFlowDataScript { get; set; } = "";
+    public Dictionary<string, InternalFlowSegment>? WholeTestSegments { get; set; }
+    public RequestResponseLog[]? TrackedLogs { get; set; }
+    public WholeTestFlowVisualization WholeTestVisualization { get; set; } = WholeTestFlowVisualization.None;
 
     public void Format(Stream stream, params IFeatureResult[] features)
     {
@@ -38,8 +48,12 @@ public class UnifiedReportFormatter : IReportFormatter
         // Use a temp file name for report generation, then copy the content to the stream
         var tempFileName = $"_unified_report_{Guid.NewGuid():N}.html";
         var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, ttdFeatures, startTime, endTime, null, tempFileName, Title, IncludeTestRunData,
-            lazyLoadImages: LazyLoadImages, diagramFormat: DiagramFormat, plantUmlRendering: PlantUmlRendering);
+            diagrams, ttdFeatures, startTime, endTime, Stylesheet, tempFileName, Title, IncludeTestRunData,
+            generateBlankOnFailedTests: GenerateBlankOnFailedTests,
+            lazyLoadImages: LazyLoadImages, diagramFormat: DiagramFormat, plantUmlRendering: PlantUmlRendering,
+            inlineSvgRendering: InlineSvgRendering, internalFlowTracking: InternalFlowTracking,
+            internalFlowDataScript: InternalFlowDataScript, wholeTestSegments: WholeTestSegments,
+            trackedLogs: TrackedLogs, wholeTestVisualization: WholeTestVisualization);
 
         try
         {

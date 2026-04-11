@@ -143,17 +143,15 @@ public record Scenario
 
 **Rationale**: Consistent with LightBDD's UX. Radio buttons prevent confusion about combinatorial filtering.
 
-### DD-9: Retire LightBDD.Contrib.ReportingEnhancements — LightBDD adapter feeds into main report
+### DD-9: ~~Retire LightBDD.Contrib.ReportingEnhancements~~ ✅ DONE
 
-**Decision**: After all features are integrated:
-1. `TestTrackingDiagrams.LightBDD.xUnit3` converts LightBDD's `IFeatureResult[]` → `Feature[]` (with steps, labels, categories, descriptions, parameter data)
-2. `ReportGenerator.CreateStandardReportsWithDiagrams(Feature[], ...)` generates the HTML
-3. `LightBDD.Contrib.ReportingEnhancements` is deprecated and eventually removed
-4. The LightBDD adapter no longer hooks into LightBDD's `ReportWritersConfiguration` — instead it uses TTD's existing report lifecycle
+**Status**: Completed. `LightBDD.Contrib.ReportingEnhancements` has been retired and deleted.
 
-**Rationale**: Single report path, single codebase to maintain. LightBDD users get all TTD features (dependency filter, export, keyboard nav, etc.) that they currently lack. TTD users get all LightBDD features (steps, tables, etc.).
-
-**Risk**: LightBDD's logo/branding disappears. Mitigate with configurable logo/title in `ReportConfigurationOptions`.
+**What was done**:
+1. `TestTrackingDiagrams.LightBDD.xUnit3` and `.xUnit2` now convert LightBDD's `IFeatureResult[]` → `Feature[]` via `UnifiedReportFormatter` and `UnifiedYamlFormatter`
+2. `ReportWritersConfigurationExtensions.CreateStandardReportsWithDiagrams()` uses the main `ReportGenerator` pipeline exclusively
+3. `HappyPathAttribute` moved into both LightBDD adapter packages
+4. `LightBDD.Contrib.ReportingEnhancements` project removed from solutions and deleted
 
 ### DD-10: LightBDD → Feature[] conversion captures all rich data
 
@@ -357,12 +355,12 @@ Features:
     - ReqNRoll tables are input-only (no verification status), so `VerificationStatus = NotApplicable` for all cells
     - Update `ReqNRollStepInfo` to include optional `Table` property
 
-### Phase 4: Retirement of LightBDD.Contrib.ReportingEnhancements
+### Phase 4: Retirement of LightBDD.Contrib.ReportingEnhancements ✅ DONE
 
-12. **Remove dual-path**: Delete `LightBDD.Contrib.ReportingEnhancements` project entirely
-13. **Update LightBDD examples**: Point to main report path only
+12. ~~**Remove dual-path**: Delete `LightBDD.Contrib.ReportingEnhancements` project entirely~~ ✅
+13. ~~**Update LightBDD examples**: Point to main report path only~~ ✅
 14. **Branding**: Add logo/favicon customization to `ReportConfigurationOptions`
-15. **Documentation**: Update wiki and integration guides
+15. ~~**Documentation**: Update wiki and integration guides~~ ✅
 
 ---
 

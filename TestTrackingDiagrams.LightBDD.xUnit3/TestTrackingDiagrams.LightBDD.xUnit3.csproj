@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LightBDD.Contrib.ReportingEnhancements\LightBDD.Contrib.ReportingEnhancements.csproj" />
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
   </ItemGroup>
 

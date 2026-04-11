@@ -1,6 +1,4 @@
 ﻿using LightBDD.Core.Configuration;
-using System.Reflection;
-using LightBDD.Contrib.ReportingEnhancements.Reports;
 using LightBDD.Framework.Configuration;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Reports;
@@ -10,7 +8,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
 {
     public static class ReportWritersConfigurationExtensions
     {
-        public static ReportWritersConfiguration CreateStandardReportsWithDiagrams(this ReportWritersConfiguration configuration, Assembly testAssembly, ReportConfigurationOptions options)
+        public static ReportWritersConfiguration CreateStandardReportsWithDiagrams(this ReportWritersConfiguration configuration, ReportConfigurationOptions options)
         {
             var fetcherOptions = new DiagramsFetcherOptions
             {
@@ -35,91 +33,77 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
             var diagramsFetcher = LightBddDiagramsFetcher.GetDiagramsFetcher(fetcherOptions);
             var reportsFilePath = options.ReportsFolderPath.Trim().TrimEnd('/');
 
+            // Build internal flow data once, shared across formatters
+            var internalFlowDataScript = "";
+            Dictionary<string, InternalFlowSegment>? wholeTestSegments = null;
+            RequestResponseLog[]? trackedLogs = null;
+            if (options.InternalFlowTracking)
+            {
+                trackedLogs = RequestResponseLogger.RequestAndResponseLogs
+                    .Where(x => !(x?.TrackingIgnore ?? true))
+                    .ToArray();
+
+                var spans = InternalFlowSpanCollector.CollectSpans(
+                    options.InternalFlowSpanGranularity,
+                    options.InternalFlowActivitySources);
+
+                var perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
+
+                internalFlowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(options.InternalFlowHasDataBehavior)
+                    + InternalFlowHtmlGenerator.GenerateSegmentDataScript(
+                    perBoundarySegments,
+                    options.InternalFlowDiagramStyle,
+                    options.InternalFlowShowFlameChart,
+                    options.InternalFlowFlameChartPosition,
+                    options.InternalFlowNoDataBehavior);
+
+                if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
+                {
+                    wholeTestSegments = InternalFlowSegmentBuilder.BuildWholeTestSegments(trackedLogs, spans);
+                }
+            }
+
             return configuration
                 .Clear()
-                .AddFileWriter<CustomisableHtmlReportFormatter>($"Reports/{options.HtmlSpecificationsFileName}.html",
-            formatter =>
-                {
-                    formatter.Options = SpecificationsOptions.GetSpecificationsHtmlReportAdvancedOptions(testAssembly, o =>
-                    {
-                        o.Title = options.SpecificationsTitle;
-                        o.ExampleDiagramsAsCode = diagramsFetcher;
-                        o.LazyLoadDiagramImages = options.LazyLoadDiagramImages;
-                        o.DiagramFormat = options.DiagramFormat;
-                        o.PlantUmlRendering = options.PlantUmlRendering;
-                        o.DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML";
-                        ConfigureInternalFlow(o, options);
-                    });
-                    if(options.HtmlSpecificationsCustomStyleSheet is not null)
-                        formatter.WithCustomCss(options.HtmlSpecificationsCustomStyleSheet);
-                })
-                .AddFileWriter<YamlReportFormatter>($"{reportsFilePath}/{options.YamlSpecificationsFileName}.yml",
+                .AddFileWriter<UnifiedReportFormatter>($"Reports/{options.HtmlSpecificationsFileName}.html",
                 formatter =>
                 {
-                    formatter.Options = new YamlReportOptions
-                    {
-                        Title = options.SpecificationsTitle,
-                        OnlyCreateReportOnFullySuccessfulTestRun = true
-                    }.SetOnlyCreateReportOnFullTestRun(testAssembly);
+                    formatter.Title = options.SpecificationsTitle;
+                    formatter.IncludeTestRunData = false;
+                    formatter.GenerateBlankOnFailedTests = true;
+                    formatter.DiagramsFetcher = diagramsFetcher;
+                    formatter.LazyLoadImages = options.LazyLoadDiagramImages;
+                    formatter.DiagramFormat = options.DiagramFormat;
+                    formatter.PlantUmlRendering = options.PlantUmlRendering;
+                    formatter.InlineSvgRendering = options.InlineSvgRendering;
+                    formatter.Stylesheet = options.HtmlSpecificationsCustomStyleSheet;
+                    formatter.InternalFlowTracking = options.InternalFlowTracking;
+                    formatter.InternalFlowDataScript = internalFlowDataScript;
+                    formatter.WholeTestSegments = wholeTestSegments;
+                    formatter.TrackedLogs = trackedLogs;
+                    formatter.WholeTestVisualization = options.WholeTestFlowVisualization;
                 })
-                .AddFileWriter<CustomisableHtmlReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
+                .AddFileWriter<UnifiedYamlFormatter>($"{reportsFilePath}/{options.YamlSpecificationsFileName}.yml",
                 formatter =>
                 {
-                    var advancedOptions = new HtmlReportAdvancedOptions
-                    {
-                        ExampleDiagramsAsCode = diagramsFetcher,
-                        LazyLoadDiagramImages = options.LazyLoadDiagramImages,
-                        DiagramFormat = options.DiagramFormat,
-                        PlantUmlRendering = options.PlantUmlRendering,
-                        DiagramsAsCodeCodeBehindTitle = options.DiagramFormat == DiagramFormat.Mermaid ? "Raw Mermaid" : "Raw Plant UML"
-                    };
-                    ConfigureInternalFlow(advancedOptions, options);
-                    formatter.Options = advancedOptions;
+                    formatter.Title = options.SpecificationsTitle;
+                    formatter.GenerateBlankOnFailedTests = true;
+                    formatter.DiagramsFetcher = diagramsFetcher;
+                })
+                .AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
+                formatter =>
+                {
+                    formatter.DiagramsFetcher = diagramsFetcher;
+                    formatter.LazyLoadImages = options.LazyLoadDiagramImages;
+                    formatter.DiagramFormat = options.DiagramFormat;
+                    formatter.PlantUmlRendering = options.PlantUmlRendering;
+                    formatter.InlineSvgRendering = options.InlineSvgRendering;
+                    formatter.InternalFlowTracking = options.InternalFlowTracking;
+                    formatter.InternalFlowDataScript = internalFlowDataScript;
+                    formatter.WholeTestSegments = wholeTestSegments;
+                    formatter.TrackedLogs = trackedLogs;
+                    formatter.WholeTestVisualization = options.WholeTestFlowVisualization;
                 });
-        }
-
-        private static void ConfigureInternalFlow(HtmlReportAdvancedOptions advancedOptions, ReportConfigurationOptions options)
-        {
-            if (!options.InternalFlowTracking)
-                return;
-
-            advancedOptions.InternalFlowTracking = true;
-
-            var trackedLogs = RequestResponseLogger.RequestAndResponseLogs
-                .Where(x => !(x?.TrackingIgnore ?? true))
-                .ToArray();
-
-            var spans = InternalFlowSpanCollector.CollectSpans(
-                options.InternalFlowSpanGranularity,
-                options.InternalFlowActivitySources);
-
-            var perBoundarySegments = InternalFlowSegmentBuilder.BuildSegments(trackedLogs, spans);
-
-            advancedOptions.InternalFlowDataScript = DiagramContextMenu.GetInternalFlowConfigScript(options.InternalFlowHasDataBehavior)
-                + InternalFlowHtmlGenerator.GenerateSegmentDataScript(
-                perBoundarySegments,
-                options.InternalFlowDiagramStyle,
-                options.InternalFlowShowFlameChart,
-                options.InternalFlowFlameChartPosition,
-                options.InternalFlowNoDataBehavior);
-
-            if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
-            {
-                var wholeTestSegments = InternalFlowSegmentBuilder.BuildWholeTestSegments(trackedLogs, spans);
-
-                advancedOptions.WholeTestFlowHtmlProvider = testRuntimeId =>
-                {
-                    var testId = testRuntimeId.ToString();
-                    var boundaryLogs = trackedLogs
-                        .Where(l => l.TestId == testId && l.Type == RequestResponseType.Request && l.Timestamp.HasValue)
-                        .OrderBy(l => l.Timestamp!.Value)
-                        .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
-                        .ToArray();
-
-                    return InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
-                        wholeTestSegments, testId, boundaryLogs, options.WholeTestFlowVisualization);
-                };
-            }
         }
     }
 }

@@ -13,9 +13,7 @@ public class ReportWritersConfigurationExtensionsTests
         var reportWritersConfig = configuration.ReportWritersConfiguration();
         var options = new ReportConfigurationOptions();
 
-        var result = reportWritersConfig.CreateStandardReportsWithDiagrams(
-            typeof(ReportWritersConfigurationExtensionsTests).Assembly,
-            options);
+        var result = reportWritersConfig.CreateStandardReportsWithDiagrams(options);
 
         Assert.NotNull(result);
         Assert.IsType<ReportWritersConfiguration>(result);
@@ -32,9 +30,7 @@ public class ReportWritersConfigurationExtensionsTests
             PlantUmlServerBaseUrl = "http://custom-server.com"
         };
 
-        var result = reportWritersConfig.CreateStandardReportsWithDiagrams(
-            typeof(ReportWritersConfigurationExtensionsTests).Assembly,
-            options);
+        var result = reportWritersConfig.CreateStandardReportsWithDiagrams(options);
 
         Assert.NotNull(result);
     }
