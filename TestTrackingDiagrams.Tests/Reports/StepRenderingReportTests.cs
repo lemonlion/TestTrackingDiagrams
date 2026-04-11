@@ -105,6 +105,8 @@ public class StepRenderingReportTests
         };
         var content = GenerateReport(MakeFeatures(scenario), "SubSteps.html");
         Assert.Contains("sub-steps", content);
+        Assert.Contains("step-collapsible", content);
+        Assert.Contains("<summary>", content);
         Assert.Contains("the body specifies milk", content);
     }
 

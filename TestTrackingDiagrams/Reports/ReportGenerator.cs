@@ -1309,7 +1309,17 @@ public static class ReportGenerator
             _ => ""
         };
 
-        body.Append("<div class=\"step\">");
+        var hasSubSteps = step.SubSteps is { Length: > 0 };
+
+        if (hasSubSteps)
+        {
+            body.Append("<details class=\"step step-collapsible\">");
+            body.Append("<summary>");
+        }
+        else
+        {
+            body.Append("<div class=\"step\">");
+        }
 
         if (step.Status.HasValue)
         {
@@ -1326,6 +1336,11 @@ public static class ReportGenerator
         if (step.Duration.HasValue)
         {
             body.Append($" <span class=\"step-duration\">({FormatDurationBadge(step.Duration.Value)})</span>");
+        }
+
+        if (hasSubSteps)
+        {
+            body.Append("</summary>");
         }
 
         if (step.Comments is { Length: > 0 })
@@ -1352,17 +1367,20 @@ public static class ReportGenerator
             }
         }
 
-        if (step.SubSteps is { Length: > 0 })
+        if (hasSubSteps)
         {
             body.Append("<div class=\"sub-steps\">");
-            foreach (var subStep in step.SubSteps)
+            foreach (var subStep in step.SubSteps!)
             {
                 RenderStep(body, subStep);
             }
             body.Append("</div>");
+            body.Append("</details>");
         }
-
-        body.Append("</div>");
+        else
+        {
+            body.Append("</div>");
+        }
     }
 
     private static void RenderParameter(StringBuilder body, StepParameter param)

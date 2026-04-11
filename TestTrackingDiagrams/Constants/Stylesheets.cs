@@ -498,6 +498,19 @@ public class Stylesheets
                     padding-left: 0.8em;
                 }
 
+                .step-collapsible {
+                    margin: 0.15em 0;
+                }
+
+                .step-collapsible > summary {
+                    cursor: pointer;
+                    list-style: revert;
+                }
+
+                .step-collapsible > summary::-webkit-details-marker {
+                    margin-right: 0.3em;
+                }
+
                 .feature-description {
                     font-style: italic;
                     color: rgb(100, 100, 100);
