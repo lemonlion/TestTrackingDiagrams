@@ -442,6 +442,7 @@ public class Stylesheets
                 .step {
                     margin: 0.3em 0;
                     line-height: 1.6;
+                    padding-left: 1em;
                 }
 
                 .step-status {
@@ -500,6 +501,7 @@ public class Stylesheets
 
                 .step-collapsible {
                     margin: 0.15em 0;
+                    padding-left: 0;
                 }
 
                 .step-collapsible > summary {
