@@ -1,3 +1,4 @@
+using System.Reflection;
 using LightBDD.Core.Results;
 using LightBDD.Framework.Reporting.Formatters;
 using TestTrackingDiagrams.InternalFlow;
@@ -20,6 +21,7 @@ public class UnifiedReportFormatter : IReportFormatter
     public bool LazyLoadImages { get; set; } = true;
     public string? Stylesheet { get; set; }
     public bool GenerateBlankOnFailedTests { get; set; }
+    public Assembly? TestAssembly { get; set; }
     public bool InlineSvgRendering { get; set; }
     public bool InternalFlowTracking { get; set; }
     public string InternalFlowDataScript { get; set; } = "";
@@ -29,6 +31,14 @@ public class UnifiedReportFormatter : IReportFormatter
 
     public void Format(Stream stream, params IFeatureResult[] features)
     {
+        if (TestAssembly != null)
+        {
+            var scenarioCount = features.SelectMany(f => f.GetScenarios()).Count();
+            var totalTests = TestAssembly.CountNumberOfTestsInAssembly();
+            if (scenarioCount != totalTests)
+                return;
+        }
+
         var ttdFeatures = features.ToFeatures();
         var diagrams = DiagramsFetcher?.Invoke() ?? [];
 

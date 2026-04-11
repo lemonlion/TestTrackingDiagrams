@@ -1,3 +1,4 @@
+using System.Reflection;
 using LightBDD.Core.Results;
 using LightBDD.Framework.Reporting.Formatters;
 using TestTrackingDiagrams.Reports;
@@ -12,10 +13,19 @@ public class UnifiedYamlFormatter : IReportFormatter
 {
     public string Title { get; set; } = "Specifications";
     public bool GenerateBlankOnFailedTests { get; set; } = true;
+    public Assembly? TestAssembly { get; set; }
     public Func<DefaultDiagramsFetcher.DiagramAsCode[]>? DiagramsFetcher { get; set; }
 
     public void Format(Stream stream, params IFeatureResult[] features)
     {
+        if (TestAssembly != null)
+        {
+            var scenarioCount = features.SelectMany(f => f.GetScenarios()).Count();
+            var totalTests = TestAssembly.CountNumberOfTestsInAssembly();
+            if (scenarioCount != totalTests)
+                return;
+        }
+
         var ttdFeatures = features.ToFeatures();
         var diagrams = DiagramsFetcher?.Invoke() ?? [];
 

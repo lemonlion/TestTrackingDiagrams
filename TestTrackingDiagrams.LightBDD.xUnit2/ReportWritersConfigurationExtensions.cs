@@ -1,4 +1,6 @@
-﻿using LightBDD.Core.Configuration;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
+using LightBDD.Core.Configuration;
 using LightBDD.Framework.Configuration;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Reports;
@@ -8,8 +10,10 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
 {
     public static class ReportWritersConfigurationExtensions
     {
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static ReportWritersConfiguration CreateStandardReportsWithDiagrams(this ReportWritersConfiguration configuration, ReportConfigurationOptions options)
         {
+            var testAssembly = Assembly.GetCallingAssembly();
             var fetcherOptions = new DiagramsFetcherOptions
             {
                 PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
@@ -71,6 +75,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                     formatter.Title = options.SpecificationsTitle;
                     formatter.IncludeTestRunData = false;
                     formatter.GenerateBlankOnFailedTests = true;
+                    formatter.TestAssembly = testAssembly;
                     formatter.DiagramsFetcher = diagramsFetcher;
                     formatter.LazyLoadImages = options.LazyLoadDiagramImages;
                     formatter.DiagramFormat = options.DiagramFormat;
@@ -88,6 +93,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2
                 {
                     formatter.Title = options.SpecificationsTitle;
                     formatter.GenerateBlankOnFailedTests = true;
+                    formatter.TestAssembly = testAssembly;
                     formatter.DiagramsFetcher = diagramsFetcher;
                 })
                 .AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
