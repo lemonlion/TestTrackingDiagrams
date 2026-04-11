@@ -39,6 +39,25 @@ public static class DiagramContextMenu
             overflow-x: auto;
             padding-left: 1em;
         }
+        .diagram-zoom-toggle {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(180, 180, 180, 0.6);
+            border-radius: 4px;
+            font-size: 18px;
+            line-height: 1;
+            padding: 2px 5px;
+            cursor: pointer;
+            opacity: 0.4;
+            transition: opacity 0.15s;
+        }
+        .diagram-zoom-toggle:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.95);
+        }
         """;
 
     public static string GetCollapsibleNotesStyles() => """
@@ -889,6 +908,60 @@ public static class DiagramContextMenu
                 if (e.key === 'Escape') closeMenu();
             });
             document.addEventListener('scroll', closeMenu, true);
+
+            // Toggle diagram between fit-to-width and natural size
+            function toggleDiagramZoom(container) {
+                var svg = getSvg(container);
+                if (!svg) return;
+                var isZoomed = container.classList.toggle('diagram-natural-size');
+                var btn = container.querySelector('.diagram-zoom-toggle');
+                if (isZoomed) {
+                    svg.style.maxWidth = 'none';
+                    container.style.overflowX = 'auto';
+                    if (btn) btn.textContent = '\u2921';
+                } else {
+                    svg.style.maxWidth = '';
+                    container.style.overflowX = '';
+                    if (btn) btn.textContent = '\u2922';
+                }
+            }
+
+            // Double-click SVG diagram to toggle zoom
+            document.addEventListener('dblclick', function(e) {
+                var container = findDiagramContainer(e.target);
+                if (!container) return;
+                if (!getSvg(container)) return;
+                e.preventDefault();
+                toggleDiagramZoom(container);
+            });
+
+            // Add floating zoom toggle button to each diagram container
+            function addZoomButtons() {
+                document.querySelectorAll('[data-diagram-type]').forEach(function(container) {
+                    if (container.querySelector('.diagram-zoom-toggle')) return;
+                    var svg = getSvg(container);
+                    if (!svg) return;
+                    container.style.position = 'relative';
+                    var btn = document.createElement('button');
+                    btn.className = 'diagram-zoom-toggle';
+                    btn.textContent = '\u2922';
+                    btn.title = 'Toggle zoom (or double-click diagram)';
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleDiagramZoom(container);
+                    });
+                    container.appendChild(btn);
+                });
+            }
+
+            // Run on load and observe for lazily-rendered diagrams
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', addZoomButtons);
+            } else {
+                addZoomButtons();
+            }
+            var zoomObserver = new MutationObserver(function() { addZoomButtons(); });
+            zoomObserver.observe(document.body, { childList: true, subtree: true });
         })();
         </script>
         """;
