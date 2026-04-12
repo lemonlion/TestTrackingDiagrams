@@ -180,6 +180,10 @@ public class Stylesheets
                 .failed {
                     color: rgb(191,0,0);
                 }
+
+                .skipped {
+                    color: #fbc800;
+                }
                 
                 span.label {
                     background-color: rgb(200, 200, 200);
@@ -251,6 +255,23 @@ public class Stylesheets
                     background: rgb(66, 133, 244);
                     color: white;
                     border-color: rgb(66, 133, 244);
+                }
+
+                .dep-mode-toggle {
+                    padding: 0.15em 0.5em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: rgb(240, 240, 240);
+                    cursor: pointer;
+                    font-size: 0.75em;
+                    font-weight: bold;
+                    min-width: 2.5em;
+                    text-align: center;
+                }
+
+                .dep-mode-toggle:hover {
+                    background: rgb(220, 230, 245);
+                    border-color: rgb(100, 150, 255);
                 }
 
                 .duration-badge {

@@ -1743,8 +1743,21 @@ public static class DiagramContextMenu
                     ev.stopPropagation(); ev.preventDefault(); onCycle();
                 });
                 // Allow text selection: on mousedown, temporarily remove pointer-events
-                // so the browser can start selecting text underneath, then re-dispatch
+                // so the browser can start selecting text underneath, then re-dispatch.
+                // Double-click detection is done here because removing pointer-events
+                // causes mouseup to fire on the element beneath, which moves the native
+                // dblclick event target to their common ancestor (the SVG), bypassing
+                // the hoverRect's own dblclick listener.
+                var _lastNoteClickTime = 0;
                 hoverRect.addEventListener('mousedown', function(ev) {
+                    var now = Date.now();
+                    if (now - _lastNoteClickTime < 500) {
+                        _lastNoteClickTime = 0;
+                        ev.stopPropagation(); ev.preventDefault();
+                        onCycle();
+                        return;
+                    }
+                    _lastNoteClickTime = now;
                     hoverRect.style.pointerEvents = 'none';
                     var target = document.elementFromPoint(ev.clientX, ev.clientY);
                     if (target && target !== hoverRect) {

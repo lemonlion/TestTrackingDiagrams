@@ -393,9 +393,13 @@ public class DiagramContextMenuTests
     public void CreateNoteButtons_double_click_cycles_state()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Hover rect has dblclick handler
+        // Hover rect has dblclick handler as fallback
         Assert.Contains("dblclick", funcBody);
         Assert.Contains("onCycle", funcBody);
+        // Mousedown-based double-click detection because removing pointer-events
+        // causes native dblclick to fire on the SVG ancestor instead of hoverRect
+        Assert.Contains("_lastNoteClickTime", funcBody);
+        Assert.Contains("Date.now()", funcBody);
     }
 
     [Fact]

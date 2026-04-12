@@ -291,6 +291,12 @@ public static class ReportGenerator
                              """;
 
         var dependencyFilterFunction = """
+                                       var _depMode = 'AND';
+                                       function toggle_dep_mode(btn) {
+                                           _depMode = _depMode === 'AND' ? 'OR' : 'AND';
+                                           btn.textContent = _depMode;
+                                           filter_dependencies();
+                                       }
                                        function toggle_dependency(btn) {
                                            btn.classList.toggle('dependency-active');
                                            filter_dependencies();
@@ -312,13 +318,21 @@ public static class ReportGenerator
                                            var activeArr = Array.from(activeSet);
                                            for (var i = 0; i < c.items.length; i++) {
                                                var d = c.items[i];
-                                               var matchesAll = d.deps.size > 0;
-                                               if (matchesAll) {
+                                               var match;
+                                               if (d.deps.size === 0) {
+                                                   match = false;
+                                               } else if (_depMode === 'AND') {
+                                                   match = true;
                                                    for (var j = 0; j < activeArr.length; j++) {
-                                                       if (!d.deps.has(activeArr[j])) { matchesAll = false; break; }
+                                                       if (!d.deps.has(activeArr[j])) { match = false; break; }
+                                                   }
+                                               } else {
+                                                   match = false;
+                                                   for (var j = 0; j < activeArr.length; j++) {
+                                                       if (d.deps.has(activeArr[j])) { match = true; break; }
                                                    }
                                                }
-                                               d.dep = !matchesAll;
+                                               d.dep = !match;
                                            }
                                            applyVisibility(c);
                                        }
@@ -391,7 +405,9 @@ public static class ReportGenerator
                                        }
                                    
                                        for (var i = 0; i < c.items.length; i++) {
-                                           c.items[i].st = !activeSet.has(c.items[i].status);
+                                           var s = c.items[i].status;
+                                           if (s === 'SkippedAfterFailure') s = 'Failed';
+                                           c.items[i].st = !activeSet.has(s);
                                        }
                                        applyVisibility(c);
                                    }
@@ -568,6 +584,7 @@ public static class ReportGenerator
                                   var deps = [];
                                   document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { deps.push(b.getAttribute('data-dependency')); });
                                   if (deps.length > 0) parts.push('deps=' + encodeURIComponent(deps.join(',')));
+                                  if (_depMode !== 'AND') parts.push('depmode=' + _depMode);
                                   if (document.querySelector('.happy-path-toggle.happy-path-active')) parts.push('hp=1');
                                   var dur = document.getElementById('duration-threshold');
                                   if (dur && dur.value) parts.push('dur=' + dur.value);
@@ -605,6 +622,11 @@ public static class ReportGenerator
                                           if (btn) btn.classList.add('status-active');
                                       });
                                       filter_statuses();
+                                  }
+                                  if (params.depmode === 'OR') {
+                                      _depMode = 'OR';
+                                      var modeBtn = document.querySelector('.dep-mode-toggle');
+                                      if (modeBtn) modeBtn.textContent = 'OR';
                                   }
                                   if (params.deps) {
                                       params.deps.split(',').forEach(function(d) {
@@ -844,11 +866,12 @@ public static class ReportGenerator
                     <div class="filter-row">
                  """);
 
-        // Status filter toggles (always show all three statuses)
+        // Status filter toggles
         {
             body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
             foreach (var status in Enum.GetValues<ScenarioResult>().OrderBy(s => s))
             {
+                if (status == ScenarioResult.SkippedAfterFailure) continue;
                 var statusName = status.ToString();
                 body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
             }
@@ -879,7 +902,7 @@ public static class ReportGenerator
 
         if (allDependencies.Count > 0)
         {
-            body.Append("""<div class="dependency-filters"><span class="dependency-filters-label">Dependencies:</span>""");
+            body.Append("""<div class="dependency-filters"><span class="dependency-filters-label">Dependencies:</span><button class="dep-mode-toggle" onclick="toggle_dep_mode(this)">AND</button>""");
             foreach (var dep in allDependencies.OrderBy(d => d))
             {
                 body.Append($"""<button class="dependency-toggle" data-dependency="{System.Net.WebUtility.HtmlEncode(dep)}" onclick="toggle_dependency(this)">{System.Net.WebUtility.HtmlEncode(dep)}</button>""");
@@ -958,6 +981,7 @@ public static class ReportGenerator
             foreach (var scenario in orderedScenarios)
             {
                 var failed = scenario.Result == ScenarioResult.Failed;
+                var skipped = scenario.Result == ScenarioResult.Skipped;
                 var depsAttr = scenarioDependencies.TryGetValue(scenario.Id, out var deps) && deps.Count > 0
                     ? $" data-dependencies=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", deps.OrderBy(d => d)))}\""
                     : "";
@@ -995,7 +1019,7 @@ public static class ReportGenerator
 
                 body.Append($"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr}{categoriesAttr} id="{anchorId}" tabindex="0">
-                            <summary class="h3{(failed ? " failed" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
+                            <summary class="h3{(failed ? " failed" : skipped ? " skipped" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
                          """);
 
                 if (failed)
