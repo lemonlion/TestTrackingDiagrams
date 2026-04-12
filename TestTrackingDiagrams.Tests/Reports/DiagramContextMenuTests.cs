@@ -614,4 +614,97 @@ public class DiagramContextMenuTests
         // (avoids an empty line between "note left" and "end note")
         Assert.Contains("if (preview)", funcBody);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Context menu styles — submenu hover uses direct child selectors
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ContextMenu_styles_use_direct_child_selectors_for_hover()
+    {
+        var css = DiagramContextMenu.GetStyles();
+        // Must use > div:hover to avoid highlighting the submenu container itself
+        Assert.Contains("> div:hover", css);
+        Assert.DoesNotContain(".diagram-ctx-menu div:hover", css);
+    }
+
+    [Fact]
+    public void ContextMenu_submenu_styles_use_direct_child_selectors_for_hover()
+    {
+        var css = DiagramContextMenu.GetStyles();
+        Assert.Contains(".submenu > div:hover", css);
+        Assert.DoesNotContain(".submenu div:hover", css);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Inline SVG styles — floating zoom button visibility
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ZoomButton_hidden_by_default_shown_on_container_hover()
+    {
+        var css = DiagramContextMenu.GetInlineSvgStyles();
+        // Button should be invisible by default
+        Assert.Contains("opacity: 0", css);
+        Assert.Contains("pointer-events: none", css);
+        // Container hover reveals the button
+        Assert.Contains("[data-diagram-type]:hover > .diagram-zoom-toggle", css);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Zoom toggle — drag-to-pan and max-height
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ZoomToggle_sets_overflow_auto_and_max_height_when_zoomed()
+    {
+        Assert.Contains("container.style.overflow = 'auto'", _script);
+        Assert.Contains("container.style.maxHeight = '80vh'", _script);
+        Assert.Contains("container.style.cursor = 'grab'", _script);
+    }
+
+    [Fact]
+    public void ZoomToggle_clears_overflow_and_max_height_when_unzoomed()
+    {
+        Assert.Contains("container.style.overflow = ''", _script);
+        Assert.Contains("container.style.maxHeight = ''", _script);
+        Assert.Contains("container.style.cursor = ''", _script);
+    }
+
+    [Fact]
+    public void ZoomToggle_has_drag_to_pan_handlers()
+    {
+        // Must have mousedown/mousemove/mouseup for drag panning
+        Assert.Contains("cursor = 'grabbing'", _script);
+        Assert.Contains("scrollLeft = scrollL - (e.pageX - startX)", _script);
+        Assert.Contains("scrollTop = scrollT - (e.pageY - startY)", _script);
+    }
+
+    [Fact]
+    public void ZoomButton_is_prepended_not_appended()
+    {
+        Assert.Contains("container.prepend(btn)", _script);
+        Assert.DoesNotContain("container.appendChild(btn)", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Open in new tab — uses blob URLs not data URIs
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void OpenInNewTab_uses_blob_url_not_data_uri()
+    {
+        // PNG open should use createObjectURL, not FileReader + readAsDataURL
+        Assert.DoesNotContain("readAsDataURL", _script);
+        // SVG "Open in new tab" should not use window.open('data:image/svg+xml...')
+        // (data:image/svg+xml;base64 still exists in svgToCanvas for img.src, which is fine)
+        Assert.DoesNotContain("window.open('data:image/svg+xml", _script);
+    }
+
+    [Fact]
+    public void OpenInNewTab_uses_createObjectURL_for_images()
+    {
+        // The "Open image in new tab" submenu items should use URL.createObjectURL
+        Assert.Contains("window.open(URL.createObjectURL(blob))", _script);
+    }
 }

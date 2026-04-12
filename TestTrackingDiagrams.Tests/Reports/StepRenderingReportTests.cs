@@ -284,6 +284,19 @@ public class StepRenderingReportTests
     }
 
     [Fact]
+    public void Report_step_status_css_has_user_select_none_and_margin_left()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps = [new ScenarioStep { Keyword = "Given", Text = "something" }]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "StepStatusCss.html");
+        Assert.Contains("user-select: none", content);
+        Assert.Contains("margin-left: 0.5em", content);
+    }
+
+    [Fact]
     public void Report_renders_category_filter_when_categories_present()
     {
         var scenario = new Scenario

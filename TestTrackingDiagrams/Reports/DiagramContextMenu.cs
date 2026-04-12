@@ -14,12 +14,12 @@ public static class DiagramContextMenu
             font: 13px -apple-system, 'Segoe UI', sans-serif;
             min-width: 200px;
         }
-        .diagram-ctx-menu div {
+        .diagram-ctx-menu > div {
             padding: 6px 24px;
             cursor: pointer;
             white-space: nowrap;
         }
-        .diagram-ctx-menu div:hover {
+        .diagram-ctx-menu > div:hover {
             background: #e8f0fe;
         }
         .diagram-ctx-menu hr {
@@ -60,12 +60,12 @@ public static class DiagramContextMenu
             left: auto;
             right: 100%;
         }
-        .diagram-ctx-menu .submenu div {
+        .diagram-ctx-menu .submenu > div {
             padding: 6px 24px;
             cursor: pointer;
             white-space: nowrap;
         }
-        .diagram-ctx-menu .submenu div:hover {
+        .diagram-ctx-menu .submenu > div:hover {
             background: #e8f0fe;
         }
         """;
@@ -92,11 +92,16 @@ public static class DiagramContextMenu
             line-height: 1;
             padding: 2px 5px;
             cursor: pointer;
-            opacity: 0.4;
+            opacity: 0;
+            pointer-events: none;
             transition: opacity 0.15s;
         }
+        [data-diagram-type]:hover > .diagram-zoom-toggle {
+            opacity: 0.4;
+            pointer-events: auto;
+        }
         .diagram-zoom-toggle:hover {
-            opacity: 1;
+            opacity: 1 !important;
             background: rgba(255, 255, 255, 0.95);
         }
         """;
@@ -901,25 +906,20 @@ public static class DiagramContextMenu
                         createMenuItem('Open as PNG image in new tab', function() {
                             svgToCanvas(svg, function(canvas) {
                                 canvas.toBlob(function(blob) {
-                                    var reader = new FileReader();
-                                    reader.onload = function() { window.open(reader.result); };
-                                    reader.readAsDataURL(blob);
+                                    window.open(URL.createObjectURL(blob));
                                 }, 'image/png');
                             });
                         }),
                         createMenuItem('Open as PNG image (no transparency) in new tab', function() {
                             svgToCanvasWithBg(svg, function(canvas) {
                                 canvas.toBlob(function(blob) {
-                                    var reader = new FileReader();
-                                    reader.onload = function() { window.open(reader.result); };
-                                    reader.readAsDataURL(blob);
+                                    window.open(URL.createObjectURL(blob));
                                 }, 'image/png');
                             });
                         }),
                         createMenuItem('Open as SVG image in new tab', function() {
-                            var svgData = serializeSvg(svg);
-                            var b64 = btoa(unescape(encodeURIComponent(svgData)));
-                            window.open('data:image/svg+xml;base64,' + b64);
+                            var blob = new Blob([serializeSvg(svg)], { type: 'image/svg+xml' });
+                            window.open(URL.createObjectURL(blob));
                         })
                     ]));
                     if (source) {
@@ -1008,11 +1008,15 @@ public static class DiagramContextMenu
                 var btn = container.querySelector('.diagram-zoom-toggle');
                 if (isZoomed) {
                     svg.style.maxWidth = 'none';
-                    container.style.overflowX = 'auto';
+                    container.style.overflow = 'auto';
+                    container.style.maxHeight = '80vh';
+                    container.style.cursor = 'grab';
                     if (btn) btn.textContent = '\u2921';
                 } else {
                     svg.style.maxWidth = '';
-                    container.style.overflowX = '';
+                    container.style.overflow = '';
+                    container.style.maxHeight = '';
+                    container.style.cursor = '';
                     if (btn) btn.textContent = '\u2922';
                 }
             }
@@ -1041,9 +1045,39 @@ public static class DiagramContextMenu
                         e.stopPropagation();
                         toggleDiagramZoom(container);
                     });
-                    container.appendChild(btn);
+                    container.prepend(btn);
                 });
             }
+
+            // Drag-to-pan when zoomed
+            (function() {
+                var dragging = false, dragContainer, startX, startY, scrollL, scrollT;
+                document.addEventListener('mousedown', function(e) {
+                    var c = findDiagramContainer(e.target);
+                    if (!c || !c.classList.contains('diagram-natural-size')) return;
+                    if (e.target.classList.contains('diagram-zoom-toggle')) return;
+                    dragging = true;
+                    dragContainer = c;
+                    startX = e.pageX;
+                    startY = e.pageY;
+                    scrollL = c.scrollLeft;
+                    scrollT = c.scrollTop;
+                    c.style.cursor = 'grabbing';
+                    c.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', function(e) {
+                    if (!dragging) return;
+                    dragContainer.scrollLeft = scrollL - (e.pageX - startX);
+                    dragContainer.scrollTop = scrollT - (e.pageY - startY);
+                });
+                document.addEventListener('mouseup', function() {
+                    if (!dragging) return;
+                    dragging = false;
+                    dragContainer.style.cursor = 'grab';
+                    dragContainer.style.userSelect = '';
+                });
+            })();
 
             // Run on load and observe for lazily-rendered diagrams
             if (document.readyState === 'loading') {

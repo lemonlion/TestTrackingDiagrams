@@ -462,7 +462,9 @@ public class Stylesheets
                     font-size: 0.75em;
                     font-weight: bold;
                     margin-right: 0.3em;
+                    margin-left: 0.5em;
                     vertical-align: middle;
+                    user-select: none;
                 }
 
                 .step-status.passed { background: #1daf26; }
