@@ -442,7 +442,13 @@ public class Stylesheets
                 .step {
                     margin: 0.3em 0;
                     line-height: 1.6;
-                    padding-left: 1em;
+                    padding-left: 0;
+                }
+
+                .step:not(.step-collapsible)::before {
+                    content: '';
+                    display: inline-block;
+                    width: 0.3em;
                 }
 
                 .step-status {
@@ -506,11 +512,26 @@ public class Stylesheets
 
                 .step-collapsible > summary {
                     cursor: pointer;
-                    list-style: revert;
+                    list-style: none;
+                    padding-left: 0;
                 }
 
                 .step-collapsible > summary::-webkit-details-marker {
-                    margin-right: 0.3em;
+                    display: none;
+                }
+
+                .step-collapsible > summary::before {
+                    content: '\25B6';
+                    display: inline-block;
+                    width: 0.5em;
+                    font-size: 0.6em;
+                    text-align: center;
+                    transition: transform 0.15s ease;
+                    vertical-align: middle;
+                }
+
+                details.step-collapsible[open] > summary::before {
+                    transform: rotate(90deg);
                 }
 
                 .feature-description {
