@@ -48,6 +48,10 @@ public class Stylesheets
                     border: 1px solid;
                     border-color: rgb(224, 224, 224);
                 }
+
+                [data-diagram-type]:not(:has(svg)):not(:has(img)) {
+                    padding: 1em;
+                }
         
                 .example-diagrams > summary {
                     background-color: white;

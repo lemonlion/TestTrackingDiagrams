@@ -933,9 +933,6 @@ public static class ReportGenerator
         body.Append("</div>"); // close filtering-box
         body.Append("</div>"); // close header-row
 
-        // Expand buttons left-aligned, no padding
-        body.Append("""<div class="expand-row"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
-
         // Toolbar row: Details/Headers on right
         body.Append("""<div class="toolbar-row">""");
         body.Append("""<div class="toolbar-right">""");
@@ -946,6 +943,9 @@ public static class ReportGenerator
         }
         body.Append("</div>");
         body.Append("</div>");
+
+        // Expand buttons left-aligned, no padding
+        body.Append("""<div class="expand-row"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
 
         var plantUmlBrowserCounter = 0;
 
@@ -966,9 +966,10 @@ public static class ReportGenerator
         foreach (var feature in features)
         {
             var featureHasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
+            var featureAllSkipped = !featureHasFailures && feature.Scenarios.All(s => s.Result == ScenarioResult.Skipped);
             body.Append($"""
                      <details class="feature">
-                        <summary class="h2{(featureHasFailures ? " failed" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}{(feature.Labels is { Length: > 0 } fl ? string.Concat(fl.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>")) : "")}</summary>
+                        <summary class="h2{(featureHasFailures ? " failed" : featureAllSkipped ? " skipped" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}{(feature.Labels is { Length: > 0 } fl ? string.Concat(fl.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>")) : "")}</summary>
                      """);
 
             if (feature.Description is not null)
