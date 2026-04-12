@@ -118,6 +118,19 @@ public class Stylesheets
 
                 .filtering-box h2 {
                     margin-top: 0;
+                    margin-bottom: 0;
+                }
+
+                .filtering-box-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.5em;
+                }
+
+                .filtering-box-export {
+                    display: flex;
+                    gap: 0.3em;
                 }
 
                 .filters {
@@ -395,6 +408,12 @@ public class Stylesheets
                     display: flex;
                     align-items: center;
                     gap: 0.3em;
+                }
+
+                .expand-row {
+                    display: flex;
+                    gap: 0.5em;
+                    margin-bottom: 0.5em;
                 }
 
                 .export-btn {
