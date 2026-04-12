@@ -1341,9 +1341,21 @@ public static class ReportGenerator
         {
             ScenarioResult.Passed => "&#10003;",
             ScenarioResult.Failed => "&#10005;",
-            ScenarioResult.Skipped => "?",
-            ScenarioResult.Bypassed => "~",
+            ScenarioResult.Skipped => "&#216;",
+            ScenarioResult.Bypassed => "&#8631;",
             ScenarioResult.SkippedAfterFailure => "!",
+            _ => ""
+        };
+
+        var statusTooltip = step.Status switch
+        {
+            ScenarioResult.Passed => HasAnyBypassed(step)
+                ? "Passed (with bypassed sub-steps) — all assertions passed, but one or more sub-steps were bypassed (intentionally skipped over without preventing execution of subsequent steps)"
+                : "Passed — all assertions in this step passed",
+            ScenarioResult.Failed => "Failed — this step threw an exception or an assertion failed",
+            ScenarioResult.Skipped => "Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps",
+            ScenarioResult.Bypassed => "Bypassed — some or all of the logic in this step was intentionally skipped over without preventing execution of subsequent steps",
+            ScenarioResult.SkippedAfterFailure => "Skipped after failure — this step was never reached because an earlier step failed",
             _ => ""
         };
 
@@ -1361,7 +1373,7 @@ public static class ReportGenerator
 
         if (step.Status.HasValue)
         {
-            body.Append($"<span class=\"step-status {statusClass}\">{statusIcon}</span>");
+            body.Append($"<span class=\"step-status {statusClass}\" title=\"{statusTooltip}\">{statusIcon}</span>");
         }
 
         if (step.Keyword is not null)

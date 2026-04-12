@@ -158,13 +158,27 @@ public class FeatureResultExtensionsTests
     }
 
     [Fact]
-    public void ToFeatures_maps_not_run_to_skipped_after_failure()
+    public void ToFeatures_maps_not_run_to_skipped()
     {
         var s1 = new StubScenarioResult("s1", "NotRun", status: ExecutionStatus.NotRun);
         var feature = new StubFeatureResult("F").WithScenario(s1);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Result);
+        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_not_run_steps_to_skipped_when_scenario_is_skipped()
+    {
+        var scenario = new StubScenarioResult("s1", "Test", status: ExecutionStatus.Ignored)
+            .WithStep(new StubStepResult("Given", "a precondition", ExecutionStatus.NotRun))
+            .WithStep(new StubStepResult("When", "an action", ExecutionStatus.NotRun))
+            .WithStep(new StubStepResult("Then", "an assertion", ExecutionStatus.NotRun));
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.All(features[0].Scenarios[0].Steps!, step =>
+            Assert.Equal(ScenarioResult.Skipped, step.Status));
     }
 
     [Fact]

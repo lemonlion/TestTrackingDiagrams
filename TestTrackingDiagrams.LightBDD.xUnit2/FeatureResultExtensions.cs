@@ -41,14 +41,14 @@ internal static class FeatureResultExtensions
             Result = MapStatus(result.Status),
             ErrorMessage = result.Status == ExecutionStatus.Failed ? result.StatusDetails : null,
             Duration = result.ExecutionTime?.Duration,
-            Steps = MapSteps(result.GetSteps()),
+            Steps = MapSteps(result.GetSteps(), result.Status is ExecutionStatus.Ignored or ExecutionStatus.NotRun),
             IsHappyPath = labels.Contains("Happy Path"),
             Labels = labels.Length > 0 ? labels : null,
             Categories = categories.Length > 0 ? categories : null,
         };
     }
 
-    private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps)
+    private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps, bool scenarioSkipped = false)
     {
         var stepArray = steps.ToArray();
         if (stepArray.Length == 0) return null;
@@ -56,14 +56,14 @@ internal static class FeatureResultExtensions
         var priorFailure = false;
         for (var i = 0; i < stepArray.Length; i++)
         {
-            mapped[i] = MapStep(stepArray[i], priorFailure);
+            mapped[i] = MapStep(stepArray[i], priorFailure, scenarioSkipped);
             if (stepArray[i].Status == ExecutionStatus.Failed)
                 priorFailure = true;
         }
         return mapped;
     }
 
-    private static ScenarioStep MapStep(IStepResult step, bool priorFailure)
+    private static ScenarioStep MapStep(IStepResult step, bool priorFailure, bool scenarioSkipped)
     {
         var keyword = step.Info.Name.StepTypeName?.OriginalName;
         var text = step.Info.Name.ToString();
@@ -86,9 +86,9 @@ internal static class FeatureResultExtensions
         {
             Keyword = keyword,
             Text = text,
-            Status = MapStepStatus(step.Status, priorFailure),
+            Status = MapStepStatus(step.Status, priorFailure, scenarioSkipped),
             Duration = step.ExecutionTime?.Duration,
-            SubSteps = MapSteps(step.GetSubSteps()),
+            SubSteps = MapSteps(step.GetSubSteps(), scenarioSkipped),
             Comments = comments is { Length: > 0 } ? comments : null,
             Attachments = attachments is { Length: > 0 } ? attachments : null,
             Parameters = parameters,
@@ -103,20 +103,20 @@ internal static class FeatureResultExtensions
             ExecutionStatus.Failed => ScenarioResult.Failed,
             ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
             ExecutionStatus.Ignored => ScenarioResult.Skipped,
-            ExecutionStatus.NotRun => ScenarioResult.SkippedAfterFailure,
+            ExecutionStatus.NotRun => ScenarioResult.Skipped,
             _ => ScenarioResult.Failed
         };
     }
 
-    private static ScenarioResult MapStepStatus(ExecutionStatus status, bool priorFailure)
+    private static ScenarioResult MapStepStatus(ExecutionStatus status, bool priorFailure, bool scenarioSkipped)
     {
         return status switch
         {
             ExecutionStatus.Passed => ScenarioResult.Passed,
             ExecutionStatus.Failed => ScenarioResult.Failed,
             ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
-            ExecutionStatus.Ignored => priorFailure ? ScenarioResult.SkippedAfterFailure : ScenarioResult.Skipped,
-            ExecutionStatus.NotRun => ScenarioResult.SkippedAfterFailure,
+            ExecutionStatus.Ignored => scenarioSkipped || !priorFailure ? ScenarioResult.Skipped : ScenarioResult.SkippedAfterFailure,
+            ExecutionStatus.NotRun => scenarioSkipped ? ScenarioResult.Skipped : ScenarioResult.SkippedAfterFailure,
             _ => ScenarioResult.Failed
         };
     }

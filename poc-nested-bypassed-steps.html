@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>POC: Nested Bypassed Sub-Steps</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 2em; background: #fafafa; }
+        h1 { font-size: 1.5em; }
+        h2 { font-size: 1.2em; margin-top: 2em; color: #333; }
+        .description { color: #666; font-size: 0.9em; margin-bottom: 1.5em; }
+
+        /* Feature / Scenario structure */
+        .feature { border: 1px solid #e0e0e0; border-radius: 0.5em; margin: 1em 0; background: white; }
+        .feature > summary { padding: 0.8em 1em; font-weight: bold; font-size: 1.1em; cursor: pointer; }
+        .scenario { border: 1px solid #eee; border-radius: 0.4em; margin: 0.5em 1em; background: white; }
+        .scenario > summary { padding: 0.6em 0.8em; font-weight: bold; cursor: pointer; }
+        .scenario-body { padding: 0.5em 1em 1em; }
+
+        /* Step rendering — matches Stylesheets.cs */
+        .step {
+            margin: 0.3em 0;
+            line-height: 1.6;
+            padding-left: 0;
+        }
+        .step:not(.step-collapsible)::before {
+            content: '';
+            display: inline-block;
+            width: 0.3em;
+        }
+        .step-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.2em;
+            height: 1.2em;
+            border-radius: 50%;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-right: 0.3em;
+            margin-left: 0.5em;
+            margin-top: -0.1em;
+            vertical-align: middle;
+            user-select: none;
+        }
+        .step-status.passed { background: #1daf26; }
+        .step-status.failed { background: #cc0000; }
+        .step-status.skipped { background: #949494; }
+        .step-status.bypassed { background: #2e7bff; }
+        .step-status.skipped-after-failure { background: #fbc800; color: black; }
+        .step-status.passed-bypassed { background: #2e7bff; }
+
+        .step-keyword {
+            font-weight: bold;
+            color: rgb(100, 100, 100);
+        }
+        .step-text {
+            color: rgb(50, 50, 50);
+        }
+        .step-duration {
+            font-size: 0.8em;
+            color: rgb(130, 130, 130);
+        }
+        .sub-steps {
+            margin-left: 1.5em;
+            border-left: 2px solid rgb(220, 220, 220);
+            padding-left: 0.8em;
+        }
+        .step-collapsible {
+            margin: 0.15em 0;
+            padding-left: 0;
+        }
+        .step-collapsible > summary {
+            cursor: pointer;
+            list-style: none;
+            padding-left: 0;
+        }
+        .step-collapsible > summary::-webkit-details-marker {
+            display: none;
+        }
+        .step-collapsible > summary::before {
+            content: '\25B6';
+            display: inline-block;
+            width: 0.5em;
+            font-size: 0.6em;
+            text-align: center;
+            transition: transform 0.15s ease;
+            vertical-align: middle;
+        }
+        details.step-collapsible[open] > summary::before {
+            transform: rotate(90deg);
+        }
+
+        .legend { margin: 1.5em 0; padding: 1em; background: #f5f5f5; border-radius: 0.5em; }
+        .legend-item { display: inline-flex; align-items: center; gap: 0.3em; margin-right: 1.5em; }
+    </style>
+</head>
+<body>
+    <h1>POC: Great-Grandchild Bypassed Step with Passing Siblings at Every Level</h1>
+    <p class="description">
+        This demonstrates how steps render when a deeply nested sub-step (great-grandchild, 4 levels deep) is <strong>bypassed</strong>,
+        while every level also has passing sibling steps. Parent steps with any bypassed descendant get the
+        blue tick icon (<code>.passed-bypassed</code>).
+    </p>
+
+    <div class="legend">
+        <strong>Legend:</strong>
+        <span class="legend-item"><span class="step-status passed">&#10003;</span> Passed</span>
+        <span class="legend-item"><span class="step-status bypassed">&#8631;</span> Bypassed</span>
+        <span class="legend-item"><span class="step-status passed-bypassed">&#10003;</span> Passed (has bypassed descendant)</span>
+    </div>
+
+    <!-- Scenario with great-grandchild bypassed -->
+    <details class="feature" open>
+        <summary>Feature: Order Processing</summary>
+
+        <details class="scenario" open>
+            <summary>Scenario: Process a standard order end to end</summary>
+            <div class="scenario-body">
+
+                <!-- Step 1: plain passed (no children) -->
+                <div class="step">
+                    <span class="step-status passed">&#10003;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">a valid customer account exists</span>
+                    <span class="step-duration">(2ms)</span>
+                </div>
+
+                <!-- Step 2: passed-bypassed (has bypassed great-grandchild) — collapsible -->
+                <details class="step step-collapsible" open>
+                    <summary>
+                        <span class="step-status passed-bypassed">&#10003;</span>
+                        <span class="step-keyword">When</span>
+                        <span class="step-text">the order is submitted</span>
+                        <span class="step-duration">(45ms)</span>
+                    </summary>
+                    <div class="sub-steps">
+
+                        <!-- Child 2.1: plain passed (no children) -->
+                        <div class="step">
+                            <span class="step-status passed">&#10003;</span>
+                            <span class="step-keyword">Given</span>
+                            <span class="step-text">the shopping cart is validated</span>
+                            <span class="step-duration">(3ms)</span>
+                        </div>
+
+                        <!-- Child 2.2: passed-bypassed (has bypassed grandchild) — collapsible -->
+                        <details class="step step-collapsible" open>
+                            <summary>
+                                <span class="step-status passed-bypassed">&#10003;</span>
+                                <span class="step-keyword">When</span>
+                                <span class="step-text">payment is processed</span>
+                                <span class="step-duration">(30ms)</span>
+                            </summary>
+                            <div class="sub-steps">
+
+                                <!-- Grandchild 2.2.1: plain passed -->
+                                <div class="step">
+                                    <span class="step-status passed">&#10003;</span>
+                                    <span class="step-keyword">Given</span>
+                                    <span class="step-text">the payment gateway is contacted</span>
+                                    <span class="step-duration">(8ms)</span>
+                                </div>
+
+                                <!-- Grandchild 2.2.2: passed-bypassed (has bypassed child) — collapsible -->
+                                <details class="step step-collapsible" open>
+                                    <summary>
+                                        <span class="step-status passed-bypassed">&#10003;</span>
+                                        <span class="step-keyword">When</span>
+                                        <span class="step-text">fraud checks are executed</span>
+                                        <span class="step-duration">(18ms)</span>
+                                    </summary>
+                                    <div class="sub-steps">
+
+                                        <!-- Great-grandchild 2.2.2.1: plain passed -->
+                                        <div class="step">
+                                            <span class="step-status passed">&#10003;</span>
+                                            <span class="step-keyword">Then</span>
+                                            <span class="step-text">the address is verified</span>
+                                            <span class="step-duration">(4ms)</span>
+                                        </div>
+
+                                        <!-- Great-grandchild 2.2.2.2: BYPASSED -->
+                                        <div class="step">
+                                            <span class="step-status bypassed">&#8631;</span>
+                                            <span class="step-keyword">Then</span>
+                                            <span class="step-text">the velocity check is performed</span>
+                                            <span class="step-duration">(0ms)</span>
+                                        </div>
+
+                                        <!-- Great-grandchild 2.2.2.3: plain passed -->
+                                        <div class="step">
+                                            <span class="step-status passed">&#10003;</span>
+                                            <span class="step-keyword">Then</span>
+                                            <span class="step-text">the risk score is calculated</span>
+                                            <span class="step-duration">(2ms)</span>
+                                        </div>
+
+                                    </div>
+                                </details>
+
+                                <!-- Grandchild 2.2.3: plain passed -->
+                                <div class="step">
+                                    <span class="step-status passed">&#10003;</span>
+                                    <span class="step-keyword">Then</span>
+                                    <span class="step-text">the payment is authorized</span>
+                                    <span class="step-duration">(5ms)</span>
+                                </div>
+
+                            </div>
+                        </details>
+
+                        <!-- Child 2.3: plain passed (no children) -->
+                        <div class="step">
+                            <span class="step-status passed">&#10003;</span>
+                            <span class="step-keyword">Then</span>
+                            <span class="step-text">the inventory is reserved</span>
+                            <span class="step-duration">(4ms)</span>
+                        </div>
+
+                    </div>
+                </details>
+
+                <!-- Step 3: plain passed (no children) -->
+                <div class="step">
+                    <span class="step-status passed">&#10003;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the order confirmation is sent</span>
+                    <span class="step-duration">(6ms)</span>
+                </div>
+
+                <!-- Step 4: plain passed (no children) -->
+                <div class="step">
+                    <span class="step-status passed">&#10003;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the order status is set to confirmed</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+
+            </div>
+        </details>
+    </details>
+
+    <h2>All Step Status Examples</h2>
+
+    <details class="feature" open>
+        <summary>Feature: Status Reference</summary>
+
+        <!-- Scenario 1: All Passed -->
+        <details class="scenario" open>
+            <summary>Scenario: Everything passes</summary>
+            <div class="scenario-body">
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">the system is ready</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">When</span>
+                    <span class="step-text">the action is performed</span>
+                    <span class="step-duration">(3ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the result is correct</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+            </div>
+        </details>
+
+        <!-- Scenario 2: Failed with skipped-after-failure -->
+        <details class="scenario" open>
+            <summary style="color: rgb(191,0,0);">Scenario: A step fails and subsequent steps are skipped</summary>
+            <div class="scenario-body">
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">the precondition is met</span>
+                    <span class="step-duration">(2ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status failed" title="Failed — this step threw an exception or an assertion failed">&#10005;</span>
+                    <span class="step-keyword">When</span>
+                    <span class="step-text">the operation throws an exception</span>
+                    <span class="step-duration">(15ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status skipped-after-failure" title="Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps">!</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the assertion is never reached</span>
+                    <span class="step-duration">(0ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status skipped-after-failure" title="Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps">!</span>
+                    <span class="step-keyword">And</span>
+                    <span class="step-text">the cleanup is never reached</span>
+                    <span class="step-duration">(0ms)</span>
+                </div>
+            </div>
+        </details>
+
+        <!-- Scenario 3: Skipped -->
+        <details class="scenario" open>
+            <summary style="color: #fbc800;">Scenario: Entire scenario is skipped</summary>
+            <div class="scenario-body">
+                <div class="step">
+                    <span class="step-status skipped" title="Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps">&#216;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">a feature flag is disabled</span>
+                </div>
+                <div class="step">
+                    <span class="step-status skipped" title="Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps">&#216;</span>
+                    <span class="step-keyword">When</span>
+                    <span class="step-text">the action is attempted</span>
+                </div>
+                <div class="step">
+                    <span class="step-status skipped" title="Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps">&#216;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">nothing happens</span>
+                </div>
+            </div>
+        </details>
+
+        <!-- Scenario 4: Bypassed step -->
+        <details class="scenario" open>
+            <summary>Scenario: A step is bypassed</summary>
+            <div class="scenario-body">
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">the cache is warm</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status bypassed" title="Bypassed — some or all of the logic in this step was intentionally skipped over without preventing execution of subsequent steps">&#8631;</span>
+                    <span class="step-keyword">When</span>
+                    <span class="step-text">the slow initialization is bypassed</span>
+                    <span class="step-duration">(0ms)</span>
+                </div>
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the result is still correct</span>
+                    <span class="step-duration">(2ms)</span>
+                </div>
+            </div>
+        </details>
+
+        <!-- Scenario 5: Passed with bypassed sub-step (passed-bypassed) -->
+        <details class="scenario" open>
+            <summary>Scenario: Parent step passes but contains a bypassed sub-step</summary>
+            <div class="scenario-body">
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Given</span>
+                    <span class="step-text">the environment is ready</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+                <details class="step step-collapsible" open>
+                    <summary>
+                        <span class="step-status passed-bypassed" title="Passed (with bypassed sub-steps) — all assertions passed, but one or more sub-steps were bypassed (intentionally skipped over without preventing execution of subsequent steps)">&#10003;</span>
+                        <span class="step-keyword">When</span>
+                        <span class="step-text">the composite operation runs</span>
+                        <span class="step-duration">(12ms)</span>
+                    </summary>
+                    <div class="sub-steps">
+                        <div class="step">
+                            <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                            <span class="step-keyword">And</span>
+                            <span class="step-text">step A completes</span>
+                            <span class="step-duration">(5ms)</span>
+                        </div>
+                        <div class="step">
+                            <span class="step-status bypassed" title="Bypassed — some or all of the logic in this step was intentionally skipped over without preventing execution of subsequent steps">&#8631;</span>
+                            <span class="step-keyword">And</span>
+                            <span class="step-text">step B is bypassed</span>
+                            <span class="step-duration">(0ms)</span>
+                        </div>
+                        <div class="step">
+                            <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                            <span class="step-keyword">And</span>
+                            <span class="step-text">step C completes</span>
+                            <span class="step-duration">(3ms)</span>
+                        </div>
+                    </div>
+                </details>
+                <div class="step">
+                    <span class="step-status passed" title="Passed — all assertions in this step passed">&#10003;</span>
+                    <span class="step-keyword">Then</span>
+                    <span class="step-text">the overall result is correct</span>
+                    <span class="step-duration">(1ms)</span>
+                </div>
+            </div>
+        </details>
+
+    </details>
+
+    <h2>Step Hierarchy Breakdown</h2>
+    <pre style="background: #f5f5f5; padding: 1em; border-radius: 0.5em; font-size: 0.85em; line-height: 1.8;">
+Step 1  ✅ Given a valid customer account exists                    → passed (leaf)
+Step 2  <span style="background: #2e7bff; color: white; padding: 0 4px; border-radius: 3px;">✓</span> When the order is submitted                          → passed-bypassed (has bypassed great-grandchild)
+  ├─ 2.1  ✅ Given the shopping cart is validated                   → passed (leaf)
+  ├─ 2.2  <span style="background: #2e7bff; color: white; padding: 0 4px; border-radius: 3px;">✓</span> When payment is processed                          → passed-bypassed (has bypassed grandchild)
+  │   ├─ 2.2.1  ✅ Given the payment gateway is contacted          → passed (leaf)
+  │   ├─ 2.2.2  <span style="background: #2e7bff; color: white; padding: 0 4px; border-radius: 3px;">✓</span> When fraud checks are executed                 → passed-bypassed (has bypassed child)
+  │   │   ├─ 2.2.2.1  ✅ Then the address is verified              → passed (leaf)
+  │   │   ├─ 2.2.2.2  <span style="background: #2e7bff; color: white; padding: 0 4px; border-radius: 3px;">↷</span> Then the velocity check is performed          → <strong>BYPASSED</strong>
+  │   │   └─ 2.2.2.3  ✅ Then the risk score is calculated         → passed (leaf)
+  │   └─ 2.2.3  ✅ Then the payment is authorized                  → passed (leaf)
+  └─ 2.3  ✅ Then the inventory is reserved                        → passed (leaf)
+Step 3  ✅ Then the order confirmation is sent                      → passed (leaf)
+Step 4  ✅ Then the order status is set to confirmed                → passed (leaf)
+    </pre>
+
+</body>
+</html>

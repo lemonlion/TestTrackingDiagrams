@@ -186,7 +186,7 @@ public class Stylesheets
                 }
 
                 .skipped {
-                    color: #fbc800;
+                    color: #949494;
                 }
                 
                 span.label {
@@ -496,17 +496,18 @@ public class Stylesheets
                 }
 
                 .step-status {
-                    display: inline-block;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
                     width: 1.2em;
                     height: 1.2em;
-                    line-height: 1.2em;
-                    text-align: center;
                     border-radius: 50%;
                     color: white;
-                    font-size: 0.75em;
+                    font-size: 0.9em;
                     font-weight: bold;
                     margin-right: 0.3em;
                     margin-left: 0.5em;
+                    margin-top: -0.1em;
                     vertical-align: middle;
                     user-select: none;
                 }
@@ -516,7 +517,7 @@ public class Stylesheets
                 .step-status.skipped { background: #949494; }
                 .step-status.bypassed { background: #2e7bff; }
                 .step-status.skipped-after-failure { background: #fbc800; color: black; }
-                .step-status.passed-bypassed { background: linear-gradient(135deg, #1daf26, #2e7bff); }
+                .step-status.passed-bypassed { background: #2e7bff; }
 
                 .step-keyword {
                     font-weight: bold;
