@@ -49,11 +49,20 @@ internal static class FeatureResultExtensions
 
     private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps)
     {
-        var mapped = steps.Select(MapStep).ToArray();
-        return mapped.Length > 0 ? mapped : null;
+        var stepArray = steps.ToArray();
+        if (stepArray.Length == 0) return null;
+        var mapped = new ScenarioStep[stepArray.Length];
+        var priorFailure = false;
+        for (var i = 0; i < stepArray.Length; i++)
+        {
+            mapped[i] = MapStep(stepArray[i], priorFailure);
+            if (stepArray[i].Status == ExecutionStatus.Failed)
+                priorFailure = true;
+        }
+        return mapped;
     }
 
-    private static ScenarioStep MapStep(IStepResult step)
+    private static ScenarioStep MapStep(IStepResult step, bool priorFailure)
     {
         var keyword = step.Info.Name.StepTypeName?.OriginalName;
         var text = step.Info.Name.ToString();
@@ -76,7 +85,7 @@ internal static class FeatureResultExtensions
         {
             Keyword = keyword,
             Text = text,
-            Status = MapStatus(step.Status),
+            Status = MapStepStatus(step.Status, priorFailure),
             Duration = step.ExecutionTime?.Duration,
             SubSteps = MapSteps(step.GetSubSteps()),
             Comments = comments is { Length: > 0 } ? comments : null,
@@ -92,8 +101,21 @@ internal static class FeatureResultExtensions
             ExecutionStatus.Passed => ScenarioResult.Passed,
             ExecutionStatus.Failed => ScenarioResult.Failed,
             ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
-            ExecutionStatus.Ignored => ScenarioResult.Ignored,
-            ExecutionStatus.NotRun => ScenarioResult.Skipped,
+            ExecutionStatus.Ignored => ScenarioResult.Skipped,
+            ExecutionStatus.NotRun => ScenarioResult.SkippedAfterFailure,
+            _ => ScenarioResult.Failed
+        };
+    }
+
+    private static ScenarioResult MapStepStatus(ExecutionStatus status, bool priorFailure)
+    {
+        return status switch
+        {
+            ExecutionStatus.Passed => ScenarioResult.Passed,
+            ExecutionStatus.Failed => ScenarioResult.Failed,
+            ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
+            ExecutionStatus.Ignored => priorFailure ? ScenarioResult.SkippedAfterFailure : ScenarioResult.Skipped,
+            ExecutionStatus.NotRun => ScenarioResult.SkippedAfterFailure,
             _ => ScenarioResult.Failed
         };
     }

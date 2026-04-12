@@ -210,15 +210,64 @@ public class StepRenderingReportTests
     }
 
     [Fact]
-    public void Report_renders_ignored_status()
+    public void Report_renders_skipped_after_failure_status()
     {
         var scenario = new Scenario
         {
-            Id = "s1", DisplayName = "Ignored test",
-            Result = ScenarioResult.Ignored
+            Id = "s1", DisplayName = "SkippedAfterFailure test",
+            Result = ScenarioResult.SkippedAfterFailure
         };
-        var content = GenerateReport(MakeFeatures(scenario), "Ignored.html");
-        Assert.Contains("data-status=\"Ignored\"", content);
+        var content = GenerateReport(MakeFeatures(scenario), "SkippedAfterFailure.html");
+        Assert.Contains("data-status=\"SkippedAfterFailure\"", content);
+    }
+
+    [Fact]
+    public void Report_renders_passed_bypassed_gradient_for_parent_with_bypassed_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Gradient test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ScenarioResult.Bypassed }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "PassedBypassed.html");
+        Assert.Contains("step-status passed-bypassed", content);
+    }
+
+    [Fact]
+    public void Report_does_not_render_gradient_when_parent_passed_without_bypassed_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "No gradient test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "another passed child", Status = ScenarioResult.Passed }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "NoGradient.html");
+        Assert.DoesNotContain("class=\"step-status passed-bypassed\"", content);
+        Assert.Contains("class=\"step-status passed\"", content);
     }
 
     [Fact]

@@ -469,7 +469,8 @@ public class Stylesheets
                 .step-status.failed { background: #cc0000; }
                 .step-status.skipped { background: #949494; }
                 .step-status.bypassed { background: #2e7bff; }
-                .step-status.ignored { background: #fbc800; color: black; }
+                .step-status.skipped-after-failure { background: #fbc800; color: black; }
+                .step-status.passed-bypassed { background: linear-gradient(135deg, #1daf26, #2e7bff); }
 
                 .step-keyword {
                     font-weight: bold;

@@ -775,7 +775,7 @@ public static class ReportGenerator
                 var totalSc = feature.Scenarios.Length;
                 var passedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Passed);
                 var failedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Failed);
-                var skippedSc = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.Ignored);
+                var skippedSc = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.SkippedAfterFailure);
                 var featureHasFail = failedSc > 0;
 
                 body.Append($"<tr{(featureHasFail ? " class=\"failed\"" : "")}>");
@@ -1287,15 +1287,26 @@ public static class ReportGenerator
         return $"{(int)total.TotalMinutes}m {total.Seconds}s";
     }
 
+    private static bool HasAnyBypassed(ScenarioStep step)
+    {
+        if (step.SubSteps is not { Length: > 0 }) return false;
+        foreach (var sub in step.SubSteps)
+        {
+            if (sub.Status == ScenarioResult.Bypassed) return true;
+            if (HasAnyBypassed(sub)) return true;
+        }
+        return false;
+    }
+
     private static void RenderStep(StringBuilder body, ScenarioStep step)
     {
         var statusClass = step.Status switch
         {
-            ScenarioResult.Passed => "passed",
+            ScenarioResult.Passed => HasAnyBypassed(step) ? "passed-bypassed" : "passed",
             ScenarioResult.Failed => "failed",
             ScenarioResult.Skipped => "skipped",
             ScenarioResult.Bypassed => "bypassed",
-            ScenarioResult.Ignored => "ignored",
+            ScenarioResult.SkippedAfterFailure => "skipped-after-failure",
             _ => ""
         };
 
@@ -1305,7 +1316,7 @@ public static class ReportGenerator
             ScenarioResult.Failed => "&#10005;",
             ScenarioResult.Skipped => "?",
             ScenarioResult.Bypassed => "~",
-            ScenarioResult.Ignored => "!",
+            ScenarioResult.SkippedAfterFailure => "!",
             _ => ""
         };
 

@@ -147,10 +147,10 @@ public class ScenarioStepModelTests
     }
 
     [Fact]
-    public void ScenarioResult_has_bypassed_and_ignored_values()
+    public void ScenarioResult_has_bypassed_and_skipped_after_failure_values()
     {
         Assert.Equal(3, (int)ScenarioResult.Bypassed);
-        Assert.Equal(4, (int)ScenarioResult.Ignored);
+        Assert.Equal(4, (int)ScenarioResult.SkippedAfterFailure);
     }
 
     [Fact]

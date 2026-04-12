@@ -138,15 +138,60 @@ public class FeatureResultExtensionsTests
     }
 
     [Fact]
-    public void ToFeatures_maps_bypassed_and_ignored_status()
+    public void ToFeatures_maps_bypassed_status()
     {
         var s1 = new StubScenarioResult("s1", "Bypassed", status: ExecutionStatus.Bypassed);
-        var s2 = new StubScenarioResult("s2", "Ignored", status: ExecutionStatus.Ignored);
-        var feature = new StubFeatureResult("F").WithScenario(s1).WithScenario(s2);
+        var feature = new StubFeatureResult("F").WithScenario(s1);
 
         var features = new[] { feature }.ToFeatures();
         Assert.Equal(ScenarioResult.Bypassed, features[0].Scenarios[0].Result);
-        Assert.Equal(ScenarioResult.Ignored, features[0].Scenarios[1].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_ignored_scenario_to_skipped()
+    {
+        var s1 = new StubScenarioResult("s1", "Ignored", status: ExecutionStatus.Ignored);
+        var feature = new StubFeatureResult("F").WithScenario(s1);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_not_run_to_skipped_after_failure()
+    {
+        var s1 = new StubScenarioResult("s1", "NotRun", status: ExecutionStatus.NotRun);
+        var feature = new StubFeatureResult("F").WithScenario(s1);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_ignored_step_to_skipped_when_no_prior_failure()
+    {
+        var scenario = new StubScenarioResult("s1", "Test")
+            .WithStep(new StubStepResult("Given", "a valid request", ExecutionStatus.Passed))
+            .WithStep(new StubStepResult("When", "something is ignored", ExecutionStatus.Ignored));
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_ignored_step_to_skipped_after_failure_when_prior_step_failed()
+    {
+        var scenario = new StubScenarioResult("s1", "Test")
+            .WithStep(new StubStepResult("Given", "a failing step", ExecutionStatus.Failed))
+            .WithStep(new StubStepResult("When", "this was ignored", ExecutionStatus.Ignored))
+            .WithStep(new StubStepResult("Then", "this was also ignored", ExecutionStatus.Ignored));
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Equal(ScenarioResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![1].Status);
+        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![2].Status);
     }
 
     [Fact]

@@ -6,5 +6,5 @@ public enum ScenarioResult
     Failed,
     Skipped,
     Bypassed,
-    Ignored
+    SkippedAfterFailure
 }
