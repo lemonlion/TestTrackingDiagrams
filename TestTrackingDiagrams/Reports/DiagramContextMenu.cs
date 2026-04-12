@@ -831,12 +831,28 @@ public static class DiagramContextMenu
                         URL.revokeObjectURL(a.href);
                     }));
                     menu.appendChild(createSeparator());
-                    menu.appendChild(createMenuItem('Open as image in new tab', function() {
+                    menu.appendChild(createMenuItem('Open as PNG image in new tab', function() {
+                        svgToCanvas(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                var reader = new FileReader();
+                                reader.onload = function() { window.open(reader.result); };
+                                reader.readAsDataURL(blob);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Open as PNG image (no transparency) in new tab', function() {
+                        svgToCanvasWithBg(svg, function(canvas) {
+                            canvas.toBlob(function(blob) {
+                                var reader = new FileReader();
+                                reader.onload = function() { window.open(reader.result); };
+                                reader.readAsDataURL(blob);
+                            }, 'image/png');
+                        });
+                    }));
+                    menu.appendChild(createMenuItem('Open as SVG image in new tab', function() {
                         var svgData = serializeSvg(svg);
                         var b64 = btoa(unescape(encodeURIComponent(svgData)));
-                        var html = '<html><body style="margin:0;display:flex;justify-content:center;align-items:start;min-height:100vh;background:#f5f5f5"><img src="data:image/svg+xml;base64,' + b64 + '" style="max-width:100%"></body></html>';
-                        var blob = new Blob([html], { type: 'text/html' });
-                        window.open(URL.createObjectURL(blob));
+                        window.open('data:image/svg+xml;base64,' + b64);
                     }));
                     if (source) {
                         menu.appendChild(createMenuItem('Open ' + typeLabel + ' source in new tab', function() {
@@ -1618,9 +1634,14 @@ public static class DiagramContextMenu
                     ev.stopPropagation(); ev.preventDefault(); onCycle();
                 });
                 // Allow text selection: on mousedown, temporarily remove pointer-events
-                // so the browser can start selecting text underneath
-                hoverRect.addEventListener('mousedown', function() {
+                // so the browser can start selecting text underneath, then re-dispatch
+                hoverRect.addEventListener('mousedown', function(ev) {
                     hoverRect.style.pointerEvents = 'none';
+                    var target = document.elementFromPoint(ev.clientX, ev.clientY);
+                    if (target && target !== hoverRect) {
+                        var newEv = new MouseEvent('mousedown', ev);
+                        target.dispatchEvent(newEv);
+                    }
                     document.addEventListener('mouseup', function restore() {
                         hoverRect.style.pointerEvents = 'all';
                         document.removeEventListener('mouseup', restore);
