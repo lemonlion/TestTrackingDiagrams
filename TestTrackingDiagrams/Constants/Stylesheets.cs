@@ -460,7 +460,7 @@ public class Stylesheets
                     flex-wrap: wrap;
                     gap: 0.5em;
                     align-items: center;
-                    justify-content: space-between;
+                    justify-content: flex-end;
                     margin-bottom: 0.5em;
                 }
 

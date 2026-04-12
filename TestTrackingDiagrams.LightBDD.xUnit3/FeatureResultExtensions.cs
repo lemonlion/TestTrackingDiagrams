@@ -42,6 +42,7 @@ internal static class FeatureResultExtensions
             ErrorMessage = result.Status == ExecutionStatus.Failed ? result.StatusDetails : null,
             Duration = result.ExecutionTime?.Duration,
             Steps = MapSteps(result.GetSteps()),
+            IsHappyPath = labels.Contains("Happy Path"),
             Labels = labels.Length > 0 ? labels : null,
             Categories = categories.Length > 0 ? categories : null,
         };

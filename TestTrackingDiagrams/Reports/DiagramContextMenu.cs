@@ -1613,7 +1613,7 @@ public static class DiagramContextMenu
                 return 'truncated';
             }
 
-            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines) {
+            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines, grp) {
                 var size = 12;
                 var pad = 3;
                 var state = noteStepState(noteStep);
@@ -1724,59 +1724,42 @@ public static class DiagramContextMenu
                     buttons.push(gbc);
                 }
 
-                // Hover detection rect over the whole note
-                var hoverRect = document.createElementNS(SVGNS, 'rect');
-                hoverRect.setAttribute('x', bbox.x);
-                hoverRect.setAttribute('y', bbox.y);
-                hoverRect.setAttribute('width', bbox.width);
-                hoverRect.setAttribute('height', bbox.height);
-                hoverRect.setAttribute('fill', 'transparent');
-                hoverRect.style.pointerEvents = 'all';
-                hoverRect.style.cursor = 'text';
-                hoverRect.addEventListener('mouseenter', function() {
+                // Hover detection via the note's own SVG elements (paths = background, texts = content).
+                // This avoids an overlay rect that would block native text selection.
+                var _noteHideTimeout;
+                function _noteShowButtons() {
+                    clearTimeout(_noteHideTimeout);
                     buttons.forEach(function(b) { b.style.opacity = '1'; });
-                });
-                hoverRect.addEventListener('mouseleave', function() {
-                    buttons.forEach(function(b) { b.style.opacity = '0'; });
-                });
-                hoverRect.addEventListener('dblclick', function(ev) {
-                    ev.stopPropagation(); ev.preventDefault(); onCycle();
-                });
-                // Allow text selection: on mousedown, temporarily remove pointer-events
-                // so the browser can start selecting text underneath, then re-dispatch.
-                // Double-click detection is done here because removing pointer-events
-                // causes mouseup to fire on the element beneath, which moves the native
-                // dblclick event target to their common ancestor (the SVG), bypassing
-                // the hoverRect's own dblclick listener.
-                var _lastNoteClickTime = 0;
-                hoverRect.addEventListener('mousedown', function(ev) {
-                    var now = Date.now();
-                    if (now - _lastNoteClickTime < 500) {
-                        _lastNoteClickTime = 0;
-                        ev.stopPropagation(); ev.preventDefault();
-                        onCycle();
-                        return;
-                    }
-                    _lastNoteClickTime = now;
-                    hoverRect.style.pointerEvents = 'none';
-                    var target = document.elementFromPoint(ev.clientX, ev.clientY);
-                    if (target && target !== hoverRect) {
-                        var newEv = new MouseEvent('mousedown', ev);
-                        target.dispatchEvent(newEv);
-                    }
-                    document.addEventListener('mouseup', function restore() {
-                        hoverRect.style.pointerEvents = 'all';
-                        document.removeEventListener('mouseup', restore);
+                }
+                function _noteScheduleHide() {
+                    _noteHideTimeout = setTimeout(function() {
+                        buttons.forEach(function(b) { b.style.opacity = '0'; });
+                    }, 100);
+                }
+
+                // Note background paths: hover detection + dblclick to cycle state
+                if (grp) {
+                    grp.paths.forEach(function(p) {
+                        p.addEventListener('mouseenter', _noteShowButtons);
+                        p.addEventListener('mouseleave', _noteScheduleHide);
+                        p.addEventListener('dblclick', function(ev) {
+                            ev.stopPropagation(); ev.preventDefault(); onCycle();
+                        });
                     });
-                });
+                    // Note text elements: hover detection only (dblclick selects word naturally)
+                    grp.texts.forEach(function(t) {
+                        t.addEventListener('mouseenter', _noteShowButtons);
+                        t.addEventListener('mouseleave', _noteScheduleHide);
+                    });
+                }
+
                 buttons.forEach(function(b) {
-                    b.addEventListener('mouseenter', function() {
-                        buttons.forEach(function(bb) { bb.style.opacity = '1'; });
-                    });
+                    b.addEventListener('mouseenter', _noteShowButtons);
+                    b.addEventListener('mouseleave', _noteScheduleHide);
                 });
 
                 // Tooltip for collapsed notes
-                if (state === 'collapsed' && contentLines) {
+                if (state === 'collapsed' && contentLines && grp && grp.paths.length > 0) {
                     var tipLines = contentLines.map(function(l) {
                         return l.replace(/^\s*\$color\(gray\)/, '');
                     });
@@ -1788,12 +1771,11 @@ public static class DiagramContextMenu
                         }
                         var titleEl = document.createElementNS(SVGNS, 'title');
                         titleEl.textContent = tipText;
-                        hoverRect.appendChild(titleEl);
+                        grp.paths[0].appendChild(titleEl);
                     }
                 }
 
-                // Insert hoverRect on top for hover detection, then buttons
-                svg.appendChild(hoverRect);
+                // Insert buttons on top
                 buttons.forEach(function(b) { svg.appendChild(b); });
             }
 
@@ -1830,7 +1812,7 @@ public static class DiagramContextMenu
                                 else nextStep = 2;
                                 setNoteState(container, idx, nextStep);
                             },
-                            noteBlocks[idx].contentLines);
+                            noteBlocks[idx].contentLines, grp);
                     })(ni);
                 }
             }

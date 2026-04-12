@@ -393,21 +393,22 @@ public class DiagramContextMenuTests
     public void CreateNoteButtons_double_click_cycles_state()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Hover rect has dblclick handler as fallback
+        // dblclick on note background paths cycles state
         Assert.Contains("dblclick", funcBody);
         Assert.Contains("onCycle", funcBody);
-        // Mousedown-based double-click detection because removing pointer-events
-        // causes native dblclick to fire on the SVG ancestor instead of hoverRect
-        Assert.Contains("_lastNoteClickTime", funcBody);
-        Assert.Contains("Date.now()", funcBody);
+        // Uses note group paths for hover detection and dblclick (no hoverRect overlay)
+        Assert.Contains("grp.paths.forEach", funcBody);
+        Assert.Contains("grp.texts.forEach", funcBody);
+        // Delayed hide for smooth hover across gaps between note sub-elements
+        Assert.Contains("_noteScheduleHide", funcBody);
     }
 
     [Fact]
     public void CreateNoteButtons_accepts_onTruncate_and_onCycle_parameters()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // Function signature includes onTruncate and onCycle parameters
-        Assert.Contains("onExpand, onContract, onTruncate, onCycle, contentLines", funcBody);
+        // Function signature includes onTruncate, onCycle, and grp parameters
+        Assert.Contains("onExpand, onContract, onTruncate, onCycle, contentLines, grp", funcBody);
     }
 
     [Fact]
