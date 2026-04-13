@@ -37,7 +37,7 @@ public class ReqNRollTrackingHooks
     {
         var stepContext = _scenarioContext.StepContext;
         var steps = (List<ReqNRollStepInfo>)_scenarioContext[ReqNRollConstants.StepsCollectionKey];
-        steps.Add(new ReqNRollStepInfo(stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(), stepContext.StepInfo.Text));
+        steps.Add(new ReqNRollStepInfo(stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(), stepContext.StepInfo.Text, stepContext.Status));
     }
 
     [AfterScenario(Order = int.MaxValue)]

@@ -14,7 +14,7 @@ public class FeatureResultExtensionsTests
     public void ToFeatures_maps_feature_name_and_description()
     {
         var feature = new StubFeatureResult("OrderService", "Handles orders")
-            .WithScenario(new StubScenarioResult("s1", "Place order"));
+            .WithScenario(new StubExecutionResult("s1", "Place order"));
 
         var features = new[] { feature }.ToFeatures();
 
@@ -27,7 +27,7 @@ public class FeatureResultExtensionsTests
     public void ToFeatures_maps_feature_labels()
     {
         var feature = new StubFeatureResult("Svc", labels: ["api", "v2"])
-            .WithScenario(new StubScenarioResult("s1", "Test"));
+            .WithScenario(new StubExecutionResult("s1", "Test"));
 
         var features = new[] { feature }.ToFeatures();
         Assert.Equal(["api", "v2"], features[0].Labels);
@@ -36,7 +36,7 @@ public class FeatureResultExtensionsTests
     [Fact]
     public void ToFeatures_maps_scenario_labels_and_categories()
     {
-        var scenario = new StubScenarioResult("s1", "Test", labels: ["smoke"], categories: ["Orders"]);
+        var scenario = new StubExecutionResult("s1", "Test", labels: ["smoke"], categories: ["Orders"]);
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -47,18 +47,18 @@ public class FeatureResultExtensionsTests
     [Fact]
     public void ToFeatures_maps_scenario_status()
     {
-        var scenario = new StubScenarioResult("s1", "Test", status: ExecutionStatus.Failed, statusDetails: "Expected 200");
+        var scenario = new StubExecutionResult("s1", "Test", status: ExecutionStatus.Failed, statusDetails: "Expected 200");
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Failed, features[0].Scenarios[0].Result);
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Result);
         Assert.Equal("Expected 200", features[0].Scenarios[0].ErrorMessage);
     }
 
     [Fact]
     public void ToFeatures_maps_scenario_duration()
     {
-        var scenario = new StubScenarioResult("s1", "Test", duration: TimeSpan.FromSeconds(2));
+        var scenario = new StubExecutionResult("s1", "Test", duration: TimeSpan.FromSeconds(2));
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -68,7 +68,7 @@ public class FeatureResultExtensionsTests
     [Fact]
     public void ToFeatures_maps_steps_with_keyword_and_text()
     {
-        var scenario = new StubScenarioResult("s1", "Test")
+        var scenario = new StubExecutionResult("s1", "Test")
             .WithStep(new StubStepResult("Given", "a valid request", ExecutionStatus.Passed))
             .WithStep(new StubStepResult("When", "the request is sent", ExecutionStatus.Passed))
             .WithStep(new StubStepResult("Then", "the response is 200", ExecutionStatus.Passed));
@@ -85,13 +85,13 @@ public class FeatureResultExtensionsTests
     [Fact]
     public void ToFeatures_maps_step_status_and_duration()
     {
-        var scenario = new StubScenarioResult("s1", "Test")
+        var scenario = new StubExecutionResult("s1", "Test")
             .WithStep(new StubStepResult("Given", "x", ExecutionStatus.Failed, duration: TimeSpan.FromMilliseconds(500)));
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
         var step = features[0].Scenarios[0].Steps![0];
-        Assert.Equal(ScenarioResult.Failed, step.Status);
+        Assert.Equal(ExecutionResult.Failed, step.Status);
         Assert.Equal(TimeSpan.FromMilliseconds(500), step.Duration);
     }
 
@@ -101,7 +101,7 @@ public class FeatureResultExtensionsTests
         var subStep = new StubStepResult("And", "the body has milk", ExecutionStatus.Passed);
         var parentStep = new StubStepResult("Given", "a valid request body", ExecutionStatus.Passed)
             .WithSubStep(subStep);
-        var scenario = new StubScenarioResult("s1", "Test").WithStep(parentStep);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(parentStep);
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -115,7 +115,7 @@ public class FeatureResultExtensionsTests
     public void ToFeatures_maps_step_comments()
     {
         var step = new StubStepResult("Then", "validate", ExecutionStatus.Passed, comments: ["Business rule XYZ"]);
-        var scenario = new StubScenarioResult("s1", "Test").WithStep(step);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(step);
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -127,7 +127,7 @@ public class FeatureResultExtensionsTests
     {
         var attachment = new FileAttachment("screenshot", "C:\\Reports\\shot.png", "Reports/shot.png");
         var step = new StubStepResult("Then", "verify", ExecutionStatus.Passed, attachments: [attachment]);
-        var scenario = new StubScenarioResult("s1", "Test").WithStep(step);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(step);
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -140,37 +140,37 @@ public class FeatureResultExtensionsTests
     [Fact]
     public void ToFeatures_maps_bypassed_status()
     {
-        var s1 = new StubScenarioResult("s1", "Bypassed", status: ExecutionStatus.Bypassed);
+        var s1 = new StubExecutionResult("s1", "Bypassed", status: ExecutionStatus.Bypassed);
         var feature = new StubFeatureResult("F").WithScenario(s1);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Bypassed, features[0].Scenarios[0].Result);
+        Assert.Equal(ExecutionResult.Bypassed, features[0].Scenarios[0].Result);
     }
 
     [Fact]
     public void ToFeatures_maps_ignored_scenario_to_skipped()
     {
-        var s1 = new StubScenarioResult("s1", "Ignored", status: ExecutionStatus.Ignored);
+        var s1 = new StubExecutionResult("s1", "Ignored", status: ExecutionStatus.Ignored);
         var feature = new StubFeatureResult("F").WithScenario(s1);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Result);
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Result);
     }
 
     [Fact]
     public void ToFeatures_maps_not_run_to_skipped()
     {
-        var s1 = new StubScenarioResult("s1", "NotRun", status: ExecutionStatus.NotRun);
+        var s1 = new StubExecutionResult("s1", "NotRun", status: ExecutionStatus.NotRun);
         var feature = new StubFeatureResult("F").WithScenario(s1);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Result);
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Result);
     }
 
     [Fact]
     public void ToFeatures_maps_not_run_steps_to_skipped_when_scenario_is_skipped()
     {
-        var scenario = new StubScenarioResult("s1", "Test", status: ExecutionStatus.Ignored)
+        var scenario = new StubExecutionResult("s1", "Test", status: ExecutionStatus.Ignored)
             .WithStep(new StubStepResult("Given", "a precondition", ExecutionStatus.NotRun))
             .WithStep(new StubStepResult("When", "an action", ExecutionStatus.NotRun))
             .WithStep(new StubStepResult("Then", "an assertion", ExecutionStatus.NotRun));
@@ -178,40 +178,40 @@ public class FeatureResultExtensionsTests
 
         var features = new[] { feature }.ToFeatures();
         Assert.All(features[0].Scenarios[0].Steps!, step =>
-            Assert.Equal(ScenarioResult.Skipped, step.Status));
+            Assert.Equal(ExecutionResult.Skipped, step.Status));
     }
 
     [Fact]
     public void ToFeatures_maps_ignored_step_to_skipped_when_no_prior_failure()
     {
-        var scenario = new StubScenarioResult("s1", "Test")
+        var scenario = new StubExecutionResult("s1", "Test")
             .WithStep(new StubStepResult("Given", "a valid request", ExecutionStatus.Passed))
             .WithStep(new StubStepResult("When", "something is ignored", ExecutionStatus.Ignored));
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
     }
 
     [Fact]
     public void ToFeatures_maps_ignored_step_to_skipped_after_failure_when_prior_step_failed()
     {
-        var scenario = new StubScenarioResult("s1", "Test")
+        var scenario = new StubExecutionResult("s1", "Test")
             .WithStep(new StubStepResult("Given", "a failing step", ExecutionStatus.Failed))
             .WithStep(new StubStepResult("When", "this was ignored", ExecutionStatus.Ignored))
             .WithStep(new StubStepResult("Then", "this was also ignored", ExecutionStatus.Ignored));
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(ScenarioResult.Failed, features[0].Scenarios[0].Steps![0].Status);
-        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![1].Status);
-        Assert.Equal(ScenarioResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![2].Status);
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+        Assert.Equal(ExecutionResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![1].Status);
+        Assert.Equal(ExecutionResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![2].Status);
     }
 
     [Fact]
     public void ToFeatures_leaves_steps_null_when_no_steps()
     {
-        var scenario = new StubScenarioResult("s1", "Test");
+        var scenario = new StubExecutionResult("s1", "Test");
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
@@ -232,18 +232,18 @@ public class FeatureResultExtensionsTests
         public IFeatureInfo Info { get; }
         public IEnumerable<IScenarioResult> GetScenarios() => _scenarios;
 
-        public StubFeatureResult WithScenario(StubScenarioResult scenario)
+        public StubFeatureResult WithScenario(StubExecutionResult scenario)
         {
             _scenarios.Add(scenario);
             return this;
         }
     }
 
-    private class StubScenarioResult : IScenarioResult
+    private class StubExecutionResult : IScenarioResult
     {
         private readonly List<IStepResult> _steps = [];
 
-        public StubScenarioResult(string id, string name,
+        public StubExecutionResult(string id, string name,
             ExecutionStatus status = ExecutionStatus.Passed,
             string? statusDetails = null,
             TimeSpan? duration = null,
@@ -264,7 +264,7 @@ public class FeatureResultExtensionsTests
         public ExecutionTime? ExecutionTime { get; }
         public IEnumerable<IStepResult> GetSteps() => _steps;
 
-        public StubScenarioResult WithStep(StubStepResult step)
+        public StubExecutionResult WithStep(StubStepResult step)
         {
             _steps.Add(step);
             return this;

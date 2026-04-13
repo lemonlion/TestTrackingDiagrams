@@ -1,4 +1,4 @@
-﻿using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Reports;
 using Xunit;
 
 namespace TestTrackingDiagrams.xUnit3;
@@ -25,7 +25,7 @@ internal static class TestContextEnumerableExtensions
                         .Select(x => new Scenario
                         {
                             Id = x.Test!.UniqueID,
-                            Result = x.TestState!.Result.ToScenarioResult(),
+                            Result = x.TestState!.Result.ToExecutionResult(),
                             DisplayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName),
                             IsHappyPath = x.Test!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey),
                             ErrorMessage = string.Join(Environment.NewLine, x.TestState!.FailureCause) + Environment.NewLine + string.Join(Environment.NewLine, x.TestState!.ExceptionMessages ?? []),

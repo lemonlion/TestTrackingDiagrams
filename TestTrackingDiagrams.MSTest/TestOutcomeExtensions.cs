@@ -5,19 +5,19 @@ namespace TestTrackingDiagrams.MSTest;
 
 public static class TestOutcomeExtensions
 {
-    public static ScenarioResult ToScenarioResult(this UnitTestOutcome outcome)
+    public static ExecutionResult ToExecutionResult(this UnitTestOutcome outcome)
     {
         return outcome switch
         {
-            UnitTestOutcome.Passed => ScenarioResult.Passed,
-            UnitTestOutcome.Failed => ScenarioResult.Failed,
-            UnitTestOutcome.Error => ScenarioResult.Failed,
-            UnitTestOutcome.Timeout => ScenarioResult.Failed,
-            UnitTestOutcome.Aborted => ScenarioResult.Failed,
-            UnitTestOutcome.Inconclusive => ScenarioResult.Skipped,
-            UnitTestOutcome.InProgress => ScenarioResult.Skipped,
-            UnitTestOutcome.NotRunnable => ScenarioResult.Skipped,
-            UnitTestOutcome.Unknown => ScenarioResult.Skipped,
+            UnitTestOutcome.Passed => ExecutionResult.Passed,
+            UnitTestOutcome.Failed => ExecutionResult.Failed,
+            UnitTestOutcome.Error => ExecutionResult.Failed,
+            UnitTestOutcome.Timeout => ExecutionResult.Failed,
+            UnitTestOutcome.Aborted => ExecutionResult.Failed,
+            UnitTestOutcome.Inconclusive => ExecutionResult.Skipped,
+            UnitTestOutcome.InProgress => ExecutionResult.Skipped,
+            UnitTestOutcome.NotRunnable => ExecutionResult.Skipped,
+            UnitTestOutcome.Unknown => ExecutionResult.Skipped,
             _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
         };
     }

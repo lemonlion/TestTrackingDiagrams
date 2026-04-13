@@ -146,9 +146,11 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 | **xUnit v2** | `TestTrackingDiagrams.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.xUnit2) |
 | **NUnit** | `TestTrackingDiagrams.NUnit4` | NUnit v4 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.NUnit4)](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
 | **MSTest** | `TestTrackingDiagrams.MSTest` | MSTest v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.MSTest)](https://www.nuget.org/packages/TestTrackingDiagrams.MSTest) |
+| **TUnit** | `TestTrackingDiagrams.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.TUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.TUnit) |
 | **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.BDDfy.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
 | **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
 | **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit3) |
+| **LightBDD** | `TestTrackingDiagrams.LightBDD.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.TUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.TUnit) |
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
 | **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
 

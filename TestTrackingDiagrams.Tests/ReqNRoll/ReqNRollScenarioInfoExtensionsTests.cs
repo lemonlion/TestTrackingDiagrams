@@ -96,4 +96,75 @@ public class ReqNRollScenarioInfoExtensionsTests
         var features = new[] { info }.ToFeatures();
         Assert.Null(features[0].Scenarios[0].Labels);
     }
+
+    // ─── Step status mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_step_status_ok_to_passed()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something", ScenarioExecutionStatus.OK)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Passed, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_status_test_error_to_failed()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something", ScenarioExecutionStatus.TestError)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_status_binding_error_to_failed()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something", ScenarioExecutionStatus.BindingError)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_status_undefined_step_to_skipped()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something", ScenarioExecutionStatus.UndefinedStep)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_status_skipped_after_failure_to_skipped_after_failure()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "this fails", ScenarioExecutionStatus.TestError),
+            new ReqNRollStepInfo("Then", "this was skipped", ScenarioExecutionStatus.Skipped)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+        Assert.Equal(ExecutionResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![1].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_status_skipped_without_prior_failure_to_skipped()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "this passed", ScenarioExecutionStatus.OK),
+            new ReqNRollStepInfo("Then", "this was skipped", ScenarioExecutionStatus.Skipped)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
+    }
 }

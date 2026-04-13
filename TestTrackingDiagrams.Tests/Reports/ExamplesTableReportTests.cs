@@ -26,19 +26,19 @@ public class ExamplesTableReportTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "Withdraw $200 from $1000", Result = ScenarioResult.Passed,
+                        Id = "s1", DisplayName = "Withdraw $200 from $1000", Result = ExecutionResult.Passed,
                         OutlineId = "withdraw-cash",
                         ExampleValues = new Dictionary<string, string> { ["Balance"] = "$1000", ["Withdrawal"] = "$200", ["Result"] = "$800" }
                     },
                     new Scenario
                     {
-                        Id = "s2", DisplayName = "Withdraw $500 from $1000", Result = ScenarioResult.Passed,
+                        Id = "s2", DisplayName = "Withdraw $500 from $1000", Result = ExecutionResult.Passed,
                         OutlineId = "withdraw-cash",
                         ExampleValues = new Dictionary<string, string> { ["Balance"] = "$1000", ["Withdrawal"] = "$500", ["Result"] = "$500" }
                     },
                     new Scenario
                     {
-                        Id = "s3", DisplayName = "Withdraw $1500 from $1000", Result = ScenarioResult.Failed, ErrorMessage = "Insufficient",
+                        Id = "s3", DisplayName = "Withdraw $1500 from $1000", Result = ExecutionResult.Failed, ErrorMessage = "Insufficient",
                         OutlineId = "withdraw-cash",
                         ExampleValues = new Dictionary<string, string> { ["Balance"] = "$1000", ["Withdrawal"] = "$1500", ["Result"] = "Error" }
                     }
@@ -62,13 +62,13 @@ public class ExamplesTableReportTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed,
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
                     },
                     new Scenario
                     {
-                        Id = "s2", DisplayName = "S2", Result = ScenarioResult.Failed, ErrorMessage = "err",
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed, ErrorMessage = "err",
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
                     }
@@ -91,7 +91,7 @@ public class ExamplesTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }
                 ]
             }
         };
@@ -112,13 +112,13 @@ public class ExamplesTableReportTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed,
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["Balance"] = "$1000", ["Withdrawal"] = "$200" }
                     },
                     new Scenario
                     {
-                        Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed,
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed,
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["Balance"] = "$500", ["Withdrawal"] = "$100" }
                     }
@@ -141,16 +141,16 @@ public class ExamplesTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "Regular", Result = ScenarioResult.Passed },
+                    new Scenario { Id = "s1", DisplayName = "Regular", Result = ExecutionResult.Passed },
                     new Scenario
                     {
-                        Id = "s2", DisplayName = "Outline1", Result = ScenarioResult.Passed,
+                        Id = "s2", DisplayName = "Outline1", Result = ExecutionResult.Passed,
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["X"] = "1" }
                     },
                     new Scenario
                     {
-                        Id = "s3", DisplayName = "Outline2", Result = ScenarioResult.Passed,
+                        Id = "s3", DisplayName = "Outline2", Result = ExecutionResult.Passed,
                         OutlineId = "outline1",
                         ExampleValues = new Dictionary<string, string> { ["X"] = "2" }
                     }

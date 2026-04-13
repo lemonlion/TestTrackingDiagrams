@@ -23,7 +23,7 @@ public class DocStringReportTests
             [
                 new Scenario
                 {
-                    Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed,
+                    Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
                     Steps = [step]
                 }
             ]
@@ -36,7 +36,7 @@ public class DocStringReportTests
         var features = FeaturesWithStep(new ScenarioStep
         {
             Text = "Given a request body",
-            Status = ScenarioResult.Passed,
+            Status = ExecutionResult.Passed,
             DocString = "{ \"name\": \"test\" }"
         });
 
@@ -51,7 +51,7 @@ public class DocStringReportTests
         var features = FeaturesWithStep(new ScenarioStep
         {
             Text = "Given malicious input",
-            Status = ScenarioResult.Passed,
+            Status = ExecutionResult.Passed,
             DocString = "<script>alert('xss')</script>"
         });
 
@@ -66,7 +66,7 @@ public class DocStringReportTests
         var features = FeaturesWithStep(new ScenarioStep
         {
             Text = "Given something simple",
-            Status = ScenarioResult.Passed
+            Status = ExecutionResult.Passed
         });
 
         var content = GenerateReport(features);
@@ -79,7 +79,7 @@ public class DocStringReportTests
         var features = FeaturesWithStep(new ScenarioStep
         {
             Text = "Given JSON payload",
-            Status = ScenarioResult.Passed,
+            Status = ExecutionResult.Passed,
             DocString = "{ \"key\": \"value\" }",
             DocStringMediaType = "json"
         });

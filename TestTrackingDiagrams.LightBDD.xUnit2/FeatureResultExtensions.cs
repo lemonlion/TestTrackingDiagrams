@@ -95,29 +95,29 @@ internal static class FeatureResultExtensions
         };
     }
 
-    private static ScenarioResult MapStatus(ExecutionStatus status)
+    private static ExecutionResult MapStatus(ExecutionStatus status)
     {
         return status switch
         {
-            ExecutionStatus.Passed => ScenarioResult.Passed,
-            ExecutionStatus.Failed => ScenarioResult.Failed,
-            ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
-            ExecutionStatus.Ignored => ScenarioResult.Skipped,
-            ExecutionStatus.NotRun => ScenarioResult.Skipped,
-            _ => ScenarioResult.Failed
+            ExecutionStatus.Passed => ExecutionResult.Passed,
+            ExecutionStatus.Failed => ExecutionResult.Failed,
+            ExecutionStatus.Bypassed => ExecutionResult.Bypassed,
+            ExecutionStatus.Ignored => ExecutionResult.Skipped,
+            ExecutionStatus.NotRun => ExecutionResult.Skipped,
+            _ => ExecutionResult.Failed
         };
     }
 
-    private static ScenarioResult MapStepStatus(ExecutionStatus status, bool priorFailure, bool scenarioSkipped)
+    private static ExecutionResult MapStepStatus(ExecutionStatus status, bool priorFailure, bool scenarioSkipped)
     {
         return status switch
         {
-            ExecutionStatus.Passed => ScenarioResult.Passed,
-            ExecutionStatus.Failed => ScenarioResult.Failed,
-            ExecutionStatus.Bypassed => ScenarioResult.Bypassed,
-            ExecutionStatus.Ignored => scenarioSkipped || !priorFailure ? ScenarioResult.Skipped : ScenarioResult.SkippedAfterFailure,
-            ExecutionStatus.NotRun => scenarioSkipped ? ScenarioResult.Skipped : ScenarioResult.SkippedAfterFailure,
-            _ => ScenarioResult.Failed
+            ExecutionStatus.Passed => ExecutionResult.Passed,
+            ExecutionStatus.Failed => ExecutionResult.Failed,
+            ExecutionStatus.Bypassed => ExecutionResult.Bypassed,
+            ExecutionStatus.Ignored => scenarioSkipped || !priorFailure ? ExecutionResult.Skipped : ExecutionResult.SkippedAfterFailure,
+            ExecutionStatus.NotRun => scenarioSkipped ? ExecutionResult.Skipped : ExecutionResult.SkippedAfterFailure,
+            _ => ExecutionResult.Failed
         };
     }
 

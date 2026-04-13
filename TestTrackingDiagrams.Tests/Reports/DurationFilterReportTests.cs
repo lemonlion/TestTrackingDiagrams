@@ -9,7 +9,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class DurationFilterReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result, TimeSpan? duration)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result, TimeSpan? duration)[] scenarios) =>
     [
         new Feature
         {
@@ -39,8 +39,8 @@ public class DurationFilterReportTests
     public void Report_with_durations_contains_duration_filter_section()
     {
         var features = MakeFeatures(
-            ("t1", "Fast test", ScenarioResult.Passed, TimeSpan.FromSeconds(1)),
-            ("t2", "Slow test", ScenarioResult.Passed, TimeSpan.FromSeconds(10)));
+            ("t1", "Fast test", ExecutionResult.Passed, TimeSpan.FromSeconds(1)),
+            ("t2", "Slow test", ExecutionResult.Passed, TimeSpan.FromSeconds(10)));
         var content = GenerateReport(features, "DurationFilterSection.html");
         Assert.Contains("duration-filters", content);
     }
@@ -49,7 +49,7 @@ public class DurationFilterReportTests
     public void Report_contains_duration_threshold_input()
     {
         var features = MakeFeatures(
-            ("t1", "Test A", ScenarioResult.Passed, TimeSpan.FromSeconds(1)));
+            ("t1", "Test A", ExecutionResult.Passed, TimeSpan.FromSeconds(1)));
         var content = GenerateReport(features, "DurationFilterInput.html");
         Assert.Contains("duration-threshold", content);
     }
@@ -58,8 +58,8 @@ public class DurationFilterReportTests
     public void Report_contains_percentile_buttons()
     {
         var features = MakeFeatures(
-            ("t1", "Test A", ScenarioResult.Passed, TimeSpan.FromSeconds(1)),
-            ("t2", "Test B", ScenarioResult.Passed, TimeSpan.FromSeconds(5)));
+            ("t1", "Test A", ExecutionResult.Passed, TimeSpan.FromSeconds(1)),
+            ("t2", "Test B", ExecutionResult.Passed, TimeSpan.FromSeconds(5)));
         var content = GenerateReport(features, "DurationFilterPercentiles.html");
         Assert.Contains("P50", content);
         Assert.Contains("P90", content);
@@ -72,7 +72,7 @@ public class DurationFilterReportTests
     public void Report_contains_duration_filter_javascript()
     {
         var features = MakeFeatures(
-            ("t1", "Test A", ScenarioResult.Passed, TimeSpan.FromSeconds(1)));
+            ("t1", "Test A", ExecutionResult.Passed, TimeSpan.FromSeconds(1)));
         var content = GenerateReport(features, "DurationFilterJs.html");
         Assert.Contains("filter_duration", content);
     }
@@ -81,7 +81,7 @@ public class DurationFilterReportTests
     public void Report_without_any_durations_has_no_duration_filter()
     {
         var features = MakeFeatures(
-            ("t1", "Test A", ScenarioResult.Passed, null));
+            ("t1", "Test A", ExecutionResult.Passed, null));
         var content = GenerateReport(features, "DurationFilterNone.html");
         // No duration-threshold input rendered (CSS class still exists in stylesheet)
         Assert.DoesNotContain("id=\"duration-threshold\"", content);
@@ -91,7 +91,7 @@ public class DurationFilterReportTests
     public void Report_contains_precomputed_percentile_data()
     {
         var scenarios = Enumerable.Range(1, 100)
-            .Select(i => ($"t{i}", $"Test {i}", ScenarioResult.Passed, (TimeSpan?)TimeSpan.FromSeconds(i)))
+            .Select(i => ($"t{i}", $"Test {i}", ExecutionResult.Passed, (TimeSpan?)TimeSpan.FromSeconds(i)))
             .ToArray();
         var features = MakeFeatures(scenarios);
         var content = GenerateReport(features, "DurationFilterPrecomp.html");

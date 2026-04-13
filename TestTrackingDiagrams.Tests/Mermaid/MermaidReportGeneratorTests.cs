@@ -16,7 +16,7 @@ public class MermaidReportGeneratorTests
                     Id = scenarioId,
                     DisplayName = "Creates an order",
                     IsHappyPath = true,
-                    Result = ScenarioResult.Passed
+                    Result = ExecutionResult.Passed
                 }
             ]
         }

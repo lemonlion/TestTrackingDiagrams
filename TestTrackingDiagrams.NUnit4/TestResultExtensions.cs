@@ -5,15 +5,15 @@ namespace TestTrackingDiagrams.NUnit4;
 
 public static class TestStatusExtensions
 {
-    public static ScenarioResult ToScenarioResult(this TestStatus result)
+    public static ExecutionResult ToExecutionResult(this TestStatus result)
     {
         return result switch
         {
-            TestStatus.Passed => ScenarioResult.Passed,
-            TestStatus.Warning => ScenarioResult.Passed,
-            TestStatus.Failed => ScenarioResult.Failed,
-            TestStatus.Skipped => ScenarioResult.Skipped,
-            TestStatus.Inconclusive => ScenarioResult.Skipped,
+            TestStatus.Passed => ExecutionResult.Passed,
+            TestStatus.Warning => ExecutionResult.Passed,
+            TestStatus.Failed => ExecutionResult.Failed,
+            TestStatus.Skipped => ExecutionResult.Skipped,
+            TestStatus.Inconclusive => ExecutionResult.Skipped,
             _ => throw new ArgumentOutOfRangeException(nameof(result), result, null)
         };
     }

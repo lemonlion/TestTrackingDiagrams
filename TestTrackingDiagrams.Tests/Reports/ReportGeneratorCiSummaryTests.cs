@@ -40,7 +40,7 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public void CreateStandardReportsWithDiagrams_writes_ci_summary_when_enabled()
     {
         var options = new ReportConfigurationOptions { WriteCiSummary = true };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
@@ -55,7 +55,7 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public void CreateStandardReportsWithDiagrams_skips_ci_summary_when_disabled()
     {
         var options = new ReportConfigurationOptions { WriteCiSummary = false };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
@@ -67,7 +67,7 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public void CreateStandardReportsWithDiagrams_writes_interactive_html_when_enabled()
     {
         var options = new ReportConfigurationOptions { WriteCiSummary = true, WriteCiSummaryInteractiveHtml = true };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 

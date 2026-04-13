@@ -28,7 +28,7 @@ public class ReportGeneratorCiArtifactTests : IDisposable
     public void CreateStandardReportsWithDiagrams_publishes_artifacts_when_enabled()
     {
         var options = new ReportConfigurationOptions { PublishCiArtifacts = true };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
@@ -41,7 +41,7 @@ public class ReportGeneratorCiArtifactTests : IDisposable
     public void CreateStandardReportsWithDiagrams_skips_artifacts_when_disabled()
     {
         var options = new ReportConfigurationOptions { PublishCiArtifacts = false };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         // This should not throw — artifact publishing is skipped
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
@@ -56,7 +56,7 @@ public class ReportGeneratorCiArtifactTests : IDisposable
             WriteCiSummary = true,
             WriteCiSummaryInteractiveHtml = true
         };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ScenarioResult.Passed }] } };
+        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 

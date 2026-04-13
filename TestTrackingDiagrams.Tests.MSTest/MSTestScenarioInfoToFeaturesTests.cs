@@ -88,7 +88,7 @@ public class MSTestScenarioInfoToFeaturesTests
 
         var features = infos.ToFeatures();
 
-        Assert.AreEqual(ScenarioResult.Passed, features[0].Scenarios[0].Result);
+        Assert.AreEqual(ExecutionResult.Passed, features[0].Scenarios[0].Result);
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public class MSTestScenarioInfoToFeaturesTests
 
         var features = infos.ToFeatures();
 
-        Assert.AreEqual(ScenarioResult.Failed, features[0].Scenarios[0].Result);
+        Assert.AreEqual(ExecutionResult.Failed, features[0].Scenarios[0].Result);
         Assert.AreEqual("Assertion failed", features[0].Scenarios[0].ErrorMessage);
     }
 

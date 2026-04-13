@@ -24,7 +24,7 @@ public class StepNumberingReportTests
             [
                 new Scenario
                 {
-                    Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed,
+                    Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
                     Steps = steps
                 }
             ]
@@ -35,9 +35,9 @@ public class StepNumberingReportTests
     public void Steps_show_numbers_when_enabled()
     {
         var features = FeaturesWithSteps(
-            new ScenarioStep { Text = "Given something", Status = ScenarioResult.Passed },
-            new ScenarioStep { Text = "When action", Status = ScenarioResult.Passed },
-            new ScenarioStep { Text = "Then result", Status = ScenarioResult.Passed });
+            new ScenarioStep { Text = "Given something", Status = ExecutionResult.Passed },
+            new ScenarioStep { Text = "When action", Status = ExecutionResult.Passed },
+            new ScenarioStep { Text = "Then result", Status = ExecutionResult.Passed });
 
         var content = GenerateReport(features, showStepNumbers: true);
         Assert.Contains("<span class=\"step-number\">1.</span>", content);
@@ -49,7 +49,7 @@ public class StepNumberingReportTests
     public void Steps_omit_numbers_when_disabled()
     {
         var features = FeaturesWithSteps(
-            new ScenarioStep { Text = "Given something", Status = ScenarioResult.Passed });
+            new ScenarioStep { Text = "Given something", Status = ExecutionResult.Passed });
 
         var content = GenerateReport(features, showStepNumbers: false);
         Assert.DoesNotContain("<span class=\"step-number\">", content);
@@ -59,14 +59,14 @@ public class StepNumberingReportTests
     public void Sub_steps_show_hierarchical_numbers()
     {
         var features = FeaturesWithSteps(
-            new ScenarioStep { Text = "Step one", Status = ScenarioResult.Passed },
+            new ScenarioStep { Text = "Step one", Status = ExecutionResult.Passed },
             new ScenarioStep
             {
-                Text = "Step two", Status = ScenarioResult.Passed,
+                Text = "Step two", Status = ExecutionResult.Passed,
                 SubSteps =
                 [
-                    new ScenarioStep { Text = "Sub A", Status = ScenarioResult.Passed },
-                    new ScenarioStep { Text = "Sub B", Status = ScenarioResult.Passed }
+                    new ScenarioStep { Text = "Sub A", Status = ExecutionResult.Passed },
+                    new ScenarioStep { Text = "Sub B", Status = ExecutionResult.Passed }
                 ]
             });
 
@@ -81,16 +81,16 @@ public class StepNumberingReportTests
         var features = FeaturesWithSteps(
             new ScenarioStep
             {
-                Text = "Step one", Status = ScenarioResult.Passed,
+                Text = "Step one", Status = ExecutionResult.Passed,
                 SubSteps =
                 [
                     new ScenarioStep
                     {
-                        Text = "Sub A", Status = ScenarioResult.Passed,
+                        Text = "Sub A", Status = ExecutionResult.Passed,
                         SubSteps =
                         [
-                            new ScenarioStep { Text = "Deep X", Status = ScenarioResult.Passed },
-                            new ScenarioStep { Text = "Deep Y", Status = ScenarioResult.Passed }
+                            new ScenarioStep { Text = "Deep X", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Text = "Deep Y", Status = ExecutionResult.Passed }
                         ]
                     }
                 ]

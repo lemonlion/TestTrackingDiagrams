@@ -48,7 +48,7 @@ public class DiagramToggleReportTests : IDisposable
                     Id = testId,
                     DisplayName = name,
                     IsHappyPath = true,
-                    Result = ScenarioResult.Passed
+                    Result = ExecutionResult.Passed
                 }
             ]
         }
@@ -279,8 +279,8 @@ public class DiagramToggleReportTests : IDisposable
             DisplayName = "Test Feature",
             Scenarios =
             [
-                new Scenario { Id = "t1", DisplayName = "Normal test", IsHappyPath = true, Result = ScenarioResult.Passed },
-                new Scenario { Id = "t2", DisplayName = "Outlier test", IsHappyPath = true, Result = ScenarioResult.Passed }
+                new Scenario { Id = "t1", DisplayName = "Normal test", IsHappyPath = true, Result = ExecutionResult.Passed },
+                new Scenario { Id = "t2", DisplayName = "Outlier test", IsHappyPath = true, Result = ExecutionResult.Passed }
             ]
         }
     ];

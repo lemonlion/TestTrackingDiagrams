@@ -15,9 +15,9 @@ internal static class StepExtensions
         {
             var firstWord = title[..firstSpace];
             if (Keywords.Any(k => k.Equals(firstWord, StringComparison.OrdinalIgnoreCase)))
-                return new BDDfyStepInfo(firstWord, title[(firstSpace + 1)..]);
+                return new BDDfyStepInfo(firstWord, title[(firstSpace + 1)..], step.Result);
         }
 
-        return new BDDfyStepInfo("Step", title);
+        return new BDDfyStepInfo("Step", title, step.Result);
     }
 }

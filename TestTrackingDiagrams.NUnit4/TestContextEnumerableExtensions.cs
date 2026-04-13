@@ -29,7 +29,7 @@ internal static class TestContextEnumerableExtensions
                         .Select(x => new Scenario
                         {
                             Id = x.Test.ID,
-                            Result = x.Result.Outcome.Status.ToScenarioResult(),
+                            Result = x.Result.Outcome.Status.ToExecutionResult(),
                             DisplayName = x.Test.MethodName!.Replace("_", " "),
                             IsHappyPath = x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey),
                             ErrorMessage = x.Result.Message,

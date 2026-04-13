@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text;
 using TestTrackingDiagrams.ComponentDiagram;
 using TestTrackingDiagrams.InternalFlow;
@@ -159,7 +159,7 @@ public static class ReportGenerator
         string? customFaviconBase64 = null,
         string? customLogoHtml = null)
     {
-        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
 
         var scenarioFeatureMapHelper = """
@@ -567,8 +567,8 @@ public static class ReportGenerator
                                        """;
 
         // Jump to failure
-        var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ScenarioResult.Failed);
-        var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ScenarioResult.Failed);
+        var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
+        var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ExecutionResult.Failed);
         var jumpToFailureFunction = """
                                     var _failureIndex = -1;
                                     function jump_to_next_failure() {
@@ -893,9 +893,9 @@ public static class ReportGenerator
         {
             var numberOfFeatures = features.Length;
             var scenarios = features.SelectMany(x => x.Scenarios).ToArray();
-            var passedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Passed).ToArray();
-            var skippedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Skipped).ToArray();
-            var failedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Failed).ToArray();
+            var passedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Passed).ToArray();
+            var skippedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Skipped).ToArray();
+            var failedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Failed).ToArray();
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
             // Feature summary table (collapsible, above execution summary)
@@ -923,9 +923,9 @@ public static class ReportGenerator
             foreach (var feature in features)
             {
                 var totalSc = feature.Scenarios.Length;
-                var passedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Passed);
-                var failedSc = feature.Scenarios.Count(s => s.Result == ScenarioResult.Failed);
-                var skippedSc = feature.Scenarios.Count(s => s.Result is ScenarioResult.Skipped or ScenarioResult.Bypassed or ScenarioResult.SkippedAfterFailure);
+                var passedSc = feature.Scenarios.Count(s => s.Result == ExecutionResult.Passed);
+                var failedSc = feature.Scenarios.Count(s => s.Result == ExecutionResult.Failed);
+                var skippedSc = feature.Scenarios.Count(s => s.Result is ExecutionResult.Skipped or ExecutionResult.Bypassed or ExecutionResult.SkippedAfterFailure);
                 var featureHasFail = failedSc > 0;
 
                 body.Append($"<tr{(featureHasFail ? " class=\"failed\"" : "")}>");
@@ -998,7 +998,7 @@ public static class ReportGenerator
                 body.Append("</table></div>");
             }
 
-            var bypassedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Bypassed).ToArray();
+            var bypassedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Bypassed).ToArray();
             body.Append(GeneratePieChartSvg(passedScenarios.Length, failedScenarios.Length, skippedScenarios.Length, bypassedScenarios.Length));
         }
 
@@ -1031,9 +1031,9 @@ public static class ReportGenerator
         // Status filter toggles
         {
             body.Append("""<div class="status-filters"><span class="status-filters-label">Status:</span>""");
-            foreach (var status in Enum.GetValues<ScenarioResult>().OrderBy(s => s))
+            foreach (var status in Enum.GetValues<ExecutionResult>().OrderBy(s => s))
             {
-                if (status == ScenarioResult.SkippedAfterFailure) continue;
+                if (status == ExecutionResult.SkippedAfterFailure) continue;
                 var statusName = status.ToString();
                 body.Append($"""<button class="status-toggle" data-status="{statusName}" onclick="toggle_status(this)">{statusName}</button>""");
             }
@@ -1125,8 +1125,8 @@ public static class ReportGenerator
         body.Append("<div id=\"report-content\">");
         foreach (var feature in features)
         {
-            var featureHasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
-            var featureAllSkipped = !featureHasFailures && feature.Scenarios.All(s => s.Result == ScenarioResult.Skipped);
+            var featureHasFailures = feature.Scenarios.Any(s => s.Result == ExecutionResult.Failed);
+            var featureAllSkipped = !featureHasFailures && feature.Scenarios.All(s => s.Result == ExecutionResult.Skipped);
             body.Append($"""
                      <details class="feature">
                         <summary class="h2{(featureHasFailures ? " failed" : featureAllSkipped ? " skipped" : "")}">{feature.DisplayName}{(feature.Endpoint is null ? "" : $" <div class=\"endpoint\">{feature.Endpoint}</div>")}{(feature.Labels is { Length: > 0 } fl ? string.Concat(fl.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>")) : "")}</summary>
@@ -1182,7 +1182,7 @@ public static class ReportGenerator
                         .SelectMany(s => s.ExampleValues!.Keys)
                         .Distinct()
                         .ToArray();
-                    var outlineHasFailure = outlineScenarios.Any(s => s.Result == ScenarioResult.Failed);
+                    var outlineHasFailure = outlineScenarios.Any(s => s.Result == ExecutionResult.Failed);
                     body.Append($"<details class=\"scenario scenario-outline\"{(outlineHasFailure ? " data-status=\"Failed\"" : "")}>");
                     body.Append($"<summary class=\"h3{(outlineHasFailure ? " failed" : "")}\">Scenario Outline: {System.Net.WebUtility.HtmlEncode(scenario.OutlineId)}</summary>");
                     body.Append("<table class=\"examples-table\"><thead><tr><th>Status</th>");
@@ -1193,10 +1193,10 @@ public static class ReportGenerator
                     {
                         var rowStatusIcon = os.Result switch
                         {
-                            ScenarioResult.Passed => "&#10003;",
-                            ScenarioResult.Failed => "&#10005;",
-                            ScenarioResult.Skipped => "&#216;",
-                            ScenarioResult.Bypassed => "&#8631;",
+                            ExecutionResult.Passed => "&#10003;",
+                            ExecutionResult.Failed => "&#10005;",
+                            ExecutionResult.Skipped => "&#216;",
+                            ExecutionResult.Bypassed => "&#8631;",
                             _ => ""
                         };
                         body.Append($"<tr data-status=\"{os.Result}\"><td>{rowStatusIcon}</td>");
@@ -1211,8 +1211,8 @@ public static class ReportGenerator
                     continue;
                 }
 
-                var failed = scenario.Result == ScenarioResult.Failed;
-                var skipped = scenario.Result == ScenarioResult.Skipped;
+                var failed = scenario.Result == ExecutionResult.Failed;
+                var skipped = scenario.Result == ExecutionResult.Skipped;
                 var depsAttr = scenarioDependencies.TryGetValue(scenario.Id, out var deps) && deps.Count > 0
                     ? $" data-dependencies=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", deps.OrderBy(d => d)))}\""
                     : "";
@@ -1254,9 +1254,19 @@ public static class ReportGenerator
                         .Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>"))
                     : "";
 
+                var scenarioTooltip = scenario.Result switch
+                {
+                    ExecutionResult.Passed => "Passed — all assertions passed",
+                    ExecutionResult.Failed => "Failed — an assertion or runtime failure occurred",
+                    ExecutionResult.Skipped => "Skipped — either the entire test did not run (e.g. a skip attribute or filter excluded it), or a step was skipped at runtime which also prevented all subsequent steps from executing",
+                    ExecutionResult.Bypassed => "Bypassed — some or all of the logic in a step was intentionally skipped over at runtime without preventing execution of subsequent steps",
+                    ExecutionResult.SkippedAfterFailure => "Skipped after failure — this scenario was never reached because an earlier step failed",
+                    _ => ""
+                };
+
                 body.Append($"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id="{anchorId}" tabindex="0">
-                            <summary class="h3{(failed ? " failed" : skipped ? " skipped" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
+                            <summary class="h3{(failed ? " failed" : skipped ? " skipped" : "")}" title="{scenarioTooltip}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
                          """);
 
                 if (failed)
@@ -1462,7 +1472,7 @@ public static class ReportGenerator
         string title,
         bool generateBlankOnFailedTests = false)
     {
-        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
 
         var yml = new StringBuilder();
@@ -1595,7 +1605,7 @@ public static class ReportGenerator
         if (step.SubSteps is not { Length: > 0 }) return false;
         foreach (var sub in step.SubSteps)
         {
-            if (sub.Status == ScenarioResult.Bypassed) return true;
+            if (sub.Status == ExecutionResult.Bypassed) return true;
             if (HasAnyBypassed(sub)) return true;
         }
         return false;
@@ -1606,7 +1616,7 @@ public static class ReportGenerator
         if (step.SubSteps is not { Length: > 0 }) return false;
         foreach (var sub in step.SubSteps)
         {
-            if (sub.Status == ScenarioResult.Skipped) return true;
+            if (sub.Status == ExecutionResult.Skipped) return true;
             if (HasAnySkipped(sub)) return true;
         }
         return false;
@@ -1616,35 +1626,35 @@ public static class ReportGenerator
     {
         var statusClass = step.Status switch
         {
-            ScenarioResult.Passed => HasAnySkipped(step) ? "passed-skipped" : HasAnyBypassed(step) ? "passed-bypassed" : "passed",
-            ScenarioResult.Failed => "failed",
-            ScenarioResult.Skipped => "skipped",
-            ScenarioResult.Bypassed => "bypassed",
-            ScenarioResult.SkippedAfterFailure => "skipped-after-failure",
+            ExecutionResult.Passed => HasAnySkipped(step) ? "passed-skipped" : HasAnyBypassed(step) ? "passed-bypassed" : "passed",
+            ExecutionResult.Failed => "failed",
+            ExecutionResult.Skipped => "skipped",
+            ExecutionResult.Bypassed => "bypassed",
+            ExecutionResult.SkippedAfterFailure => "skipped-after-failure",
             _ => ""
         };
 
         var statusIcon = step.Status switch
         {
-            ScenarioResult.Passed => "&#10003;",
-            ScenarioResult.Failed => "&#10005;",
-            ScenarioResult.Skipped => "&#216;",
-            ScenarioResult.Bypassed => "&#8631;",
-            ScenarioResult.SkippedAfterFailure => "!",
+            ExecutionResult.Passed => "&#10003;",
+            ExecutionResult.Failed => "&#10005;",
+            ExecutionResult.Skipped => "&#216;",
+            ExecutionResult.Bypassed => "&#8631;",
+            ExecutionResult.SkippedAfterFailure => "!",
             _ => ""
         };
 
         var statusTooltip = step.Status switch
         {
-            ScenarioResult.Passed => HasAnySkipped(step)
+            ExecutionResult.Passed => HasAnySkipped(step)
                 ? "Passed (with skipped sub-steps) — all assertions passed, but one or more sub-steps were skipped. Skipped steps did not execute and also prevented execution of subsequent steps"
                 : HasAnyBypassed(step)
                 ? "Passed (with bypassed sub-steps) — all assertions passed, but one or more sub-steps were bypassed (intentionally skipped over without preventing execution of subsequent steps)"
                 : "Passed — all assertions in this step passed",
-            ScenarioResult.Failed => "Failed — this step threw an exception or an assertion failed",
-            ScenarioResult.Skipped => "Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps",
-            ScenarioResult.Bypassed => "Bypassed — some or all of the logic in this step was intentionally skipped over without preventing execution of subsequent steps",
-            ScenarioResult.SkippedAfterFailure => "Skipped after failure — this step was never reached because an earlier step failed",
+            ExecutionResult.Failed => "Failed — this step threw an exception or an assertion failed",
+            ExecutionResult.Skipped => "Skipped — this step did not execute because it was intentionally skipped, either at the scenario level, or at the step level. In the latter case the skip also prevented execution of subsequent steps",
+            ExecutionResult.Bypassed => "Bypassed — some or all of the logic in this step was intentionally skipped over without preventing execution of subsequent steps",
+            ExecutionResult.SkippedAfterFailure => "Skipped after failure — this step was never reached because an earlier step failed",
             _ => ""
         };
 
@@ -1865,7 +1875,7 @@ public static class ReportGenerator
     private static Feature[] FilterFeaturesForCiSummary(Feature[] features, DefaultDiagramsFetcher.DiagramAsCode[] diagrams, int maxDiagrams)
     {
         var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
-        var hasFailed = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ScenarioResult.Failed);
+        var hasFailed = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
 
         if (hasFailed)
         {
@@ -1873,7 +1883,7 @@ public static class ReportGenerator
             var filtered = new List<Feature>();
             foreach (var feature in features)
             {
-                var failedScenarios = feature.Scenarios.Where(s => s.Result == ScenarioResult.Failed).ToArray();
+                var failedScenarios = feature.Scenarios.Where(s => s.Result == ExecutionResult.Failed).ToArray();
                 if (failedScenarios.Length == 0) continue;
                 var taken = failedScenarios.Take(maxDiagrams - shown).ToArray();
                 filtered.Add(feature with { Scenarios = taken });

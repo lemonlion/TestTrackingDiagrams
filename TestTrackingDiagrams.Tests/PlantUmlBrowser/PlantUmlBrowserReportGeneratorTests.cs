@@ -16,7 +16,7 @@ public class PlantUmlBrowserReportGeneratorTests
                     Id = scenarioId,
                     DisplayName = "Creates an order",
                     IsHappyPath = true,
-                    Result = ScenarioResult.Passed
+                    Result = ExecutionResult.Passed
                 }
             ]
         }
@@ -124,8 +124,8 @@ public class PlantUmlBrowserReportGeneratorTests
                 DisplayName = "Feature",
                 Scenarios =
                 [
-                    new Scenario { Id = "t1", DisplayName = "S1", IsHappyPath = true, Result = ScenarioResult.Passed },
-                    new Scenario { Id = "t2", DisplayName = "S2", IsHappyPath = false, Result = ScenarioResult.Passed }
+                    new Scenario { Id = "t1", DisplayName = "S1", IsHappyPath = true, Result = ExecutionResult.Passed },
+                    new Scenario { Id = "t2", DisplayName = "S2", IsHappyPath = false, Result = ExecutionResult.Passed }
                 ]
             }
         };
@@ -273,7 +273,7 @@ public class PlantUmlBrowserReportGeneratorTests
                 DisplayName = "Feature",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "Scenario 1", IsHappyPath = true, Result = ScenarioResult.Passed }
+                    new Scenario { Id = "s1", DisplayName = "Scenario 1", IsHappyPath = true, Result = ExecutionResult.Passed }
                 ]
             }
         };

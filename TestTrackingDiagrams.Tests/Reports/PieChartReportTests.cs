@@ -24,8 +24,8 @@ public class PieChartReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Failed, ErrorMessage = "err" }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed, ErrorMessage = "err" }
                 ]
             }
         };
@@ -43,10 +43,10 @@ public class PieChartReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = Enumerable.Range(1, 8).Select(i => new Scenario { Id = $"p{i}", DisplayName = $"P{i}", Result = ScenarioResult.Passed })
+                Scenarios = Enumerable.Range(1, 8).Select(i => new Scenario { Id = $"p{i}", DisplayName = $"P{i}", Result = ExecutionResult.Passed })
                     .Concat([
-                        new Scenario { Id = "f1", DisplayName = "F1", Result = ScenarioResult.Failed, ErrorMessage = "err" },
-                        new Scenario { Id = "f2", DisplayName = "F2", Result = ScenarioResult.Failed, ErrorMessage = "err" }
+                        new Scenario { Id = "f1", DisplayName = "F1", Result = ExecutionResult.Failed, ErrorMessage = "err" },
+                        new Scenario { Id = "f2", DisplayName = "F2", Result = ExecutionResult.Failed, ErrorMessage = "err" }
                     ]).ToArray()
             }
         };
@@ -65,8 +65,8 @@ public class PieChartReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed }
                 ]
             }
         };
@@ -88,7 +88,7 @@ public class PieChartReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }]
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }]
             }
         };
 
@@ -106,10 +106,10 @@ public class PieChartReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Failed, ErrorMessage = "err" },
-                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Skipped },
-                    new Scenario { Id = "s4", DisplayName = "S4", Result = ScenarioResult.Bypassed }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed, ErrorMessage = "err" },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ExecutionResult.Skipped },
+                    new Scenario { Id = "s4", DisplayName = "S4", Result = ExecutionResult.Bypassed }
                 ]
             }
         };

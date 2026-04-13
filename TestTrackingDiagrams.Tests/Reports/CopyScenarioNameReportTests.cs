@@ -8,7 +8,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class CopyScenarioNameReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result)[] scenarios) =>
     [
         new Feature
         {
@@ -36,7 +36,7 @@ public class CopyScenarioNameReportTests
     [Fact]
     public void Report_scenario_contains_copy_button()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CopyScenarioBtn.html");
         Assert.Contains("copy-scenario-name", content);
     }
@@ -44,7 +44,7 @@ public class CopyScenarioNameReportTests
     [Fact]
     public void Report_contains_copy_javascript()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CopyScenarioJs.html");
         Assert.Contains("copy_scenario_name", content);
     }
@@ -52,7 +52,7 @@ public class CopyScenarioNameReportTests
     [Fact]
     public void Report_copy_button_uses_clipboard_api()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CopyScenarioClipboard.html");
         Assert.Contains("navigator.clipboard", content);
     }
@@ -60,7 +60,7 @@ public class CopyScenarioNameReportTests
     [Fact]
     public void Report_copy_button_has_title_attribute()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CopyScenarioTitle.html");
         Assert.Contains("title=\"Copy scenario name\"", content);
     }
@@ -68,7 +68,7 @@ public class CopyScenarioNameReportTests
     [Fact]
     public void Report_copy_button_does_not_trigger_scenario_toggle()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CopyScenarioNoToggle.html");
         Assert.Contains("stopPropagation", content);
     }

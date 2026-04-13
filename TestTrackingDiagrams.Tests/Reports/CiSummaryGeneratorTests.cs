@@ -12,13 +12,13 @@ public class CiSummaryGeneratorTests
         new() { DisplayName = name, Scenarios = scenarios };
 
     private static Scenario Passed(string name, string id = "") =>
-        new() { Id = id == "" ? Guid.NewGuid().ToString() : id, DisplayName = name, Result = ScenarioResult.Passed };
+        new() { Id = id == "" ? Guid.NewGuid().ToString() : id, DisplayName = name, Result = ExecutionResult.Passed };
 
     private static Scenario Failed(string name, string error = "Assertion failed", string? stack = "at Test.cs:line 1", string id = "") =>
-        new() { Id = id == "" ? Guid.NewGuid().ToString() : id, DisplayName = name, Result = ScenarioResult.Failed, ErrorMessage = error, ErrorStackTrace = stack };
+        new() { Id = id == "" ? Guid.NewGuid().ToString() : id, DisplayName = name, Result = ExecutionResult.Failed, ErrorMessage = error, ErrorStackTrace = stack };
 
     private static Scenario Skipped(string name) =>
-        new() { Id = Guid.NewGuid().ToString(), DisplayName = name, Result = ScenarioResult.Skipped };
+        new() { Id = Guid.NewGuid().ToString(), DisplayName = name, Result = ExecutionResult.Skipped };
 
     private static DefaultDiagramsFetcher.DiagramAsCode Diagram(string testId, string codeBehind = "@startuml\nA -> B\n@enduml") =>
         new(testId, "", codeBehind);

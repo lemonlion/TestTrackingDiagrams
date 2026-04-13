@@ -14,7 +14,7 @@ public class DependencyFilterReportGeneratorTests
                 Id = s.id,
                 DisplayName = s.name,
                 IsHappyPath = true,
-                Result = ScenarioResult.Passed
+                Result = ExecutionResult.Passed
             }).ToArray()
         }
     ];

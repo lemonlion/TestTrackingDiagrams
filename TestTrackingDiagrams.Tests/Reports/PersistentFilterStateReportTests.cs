@@ -8,7 +8,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class PersistentFilterStateReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result)[] scenarios) =>
     [
         new Feature
         {
@@ -36,7 +36,7 @@ public class PersistentFilterStateReportTests
     [Fact]
     public void Report_does_not_use_localstorage()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "NoLocalStorage.html");
         Assert.DoesNotContain("localStorage", content);
         Assert.DoesNotContain("ttd-filter-state", content);
@@ -45,7 +45,7 @@ public class PersistentFilterStateReportTests
     [Fact]
     public void Report_does_not_call_restore_filter_state_on_load()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "NoRestoreOnLoad.html");
         // restore_filter_state exists as no-op stub but is never called in DOMContentLoaded
         Assert.DoesNotContain("restore_filter_state();", content);
@@ -54,7 +54,7 @@ public class PersistentFilterStateReportTests
     [Fact]
     public void Report_still_parses_url_hash_on_load()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "UrlHashOnLoad.html");
         Assert.Contains("parse_url_hash", content);
     }

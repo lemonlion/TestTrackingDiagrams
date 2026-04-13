@@ -1,3 +1,4 @@
+using Reqnroll;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.ReqNRoll.xUnit2;
@@ -37,10 +38,10 @@ internal static class ScenarioInfoEnumerableExtensions
                                 Id = x.ScenarioId,
                                 DisplayName = x.ScenarioTitle,
                                 IsHappyPath = x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
-                                Result = x.ExecutionStatus.ToScenarioResult(),
+                                Result = x.ExecutionStatus.ToExecutionResult(),
                                 ErrorMessage = x.TestError?.Message,
                                 ErrorStackTrace = x.TestError?.StackTrace,                                  Duration = x.Duration,                                Steps = x.Steps.Count > 0
-                                    ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
+                                    ? MapSteps(x.Steps)
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
                                 Rule = x.Rule,
@@ -50,5 +51,23 @@ internal static class ScenarioInfoEnumerableExtensions
                         }).ToArray()
                 };
             }).ToArray();
+    }
+
+    private static ScenarioStep[] MapSteps(List<ReqNRollStepInfo> steps)
+    {
+        var mapped = new ScenarioStep[steps.Count];
+        var priorFailure = false;
+        for (var i = 0; i < steps.Count; i++)
+        {
+            mapped[i] = new ScenarioStep
+            {
+                Keyword = steps[i].Keyword,
+                Text = steps[i].Text,
+                Status = steps[i].Status.ToStepResult(priorFailure),
+            };
+            if (steps[i].Status == ScenarioExecutionStatus.TestError || steps[i].Status == ScenarioExecutionStatus.BindingError)
+                priorFailure = true;
+        }
+        return mapped;
     }
 }

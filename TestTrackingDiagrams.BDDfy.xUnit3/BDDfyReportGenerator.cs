@@ -61,7 +61,7 @@ public static class BDDfyReportGenerator
         bool generateBlankOnFailedTests = false,
         bool lazyLoadImages = true)
     {
-        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
         {
             WriteFile(string.Empty, fileName);
             return;
@@ -253,9 +253,9 @@ public static class BDDfyReportGenerator
         {
             var numberOfFeatures = features.Length;
             var scenarios = features.SelectMany(x => x.Scenarios).ToArray();
-            var passedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Passed).ToArray();
-            var skippedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Skipped).ToArray();
-            var failedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Failed).ToArray();
+            var passedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Passed).ToArray();
+            var skippedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Skipped).ToArray();
+            var failedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Failed).ToArray();
             var overallStatus = failedScenarios.Any() ? "Failed" : "Passed";
 
             body.Append($"""
@@ -288,7 +288,7 @@ public static class BDDfyReportGenerator
         foreach (var feature in features)
         {
             var storyDescription = allScenarios.FirstOrDefault(s => s.StoryTitle == feature.DisplayName)?.StoryDescription;
-            var hasFailures = feature.Scenarios.Any(s => s.Result == ScenarioResult.Failed);
+            var hasFailures = feature.Scenarios.Any(s => s.Result == ExecutionResult.Failed);
 
             body.Append($"""
                      <details class="feature">
@@ -304,7 +304,7 @@ public static class BDDfyReportGenerator
 
             foreach (var scenario in orderedScenarios)
             {
-                var failed = scenario.Result == ScenarioResult.Failed;
+                var failed = scenario.Result == ExecutionResult.Failed;
                 body.Append($"""
                          <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}">
                             <summary class="h3{(failed ? " failed" : "")}">{WebUtility.HtmlEncode(scenario.DisplayName)}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}</summary>
@@ -383,7 +383,7 @@ public static class BDDfyReportGenerator
         string title,
         bool generateBlankOnFailedTests = false)
     {
-        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
         {
             WriteFile(string.Empty, fileName);
             return;

@@ -4,16 +4,29 @@ namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
 public static class ResultExtensions
 {
-    public static ScenarioResult ToScenarioResult(this TestStack.BDDfy.Result result)
+    public static ExecutionResult ToExecutionResult(this TestStack.BDDfy.Result result)
     {
         return result switch
         {
-            TestStack.BDDfy.Result.Passed => ScenarioResult.Passed,
-            TestStack.BDDfy.Result.Failed => ScenarioResult.Failed,
-            TestStack.BDDfy.Result.Inconclusive => ScenarioResult.Skipped,
-            TestStack.BDDfy.Result.NotImplemented => ScenarioResult.Skipped,
-            TestStack.BDDfy.Result.NotExecuted => ScenarioResult.Skipped,
-            _ => ScenarioResult.Failed
+            TestStack.BDDfy.Result.Passed => ExecutionResult.Passed,
+            TestStack.BDDfy.Result.Failed => ExecutionResult.Failed,
+            TestStack.BDDfy.Result.Inconclusive => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotImplemented => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotExecuted => ExecutionResult.Skipped,
+            _ => ExecutionResult.Failed
+        };
+    }
+
+    internal static ExecutionResult ToStepResult(this TestStack.BDDfy.Result result, bool priorFailure)
+    {
+        return result switch
+        {
+            TestStack.BDDfy.Result.Passed => ExecutionResult.Passed,
+            TestStack.BDDfy.Result.Failed => ExecutionResult.Failed,
+            TestStack.BDDfy.Result.Inconclusive => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotImplemented => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotExecuted => priorFailure ? ExecutionResult.SkippedAfterFailure : ExecutionResult.Skipped,
+            _ => ExecutionResult.Failed
         };
     }
 }

@@ -13,4 +13,4 @@ public record BDDfyScenarioInfo
     public TimeSpan Duration { get; init; }
 }
 
-public record BDDfyStepInfo(string Keyword, string Text);
+public record BDDfyStepInfo(string Keyword, string Text, TestStack.BDDfy.Result Result = TestStack.BDDfy.Result.NotExecuted);

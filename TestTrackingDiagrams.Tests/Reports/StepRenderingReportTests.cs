@@ -59,8 +59,8 @@ public class StepRenderingReportTests
             Id = "s1", DisplayName = "Test",
             Steps =
             [
-                new ScenarioStep { Keyword = "Given", Text = "something", Status = ScenarioResult.Passed },
-                new ScenarioStep { Keyword = "When", Text = "action", Status = ScenarioResult.Failed }
+                new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed },
+                new ScenarioStep { Keyword = "When", Text = "action", Status = ExecutionResult.Failed }
             ]
         };
         var content = GenerateReport(MakeFeatures(scenario), "StepStatus.html");
@@ -203,7 +203,7 @@ public class StepRenderingReportTests
         var scenario = new Scenario
         {
             Id = "s1", DisplayName = "Bypassed test",
-            Result = ScenarioResult.Bypassed
+            Result = ExecutionResult.Bypassed
         };
         var content = GenerateReport(MakeFeatures(scenario), "Bypassed.html");
         Assert.Contains("data-status=\"Bypassed\"", content);
@@ -215,7 +215,7 @@ public class StepRenderingReportTests
         var scenario = new Scenario
         {
             Id = "s1", DisplayName = "SkippedAfterFailure test",
-            Result = ScenarioResult.SkippedAfterFailure
+            Result = ExecutionResult.SkippedAfterFailure
         };
         var content = GenerateReport(MakeFeatures(scenario), "SkippedAfterFailure.html");
         Assert.Contains("data-status=\"SkippedAfterFailure\"", content);
@@ -232,11 +232,11 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ScenarioResult.Bypassed }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ExecutionResult.Bypassed }
                     ]
                 }
             ]
@@ -256,11 +256,11 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "another passed child", Status = ScenarioResult.Passed }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "another passed child", Status = ExecutionResult.Passed }
                     ]
                 }
             ]
@@ -281,11 +281,11 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ExecutionResult.Skipped }
                     ]
                 }
             ]
@@ -306,16 +306,16 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "outer step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
                         new ScenarioStep
                         {
                             Keyword = "And", Text = "mid step",
-                            Status = ScenarioResult.Passed,
+                            Status = ExecutionResult.Passed,
                             SubSteps =
                             [
-                                new ScenarioStep { Keyword = "And", Text = "deep skipped", Status = ScenarioResult.Skipped }
+                                new ScenarioStep { Keyword = "And", Text = "deep skipped", Status = ExecutionResult.Skipped }
                             ]
                         }
                     ]
@@ -337,12 +337,12 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ScenarioResult.Bypassed },
-                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ExecutionResult.Bypassed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ExecutionResult.Skipped }
                     ]
                 }
             ]
@@ -364,11 +364,11 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "skipped-after-failure child", Status = ScenarioResult.SkippedAfterFailure }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped-after-failure child", Status = ExecutionResult.SkippedAfterFailure }
                     ]
                 }
             ]
@@ -388,11 +388,11 @@ public class StepRenderingReportTests
                 new ScenarioStep
                 {
                     Keyword = "Given", Text = "a composite step",
-                    Status = ScenarioResult.Passed,
+                    Status = ExecutionResult.Passed,
                     SubSteps =
                     [
-                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
-                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ExecutionResult.Skipped }
                     ]
                 }
             ]

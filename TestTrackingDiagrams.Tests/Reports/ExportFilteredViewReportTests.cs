@@ -9,7 +9,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class ExportFilteredViewReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result)[] scenarios) =>
     [
         new Feature
         {
@@ -37,7 +37,7 @@ public class ExportFilteredViewReportTests
     [Fact]
     public void Report_contains_export_button()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "ExportBtn.html");
         Assert.Contains("export-filtered", content);
     }
@@ -45,7 +45,7 @@ public class ExportFilteredViewReportTests
     [Fact]
     public void Report_contains_export_html_option()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "ExportHtml.html");
         Assert.Contains("export_html", content);
     }
@@ -53,7 +53,7 @@ public class ExportFilteredViewReportTests
     [Fact]
     public void Report_contains_export_csv_option()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "ExportCsv.html");
         Assert.Contains("export_csv", content);
     }
@@ -61,7 +61,7 @@ public class ExportFilteredViewReportTests
     [Fact]
     public void Report_export_uses_blob_download()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "ExportBlob.html");
         Assert.Contains("Blob", content);
         Assert.Contains("download", content);

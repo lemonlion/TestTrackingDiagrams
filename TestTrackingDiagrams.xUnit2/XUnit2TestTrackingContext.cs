@@ -24,7 +24,7 @@ public static class XUnit2TestTrackingContext
     internal static void ClearCurrentTest() =>
         CurrentTest.Value = null;
 
-    internal static void UpdateResult(string testId, Reports.ScenarioResult result, string? errorMessage = null, string? errorStackTrace = null)
+    internal static void UpdateResult(string testId, Reports.ExecutionResult result, string? errorMessage = null, string? errorStackTrace = null)
     {
         if (CollectedScenarios.TryGetValue(testId, out var info))
         {

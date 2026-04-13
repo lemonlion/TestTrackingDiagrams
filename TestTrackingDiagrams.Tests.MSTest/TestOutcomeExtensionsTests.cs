@@ -8,56 +8,56 @@ namespace TestTrackingDiagrams.Tests.MSTest;
 public class TestOutcomeExtensionsTests
 {
     [TestMethod]
-    public void Passed_ShouldMapToScenarioResultPassed()
+    public void Passed_ShouldMapToExecutionResultPassed()
     {
-        Assert.AreEqual(ScenarioResult.Passed, UnitTestOutcome.Passed.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Passed, UnitTestOutcome.Passed.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Failed_ShouldMapToScenarioResultFailed()
+    public void Failed_ShouldMapToExecutionResultFailed()
     {
-        Assert.AreEqual(ScenarioResult.Failed, UnitTestOutcome.Failed.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Failed, UnitTestOutcome.Failed.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Error_ShouldMapToScenarioResultFailed()
+    public void Error_ShouldMapToExecutionResultFailed()
     {
-        Assert.AreEqual(ScenarioResult.Failed, UnitTestOutcome.Error.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Failed, UnitTestOutcome.Error.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Timeout_ShouldMapToScenarioResultFailed()
+    public void Timeout_ShouldMapToExecutionResultFailed()
     {
-        Assert.AreEqual(ScenarioResult.Failed, UnitTestOutcome.Timeout.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Failed, UnitTestOutcome.Timeout.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Aborted_ShouldMapToScenarioResultFailed()
+    public void Aborted_ShouldMapToExecutionResultFailed()
     {
-        Assert.AreEqual(ScenarioResult.Failed, UnitTestOutcome.Aborted.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Failed, UnitTestOutcome.Aborted.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Inconclusive_ShouldMapToScenarioResultSkipped()
+    public void Inconclusive_ShouldMapToExecutionResultSkipped()
     {
-        Assert.AreEqual(ScenarioResult.Skipped, UnitTestOutcome.Inconclusive.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Skipped, UnitTestOutcome.Inconclusive.ToExecutionResult());
     }
 
     [TestMethod]
-    public void InProgress_ShouldMapToScenarioResultSkipped()
+    public void InProgress_ShouldMapToExecutionResultSkipped()
     {
-        Assert.AreEqual(ScenarioResult.Skipped, UnitTestOutcome.InProgress.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Skipped, UnitTestOutcome.InProgress.ToExecutionResult());
     }
 
     [TestMethod]
-    public void NotRunnable_ShouldMapToScenarioResultSkipped()
+    public void NotRunnable_ShouldMapToExecutionResultSkipped()
     {
-        Assert.AreEqual(ScenarioResult.Skipped, UnitTestOutcome.NotRunnable.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Skipped, UnitTestOutcome.NotRunnable.ToExecutionResult());
     }
 
     [TestMethod]
-    public void Unknown_ShouldMapToScenarioResultSkipped()
+    public void Unknown_ShouldMapToExecutionResultSkipped()
     {
-        Assert.AreEqual(ScenarioResult.Skipped, UnitTestOutcome.Unknown.ToScenarioResult());
+        Assert.AreEqual(ExecutionResult.Skipped, UnitTestOutcome.Unknown.ToExecutionResult());
     }
 }

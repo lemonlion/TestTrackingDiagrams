@@ -26,10 +26,10 @@ public class ScenarioStepModelTests
         {
             Keyword = "When",
             Text = "the request is sent",
-            Status = ScenarioResult.Passed,
+            Status = ExecutionResult.Passed,
             Duration = TimeSpan.FromMilliseconds(500)
         };
-        Assert.Equal(ScenarioResult.Passed, step.Status);
+        Assert.Equal(ExecutionResult.Passed, step.Status);
         Assert.Equal(TimeSpan.FromMilliseconds(500), step.Duration);
     }
 
@@ -147,17 +147,17 @@ public class ScenarioStepModelTests
     }
 
     [Fact]
-    public void ScenarioResult_has_bypassed_and_skipped_after_failure_values()
+    public void ExecutionResult_has_bypassed_and_skipped_after_failure_values()
     {
-        Assert.Equal(3, (int)ScenarioResult.Bypassed);
-        Assert.Equal(4, (int)ScenarioResult.SkippedAfterFailure);
+        Assert.Equal(3, (int)ExecutionResult.Bypassed);
+        Assert.Equal(4, (int)ExecutionResult.SkippedAfterFailure);
     }
 
     [Fact]
-    public void ScenarioResult_original_values_unchanged()
+    public void ExecutionResult_original_values_unchanged()
     {
-        Assert.Equal(0, (int)ScenarioResult.Passed);
-        Assert.Equal(1, (int)ScenarioResult.Failed);
-        Assert.Equal(2, (int)ScenarioResult.Skipped);
+        Assert.Equal(0, (int)ExecutionResult.Passed);
+        Assert.Equal(1, (int)ExecutionResult.Failed);
+        Assert.Equal(2, (int)ExecutionResult.Skipped);
     }
 }

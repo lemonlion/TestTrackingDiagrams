@@ -8,7 +8,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class CollapseExpandAllReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result)[] scenarios) =>
     [
         new Feature
         {
@@ -36,7 +36,7 @@ public class CollapseExpandAllReportTests
     [Fact]
     public void Report_contains_collapse_expand_all_button()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CollapseExpandBtn.html");
         Assert.Contains("collapse-expand-all", content);
     }
@@ -44,7 +44,7 @@ public class CollapseExpandAllReportTests
     [Fact]
     public void Report_contains_collapse_expand_javascript()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CollapseExpandJs.html");
         Assert.Contains("toggle_expand_collapse", content);
     }
@@ -52,7 +52,7 @@ public class CollapseExpandAllReportTests
     [Fact]
     public void Report_collapse_expand_buttons_have_correct_text()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "CollapseExpandDefault.html");
         Assert.Contains("Expand All Features", content);
         Assert.Contains("Expand All Scenarios", content);

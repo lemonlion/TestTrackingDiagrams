@@ -20,9 +20,9 @@ public static partial class CiSummaryGenerator
     {
         var sb = new StringBuilder();
         var allScenarios = features.SelectMany(f => f.Scenarios).ToArray();
-        var passed = allScenarios.Count(s => s.Result == ScenarioResult.Passed);
-        var failed = allScenarios.Count(s => s.Result == ScenarioResult.Failed);
-        var skipped = allScenarios.Count(s => s.Result == ScenarioResult.Skipped);
+        var passed = allScenarios.Count(s => s.Result == ExecutionResult.Passed);
+        var failed = allScenarios.Count(s => s.Result == ExecutionResult.Failed);
+        var skipped = allScenarios.Count(s => s.Result == ExecutionResult.Skipped);
         var total = allScenarios.Length;
         var hasFailed = failed > 0;
         var status = hasFailed ? "❌ Failed" : "✅ Passed";
@@ -67,7 +67,7 @@ public static partial class CiSummaryGenerator
         var shown = 0;
         foreach (var feature in features)
         {
-            var failedScenarios = feature.Scenarios.Where(s => s.Result == ScenarioResult.Failed);
+            var failedScenarios = feature.Scenarios.Where(s => s.Result == ExecutionResult.Failed);
             foreach (var scenario in failedScenarios)
             {
                 if (shown >= maxDiagrams) break;

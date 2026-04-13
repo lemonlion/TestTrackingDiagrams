@@ -24,7 +24,7 @@ public class CategoryMultiSelectReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Categories = ["smoke"] }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Categories = ["smoke"] }
                 ]
             }
         };
@@ -43,7 +43,7 @@ public class CategoryMultiSelectReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Categories = ["smoke", "api"] }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Categories = ["smoke", "api"] }
                 ]
             }
         };
@@ -64,7 +64,7 @@ public class CategoryMultiSelectReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Categories = ["smoke"] }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Categories = ["smoke"] }
                 ]
             }
         };
@@ -83,7 +83,7 @@ public class CategoryMultiSelectReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Categories = ["smoke"] }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Categories = ["smoke"] }
                 ]
             }
         };

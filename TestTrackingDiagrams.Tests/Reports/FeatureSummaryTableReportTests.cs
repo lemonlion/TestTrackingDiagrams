@@ -24,8 +24,8 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "OrderService",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "Place order", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "Cancel order", Result = ScenarioResult.Failed, ErrorMessage = "err" }
+                    new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "Cancel order", Result = ExecutionResult.Failed, ErrorMessage = "err" }
                 ]
             }
         };
@@ -45,9 +45,9 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Failed, ErrorMessage = "err" },
-                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Skipped }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed, ErrorMessage = "err" },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ExecutionResult.Skipped }
                 ]
             }
         };
@@ -89,8 +89,8 @@ public class FeatureSummaryTableReportTests
                         Id = "s1", DisplayName = "S1",
                         Steps =
                         [
-                            new ScenarioStep { Keyword = "Given", Text = "x", Status = ScenarioResult.Passed },
-                            new ScenarioStep { Keyword = "When", Text = "y", Status = ScenarioResult.Failed }
+                            new ScenarioStep { Keyword = "Given", Text = "x", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "y", Status = ExecutionResult.Failed }
                         ]
                     }
                 ]
@@ -111,7 +111,7 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2) }
                 ]
             }
         };
@@ -132,9 +132,9 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) },
-                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(3) }
                 ]
             }
         };
@@ -154,9 +154,9 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) },
-                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(3) }
                 ]
             }
         };
@@ -176,9 +176,9 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(5) },
-                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(5) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(3) }
                 ]
             }
         };
@@ -197,7 +197,7 @@ public class FeatureSummaryTableReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }
                 ]
             }
         };

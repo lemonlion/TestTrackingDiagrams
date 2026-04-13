@@ -102,4 +102,75 @@ public class BDDfyScenarioInfoExtensionsTests
         var features = new[] { info }.ToFeatures();
         Assert.Equal(TimeSpan.FromMilliseconds(1234), features[0].Scenarios[0].Duration);
     }
+
+    // ─── Step status mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_step_result_passed()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something", TestStack.BDDfy.Result.Passed)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Passed, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_result_failed()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something", TestStack.BDDfy.Result.Failed)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_result_inconclusive_to_skipped()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something", TestStack.BDDfy.Result.Inconclusive)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_step_result_not_implemented_to_skipped()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something", TestStack.BDDfy.Result.NotImplemented)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![0].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_not_executed_after_failure_to_skipped_after_failure()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "this fails", TestStack.BDDfy.Result.Failed),
+            new BDDfyStepInfo("Then", "this was not executed", TestStack.BDDfy.Result.NotExecuted)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Steps![0].Status);
+        Assert.Equal(ExecutionResult.SkippedAfterFailure, features[0].Scenarios[0].Steps![1].Status);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_not_executed_without_prior_failure_to_skipped()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "this passed", TestStack.BDDfy.Result.Passed),
+            new BDDfyStepInfo("Then", "this was not executed", TestStack.BDDfy.Result.NotExecuted)
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
+    }
 }

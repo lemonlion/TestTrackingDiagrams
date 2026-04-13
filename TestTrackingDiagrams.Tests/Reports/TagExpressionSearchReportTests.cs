@@ -22,7 +22,7 @@ public class TagExpressionSearchReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }]
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }]
             }
         };
 
@@ -38,7 +38,7 @@ public class TagExpressionSearchReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }]
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }]
             }
         };
 
@@ -56,7 +56,7 @@ public class TagExpressionSearchReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Labels = ["important", "regression"] }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Labels = ["important", "regression"] }
                 ]
             }
         };
@@ -73,7 +73,7 @@ public class TagExpressionSearchReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }]
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }]
             }
         };
 
@@ -92,7 +92,7 @@ public class TagExpressionSearchReportTests
             new Feature
             {
                 DisplayName = "F1",
-                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }]
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }]
             }
         };
 

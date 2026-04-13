@@ -38,16 +38,34 @@ internal static class ScenarioInfoExtensions
                                 Id = x.TestId,
                                 DisplayName = x.ScenarioTitle,
                                 IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
-                                Result = x.Result.ToScenarioResult(),
+                                Result = x.Result.ToExecutionResult(),
                                 Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,
                                 Steps = x.Steps.Count > 0
-                                    ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
+                                    ? MapSteps(x.Steps)
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
                             };
                         }).ToArray())
                 };
             }).ToArray();
+    }
+
+    private static ScenarioStep[] MapSteps(List<BDDfyStepInfo> steps)
+    {
+        var mapped = new ScenarioStep[steps.Count];
+        var priorFailure = false;
+        for (var i = 0; i < steps.Count; i++)
+        {
+            mapped[i] = new ScenarioStep
+            {
+                Keyword = steps[i].Keyword,
+                Text = steps[i].Text,
+                Status = steps[i].Result.ToStepResult(priorFailure),
+            };
+            if (steps[i].Result == TestStack.BDDfy.Result.Failed)
+                priorFailure = true;
+        }
+        return mapped;
     }
 
     private static Scenario[] DeduplicateScenarioTitles(Scenario[] scenarios)

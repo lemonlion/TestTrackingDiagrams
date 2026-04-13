@@ -24,7 +24,7 @@ internal static class TestContextEnumerableExtensions
                         .Select(x => new Scenario
                         {
                             Id = x.TestId,
-                            Result = x.Outcome.ToScenarioResult(),
+                            Result = x.Outcome.ToExecutionResult(),
                             DisplayName = x.TestMethodName.Replace("_", " "),
                             IsHappyPath = x.IsHappyPath,
                             ErrorMessage = x.ErrorMessage,

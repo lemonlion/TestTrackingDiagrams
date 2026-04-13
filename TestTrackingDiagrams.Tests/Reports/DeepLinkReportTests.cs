@@ -8,7 +8,7 @@ namespace TestTrackingDiagrams.Tests.Reports;
 /// </summary>
 public class DeepLinkReportTests
 {
-    private static Feature[] MakeFeatures(params (string id, string name, ScenarioResult result)[] scenarios) =>
+    private static Feature[] MakeFeatures(params (string id, string name, ExecutionResult result)[] scenarios) =>
     [
         new Feature
         {
@@ -36,7 +36,7 @@ public class DeepLinkReportTests
     [Fact]
     public void Report_scenario_has_id_attribute()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "DeepLinkId.html");
         Assert.Contains("id=\"scenario-", content);
     }
@@ -44,7 +44,7 @@ public class DeepLinkReportTests
     [Fact]
     public void Report_scenario_anchor_is_derived_from_name()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "DeepLinkName.html");
         Assert.Contains("id=\"scenario-create-order\"", content);
     }
@@ -52,7 +52,7 @@ public class DeepLinkReportTests
     [Fact]
     public void Report_scenario_anchor_handles_special_characters()
     {
-        var features = MakeFeatures(("t1", "Order (with VAT) creates 200 OK", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Order (with VAT) creates 200 OK", ExecutionResult.Passed));
         var content = GenerateReport(features, "DeepLinkSpecialChars.html");
         Assert.Contains("id=\"scenario-order-with-vat-creates-200-ok\"", content);
     }
@@ -60,7 +60,7 @@ public class DeepLinkReportTests
     [Fact]
     public void Report_expands_scenario_from_hash_on_load()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "DeepLinkHashExpand.html");
         Assert.Contains("location.hash", content);
     }
@@ -68,7 +68,7 @@ public class DeepLinkReportTests
     [Fact]
     public void Report_scenario_has_anchor_link_button()
     {
-        var features = MakeFeatures(("t1", "Create order", ScenarioResult.Passed));
+        var features = MakeFeatures(("t1", "Create order", ExecutionResult.Passed));
         var content = GenerateReport(features, "DeepLinkAnchorBtn.html");
         Assert.Contains("scenario-link", content);
     }

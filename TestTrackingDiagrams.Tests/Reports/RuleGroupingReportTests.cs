@@ -24,8 +24,8 @@ public class RuleGroupingReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "Create account", Result = ScenarioResult.Passed, Rule = "Account creation" },
-                    new Scenario { Id = "s2", DisplayName = "Verify email", Result = ScenarioResult.Passed, Rule = "Account creation" }
+                    new Scenario { Id = "s1", DisplayName = "Create account", Result = ExecutionResult.Passed, Rule = "Account creation" },
+                    new Scenario { Id = "s2", DisplayName = "Verify email", Result = ExecutionResult.Passed, Rule = "Account creation" }
                 ]
             }
         };
@@ -45,7 +45,7 @@ public class RuleGroupingReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }
                 ]
             }
         };
@@ -64,8 +64,8 @@ public class RuleGroupingReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "Ungrouped", Result = ScenarioResult.Passed },
-                    new Scenario { Id = "s2", DisplayName = "Grouped", Result = ScenarioResult.Passed, Rule = "My Rule" }
+                    new Scenario { Id = "s1", DisplayName = "Ungrouped", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "Grouped", Result = ExecutionResult.Passed, Rule = "My Rule" }
                 ]
             }
         };
@@ -86,8 +86,8 @@ public class RuleGroupingReportTests
                 DisplayName = "F1",
                 Scenarios =
                 [
-                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Rule = "Rule A" },
-                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Rule = "Rule B" }
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed, Rule = "Rule A" },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed, Rule = "Rule B" }
                 ]
             }
         };
