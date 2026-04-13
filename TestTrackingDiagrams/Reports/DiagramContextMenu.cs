@@ -1780,6 +1780,9 @@ public static class DiagramContextMenu
                 // Transparent hover-detection rect covering the note bounding box.
                 // This ensures mouseenter/mouseleave fire reliably even when other
                 // SVG elements (arrows, lifeline labels) overlap the note area.
+                // Inserted inside mainG BEFORE the note's path elements so that
+                // text elements (which follow paths in SVG order) remain on top
+                // and native text selection is preserved.
                 var hoverRect = document.createElementNS(SVGNS, 'rect');
                 hoverRect.setAttribute('x', bbox.x);
                 hoverRect.setAttribute('y', bbox.y);
@@ -1794,7 +1797,7 @@ public static class DiagramContextMenu
                 hoverRect.addEventListener('dblclick', function(ev) {
                     ev.stopPropagation(); ev.preventDefault(); onCycle();
                 });
-                svg.appendChild(hoverRect);
+                grp.paths[0].parentNode.insertBefore(hoverRect, grp.paths[0]);
 
                 // Insert buttons on top (after hoverRect so they receive clicks)
                 buttons.forEach(function(b) { svg.appendChild(b); });

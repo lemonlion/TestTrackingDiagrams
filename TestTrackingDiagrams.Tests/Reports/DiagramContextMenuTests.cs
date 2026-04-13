@@ -496,16 +496,23 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void CreateNoteButtons_hover_rect_inserted_before_buttons()
+    public void CreateNoteButtons_hover_rect_inserted_inside_mainG_before_note_paths()
     {
         var funcBody = GetFunction("createNoteButtons");
-        // hoverRect appended to SVG before buttons so buttons stay on top for clicks
-        var hoverRectAppend = funcBody.IndexOf("svg.appendChild(hoverRect)");
-        var buttonsAppend = funcBody.IndexOf("svg.appendChild(b)");
-        Assert.True(hoverRectAppend >= 0, "hoverRect should be appended to svg");
-        Assert.True(buttonsAppend >= 0, "buttons should be appended to svg");
-        Assert.True(hoverRectAppend < buttonsAppend,
-            "hoverRect must be appended before buttons so buttons remain on top");
+        // hoverRect must be inserted inside mainG before the note's first path element.
+        // This keeps text elements (which follow paths in SVG order) on top of the
+        // hoverRect, allowing native text selection. If the hoverRect were appended
+        // to the SVG root it would sit above mainG and block all pointer events to text.
+        Assert.Contains("grp.paths[0].parentNode.insertBefore(hoverRect, grp.paths[0])", funcBody);
+        Assert.DoesNotContain("svg.appendChild(hoverRect)", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_buttons_appended_to_svg_root()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Buttons must be appended to the SVG root so they render on top of everything
+        Assert.Contains("svg.appendChild(b)", funcBody);
     }
 
     [Fact]

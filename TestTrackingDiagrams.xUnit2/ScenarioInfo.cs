@@ -6,7 +6,7 @@ public class ScenarioInfo
 {
     public required string Id { get; init; }
     public required string FeatureName { get; init; }
-    public required string ScenarioName { get; init; }
+    public required string ScenarioName { get; set; }
     public required string MethodMatchKey { get; init; }
     public string? Endpoint { get; init; }
     public bool IsHappyPath { get; init; }

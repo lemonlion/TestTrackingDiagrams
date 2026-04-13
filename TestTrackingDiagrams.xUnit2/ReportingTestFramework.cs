@@ -117,11 +117,16 @@ internal sealed class TestResultCapturingSink : IMessageSink
     /// </summary>
     internal void ApplyResults()
     {
+        var matchedTestIds = new HashSet<string>();
+
         foreach (var outcome in Outcomes)
         {
             // Find the matching scenario(s) by prefix match on the xUnit display name
             foreach (var (testId, scenario) in XUnit2TestTrackingContext.CollectedScenarios)
             {
+                if (matchedTestIds.Contains(testId))
+                    continue;
+
                 if (outcome.DisplayName == scenario.MethodMatchKey ||
                     outcome.DisplayName.StartsWith(scenario.MethodMatchKey + "("))
                 {
@@ -131,6 +136,14 @@ internal sealed class TestResultCapturingSink : IMessageSink
                     scenario.Duration = outcome.ExecutionTime > 0
                         ? TimeSpan.FromSeconds((double)outcome.ExecutionTime)
                         : null;
+
+                    // Update scenario name from the full xUnit display name so that
+                    // [InlineData] / [Theory] test cases include their parameters
+                    // (e.g. "Loads successfully [type: \"Purchase\"]") instead of
+                    // all sharing the bare method name.
+                    scenario.ScenarioName = DisplayNameFormatter.FormatScenarioDisplayName(outcome.DisplayName);
+
+                    matchedTestIds.Add(testId);
                     break;
                 }
             }
