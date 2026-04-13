@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>POC — Zoom Toggle Investigation for Large Diagrams</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 2em; background: #f5f5f5; max-width: 1200px; margin: 0 auto; }
+h1 { margin-bottom: 0.3em; }
+h2 { margin-top: 2em; margin-bottom: 0.5em; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+h3 { margin-top: 1.5em; }
+.issue-box { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.5em; margin: 1em 0; }
+.issue-box p { color: #555; margin-bottom: 0.8em; line-height: 1.5; }
+.label { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 8px; }
+.label-current { background: #fdd; color: #c00; }
+.label-option { background: #def; color: #036; }
+.label-recommended { background: #dfd; color: #070; }
+
+/* ─── Current zoom button CSS (from DiagramContextMenu.cs) ─── */
+.diagram-zoom-toggle {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(180, 180, 180, 0.6);
+    border-radius: 4px;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 5px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+[data-diagram-type]:hover > .diagram-zoom-toggle {
+    opacity: 0.4;
+    pointer-events: auto;
+}
+.diagram-zoom-toggle:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+/* Current SVG sizing */
+.plantuml-browser svg {
+    max-width: 100%;
+    height: auto;
+}
+.plantuml-browser {
+    overflow-x: auto;
+    padding-left: 1em;
+}
+
+/* ─── Option A: Sticky zoom button ─── */
+.option-a .diagram-zoom-toggle-sticky {
+    position: sticky;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(180, 180, 180, 0.6);
+    border-radius: 4px;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 5px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    float: left;
+    margin-top: -28px;
+    margin-bottom: -28px;
+}
+.option-a .diagram-zoom-toggle-sticky:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+/* ─── Option B: Always-visible fixed button ─── */
+.option-b .diagram-zoom-toggle-visible {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(140, 140, 140, 0.8);
+    border-radius: 4px;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 5px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+.option-b .diagram-zoom-toggle-visible:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* ─── Option C: Sticky toolbar above diagram ─── */
+.option-c .diagram-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid #ddd;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #666;
+}
+.option-c .diagram-toolbar button {
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+.option-c .diagram-toolbar button:hover {
+    background: #e0e0e0;
+}
+.option-c .diagram-toolbar button.active {
+    background: #d0e4ff;
+    border-color: #6aa4e0;
+}
+
+/* ─── Shared: zoomed state ─── */
+.diagram-natural-size {
+    overflow: auto !important;
+    max-height: 80vh;
+    cursor: grab;
+}
+.diagram-natural-size svg {
+    max-width: none !important;
+}
+
+/* Container base */
+.diagram-container {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 0.5em 0;
+    position: relative;
+    background: white;
+}
+</style>
+</head>
+<body>
+
+<h1>Zoom Toggle Investigation — Large Diagrams</h1>
+<p style="color:#666; margin-bottom: 2em;">
+    This POC investigates why the zoom toggle button isn't appearing for large BrowserJs-rendered
+    PlantUML diagrams, and proposes several fixes. Each section contains a simulated large SVG
+    diagram to test the zoom behavior.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>Current Behavior <span class="label label-current">BUG</span></h2>
+
+<div class="issue-box">
+    <h3>Problem</h3>
+    <p>
+        The zoom toggle (⤢) should appear in the top-left corner when hovering over a diagram,
+        but it doesn't show for large BrowserJs-rendered diagrams. The button uses
+        <code>position: absolute</code> and only shows on <code>[data-diagram-type]:hover</code>
+        via CSS. The addZoomButtons() function is triggered by a MutationObserver on document.body,
+        but there may be timing issues with the PlantUML TeaVM renderer.
+    </p>
+    <p><strong>Possible causes:</strong></p>
+    <ul style="color: #555; line-height: 1.8; margin-left: 1.5em;">
+        <li><code>addZoomButtons()</code> fires before SVG is inserted (hits <code>if (!svg) return</code>)</li>
+        <li>The button scrolls out of view for very tall diagrams (<code>position: absolute; top: 6px</code> stays at the top of the container, not the viewport)</li>
+        <li>The collapsible notes re-render destroys the button via <code>container.innerHTML = ...</code> and the MutationObserver doesn't re-fire in time</li>
+        <li>The CSS selector <code>[data-diagram-type]:hover > .diagram-zoom-toggle</code> doesn't match because the hover target is the SVG, not the container</li>
+    </ul>
+
+    <h3>Reproduction — Hover the diagram below to see if ⤢ appears</h3>
+    <div class="diagram-container plantuml-browser" data-diagram-type="plantuml" id="current-demo">
+        <!-- SVG will be injected by JS below -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>Option A: Sticky Zoom Button <span class="label label-option">OPTION</span></h2>
+
+<div class="issue-box option-a">
+    <p>
+        Use <code>position: sticky</code> so the button stays visible as you scroll through
+        a tall diagram. The button floats inside the container and sticks to the viewport top.
+        Requires the container to have a scrollable or non-overflow-hidden context.
+    </p>
+    <p><strong>Pros:</strong> Button stays visible as you scroll a tall diagram. No JS needed for positioning.<br>
+    <strong>Cons:</strong> <code>position: sticky</code> only works within a scrollable ancestor.
+    If the container doesn't scroll (it's the page that scrolls), sticky won't help.
+    The button needs to be the first element in the flow, which means it takes up space (hence negative margins).</p>
+
+    <div class="diagram-container plantuml-browser" data-diagram-type="plantuml" id="option-a-demo" style="position: relative;">
+        <!-- SVG will be injected by JS below -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>Option B: Always-Visible Button (no hover required) <span class="label label-option">OPTION</span></h2>
+
+<div class="issue-box option-b">
+    <p>
+        Make the zoom button always visible at low opacity (0.5) instead of requiring hover.
+        This ensures the button is discoverable even if hover events aren't reliably detected
+        on large containers where the mouse might be over the SVG child, not the container itself.
+    </p>
+    <p><strong>Pros:</strong> Always discoverable. No hover timing issues.<br>
+    <strong>Cons:</strong> Adds visual noise. May overlap diagram content at top-left.</p>
+
+    <div class="diagram-container plantuml-browser" data-diagram-type="plantuml" id="option-b-demo" style="position: relative;">
+        <!-- SVG will be injected by JS below -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>Option C: Sticky Toolbar Above Diagram <span class="label label-recommended">RECOMMENDED</span></h2>
+
+<div class="issue-box option-c">
+    <p>
+        Add a sticky toolbar above each diagram that stays visible when scrolling. Contains
+        zoom toggle, fit-to-width reset, and optionally diagram number info. This is the most
+        robust approach — it doesn't depend on hover detection, doesn't overlap diagram content,
+        and stays visible for diagrams of any height.
+    </p>
+    <p><strong>Pros:</strong> Always visible. Doesn't overlap content. Clear affordance. Can host additional controls (details radio, headers toggle).<br>
+    <strong>Cons:</strong> Takes vertical space. More HTML per diagram.</p>
+
+    <div class="diagram-container plantuml-browser" data-diagram-type="plantuml" id="option-c-demo" style="position: relative;">
+        <div class="diagram-toolbar">
+            <button id="option-c-zoom-btn" title="Toggle zoom">⤢ Zoom to actual size</button>
+            <span style="color: #999;">|</span>
+            <span>Diagram 1 of 3</span>
+        </div>
+        <!-- SVG will be injected by JS below -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>Option D: Fixed-position Button (viewport-anchored) <span class="label label-option">OPTION</span></h2>
+
+<div class="issue-box" id="option-d-section">
+    <p>
+        Use <code>position: fixed</code> to anchor the zoom button to the viewport (not the container).
+        The button appears when any diagram is in view, positioned at a fixed screen location.
+        Useful for single-diagram-per-page layouts.
+    </p>
+    <p><strong>Pros:</strong> Always visible regardless of scroll position. Truly reliable.<br>
+    <strong>Cons:</strong> Ambiguous when multiple diagrams are visible. Floats over other page content.
+    Needs IntersectionObserver to show/hide based on which diagram is in view.</p>
+
+    <div class="diagram-container plantuml-browser" data-diagram-type="plantuml" id="option-d-demo" style="position: relative;">
+        <!-- SVG will be injected by JS below -->
+    </div>
+</div>
+
+<div id="fixed-zoom-btn" style="
+    position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+    background: rgba(255,255,255,0.9); border: 1px solid #999; border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: none;
+">⤢ Zoom diagram</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2 style="margin-top: 3em;">Summary</h2>
+<div class="issue-box">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+<thead>
+<tr style="text-align: left; border-bottom: 2px solid #ddd;">
+    <th style="padding: 6px;">Option</th>
+    <th style="padding: 6px;">Visibility</th>
+    <th style="padding: 6px;">Tall Diagram</th>
+    <th style="padding: 6px;">Multi-Diagram</th>
+    <th style="padding: 6px;">Content Overlap</th>
+    <th style="padding: 6px;">Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom: 1px solid #eee;">
+    <td style="padding: 6px;"><strong>Current</strong></td>
+    <td style="padding: 6px;">Hover only</td>
+    <td style="padding: 6px; color: #c00;">❌ Scrolls away</td>
+    <td style="padding: 6px;">✅</td>
+    <td style="padding: 6px;">Minimal</td>
+    <td style="padding: 6px;">Low</td>
+</tr>
+<tr style="border-bottom: 1px solid #eee;">
+    <td style="padding: 6px;"><strong>A: Sticky</strong></td>
+    <td style="padding: 6px;">Hover only</td>
+    <td style="padding: 6px; color: #a80;">⚠️ Only in zoomed mode</td>
+    <td style="padding: 6px;">✅</td>
+    <td style="padding: 6px;">Minimal</td>
+    <td style="padding: 6px;">Low</td>
+</tr>
+<tr style="border-bottom: 1px solid #eee;">
+    <td style="padding: 6px;"><strong>B: Always visible</strong></td>
+    <td style="padding: 6px;">Always (0.5 opacity)</td>
+    <td style="padding: 6px; color: #c00;">❌ Scrolls away</td>
+    <td style="padding: 6px;">✅</td>
+    <td style="padding: 6px;">Some</td>
+    <td style="padding: 6px;">Low</td>
+</tr>
+<tr style="border-bottom: 1px solid #eee; background: #f0fff0;">
+    <td style="padding: 6px;"><strong>C: Sticky toolbar</strong></td>
+    <td style="padding: 6px;">Always</td>
+    <td style="padding: 6px; color: #070;">✅ Sticks at top</td>
+    <td style="padding: 6px;">✅</td>
+    <td style="padding: 6px;">None</td>
+    <td style="padding: 6px;">Medium</td>
+</tr>
+<tr>
+    <td style="padding: 6px;"><strong>D: Fixed viewport</strong></td>
+    <td style="padding: 6px;">Always</td>
+    <td style="padding: 6px; color: #070;">✅</td>
+    <td style="padding: 6px; color: #c00;">❌ Ambiguous</td>
+    <td style="padding: 6px;">None</td>
+    <td style="padding: 6px;">High</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div style="height: 4em;"></div>
+
+<script>
+// ─── Generate a tall SVG simulating a large PlantUML sequence diagram ───
+function makeLargeSvg(height) {
+    var width = 800;
+    var lines = [];
+    lines.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '">');
+    lines.push('<rect width="' + width + '" height="' + height + '" fill="#fefece"/>');
+
+    // Lifeline headers
+    lines.push('<rect x="80" y="10" width="120" height="30" rx="4" fill="#e2e2f0" stroke="#999"/>');
+    lines.push('<text x="140" y="30" text-anchor="middle" font-size="13" font-family="sans-serif">WebApp</text>');
+    lines.push('<rect x="350" y="10" width="120" height="30" rx="4" fill="#e2e2f0" stroke="#999"/>');
+    lines.push('<text x="410" y="30" text-anchor="middle" font-size="13" font-family="sans-serif">OrderService</text>');
+    lines.push('<rect x="600" y="10" width="120" height="30" rx="4" fill="#e2e2f0" stroke="#999"/>');
+    lines.push('<text x="660" y="30" text-anchor="middle" font-size="13" font-family="sans-serif">Database</text>');
+
+    // Lifelines
+    lines.push('<line x1="140" y1="40" x2="140" y2="' + (height - 20) + '" stroke="#999" stroke-dasharray="5,5"/>');
+    lines.push('<line x1="410" y1="40" x2="410" y2="' + (height - 20) + '" stroke="#999" stroke-dasharray="5,5"/>');
+    lines.push('<line x1="660" y1="40" x2="660" y2="' + (height - 20) + '" stroke="#999" stroke-dasharray="5,5"/>');
+
+    // Generate many request/response pairs with note boxes
+    var y = 60;
+    var step = 1;
+    while (y < height - 100) {
+        // Request arrow
+        lines.push('<line x1="140" y1="' + y + '" x2="410" y2="' + y + '" stroke="#333" marker-end="url(#arrow)"/>');
+        lines.push('<text x="275" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#333">' + step + ': POST /api/orders</text>');
+        y += 15;
+
+        // Request note
+        var noteH = 80 + Math.floor(Math.random() * 60);
+        lines.push('<path d="M145,' + y + ' L350,' + y + ' L350,' + (y + noteH) + ' L145,' + (y + noteH) + ' Z" fill="#ffffcc" stroke="#999"/>');
+        for (var nl = 0; nl < Math.floor(noteH / 14); nl++) {
+            lines.push('<text x="150" y="' + (y + 14 + nl * 14) + '" font-size="11" font-family="monospace" fill="#333">  "field_' + nl + '": "value_' + (step * 10 + nl) + '"</text>');
+        }
+        y += noteH + 15;
+
+        // Response arrow
+        lines.push('<line x1="410" y1="' + y + '" x2="140" y2="' + y + '" stroke="#333" stroke-dasharray="4,3" marker-end="url(#arrow)"/>');
+        lines.push('<text x="275" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#333">200 OK</text>');
+        y += 15;
+
+        // Response note
+        noteH = 60 + Math.floor(Math.random() * 40);
+        lines.push('<path d="M145,' + y + ' L350,' + y + ' L350,' + (y + noteH) + ' L145,' + (y + noteH) + ' Z" fill="#ffffcc" stroke="#999"/>');
+        for (var nl = 0; nl < Math.floor(noteH / 14); nl++) {
+            lines.push('<text x="150" y="' + (y + 14 + nl * 14) + '" font-size="11" font-family="monospace" fill="#333">  "result_' + nl + '": "ok_' + (step * 10 + nl) + '"</text>');
+        }
+        y += noteH + 25;
+
+        // DB call
+        if (step % 2 === 0) {
+            lines.push('<line x1="410" y1="' + y + '" x2="660" y2="' + y + '" stroke="#333" marker-end="url(#arrow)"/>');
+            lines.push('<text x="535" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#333">INSERT</text>');
+            y += 20;
+            lines.push('<line x1="660" y1="' + y + '" x2="410" y2="' + y + '" stroke="#333" stroke-dasharray="4,3" marker-end="url(#arrow)"/>');
+            y += 25;
+        }
+
+        step++;
+    }
+
+    // Arrow marker
+    lines.push('<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#333"/></marker></defs>');
+    lines.push('</svg>');
+    return lines.join('\n');
+}
+
+// ─── Current behavior: button via addZoomButtons ───
+(function() {
+    var container = document.getElementById('current-demo');
+    container.innerHTML = makeLargeSvg(4000);
+
+    // Simulate addZoomButtons() exactly as the real code does
+    var svg = container.querySelector('svg');
+    if (svg) {
+        container.style.position = 'relative';
+        var btn = document.createElement('button');
+        btn.className = 'diagram-zoom-toggle';
+        btn.textContent = '\u2922';
+        btn.title = 'Toggle zoom (or double-click diagram)';
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleZoom(container, btn);
+        });
+        container.prepend(btn);
+    }
+})();
+
+// ─── Option A: Sticky button ───
+(function() {
+    var container = document.getElementById('option-a-demo');
+    container.innerHTML = makeLargeSvg(4000);
+
+    var btn = document.createElement('button');
+    btn.className = 'diagram-zoom-toggle-sticky';
+    btn.textContent = '\u2922';
+    btn.title = 'Toggle zoom';
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleZoom(container, btn);
+    });
+    container.prepend(btn);
+})();
+
+// ─── Option B: Always-visible button ───
+(function() {
+    var container = document.getElementById('option-b-demo');
+    container.innerHTML = makeLargeSvg(4000);
+
+    var btn = document.createElement('button');
+    btn.className = 'diagram-zoom-toggle-visible';
+    btn.textContent = '\u2922';
+    btn.title = 'Toggle zoom';
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleZoom(container, btn);
+    });
+    container.prepend(btn);
+})();
+
+// ─── Option C: Sticky toolbar ───
+(function() {
+    var container = document.getElementById('option-c-demo');
+    // SVG goes after the toolbar (toolbar already in HTML)
+    var svgHtml = makeLargeSvg(4000);
+    var svgDiv = document.createElement('div');
+    svgDiv.innerHTML = svgHtml;
+    container.appendChild(svgDiv.firstChild);
+
+    var btn = document.getElementById('option-c-zoom-btn');
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var svg = container.querySelector('svg');
+        var isZoomed = container.classList.toggle('diagram-natural-size');
+        if (isZoomed) {
+            svg.style.maxWidth = 'none';
+            container.style.overflow = 'auto';
+            container.style.maxHeight = '80vh';
+            container.style.cursor = 'grab';
+            btn.textContent = '\u2921 Fit to width';
+            btn.classList.add('active');
+        } else {
+            svg.style.maxWidth = '';
+            container.style.overflow = '';
+            container.style.maxHeight = '';
+            container.style.cursor = '';
+            btn.textContent = '\u2922 Zoom to actual size';
+            btn.classList.remove('active');
+        }
+    });
+})();
+
+// ─── Option D: Fixed viewport button ───
+(function() {
+    var container = document.getElementById('option-d-demo');
+    container.innerHTML = makeLargeSvg(4000);
+
+    var fixedBtn = document.getElementById('fixed-zoom-btn');
+
+    // Show fixed button when diagram is in view
+    var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            fixedBtn.style.display = entry.isIntersecting ? 'block' : 'none';
+        });
+    }, { threshold: 0.1 });
+    observer.observe(container);
+
+    fixedBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var svg = container.querySelector('svg');
+        var isZoomed = container.classList.toggle('diagram-natural-size');
+        if (isZoomed) {
+            svg.style.maxWidth = 'none';
+            container.style.overflow = 'auto';
+            container.style.maxHeight = '80vh';
+            container.style.cursor = 'grab';
+            fixedBtn.textContent = '\u2921 Fit to width';
+        } else {
+            svg.style.maxWidth = '';
+            container.style.overflow = '';
+            container.style.maxHeight = '';
+            container.style.cursor = '';
+            fixedBtn.textContent = '\u2922 Zoom diagram';
+        }
+    });
+})();
+
+// ─── Shared zoom toggle function ───
+function toggleZoom(container, btn) {
+    var svg = container.querySelector('svg');
+    if (!svg) return;
+    var isZoomed = container.classList.toggle('diagram-natural-size');
+    if (isZoomed) {
+        svg.style.maxWidth = 'none';
+        container.style.overflow = 'auto';
+        container.style.maxHeight = '80vh';
+        container.style.cursor = 'grab';
+        if (btn) btn.textContent = '\u2921';
+    } else {
+        svg.style.maxWidth = '';
+        container.style.overflow = '';
+        container.style.maxHeight = '';
+        container.style.cursor = '';
+        if (btn) btn.textContent = '\u2922';
+    }
+}
+
+// ─── Drag-to-pan for all zoomed containers ───
+(function() {
+    var dragging = false, dragContainer, startX, startY, scrollL, scrollT;
+    document.addEventListener('mousedown', function(e) {
+        var c = e.target.closest('.diagram-natural-size');
+        if (!c) return;
+        if (e.target.tagName === 'BUTTON') return;
+        dragging = true;
+        dragContainer = c;
+        startX = e.pageX;
+        startY = e.pageY;
+        scrollL = c.scrollLeft;
+        scrollT = c.scrollTop;
+        c.style.cursor = 'grabbing';
+        c.style.userSelect = 'none';
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        dragContainer.scrollLeft = scrollL - (e.pageX - startX);
+        dragContainer.scrollTop = scrollT - (e.pageY - startY);
+    });
+    document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        dragContainer.style.cursor = 'grab';
+        dragContainer.style.userSelect = '';
+    });
+})();
+</script>
+
+</body>
+</html>

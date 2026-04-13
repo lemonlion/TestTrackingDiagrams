@@ -1081,13 +1081,16 @@ public static class DiagramContextMenu
             })();
 
             // Run on load and observe for lazily-rendered diagrams
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', addZoomButtons);
-            } else {
+            function initZoom() {
                 addZoomButtons();
+                var zoomObserver = new MutationObserver(function() { addZoomButtons(); });
+                zoomObserver.observe(document.body, { childList: true, subtree: true });
             }
-            var zoomObserver = new MutationObserver(function() { addZoomButtons(); });
-            zoomObserver.observe(document.body, { childList: true, subtree: true });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initZoom);
+            } else {
+                initZoom();
+            }
         })();
         </script>
         """;

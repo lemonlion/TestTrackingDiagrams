@@ -184,7 +184,7 @@ public static partial class PlantUmlCreator
 
                     if (!string.IsNullOrEmpty(noteContent))
                     {
-                        var truncatedContent = TruncateNoteContent(noteContent, truncateNotesAfterLines);
+                        var truncatedContent = EscapeForPlantUmlNote(TruncateNoteContent(noteContent, truncateNotesAfterLines));
                         builder.AppendLine($"note{GetNoteClass(trace.MetaType)} left");
                         builder.AppendLine(truncatedContent);
                         builder.AppendLine("end note");
@@ -220,6 +220,9 @@ public static partial class PlantUmlCreator
 
     private static string GetNoteClass(RequestResponseMetaType metaType) =>
         metaType == RequestResponseMetaType.Event ? $"<<{EventNoteClass}>>" : "";
+
+    internal static string EscapeForPlantUmlNote(string text) =>
+        text.Replace("\\", "\\\\");
 
     private static string TruncateNoteContent(string noteContent, int maxLines)
     {
@@ -273,7 +276,7 @@ public static partial class PlantUmlCreator
 
             if (!string.IsNullOrEmpty(noteContent))
             {
-                var truncatedContent = TruncateNoteContent(noteContent, truncateNotesAfterLines);
+                var truncatedContent = EscapeForPlantUmlNote(TruncateNoteContent(noteContent, truncateNotesAfterLines));
                 builder.AppendLine($"note{GetNoteClass(trace!.MetaType)} right");
                 builder.AppendLine(truncatedContent);
                 builder.AppendLine("end note");

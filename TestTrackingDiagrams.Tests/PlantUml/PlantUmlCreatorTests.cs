@@ -2362,4 +2362,34 @@ public class PlantUmlCreatorTests
         Assert.Contains("/svg/", imageTag);
         Assert.DoesNotContain("/png/", imageTag);
     }
+
+    // ─── Backslash escaping in notes ────────────────────────────
+
+    [Theory]
+    [InlineData("hello", "hello")]
+    [InlineData("no escapes", "no escapes")]
+    [InlineData("{\"key\":\"\\u0022value\\u0022\"}", "{\"key\":\"\\\\u0022value\\\\u0022\"}")]
+    [InlineData("line1\\nline2", "line1\\\\nline2")]
+    [InlineData("already\\\\escaped", "already\\\\\\\\escaped")]
+    public void EscapeForPlantUmlNote_escapes_backslashes(string input, string expected)
+    {
+        Assert.Equal(expected, PlantUmlCreator.EscapeForPlantUmlNote(input));
+    }
+
+    [Fact]
+    public void Request_note_with_backslash_content_is_escaped_in_plantuml()
+    {
+        var json = """{"data":"\\u0022value\\u0022"}""";
+        var logs = new[]
+        {
+            MakeRequest(content: json),
+            MakeResponse(),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("\\\\u0022", plantUml);
+        Assert.DoesNotContain("\\u0022", plantUml.Replace("\\\\u0022", ""));
+    }
 }

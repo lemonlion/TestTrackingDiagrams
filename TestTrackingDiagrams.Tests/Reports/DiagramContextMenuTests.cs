@@ -769,6 +769,21 @@ public class DiagramContextMenuTests
         Assert.DoesNotContain("container.appendChild(btn)", _script);
     }
 
+    [Fact]
+    public void ZoomObserver_setup_deferred_to_DOMContentLoaded()
+    {
+        // The MutationObserver for zoom buttons must be set up inside the
+        // DOMContentLoaded callback (or when readyState is not 'loading').
+        // When the script runs in <head>, document.body is null and
+        // observe(null, ...) silently fails, so lazily-rendered BrowserJs
+        // diagrams never get their zoom buttons added.
+        //
+        // The fix wraps the observer setup inside the same DOMContentLoaded
+        // handler that calls addZoomButtons(), using a named function.
+        Assert.Contains("function initZoom()", _script);
+        Assert.Contains("addEventListener('DOMContentLoaded', initZoom)", _script);
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Open in new tab — uses blob URLs not data URIs
     // ═══════════════════════════════════════════════════════════
