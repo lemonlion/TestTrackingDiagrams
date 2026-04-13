@@ -112,6 +112,22 @@ public class Stylesheets
                     margin-bottom: 1em;
                 }
 
+                .summary-chart {
+                    width: 120px;
+                    height: 120px;
+                    flex-shrink: 0;
+                    align-self: center;
+                }
+
+                .ci-metadata {
+                    align-self: center;
+                    flex-shrink: 0;
+                }
+
+                .ci-metadata table {
+                    font-size: 0.85em;
+                }
+
                 .filtering-box {
                     flex: 1;
                     min-width: 0;
@@ -274,6 +290,23 @@ public class Stylesheets
                 }
 
                 .dep-mode-toggle:hover {
+                    background: rgb(220, 230, 245);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                .cat-mode-toggle {
+                    padding: 0.15em 0.5em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: rgb(240, 240, 240);
+                    cursor: pointer;
+                    font-size: 0.75em;
+                    font-weight: bold;
+                    min-width: 2.5em;
+                    text-align: center;
+                }
+
+                .cat-mode-toggle:hover {
                     background: rgb(220, 230, 245);
                     border-color: rgb(100, 150, 255);
                 }
@@ -495,6 +528,13 @@ public class Stylesheets
                     width: 0.3em;
                 }
 
+                .step-number {
+                    font-family: monospace;
+                    color: #888;
+                    font-size: 0.8em;
+                    margin-right: 0.3em;
+                }
+
                 .step-status {
                     display: inline-flex;
                     align-items: center;
@@ -547,6 +587,15 @@ public class Stylesheets
                     color: rgb(66, 133, 244);
                 }
 
+                .step-docstring {
+                    background: #f5f5f5;
+                    border: 1px solid #ddd;
+                    padding: 0.5em;
+                    margin: 0.3em 0 0.3em 2em;
+                    font-size: 0.85em;
+                    overflow-x: auto;
+                }
+
                 .sub-steps {
                     margin-left: 1.5em;
                     border-left: 2px solid rgb(220, 220, 220);
@@ -587,6 +636,35 @@ public class Stylesheets
                     color: rgb(100, 100, 100);
                     margin: 0.3em 0 0.8em 0;
                     white-space: pre-line;
+                }
+
+                .rule {
+                    margin-left: 1em;
+                    border-left: 3px solid #2e7bff;
+                    padding-left: 0.5em;
+                    margin-bottom: 0.5em;
+                }
+
+                .h2-5 {
+                    font-size: 1.15em;
+                    font-weight: 600;
+                    color: #333;
+                }
+
+                .examples-table {
+                    border-collapse: collapse;
+                    margin: 0.5em 0 0.5em 1em;
+                    font-size: 0.9em;
+                }
+
+                .examples-table th, .examples-table td {
+                    border: 1px solid #ddd;
+                    padding: 0.3em 0.6em;
+                    text-align: left;
+                }
+
+                .examples-table thead {
+                    background: #f0f0f0;
                 }
 
                 .category-filters {

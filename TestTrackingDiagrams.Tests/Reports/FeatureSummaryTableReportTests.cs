@@ -100,4 +100,111 @@ public class FeatureSummaryTableReportTests
         var content = GenerateReport(features);
         Assert.Contains("Steps", content);
     }
+
+    [Fact]
+    public void Summary_table_shows_duration_columns()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains(">Duration<", content);
+        Assert.Contains(">Avg<", content);
+        Assert.Contains(">Longest<", content);
+    }
+
+    [Fact]
+    public void Summary_table_duration_shows_sum_of_scenario_durations()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        // Sum is 6s
+        Assert.Contains("6s", content);
+    }
+
+    [Fact]
+    public void Summary_table_avg_shows_mean_scenario_duration()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(2) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        // Avg is 2s
+        Assert.Contains("2s", content);
+    }
+
+    [Fact]
+    public void Summary_table_longest_shows_max_scenario_duration()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(1) },
+                    new Scenario { Id = "s2", DisplayName = "S2", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(5) },
+                    new Scenario { Id = "s3", DisplayName = "S3", Result = ScenarioResult.Passed, Duration = TimeSpan.FromSeconds(3) }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("5s", content);
+    }
+
+    [Fact]
+    public void Summary_table_omits_duration_columns_when_no_durations()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.DoesNotContain(">Duration<", content);
+        Assert.DoesNotContain(">Avg<", content);
+        Assert.DoesNotContain(">Longest<", content);
+    }
 }

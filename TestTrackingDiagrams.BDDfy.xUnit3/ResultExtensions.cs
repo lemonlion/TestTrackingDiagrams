@@ -12,7 +12,7 @@ public static class ResultExtensions
             TestStack.BDDfy.Result.Failed => ScenarioResult.Failed,
             TestStack.BDDfy.Result.Inconclusive => ScenarioResult.Skipped,
             TestStack.BDDfy.Result.NotImplemented => ScenarioResult.Skipped,
-            TestStack.BDDfy.Result.NotExecuted => ScenarioResult.SkippedAfterFailure,
+            TestStack.BDDfy.Result.NotExecuted => ScenarioResult.Skipped,
             _ => ScenarioResult.Failed
         };
     }

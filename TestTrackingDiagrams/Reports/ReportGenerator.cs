@@ -73,10 +73,12 @@ public static class ReportGenerator
             }
         }
 
+        var ciMetadata = CiMetadataDetector.Detect();
+
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetFeaturesReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetFeaturesReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
             () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
         };
 
@@ -107,7 +109,7 @@ public static class ReportGenerator
             if (options.WriteCiSummaryInteractiveHtml)
             {
                 var ciFeatures = FilterFeaturesForCiSummary(features, diagrams, options.MaxCiSummaryDiagrams);
-                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization);
+                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata);
             }
         }
 
@@ -150,7 +152,12 @@ public static class ReportGenerator
         string internalFlowDataScript = "",
         Dictionary<string, InternalFlowSegment>? wholeTestSegments = null,
         RequestResponseLog[]? trackedLogs = null,
-        WholeTestFlowVisualization wholeTestVisualization = WholeTestFlowVisualization.None)
+        WholeTestFlowVisualization wholeTestVisualization = WholeTestFlowVisualization.None,
+        CiMetadata? ciMetadata = null,
+        bool showStepNumbers = false,
+        string? customCss = null,
+        string? customFaviconBase64 = null,
+        string? customLogoHtml = null)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ScenarioResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -228,9 +235,35 @@ public static class ReportGenerator
                                  let input = document.getElementById('searchbar').value;
                                  input = input.toLowerCase().trim();
                              
-                                 let searchTokens = parseSearchTokensIncludingQuotes(input);
+                                 // Extract @tag expressions
+                                 let tagExpr = null;
+                                 let textInput = input;
+                                 if (input.indexOf('@') !== -1) {
+                                     let tagParts = [];
+                                     let textParts = [];
+                                     let tokens = input.split(/\s+/);
+                                     let inTag = false;
+                                     for (let t = 0; t < tokens.length; t++) {
+                                         let tok = tokens[t];
+                                         if (tok.startsWith('@') || tok === 'and' || tok === 'or' || tok === 'not' || tok === '(' || tok === ')') {
+                                             tagParts.push(tok);
+                                             inTag = true;
+                                         } else if (inTag && (tok === 'and' || tok === 'or' || tok === 'not')) {
+                                             tagParts.push(tok);
+                                         } else {
+                                             textParts.push(tok);
+                                             inTag = false;
+                                         }
+                                     }
+                                     if (tagParts.length > 0) {
+                                         tagExpr = tagParts.join(' ');
+                                         textInput = textParts.join(' ');
+                                     }
+                                 }
+
+                                 let searchTokens = parseSearchTokensIncludingQuotes(textInput);
                              
-                                 if (searchTokens.length === 0) {
+                                 if (searchTokens.length === 0 && !tagExpr) {
                                      for (let i = 0; i < c.items.length; i++) {
                                          c.items[i].sr = false;
                                          c.items[i].el.removeAttribute('open');
@@ -243,16 +276,27 @@ public static class ReportGenerator
                                  let matchCount = 0;
                                  let singleMatch = null;
                                  for (let i = 0; i < c.items.length; i++) {
-                                     let text = c.items[i].searchText;
-                                     let allMatch = true;
-                                     for (let j = 0; j < searchTokens.length; j++) {
-                                         if (!text.includes(searchTokens[j])) {
-                                             allMatch = false;
-                                             break;
+                                     let textMatch = true;
+                                     if (searchTokens.length > 0) {
+                                         let text = c.items[i].searchText;
+                                         for (let j = 0; j < searchTokens.length; j++) {
+                                             if (!text.includes(searchTokens[j])) {
+                                                 textMatch = false;
+                                                 break;
+                                             }
                                          }
                                      }
-                                     c.items[i].sr = !allMatch;
-                                     if (allMatch) {
+                                     let tagMatch = true;
+                                     if (tagExpr) {
+                                         let cats = (c.items[i].el.getAttribute('data-categories') || '').toLowerCase();
+                                         let labels = (c.items[i].el.getAttribute('data-labels') || '').toLowerCase();
+                                         let allTags = new Set();
+                                         if (cats) cats.split(',').forEach(function(t) { allTags.add(t.trim()); });
+                                         if (labels) labels.split(',').forEach(function(t) { allTags.add(t.trim()); });
+                                         tagMatch = evaluateTagExpression(tagExpr, allTags);
+                                     }
+                                     c.items[i].sr = !(textMatch && tagMatch);
+                                     if (textMatch && tagMatch) {
                                          matchCount++;
                                          singleMatch = c.items[i].el;
                                      }
@@ -287,6 +331,59 @@ public static class ReportGenerator
                                  }
                              
                                  return quoteTokens.concat(simpleTokens);
+                             }
+
+                             function evaluateTagExpression(expr, tags) {
+                                 // Tokenize
+                                 let tokens = [];
+                                 let parts = expr.split(/\s+/);
+                                 for (let i = 0; i < parts.length; i++) {
+                                     let p = parts[i];
+                                     if (p === 'and' || p === 'or' || p === 'not') tokens.push({type: p});
+                                     else if (p === '(') tokens.push({type: 'lparen'});
+                                     else if (p === ')') tokens.push({type: 'rparen'});
+                                     else if (p.startsWith('@')) tokens.push({type: 'tag', value: p.substring(1).toLowerCase()});
+                                     else tokens.push({type: 'tag', value: p.toLowerCase()});
+                                 }
+                                 let pos = {i: 0};
+                                 function parseOr() {
+                                     let left = parseAnd();
+                                     while (pos.i < tokens.length && tokens[pos.i].type === 'or') {
+                                         pos.i++;
+                                         left = left || parseAnd();
+                                     }
+                                     return left;
+                                 }
+                                 function parseAnd() {
+                                     let left = parseNot();
+                                     while (pos.i < tokens.length && tokens[pos.i].type === 'and') {
+                                         pos.i++;
+                                         left = left && parseNot();
+                                     }
+                                     return left;
+                                 }
+                                 function parseNot() {
+                                     if (pos.i < tokens.length && tokens[pos.i].type === 'not') {
+                                         pos.i++;
+                                         return !parsePrimary();
+                                     }
+                                     return parsePrimary();
+                                 }
+                                 function parsePrimary() {
+                                     if (pos.i < tokens.length && tokens[pos.i].type === 'lparen') {
+                                         pos.i++;
+                                         let result = parseOr();
+                                         if (pos.i < tokens.length && tokens[pos.i].type === 'rparen') pos.i++;
+                                         return result;
+                                     }
+                                     if (pos.i < tokens.length && tokens[pos.i].type === 'tag') {
+                                         let v = tokens[pos.i].value;
+                                         pos.i++;
+                                         return tags.has(v);
+                                     }
+                                     return false;
+                                 }
+                                 return parseOr();
                              }
                              """;
 
@@ -339,6 +436,12 @@ public static class ReportGenerator
                                        """;
 
         var categoryFilterFunction = """
+                                     var _catMode = 'OR';
+                                     function toggle_cat_mode(btn) {
+                                         _catMode = _catMode === 'OR' ? 'AND' : 'OR';
+                                         btn.textContent = _catMode;
+                                         filter_categories();
+                                     }
                                      function toggle_category(btn) {
                                          var cat = btn.getAttribute('data-category');
                                          if (cat === '') {
@@ -375,6 +478,10 @@ public static class ReportGenerator
                                              var cats = raw ? new Set(raw.split(',')) : new Set();
                                              if (activeSet.has('__uncategorized__') && cats.size === 0) {
                                                  c.items[i].cat = false;
+                                             } else if (_catMode === 'AND') {
+                                                 var allMatch = true;
+                                                 activeSet.forEach(function(a) { if (a !== '__uncategorized__' && !cats.has(a)) allMatch = false; });
+                                                 c.items[i].cat = !allMatch;
                                              } else {
                                                  var match = false;
                                                  activeSet.forEach(function(a) { if (a !== '__uncategorized__' && cats.has(a)) match = true; });
@@ -585,6 +692,7 @@ public static class ReportGenerator
                                   document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { deps.push(b.getAttribute('data-dependency')); });
                                   if (deps.length > 0) parts.push('deps=' + encodeURIComponent(deps.join(',')));
                                   if (_depMode !== 'AND') parts.push('depmode=' + _depMode);
+                                  if (typeof _catMode !== 'undefined' && _catMode !== 'OR') parts.push('catmode=' + _catMode);
                                   if (document.querySelector('.happy-path-toggle.happy-path-active')) parts.push('hp=1');
                                   var dur = document.getElementById('duration-threshold');
                                   if (dur && dur.value) parts.push('dur=' + dur.value);
@@ -627,6 +735,11 @@ public static class ReportGenerator
                                       _depMode = 'OR';
                                       var modeBtn = document.querySelector('.dep-mode-toggle');
                                       if (modeBtn) modeBtn.textContent = 'OR';
+                                  }
+                                  if (params.catmode === 'AND') {
+                                      _catMode = 'AND';
+                                      var catModeBtn = document.querySelector('.cat-mode-toggle');
+                                      if (catModeBtn) catModeBtn.textContent = 'AND';
                                   }
                                   if (params.deps) {
                                       params.deps.split(',').forEach(function(d) {
@@ -726,6 +839,9 @@ public static class ReportGenerator
         var flameChartRenderScript = internalFlowTracking ? DiagramContextMenu.GetFlameChartRenderScript() : "";
         var toggleScript = internalFlowTracking ? DiagramContextMenu.GetToggleScript() : "";
 
+        var customCssBlock = customCss is not null ? $"<style>{customCss}</style>" : "";
+        var faviconLink = customFaviconBase64 is not null ? $"<link rel=\"icon\" href=\"{customFaviconBase64}\">" : "";
+
         var html = $$"""
                     <html>
                         <head>
@@ -736,6 +852,8 @@ public static class ReportGenerator
                                 {{collapsibleNotesStyles}}
                                 {{internalFlowPopupStyles}}
                             </style>
+                            {{customCssBlock}}
+                            {{faviconLink}}
                             <script>
                                 {{scenarioFeatureMapHelper}}
                                 {{toggleHappyPathsFunction}}
@@ -767,6 +885,8 @@ public static class ReportGenerator
                     """;
 
         var body = new StringBuilder();
+        if (customLogoHtml is not null)
+            body.Append($"<div class=\"custom-logo\">{customLogoHtml}</div>");
         body.Append($"<h1>{title}</h1>");
 
         if (includeTestRunData)
@@ -780,6 +900,8 @@ public static class ReportGenerator
 
             // Feature summary table (collapsible, above execution summary)
             var hasAnySteps = features.Any(f => f.Scenarios.Any(s => s.Steps is { Length: > 0 }));
+            var hasAnyDurations = features.Any(f => f.Scenarios.Any(s => s.Duration.HasValue));
+            var nextCol = 5;
             body.Append("<details class=\"features-summary-details\"><summary class=\"h2\">Features Summary</summary>");
             body.Append("<div class=\"features-summary-table-wrapper\">");
             body.Append("<table class=\"feature-summary-table\"><thead><tr>");
@@ -789,7 +911,13 @@ public static class ReportGenerator
             body.Append("<th onclick=\"sort_table(3)\">Failed</th>");
             body.Append("<th onclick=\"sort_table(4)\">Skipped</th>");
             if (hasAnySteps)
-                body.Append("<th onclick=\"sort_table(5)\">Steps</th>");
+                body.Append($"<th onclick=\"sort_table({nextCol++})\">Steps</th>");
+            if (hasAnyDurations)
+            {
+                body.Append($"<th onclick=\"sort_table({nextCol++})\">Duration</th>");
+                body.Append($"<th onclick=\"sort_table({nextCol++})\">Avg</th>");
+                body.Append($"<th onclick=\"sort_table({nextCol})\">Longest</th>");
+            }
             body.Append("</tr></thead><tbody>");
 
             foreach (var feature in features)
@@ -817,6 +945,17 @@ public static class ReportGenerator
                     body.Append($"<td>{stepCount}</td>");
                 }
 
+                if (hasAnyDurations)
+                {
+                    var durations = feature.Scenarios.Where(s => s.Duration.HasValue).Select(s => s.Duration!.Value).ToArray();
+                    var totalDuration = durations.Length > 0 ? durations.Aggregate(TimeSpan.Zero, (a, b) => a + b) : TimeSpan.Zero;
+                    var avgDuration = durations.Length > 0 ? totalDuration / durations.Length : TimeSpan.Zero;
+                    var maxDuration = durations.Length > 0 ? durations.Max() : TimeSpan.Zero;
+                    body.Append($"<td>{FormatDuration(totalDuration)}</td>");
+                    body.Append($"<td>{FormatDuration(avgDuration)}</td>");
+                    body.Append($"<td>{FormatDuration(maxDuration)}</td>");
+                }
+
                 body.Append("</tr>");
             }
 
@@ -838,6 +977,29 @@ public static class ReportGenerator
                         </table>
                     </div>
                     """);
+
+            if (ciMetadata is not null)
+            {
+                body.Append("<div class=\"ci-metadata\"><table>");
+                body.Append($"<tr><td colspan=\"2\" class=\"column-header\">CI ({ciMetadata.Provider})</td></tr>");
+                if (ciMetadata.BuildNumber is not null)
+                    body.Append($"<tr><td>Build #:</td><td>{System.Net.WebUtility.HtmlEncode(ciMetadata.BuildNumber)}</td></tr>");
+                if (ciMetadata.Branch is not null)
+                    body.Append($"<tr><td>Branch:</td><td>{System.Net.WebUtility.HtmlEncode(ciMetadata.Branch)}</td></tr>");
+                if (ciMetadata.CommitSha is not null)
+                {
+                    var shortSha = ciMetadata.CommitSha.Length > 7 ? ciMetadata.CommitSha[..7] : ciMetadata.CommitSha;
+                    body.Append($"<tr><td>Commit:</td><td><code title=\"{System.Net.WebUtility.HtmlEncode(ciMetadata.CommitSha)}\">{System.Net.WebUtility.HtmlEncode(shortSha)}</code></td></tr>");
+                }
+                if (ciMetadata.PipelineUrl is not null)
+                    body.Append($"<tr><td>Pipeline:</td><td><a href=\"{System.Net.WebUtility.HtmlEncode(ciMetadata.PipelineUrl)}\" target=\"_blank\" rel=\"noopener noreferrer\">View Run</a></td></tr>");
+                if (ciMetadata.Repository is not null)
+                    body.Append($"<tr><td>Repository:</td><td>{System.Net.WebUtility.HtmlEncode(ciMetadata.Repository)}</td></tr>");
+                body.Append("</table></div>");
+            }
+
+            var bypassedScenarios = scenarios.Where(x => x.Result == ScenarioResult.Bypassed).ToArray();
+            body.Append(GeneratePieChartSvg(passedScenarios.Length, failedScenarios.Length, skippedScenarios.Length, bypassedScenarios.Length));
         }
 
         var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
@@ -862,7 +1024,7 @@ public static class ReportGenerator
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
-                    <div class="filter-search"><input id="searchbar" placeholder="Search" onkeyup="search_scenarios()" /></div>
+                    <div class="filter-search"><input id="searchbar" placeholder="Search (use @tag for tag filtering)" onkeyup="search_scenarios()" /></div>
                     <div class="filter-row">
                  """);
 
@@ -919,7 +1081,7 @@ public static class ReportGenerator
             .ToArray();
         if (allCategories.Length > 0)
         {
-            body.Append("""<div class="category-filters"><span class="category-filters-label">Categories:</span>""");
+            body.Append("""<div class="category-filters"><span class="category-filters-label">Categories:</span><button class="cat-mode-toggle" onclick="toggle_cat_mode(this)">OR</button>""");
             body.Append("""<button class="category-toggle category-active" data-category="" onclick="toggle_category(this)">All</button>""");
             foreach (var cat in allCategories)
             {
@@ -977,10 +1139,80 @@ public static class ReportGenerator
                 body.Append($"""<div class="feature-description">{System.Net.WebUtility.HtmlEncode(feature.Description)}</div>""");
             }
 
-            var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
+            var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName).ToArray();
 
+            // Pre-group scenarios by OutlineId for examples tables
+            var outlineGroups = orderedScenarios
+                .Where(s => s.OutlineId is not null)
+                .GroupBy(s => s.OutlineId!)
+                .ToDictionary(g => g.Key, g => g.ToArray());
+            var renderedOutlineIds = new HashSet<string>();
+
+            // Group by Rule for rendering
+            string? currentRule = "__NOTSET__";
+            var ruleOpen = false;
             foreach (var scenario in orderedScenarios)
             {
+                // Skip if this scenario belongs to an outline group already rendered
+                if (scenario.OutlineId is not null && renderedOutlineIds.Contains(scenario.OutlineId))
+                    continue;
+
+                if (scenario.Rule != currentRule)
+                {
+                    if (ruleOpen)
+                    {
+                        body.Append("</details>"); // close previous rule
+                    }
+                    currentRule = scenario.Rule;
+                    if (currentRule is not null)
+                    {
+                        body.Append($"<details class=\"rule\" open><summary class=\"h2-5\">{System.Net.WebUtility.HtmlEncode(currentRule)}</summary>");
+                        ruleOpen = true;
+                    }
+                    else
+                    {
+                        ruleOpen = false;
+                    }
+                }
+
+                // Render as examples table if this is an outline group
+                if (scenario.OutlineId is not null && outlineGroups.TryGetValue(scenario.OutlineId, out var outlineScenarios))
+                {
+                    renderedOutlineIds.Add(scenario.OutlineId);
+                    var allKeys = outlineScenarios
+                        .Where(s => s.ExampleValues is not null)
+                        .SelectMany(s => s.ExampleValues!.Keys)
+                        .Distinct()
+                        .ToArray();
+                    var outlineHasFailure = outlineScenarios.Any(s => s.Result == ScenarioResult.Failed);
+                    body.Append($"<details class=\"scenario scenario-outline\"{(outlineHasFailure ? " data-status=\"Failed\"" : "")}>");
+                    body.Append($"<summary class=\"h3{(outlineHasFailure ? " failed" : "")}\">Scenario Outline: {System.Net.WebUtility.HtmlEncode(scenario.OutlineId)}</summary>");
+                    body.Append("<table class=\"examples-table\"><thead><tr><th>Status</th>");
+                    foreach (var key in allKeys)
+                        body.Append($"<th>{System.Net.WebUtility.HtmlEncode(key)}</th>");
+                    body.Append("</tr></thead><tbody>");
+                    foreach (var os in outlineScenarios)
+                    {
+                        var rowStatusIcon = os.Result switch
+                        {
+                            ScenarioResult.Passed => "&#10003;",
+                            ScenarioResult.Failed => "&#10005;",
+                            ScenarioResult.Skipped => "&#216;",
+                            ScenarioResult.Bypassed => "&#8631;",
+                            _ => ""
+                        };
+                        body.Append($"<tr data-status=\"{os.Result}\"><td>{rowStatusIcon}</td>");
+                        foreach (var key in allKeys)
+                        {
+                            var val = os.ExampleValues?.GetValueOrDefault(key, "");
+                            body.Append($"<td>{System.Net.WebUtility.HtmlEncode(val ?? "")}</td>");
+                        }
+                        body.Append("</tr>");
+                    }
+                    body.Append("</tbody></table></details>");
+                    continue;
+                }
+
                 var failed = scenario.Result == ScenarioResult.Failed;
                 var skipped = scenario.Result == ScenarioResult.Skipped;
                 var depsAttr = scenarioDependencies.TryGetValue(scenario.Id, out var deps) && deps.Count > 0
@@ -1013,13 +1245,17 @@ public static class ReportGenerator
                     ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", scenario.Categories))}\""
                     : "";
 
+                var labelsAttr = scenario.Labels is { Length: > 0 }
+                    ? $" data-labels=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", scenario.Labels))}\""
+                    : "";
+
                 var encodedName = System.Net.WebUtility.HtmlEncode(scenario.DisplayName);
                 var scenarioLabelsHtml = scenario.Labels is { Length: > 0 }
                     ? string.Concat(scenario.Labels.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>"))
                     : "";
 
                 body.Append($"""
-                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr}{categoriesAttr} id="{anchorId}" tabindex="0">
+                         <details class="scenario{(scenario.IsHappyPath ? " happy-path" : "")}"{depsAttr}{statusAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id="{anchorId}" tabindex="0">
                             <summary class="h3{(failed ? " failed" : skipped ? " skipped" : "")}">{scenario.DisplayName}{(scenario.IsHappyPath ? " <span class=\"label\">Happy Path</span>" : "")}{scenarioLabelsHtml}{durationBadge}<button class="copy-scenario-name" title="Copy scenario name" data-scenario-name="{encodedName}" onclick="copy_scenario_name(this, event)">&#128203;</button><a class="scenario-link" href="#{anchorId}" title="Link to this scenario" onclick="event.stopPropagation()">&#128279;</a></summary>
                          """);
 
@@ -1040,9 +1276,10 @@ public static class ReportGenerator
                 if (scenario.Steps is { Length: > 0 })
                 {
                     body.Append("<div class=\"scenario-steps\">");
-                    foreach (var step in scenario.Steps)
+                    for (var si = 0; si < scenario.Steps.Length; si++)
                     {
-                        RenderStep(body, step);
+                        var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
+                        RenderStep(body, scenario.Steps[si], numberPrefix);
                     }
                     body.Append("</div>");
                 }
@@ -1195,6 +1432,10 @@ public static class ReportGenerator
 
                 body.Append("</details>");
             }
+            if (ruleOpen)
+            {
+                body.Append("</details>"); // close last rule
+            }
             body.Append("</details>");
         }
         body.Append("</div>");
@@ -1304,6 +1545,41 @@ public static class ReportGenerator
         return count;
     }
 
+    internal static string GeneratePieChartSvg(int passed, int failed, int skipped, int bypassed)
+    {
+        var total = passed + failed + skipped + bypassed;
+        if (total == 0) return "";
+
+        var passRate = (int)Math.Round(100.0 * passed / total);
+        var segments = new List<(double pct, string color, string label, int count)>();
+        if (passed > 0) segments.Add((100.0 * passed / total, "#1daf26", "Passed", passed));
+        if (failed > 0) segments.Add((100.0 * failed / total, "#cc0000", "Failed", failed));
+        if (skipped > 0) segments.Add((100.0 * skipped / total, "#949494", "Skipped", skipped));
+        if (bypassed > 0) segments.Add((100.0 * bypassed / total, "#2e7bff", "Bypassed", bypassed));
+
+        const double radius = 40;
+        const double circumference = 2 * Math.PI * radius;
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"summary-chart\">");
+        sb.Append("<svg viewBox=\"0 0 100 100\">");
+
+        var offset = 0.0;
+        foreach (var (pct, color, label, count) in segments)
+        {
+            var dash = circumference * pct / 100.0;
+            var gap = circumference - dash;
+            var dashOffset = -offset * circumference / 100.0;
+            sb.Append($"<circle cx=\"50\" cy=\"50\" r=\"{radius:F1}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"12\" " +
+                      $"stroke-dasharray=\"{dash:F2} {gap:F2}\" stroke-dashoffset=\"{dashOffset:F2}\" transform=\"rotate(-90 50 50)\">" +
+                      $"<title>{label}: {count} ({pct:F0}%)</title></circle>");
+            offset += pct;
+        }
+
+        sb.Append($"<text x=\"50\" y=\"50\" text-anchor=\"middle\" dominant-baseline=\"central\" font-size=\"16\" font-weight=\"bold\" fill=\"#333\">{passRate}%</text>");
+        sb.Append("</svg></div>");
+        return sb.ToString();
+    }
+
     private static string FormatDuration(TimeSpan duration)
     {
         var total = duration.Duration();
@@ -1325,7 +1601,7 @@ public static class ReportGenerator
         return false;
     }
 
-    private static void RenderStep(StringBuilder body, ScenarioStep step)
+    private static void RenderStep(StringBuilder body, ScenarioStep step, string? numberPrefix = null)
     {
         var statusClass = step.Status switch
         {
@@ -1369,6 +1645,11 @@ public static class ReportGenerator
         else
         {
             body.Append("<div class=\"step\">");
+        }
+
+        if (numberPrefix is not null)
+        {
+            body.Append($"<span class=\"step-number\">{numberPrefix}</span>");
         }
 
         if (step.Status.HasValue)
@@ -1417,12 +1698,21 @@ public static class ReportGenerator
             }
         }
 
+        if (step.DocString is not null)
+        {
+            var codeClassAttr = step.DocStringMediaType is not null
+                ? $" class=\"language-{System.Net.WebUtility.HtmlEncode(step.DocStringMediaType)}\""
+                : "";
+            body.Append($"<pre class=\"step-docstring\"><code{codeClassAttr}>{System.Net.WebUtility.HtmlEncode(step.DocString)}</code></pre>");
+        }
+
         if (hasSubSteps)
         {
             body.Append("<div class=\"sub-steps\">");
-            foreach (var subStep in step.SubSteps!)
+            for (var ssi = 0; ssi < step.SubSteps!.Length; ssi++)
             {
-                RenderStep(body, subStep);
+                var subPrefix = numberPrefix is not null ? $"{numberPrefix}{ssi + 1}." : null;
+                RenderStep(body, step.SubSteps[ssi], subPrefix);
             }
             body.Append("</div>");
             body.Append("</details>");

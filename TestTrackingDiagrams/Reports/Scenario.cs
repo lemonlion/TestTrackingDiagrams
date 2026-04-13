@@ -12,4 +12,7 @@ public record Scenario
     public ScenarioStep[]? Steps { get; set; }
     public string[]? Labels { get; set; }
     public string[]? Categories { get; set; }
+    public string? Rule { get; set; }
+    public string? OutlineId { get; set; }
+    public Dictionary<string, string>? ExampleValues { get; set; }
 }

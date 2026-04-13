@@ -43,6 +43,9 @@ internal static class ScenarioInfoEnumerableExtensions
                                     ? x.Steps.Select(s => new ScenarioStep { Keyword = s.Keyword, Text = s.Text }).ToArray()
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
+                                Rule = x.Rule,
+                                OutlineId = x.OutlineId,
+                                ExampleValues = x.ExampleValues,
                             };
                         }).ToArray()
                 };

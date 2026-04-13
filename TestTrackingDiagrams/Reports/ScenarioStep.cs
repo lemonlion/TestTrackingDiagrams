@@ -10,4 +10,6 @@ public record ScenarioStep
     public StepParameter[]? Parameters { get; set; }
     public string[]? Comments { get; set; }
     public FileAttachment[]? Attachments { get; set; }
+    public string? DocString { get; set; }
+    public string? DocStringMediaType { get; set; }
 }

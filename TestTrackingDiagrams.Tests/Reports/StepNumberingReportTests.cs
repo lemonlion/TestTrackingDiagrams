@@ -1,0 +1,103 @@
+using TestTrackingDiagrams.Reports;
+
+namespace TestTrackingDiagrams.Tests.Reports;
+
+public class StepNumberingReportTests
+{
+    private static string GenerateReport(Feature[] features, bool showStepNumbers = false)
+    {
+        var path = ReportGenerator.GenerateHtmlReport(
+            [], features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "StepNumbering.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs,
+            showStepNumbers: showStepNumbers);
+        return File.ReadAllText(path);
+    }
+
+    private static Feature[] FeaturesWithSteps(params ScenarioStep[] steps) =>
+    [
+        new Feature
+        {
+            DisplayName = "F1",
+            Scenarios =
+            [
+                new Scenario
+                {
+                    Id = "s1", DisplayName = "S1", Result = ScenarioResult.Passed,
+                    Steps = steps
+                }
+            ]
+        }
+    ];
+
+    [Fact]
+    public void Steps_show_numbers_when_enabled()
+    {
+        var features = FeaturesWithSteps(
+            new ScenarioStep { Text = "Given something", Status = ScenarioResult.Passed },
+            new ScenarioStep { Text = "When action", Status = ScenarioResult.Passed },
+            new ScenarioStep { Text = "Then result", Status = ScenarioResult.Passed });
+
+        var content = GenerateReport(features, showStepNumbers: true);
+        Assert.Contains("<span class=\"step-number\">1.</span>", content);
+        Assert.Contains("<span class=\"step-number\">2.</span>", content);
+        Assert.Contains("<span class=\"step-number\">3.</span>", content);
+    }
+
+    [Fact]
+    public void Steps_omit_numbers_when_disabled()
+    {
+        var features = FeaturesWithSteps(
+            new ScenarioStep { Text = "Given something", Status = ScenarioResult.Passed });
+
+        var content = GenerateReport(features, showStepNumbers: false);
+        Assert.DoesNotContain("<span class=\"step-number\">", content);
+    }
+
+    [Fact]
+    public void Sub_steps_show_hierarchical_numbers()
+    {
+        var features = FeaturesWithSteps(
+            new ScenarioStep { Text = "Step one", Status = ScenarioResult.Passed },
+            new ScenarioStep
+            {
+                Text = "Step two", Status = ScenarioResult.Passed,
+                SubSteps =
+                [
+                    new ScenarioStep { Text = "Sub A", Status = ScenarioResult.Passed },
+                    new ScenarioStep { Text = "Sub B", Status = ScenarioResult.Passed }
+                ]
+            });
+
+        var content = GenerateReport(features, showStepNumbers: true);
+        Assert.Contains("<span class=\"step-number\">2.1.</span>", content);
+        Assert.Contains("<span class=\"step-number\">2.2.</span>", content);
+    }
+
+    [Fact]
+    public void Nested_sub_steps_show_three_level_numbers()
+    {
+        var features = FeaturesWithSteps(
+            new ScenarioStep
+            {
+                Text = "Step one", Status = ScenarioResult.Passed,
+                SubSteps =
+                [
+                    new ScenarioStep
+                    {
+                        Text = "Sub A", Status = ScenarioResult.Passed,
+                        SubSteps =
+                        [
+                            new ScenarioStep { Text = "Deep X", Status = ScenarioResult.Passed },
+                            new ScenarioStep { Text = "Deep Y", Status = ScenarioResult.Passed }
+                        ]
+                    }
+                ]
+            });
+
+        var content = GenerateReport(features, showStepNumbers: true);
+        Assert.Contains("<span class=\"step-number\">1.1.1.</span>", content);
+        Assert.Contains("<span class=\"step-number\">1.1.2.</span>", content);
+    }
+}

@@ -49,4 +49,9 @@ public record ReportConfigurationOptions
     public string CiArtifactName { get; set; } = "TestReports";
     public int CiArtifactRetentionDays { get; set; } = 1;
     public string? FixedNameForReceivingService { get; set; }
+    public bool SpecificationsShowStepNumbers { get; set; } = true;
+    public bool FeaturesReportShowStepNumbers { get; set; }
+    public string? CustomCss { get; set; }
+    public string? CustomFaviconBase64 { get; set; }
+    public string? CustomLogoHtml { get; set; }
 }
