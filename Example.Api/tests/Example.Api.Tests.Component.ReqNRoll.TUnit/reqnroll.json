@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
+  "bindingAssemblies": [
+    {
+      "assembly": "TestTrackingDiagrams.ReqNRoll.TUnit"
+    }
+  ],
+  "formatters": {
+    "html": { "outputFilePath": "reqnroll_report.html" }
+  }
+}
