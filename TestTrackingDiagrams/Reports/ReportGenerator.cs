@@ -634,6 +634,44 @@ public static class ReportGenerator
 
         // Export filtered view
         var exportFunction = """
+                             function clear_all_filters() {
+                                 var c = fc();
+                                 // Clear search
+                                 var sb = document.getElementById('searchbar');
+                                 if (sb) { sb.value = ''; }
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].sr = false;
+                                 // Clear status
+                                 document.querySelectorAll('.status-toggle.status-active').forEach(function(b) { b.classList.remove('status-active'); });
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].st = false;
+                                 // Clear happy paths
+                                 var hp = document.querySelector('.happy-path-toggle.happy-path-active');
+                                 if (hp) hp.classList.remove('happy-path-active');
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].hp = false;
+                                 // Clear duration
+                                 document.querySelectorAll('.percentile-btn.percentile-active').forEach(function(b) { b.classList.remove('percentile-active'); });
+                                 var dur = document.getElementById('duration-threshold');
+                                 if (dur) dur.value = '';
+                                 var cw = document.getElementById('custom-duration-wrap');
+                                 if (cw) cw.style.display = 'none';
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].dur = false;
+                                 // Clear dependencies
+                                 document.querySelectorAll('.dependency-toggle.dependency-active').forEach(function(b) { b.classList.remove('dependency-active'); });
+                                 _depMode = 'AND';
+                                 var depModeBtn = document.querySelector('.dep-mode-toggle');
+                                 if (depModeBtn) depModeBtn.textContent = 'AND';
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].dep = false;
+                                 // Clear categories
+                                 document.querySelectorAll('.category-toggle.category-active').forEach(function(b) { b.classList.remove('category-active'); });
+                                 var allCatBtn = document.querySelector('.category-toggle[data-category=""]');
+                                 if (allCatBtn) allCatBtn.classList.add('category-active');
+                                 if (typeof _catMode !== 'undefined') _catMode = 'OR';
+                                 var catModeBtn = document.querySelector('.cat-mode-toggle');
+                                 if (catModeBtn) catModeBtn.textContent = 'OR';
+                                 for (var i = 0; i < c.items.length; i++) c.items[i].cat = false;
+                                 // Apply and clear URL
+                                 applyVisibility(c);
+                                 history.replaceState(null, '', window.location.pathname + window.location.search);
+                             }
                              function export_html() {
                                  var c = fc();
                                  var head = document.querySelector('head');
@@ -1023,7 +1061,7 @@ public static class ReportGenerator
 
         body.Append($"""
                  <div class="filtering-box">
-                    <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
+                    <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
                     <div class="filter-search"><input id="searchbar" placeholder="Search (use @tag for tag filtering)" onkeyup="search_scenarios()" /></div>
                     <div class="filter-row">
