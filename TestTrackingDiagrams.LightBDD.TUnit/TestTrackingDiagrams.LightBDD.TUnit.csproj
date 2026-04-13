@@ -6,6 +6,9 @@
 	  <Title>Test Tracking Diagrams For LightBDD TUnit</Title>
 	  <Description>LightBDD + TUnit extensions for tracking the request-responses in your tests and converting them into diagrams.</Description>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <IsPackable>true</IsPackable>
+	  <IsTestProject>false</IsTestProject>
+	  <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
