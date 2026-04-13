@@ -314,15 +314,15 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void Globals_truncateLines_defaults_to_20()
+    public void Globals_truncateLines_defaults_to_40()
     {
-        Assert.Contains("window._truncateLines = 20", _notesScript);
+        Assert.Contains("window._truncateLines = 40", _notesScript);
     }
 
     [Fact]
-    public void Globals_detailsDefault_defaults_to_expanded()
+    public void Globals_detailsDefault_defaults_to_truncated()
     {
-        Assert.Contains("window._detailsDefault = 'expanded'", _notesScript);
+        Assert.Contains("window._detailsDefault = 'truncated'", _notesScript);
     }
 
     // ─── createNoteButtons ──────────────────────────────────

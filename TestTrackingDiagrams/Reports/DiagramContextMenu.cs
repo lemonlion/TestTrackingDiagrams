@@ -1970,8 +1970,8 @@ public static class DiagramContextMenu
 
             // Global defaults
             window._headersHidden = false;
-            window._truncateLines = 20;
-            window._detailsDefault = 'expanded';
+            window._truncateLines = 40;
+            window._detailsDefault = 'truncated';
 
             // Pre-process source before initial render — applies current report-level defaults
             window._preProcessSource = function(el, source) {

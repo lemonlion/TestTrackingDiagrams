@@ -16,6 +16,9 @@ public static partial class PlantUmlCreator
     private const string EventNoteClass = "eventNote";
     public const int DefaultMaxEncodedDiagramLength = 2000;
     private const int MaxResponseNoteChunkLength = 15_000;
+    private const int MaxEstimatedDiagramHeight = 12_000;
+    private const int EstimatedArrowHeight = 45;
+    private const int EstimatedNoteLineHeight = 18;
 
     public static string[] DefaultExcludedHeaders => ["Cache-Control", "Pragma"];
 
@@ -177,12 +180,15 @@ public static partial class PlantUmlCreator
                         requestLabel = $"[[#iflow-{trace.RequestResponseId} {requestLabel}]]";
 
                     builder.AppendLine($"{callerShortName} -> {serviceShortName}: {requestLabel}");
+                    builder.AddArrowHeight();
 
                     if (!string.IsNullOrEmpty(noteContent))
                     {
+                        var truncatedContent = TruncateNoteContent(noteContent, truncateNotesAfterLines);
                         builder.AppendLine($"note{GetNoteClass(trace.MetaType)} left");
-                        builder.AppendLine(TruncateNoteContent(noteContent, truncateNotesAfterLines));
+                        builder.AppendLine(truncatedContent);
                         builder.AppendLine("end note");
+                        builder.AddNoteHeight(truncatedContent);
                     }
 
                     break;
@@ -204,7 +210,7 @@ public static partial class PlantUmlCreator
 
             builder.IncrementStep();
 
-            if (builder.EncodedDiagramExceedsMaxLength && trace != lastTrace)
+            if ((builder.EncodedDiagramExceedsMaxLength || builder.EstimatedHeightExceedsMax) && trace != lastTrace)
                 builder.FinishAndStartNewDiagram();
         }
 
@@ -263,12 +269,15 @@ public static partial class PlantUmlCreator
             var responseLabel = status ?? "";
 
             builder.AppendLine($"{serviceShortName} --> {callerShortName}: {responseLabel}");
+            builder.AddArrowHeight();
 
             if (!string.IsNullOrEmpty(noteContent))
             {
+                var truncatedContent = TruncateNoteContent(noteContent, truncateNotesAfterLines);
                 builder.AppendLine($"note{GetNoteClass(trace!.MetaType)} right");
-                builder.AppendLine(TruncateNoteContent(noteContent, truncateNotesAfterLines));
+                builder.AppendLine(truncatedContent);
                 builder.AppendLine("end note");
+                builder.AddNoteHeight(truncatedContent);
             }
         }
     }
@@ -450,11 +459,23 @@ public static partial class PlantUmlCreator
         private string? _openPartitionLine;
         private string? _cachedEncoded;
         private int _lengthAtLastEncode;
+        private int _estimatedHeight;
 
         public void Append(string text) => _currentDiagram.Append(text);
         public void AppendLine(string text) => _currentDiagram.AppendLine(text);
         public void IncrementStep() => _stepNumber++;
         public bool HasOpenPartition => _openPartitionLine != null;
+
+        public void AddArrowHeight() => _estimatedHeight += EstimatedArrowHeight;
+
+        public void AddNoteHeight(string noteContent)
+        {
+            if (string.IsNullOrEmpty(noteContent)) return;
+            var lineCount = noteContent.Split('\n').Length;
+            _estimatedHeight += (lineCount * EstimatedNoteLineHeight) + EstimatedArrowHeight;
+        }
+
+        public bool EstimatedHeightExceedsMax => _estimatedHeight > MaxEstimatedDiagramHeight;
 
         public void OpenPartition(string partitionLine)
         {
@@ -499,6 +520,7 @@ public static partial class PlantUmlCreator
             var encodedPlantUml = PlantUmlTextEncoder.Encode(plainText);
             _cachedEncoded = null;
             _lengthAtLastEncode = 0;
+            _estimatedHeight = 0;
             _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
             _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber, plantUmlTheme));
 

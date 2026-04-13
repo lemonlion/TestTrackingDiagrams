@@ -932,16 +932,18 @@ public class PlantUmlCreatorTests
     [Fact]
     public void Higher_maxEncodedDiagramLength_produces_fewer_diagrams()
     {
-        // Generate enough traces to split at default 2000 but not at 8000
+        // Generate enough traces to split at default 2000 but not at 8000.
+        // Use varied (non-repetitive) content so PlantUML's deflate compression
+        // doesn't eliminate the size difference between 2000 and 8000 char limits.
+        // Keep pair count low (20 pairs ≈ 5,000px) to stay well under the
+        // 12,000px height-split threshold.
         var logs = new List<RequestResponseLog>();
-        for (var i = 0; i < 200; i++)
+        for (var i = 0; i < 20; i++)
         {
-            logs.Add(MakeRequest(
-                content: $"{{\"payload_{i}\": \"{new string('X', 300)}\"}}",
-                headers: [("X-Trace", $"trace-{i}-{new string('H', 100)}")]));
-            logs.Add(MakeResponse(
-                content: $"{{\"result_{i}\": \"{new string('Y', 300)}\"}}",
-                headers: [("X-Response", $"resp-{i}-{new string('R', 100)}")]));
+            var payload = string.Join(", ", Enumerable.Range(i * 10, 10).Select(n => $"\"{Guid.NewGuid():N}\": {n}"));
+            var result = string.Join(", ", Enumerable.Range(i * 10, 10).Select(n => $"\"{Guid.NewGuid():N}\": {n}"));
+            logs.Add(MakeRequest(content: $"{{{payload}}}"));
+            logs.Add(MakeResponse(content: $"{{{result}}}"));
         }
 
         var defaultResults = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
@@ -952,6 +954,89 @@ public class PlantUmlCreatorTests
 
         Assert.True(defaultCount > 1, "Default limit should produce multiple diagrams");
         Assert.True(largerCount < defaultCount, $"8000 limit ({largerCount} diagrams) should produce fewer diagrams than default ({defaultCount})");
+    }
+
+    // ─── Height-based diagram splitting ─────────────────────────
+
+    [Fact]
+    public void Many_medium_sized_notes_split_on_estimated_height()
+    {
+        // Create many request/response pairs with medium-sized bodies (not large
+        // enough to trigger the 15KB response chunk split or exceed 2000 encoded
+        // chars on their own, but collectively very tall).
+        var logs = new List<RequestResponseLog>();
+        // Each pair: ~50 lines of note content × 18px ≈ 900px per request + response
+        // 15 pairs ≈ 13,500px estimated, exceeding MaxEstimatedDiagramHeight (12,000)
+        for (var i = 0; i < 15; i++)
+        {
+            var body = string.Join("\n", Enumerable.Range(0, 25).Select(n => $"\"field_{n}\": \"value_{n}\""));
+            logs.Add(MakeRequest(content: $"{{{body}}}"));
+            logs.Add(MakeResponse(content: $"{{{body}}}"));
+        }
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000).ToList();
+        var diagramCount = results.Single().PlantUmls.Count();
+
+        Assert.True(diagramCount >= 2, $"Expected height-based split to produce at least 2 diagrams but got {diagramCount}");
+    }
+
+    [Fact]
+    public void Height_split_diagrams_each_have_valid_plantuml_structure()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 15; i++)
+        {
+            var body = string.Join("\n", Enumerable.Range(0, 25).Select(n => $"\"f_{n}\": \"v_{n}\""));
+            logs.Add(MakeRequest(content: $"{{{body}}}"));
+            logs.Add(MakeResponse(content: $"{{{body}}}"));
+        }
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        foreach (var diagram in diagrams)
+        {
+            Assert.Contains("@startuml", diagram.PlainText);
+            Assert.Contains("@enduml", diagram.PlainText);
+            Assert.Contains("autonumber", diagram.PlainText);
+        }
+    }
+
+    [Fact]
+    public void Small_diagram_does_not_split_on_height()
+    {
+        // A single request/response pair should never trigger height splitting
+        var logs = new[]
+        {
+            MakeRequest(content: "{\"small\": \"value\"}"),
+            MakeResponse(content: "{\"result\": \"ok\"}"),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000).ToList();
+        var diagramCount = results.Single().PlantUmls.Count();
+
+        Assert.Equal(1, diagramCount);
+    }
+
+    [Fact]
+    public void Height_split_does_not_split_on_last_trace()
+    {
+        // Even if height exceeds max on the last trace, it should not create an
+        // empty trailing diagram — same behaviour as encoded length splitting
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 20; i++)
+        {
+            var body = string.Join("\n", Enumerable.Range(0, 30).Select(n => $"\"f_{n}\": \"v_{n}\""));
+            logs.Add(MakeRequest(content: $"{{{body}}}"));
+            logs.Add(MakeResponse(content: $"{{{body}}}"));
+        }
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        // The last diagram should have actual content, not just prefix + @enduml
+        var lastDiagram = diagrams.Last().PlainText;
+        Assert.Contains("->", lastDiagram);
     }
 
     // ─── Camelized names ────────────────────────────────────────
