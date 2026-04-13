@@ -601,7 +601,8 @@ public static class ReportGenerator
                                          }
                                          var thresholdMs = threshold * 1000;
                                          for (var i = 0; i < c.items.length; i++) {
-                                             var ms = parseFloat(c.items[i].el.getAttribute('data-duration-ms') || '0');
+                                             if (!c.items[i].el.hasAttribute('data-duration-ms')) { c.items[i].dur = true; continue; }
+                                             var ms = parseFloat(c.items[i].el.getAttribute('data-duration-ms'));
                                              c.items[i].dur = ms > 0 && ms < thresholdMs;
                                          }
                                          applyVisibility(c);

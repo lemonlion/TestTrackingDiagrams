@@ -100,4 +100,18 @@ public class DurationFilterReportTests
         Assert.Contains("data-p95=", content);
         Assert.Contains("data-p99=", content);
     }
+
+    [Fact]
+    public void Filter_duration_hides_scenarios_without_duration_measurement()
+    {
+        var features = MakeFeatures(
+            ("t1", "Fast test", ExecutionResult.Passed, TimeSpan.FromSeconds(1)),
+            ("t2", "No duration", ExecutionResult.Passed, null));
+        var content = GenerateReport(features, "DurationFilterNoDuration.html");
+
+        // The filter_duration function should hide scenarios that have no
+        // data-duration-ms attribute (i.e. no measurement) whenever a
+        // threshold is active, rather than showing them alongside measured ones.
+        Assert.Contains("!c.items[i].el.hasAttribute('data-duration-ms')", content);
+    }
 }
