@@ -385,8 +385,8 @@ public class DiagramContextMenuTests
     {
         var funcBody = GetFunction("createNoteButtons");
         // For expanded long notes: ▴ arrow appears to the left of −
-        // The ▴ block uses offset: size * 2 + pad * 2
-        Assert.Contains("bbox.x + bbox.width - size * 2 - pad * 2", funcBody);
+        // The ▴ block uses offset: topSize * 2 + pad * 2
+        Assert.Contains("bbox.x + bbox.width - topSize * 2 - pad * 2", funcBody);
     }
 
     [Fact]
@@ -396,7 +396,7 @@ public class DiagramContextMenuTests
         // dblclick on note background paths cycles state
         Assert.Contains("dblclick", funcBody);
         Assert.Contains("onCycle", funcBody);
-        // Uses note group paths for hover detection and dblclick (no hoverRect overlay)
+        // Uses note group paths for hover detection and dblclick
         Assert.Contains("grp.paths.forEach", funcBody);
         Assert.Contains("grp.texts.forEach", funcBody);
         // Delayed hide for smooth hover across gaps between note sub-elements
@@ -445,6 +445,76 @@ public class DiagramContextMenuTests
         // The minus button uses an SVG line element instead of text
         Assert.Contains("createElementNS(SVGNS, 'line')", funcBody);
         Assert.Contains("stroke-linecap", funcBody);
+    }
+
+    // ─── createNoteButtons — hover detection rect ───────────
+
+    [Fact]
+    public void CreateNoteButtons_adds_transparent_hover_rect()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // Transparent rect covers the note bounding box for reliable hover detection
+        Assert.Contains("note-hover-rect", funcBody);
+        Assert.Contains("fill', 'transparent'", funcBody);
+        Assert.Contains("stroke', 'none'", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hover_rect_uses_note_bbox()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // hoverRect positioned using the note's bounding box
+        Assert.Contains("hoverRect.setAttribute('x', bbox.x)", funcBody);
+        Assert.Contains("hoverRect.setAttribute('y', bbox.y)", funcBody);
+        Assert.Contains("hoverRect.setAttribute('width', bbox.width)", funcBody);
+        Assert.Contains("hoverRect.setAttribute('height', bbox.height)", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hover_rect_captures_all_pointer_events()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // pointer-events: all ensures the rect captures hover even with overlapping SVG elements
+        Assert.Contains("hoverRect.style.pointerEvents = 'all'", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hover_rect_has_mouseenter_and_mouseleave()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // hoverRect wired to the same show/hide functions as path/text elements
+        Assert.Contains("hoverRect.addEventListener('mouseenter', _noteShowButtons)", funcBody);
+        Assert.Contains("hoverRect.addEventListener('mouseleave', _noteScheduleHide)", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hover_rect_supports_dblclick_cycle()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // hoverRect also handles dblclick for toggle-cycling
+        Assert.Contains("hoverRect.addEventListener('dblclick'", funcBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hover_rect_inserted_before_buttons()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // hoverRect appended to SVG before buttons so buttons stay on top for clicks
+        var hoverRectAppend = funcBody.IndexOf("svg.appendChild(hoverRect)");
+        var buttonsAppend = funcBody.IndexOf("svg.appendChild(b)");
+        Assert.True(hoverRectAppend >= 0, "hoverRect should be appended to svg");
+        Assert.True(buttonsAppend >= 0, "buttons should be appended to svg");
+        Assert.True(hoverRectAppend < buttonsAppend,
+            "hoverRect must be appended before buttons so buttons remain on top");
+    }
+
+    [Fact]
+    public void CreateNoteButtons_hide_timeout_is_300ms()
+    {
+        var funcBody = GetFunction("createNoteButtons");
+        // 300ms delay gives enough time for mouse to cross element boundaries
+        Assert.Contains("}, 300)", funcBody);
+        Assert.DoesNotContain("}, 100)", funcBody);
     }
 
     // ─── makeNotesCollapsible — double-click cycle logic ────

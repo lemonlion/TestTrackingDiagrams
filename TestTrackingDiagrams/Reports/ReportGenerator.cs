@@ -1064,7 +1064,7 @@ public static class ReportGenerator
 
         if (allDependencies.Count > 0)
         {
-            body.Append("""<div class="dependency-filters"><span class="dependency-filters-label">Dependencies:</span><button class="dep-mode-toggle" onclick="toggle_dep_mode(this)">AND</button>""");
+            body.Append("""<div class="dependency-filters"><span class="dependency-filters-label">Dependencies:</span><button class="dep-mode-toggle" title="AND: show scenarios matching ALL selected dependencies. OR: show scenarios matching ANY selected dependency. Click to toggle." onclick="toggle_dep_mode(this)">AND</button>""");
             foreach (var dep in allDependencies.OrderBy(d => d))
             {
                 body.Append($"""<button class="dependency-toggle" data-dependency="{System.Net.WebUtility.HtmlEncode(dep)}" onclick="toggle_dependency(this)">{System.Net.WebUtility.HtmlEncode(dep)}</button>""");
@@ -1081,7 +1081,7 @@ public static class ReportGenerator
             .ToArray();
         if (allCategories.Length > 0)
         {
-            body.Append("""<div class="category-filters"><span class="category-filters-label">Categories:</span><button class="cat-mode-toggle" onclick="toggle_cat_mode(this)">OR</button>""");
+            body.Append("""<div class="category-filters"><span class="category-filters-label">Categories:</span><button class="cat-mode-toggle" title="OR: show scenarios matching ANY selected category. AND: show scenarios matching ALL selected categories. Click to toggle." onclick="toggle_cat_mode(this)">OR</button>""");
             body.Append("""<button class="category-toggle category-active" data-category="" onclick="toggle_category(this)">All</button>""");
             foreach (var cat in allCategories)
             {
@@ -1095,8 +1095,9 @@ public static class ReportGenerator
         body.Append("</div>"); // close filtering-box
         body.Append("</div>"); // close header-row
 
-        // Toolbar row: Details/Headers on right
+        // Toolbar row: expand buttons left, Details/Headers right
         body.Append("""<div class="toolbar-row">""");
+        body.Append("""<div class="toolbar-left"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
         body.Append("""<div class="toolbar-right">""");
         if (isPlantUmlBrowser)
         {
@@ -1105,9 +1106,6 @@ public static class ReportGenerator
         }
         body.Append("</div>");
         body.Append("</div>");
-
-        // Expand buttons left-aligned, no padding
-        body.Append("""<div class="expand-row"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
 
         var plantUmlBrowserCounter = 0;
 
@@ -1251,7 +1249,9 @@ public static class ReportGenerator
 
                 var encodedName = System.Net.WebUtility.HtmlEncode(scenario.DisplayName);
                 var scenarioLabelsHtml = scenario.Labels is { Length: > 0 }
-                    ? string.Concat(scenario.Labels.Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>"))
+                    ? string.Concat(scenario.Labels
+                        .Where(l => !scenario.IsHappyPath || !l.Equals("Happy Path", StringComparison.OrdinalIgnoreCase))
+                        .Select(l => $" <span class=\"label\">{System.Net.WebUtility.HtmlEncode(l)}</span>"))
                     : "";
 
                 body.Append($"""
@@ -1601,11 +1601,22 @@ public static class ReportGenerator
         return false;
     }
 
+    private static bool HasAnySkipped(ScenarioStep step)
+    {
+        if (step.SubSteps is not { Length: > 0 }) return false;
+        foreach (var sub in step.SubSteps)
+        {
+            if (sub.Status == ScenarioResult.Skipped) return true;
+            if (HasAnySkipped(sub)) return true;
+        }
+        return false;
+    }
+
     private static void RenderStep(StringBuilder body, ScenarioStep step, string? numberPrefix = null)
     {
         var statusClass = step.Status switch
         {
-            ScenarioResult.Passed => HasAnyBypassed(step) ? "passed-bypassed" : "passed",
+            ScenarioResult.Passed => HasAnySkipped(step) ? "passed-skipped" : HasAnyBypassed(step) ? "passed-bypassed" : "passed",
             ScenarioResult.Failed => "failed",
             ScenarioResult.Skipped => "skipped",
             ScenarioResult.Bypassed => "bypassed",
@@ -1625,7 +1636,9 @@ public static class ReportGenerator
 
         var statusTooltip = step.Status switch
         {
-            ScenarioResult.Passed => HasAnyBypassed(step)
+            ScenarioResult.Passed => HasAnySkipped(step)
+                ? "Passed (with skipped sub-steps) — all assertions passed, but one or more sub-steps were skipped. Skipped steps did not execute and also prevented execution of subsequent steps"
+                : HasAnyBypassed(step)
                 ? "Passed (with bypassed sub-steps) — all assertions passed, but one or more sub-steps were bypassed (intentionally skipped over without preventing execution of subsequent steps)"
                 : "Passed — all assertions in this step passed",
             ScenarioResult.Failed => "Failed — this step threw an exception or an assertion failed",

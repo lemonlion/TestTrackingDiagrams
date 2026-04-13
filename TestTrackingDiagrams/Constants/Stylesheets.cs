@@ -493,8 +493,14 @@ public class Stylesheets
                     flex-wrap: wrap;
                     gap: 0.5em;
                     align-items: center;
-                    justify-content: flex-end;
+                    justify-content: space-between;
                     margin-bottom: 0.5em;
+                }
+
+                .toolbar-left {
+                    display: flex;
+                    gap: 0.5em;
+                    align-items: center;
                 }
 
                 .toolbar-right {
@@ -558,6 +564,7 @@ public class Stylesheets
                 .step-status.bypassed { background: #2e7bff; }
                 .step-status.skipped-after-failure { background: #fbc800; color: black; }
                 .step-status.passed-bypassed { background: #2e7bff; }
+                .step-status.passed-skipped { background: #949494; }
 
                 .step-keyword {
                     font-weight: bold;

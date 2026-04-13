@@ -13,7 +13,7 @@ namespace TestTrackingDiagrams.LightBDD.xUnit2;
 /// </summary>
 public class UnifiedReportFormatter : IReportFormatter
 {
-    public string Title { get; set; } = "Test Report";
+    public string Title { get; set; } = "Test Run Report";
     public bool IncludeTestRunData { get; set; } = true;
     public Func<DefaultDiagramsFetcher.DiagramAsCode[]>? DiagramsFetcher { get; set; }
     public DiagramFormat DiagramFormat { get; set; } = DiagramFormat.PlantUml;

@@ -965,7 +965,8 @@ public static class DiagramContextMenu
                 }
 
                 if (source && diagramType === 'plantuml') {
-                    var payloads = extractCallerPayloads(source);
+                    var callerSource = container._noteOriginalSource || source;
+                    var payloads = extractCallerPayloads(callerSource);
                     if (payloads) {
                         menu.appendChild(createMenuItem('Copy All Caller Request Payloads', function() {
                             navigator.clipboard.writeText(payloads);
@@ -1615,6 +1616,7 @@ public static class DiagramContextMenu
 
             function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines, grp) {
                 var size = 12;
+                var topSize = 14;
                 var pad = 3;
                 var state = noteStepState(noteStep);
                 var longNote = isLongNote(contentLines);
@@ -1624,7 +1626,7 @@ public static class DiagramContextMenu
                 if (state === 'expanded' || state === 'truncated') {
                     // For expanded long notes: ▴ arrow to the left of −
                     if (state === 'expanded' && longNote) {
-                        var ax = bbox.x + bbox.width - size * 2 - pad * 2;
+                        var ax = bbox.x + bbox.width - topSize * 2 - pad * 2;
                         var ay = bbox.y + pad;
                         var ga = document.createElementNS(SVGNS, 'g');
                         ga.setAttribute('class', 'note-toggle-icon');
@@ -1632,13 +1634,13 @@ public static class DiagramContextMenu
                         ga.style.opacity = '0';
                         var bgA = document.createElementNS(SVGNS, 'rect');
                         bgA.setAttribute('x', ax); bgA.setAttribute('y', ay);
-                        bgA.setAttribute('width', size); bgA.setAttribute('height', size);
+                        bgA.setAttribute('width', topSize); bgA.setAttribute('height', topSize);
                         bgA.setAttribute('rx', '2'); bgA.setAttribute('fill', '#ffffff');
                         bgA.setAttribute('stroke', '#999'); bgA.setAttribute('stroke-width', '0.5');
                         ga.appendChild(bgA);
                         var symA = document.createElementNS(SVGNS, 'text');
-                        symA.setAttribute('x', ax + size / 2); symA.setAttribute('y', ay + size - 2.5);
-                        symA.setAttribute('text-anchor', 'middle'); symA.setAttribute('font-size', '10');
+                        symA.setAttribute('x', ax + topSize / 2); symA.setAttribute('y', ay + topSize - 3);
+                        symA.setAttribute('text-anchor', 'middle'); symA.setAttribute('font-size', '12');
                         symA.setAttribute('font-family', 'sans-serif'); symA.setAttribute('fill', '#666');
                         symA.style.pointerEvents = 'none';
                         symA.textContent = '\u25B2'; // ▲
@@ -1647,7 +1649,7 @@ public static class DiagramContextMenu
                         buttons.push(ga);
                     }
                     // − (minus) button — top-right
-                    var ix = bbox.x + bbox.width - size - pad;
+                    var ix = bbox.x + bbox.width - topSize - pad;
                     var iy = bbox.y + pad;
                     var gc = document.createElementNS(SVGNS, 'g');
                     gc.setAttribute('class', 'note-toggle-icon');
@@ -1655,13 +1657,13 @@ public static class DiagramContextMenu
                     gc.style.opacity = '0';
                     var bgC = document.createElementNS(SVGNS, 'rect');
                     bgC.setAttribute('x', ix); bgC.setAttribute('y', iy);
-                    bgC.setAttribute('width', size); bgC.setAttribute('height', size);
+                    bgC.setAttribute('width', topSize); bgC.setAttribute('height', topSize);
                     bgC.setAttribute('rx', '2'); bgC.setAttribute('fill', '#ffffff');
                     bgC.setAttribute('stroke', '#999'); bgC.setAttribute('stroke-width', '0.5');
                     gc.appendChild(bgC);
                     var symC = document.createElementNS(SVGNS, 'line');
-                    symC.setAttribute('x1', ix + 2.5); symC.setAttribute('y1', iy + size / 2);
-                    symC.setAttribute('x2', ix + size - 2.5); symC.setAttribute('y2', iy + size / 2);
+                    symC.setAttribute('x1', ix + 3); symC.setAttribute('y1', iy + topSize / 2);
+                    symC.setAttribute('x2', ix + topSize - 3); symC.setAttribute('y2', iy + topSize / 2);
                     symC.setAttribute('stroke', '#666'); symC.setAttribute('stroke-width', '2');
                     symC.setAttribute('stroke-linecap', 'round');
                     symC.style.pointerEvents = 'none';
@@ -1734,7 +1736,7 @@ public static class DiagramContextMenu
                 function _noteScheduleHide() {
                     _noteHideTimeout = setTimeout(function() {
                         buttons.forEach(function(b) { b.style.opacity = '0'; });
-                    }, 100);
+                    }, 300);
                 }
 
                 // Note background paths: hover detection + dblclick to cycle state
@@ -1775,7 +1777,26 @@ public static class DiagramContextMenu
                     }
                 }
 
-                // Insert buttons on top
+                // Transparent hover-detection rect covering the note bounding box.
+                // This ensures mouseenter/mouseleave fire reliably even when other
+                // SVG elements (arrows, lifeline labels) overlap the note area.
+                var hoverRect = document.createElementNS(SVGNS, 'rect');
+                hoverRect.setAttribute('x', bbox.x);
+                hoverRect.setAttribute('y', bbox.y);
+                hoverRect.setAttribute('width', bbox.width);
+                hoverRect.setAttribute('height', bbox.height);
+                hoverRect.setAttribute('fill', 'transparent');
+                hoverRect.setAttribute('stroke', 'none');
+                hoverRect.setAttribute('class', 'note-hover-rect');
+                hoverRect.style.pointerEvents = 'all';
+                hoverRect.addEventListener('mouseenter', _noteShowButtons);
+                hoverRect.addEventListener('mouseleave', _noteScheduleHide);
+                hoverRect.addEventListener('dblclick', function(ev) {
+                    ev.stopPropagation(); ev.preventDefault(); onCycle();
+                });
+                svg.appendChild(hoverRect);
+
+                // Insert buttons on top (after hoverRect so they receive clicks)
                 buttons.forEach(function(b) { svg.appendChild(b); });
             }
 

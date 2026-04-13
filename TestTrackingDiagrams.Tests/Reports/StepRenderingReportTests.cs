@@ -271,6 +271,150 @@ public class StepRenderingReportTests
     }
 
     [Fact]
+    public void Report_renders_passed_skipped_for_parent_with_skipped_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Passed-skipped test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "PassedSkipped.html");
+        Assert.Contains("step-status passed-skipped", content);
+        Assert.Contains("&#10003;", content); // tick icon
+    }
+
+    [Fact]
+    public void Report_renders_passed_skipped_for_deeply_nested_skipped_descendant()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Deep skipped test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "outer step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep
+                        {
+                            Keyword = "And", Text = "mid step",
+                            Status = ScenarioResult.Passed,
+                            SubSteps =
+                            [
+                                new ScenarioStep { Keyword = "And", Text = "deep skipped", Status = ScenarioResult.Skipped }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "DeepPassedSkipped.html");
+        Assert.Contains("step-status passed-skipped", content);
+    }
+
+    [Fact]
+    public void Report_renders_passed_skipped_when_both_bypassed_and_skipped_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Mixed bypassed+skipped test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "bypassed child", Status = ScenarioResult.Bypassed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "MixedBypassedSkipped.html");
+        // Skipped takes priority over bypassed
+        Assert.Contains("step-status passed-skipped", content);
+        Assert.DoesNotContain("step-status passed-bypassed", content);
+    }
+
+    [Fact]
+    public void Report_does_not_render_passed_skipped_for_skipped_after_failure_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "SkippedAfterFailure not treated as skipped",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped-after-failure child", Status = ScenarioResult.SkippedAfterFailure }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "NotPassedSkipped.html");
+        Assert.DoesNotContain("step-status passed-skipped", content);
+    }
+
+    [Fact]
+    public void Report_passed_skipped_tooltip_mentions_skipped_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Tooltip test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "a composite step",
+                    Status = ScenarioResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "passed child", Status = ScenarioResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "skipped child", Status = ScenarioResult.Skipped }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "SkippedTooltip.html");
+        Assert.Contains("with skipped sub-steps", content);
+    }
+
+    [Fact]
+    public void Report_passed_skipped_css_class_uses_grey_background()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "CSS test",
+            Steps = [new ScenarioStep { Keyword = "Given", Text = "something" }]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "PassedSkippedCss.html");
+        Assert.Contains(".step-status.passed-skipped", content);
+        Assert.Contains("#949494", content); // grey — same as skipped
+    }
+
+    [Fact]
     public void Report_step_css_classes_exist()
     {
         var scenario = new Scenario
