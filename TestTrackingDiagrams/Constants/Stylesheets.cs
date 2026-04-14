@@ -800,4 +800,62 @@ public class Stylesheets
                     margin-left: 16px;
                 }
         """;
+
+    public const string VioletThemeStyleSheet =
+        """
+                .feature { background-color: #DDD6FE; }
+                .features-summary-details { background-color: #DDD6FE; }
+                .test-execution-summary { background-color: #DDD6FE; }
+                .filtering-box { background-color: #DDD6FE; }
+                .example-diagrams { border-color: #DDD6FE; }
+
+                .happy-path-toggle.happy-path-active,
+                .dependency-toggle.dependency-active,
+                .status-toggle.status-active,
+                .category-toggle.category-active {
+                    background: #8B5CF6;
+                    color: white;
+                    border-color: #8B5CF6;
+                }
+                .percentile-btn.percentile-active {
+                    background: #8B5CF6;
+                    color: white;
+                }
+
+                .happy-path-toggle:hover,
+                .dependency-toggle:hover,
+                .status-toggle:hover,
+                .category-toggle:hover {
+                    background: #EDE9FE;
+                    border-color: #A78BFA;
+                }
+
+                .dep-mode-toggle, .cat-mode-toggle { background: #F5F3FF; }
+                .scenario-focused { outline-color: #8B5CF6; }
+                .step-attachment { color: #8B5CF6; }
+
+                .details-radio-btn.details-active {
+                    background: #8B5CF6;
+                    color: white;
+                    border-color: #8B5CF6;
+                }
+
+                .iflow-toggle-active { background: #8B5CF6; color: #fff; border-color: #8B5CF6; }
+                .iflow-toggle-active:hover { background: #7C3AED; }
+                .diagram-toggle-active { background: #8B5CF6; color: #fff; border-color: #8B5CF6; }
+                .iflow-rel-list li:hover { background: #EDE9FE; border-color: #8B5CF6; }
+
+                .step-status.passed { background: #8B5CF6; }
+                .step-status.bypassed { background: #DDD6FE; color: #5B21B6; }
+                .step-status.passed-bypassed { background: #DDD6FE; color: #5B21B6; }
+
+                .rule { border-left-color: #8B5CF6; }
+                span.label { background-color: #C4B5FD; }
+                #searchbar { border-color: #C4B5FD; }
+                .scenario-steps { border-left-color: #C4B5FD; }
+                .sub-steps { border-left-color: #DDD6FE; }
+                .feature-summary-table th { background: #F5F3FF; }
+                .param-success { background: #EDE9FE; }
+                .duration-fast { background: #EDE9FE; color: #5B21B6; }
+        """;
 }

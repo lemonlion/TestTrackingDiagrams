@@ -9,10 +9,10 @@ public record ReportConfigurationOptions
     public Func<string, string>? RequestResponsePostProcessor { get; set; }
     public Func<string, string>? RequestResponseMidProcessor { get; set; }
     public string SpecificationsTitle { get; set; } = "Service Specifications";
-    public string HtmlSpecificationsFileName { get; set; } = "ComponentSpecificationsWithExamples";
-    public string HtmlTestRunReportFileName { get; set; } = "FeaturesReport";
-    public string? HtmlSpecificationsCustomStyleSheet { get; set; }
-    public string YamlSpecificationsFileName { get; set; } = "ComponentSpecifications";
+    public string HtmlSpecificationsFileName { get; set; } = "Specifications";
+    public string HtmlTestRunReportFileName { get; set; } = "TestRunReport";
+    public string? HtmlSpecificationsCustomStyleSheet { get; set; } = Stylesheets.VioletThemeStyleSheet;
+    public string YamlSpecificationsFileName { get; set; } = "Specifications";
     public string ReportsFolderPath { get; set; } = "Reports";
     public string[] ExcludedHeaders { get; set; } = [];
     public bool SeparateSetup { get; set; }

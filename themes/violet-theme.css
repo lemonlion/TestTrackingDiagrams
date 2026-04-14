@@ -1,0 +1,175 @@
+/* ==========================================================================
+   Violet Theme for TestTrackingDiagrams Reports
+   ========================================================================== 
+   Supply via ReportConfigurationOptions.CustomCss to override default styles.
+   
+   Palette (violet scale):
+     50:  #F5F3FF    100: #EDE9FE    200: #DDD6FE
+     300: #C4B5FD    500: #8B5CF6    600: #7C3AED
+     800: #5B21B6
+   ========================================================================== */
+
+/* ---------- Panel backgrounds (were rgb(224, 224, 224)) ---------- */
+
+.feature {
+    background-color: #DDD6FE;
+}
+
+.features-summary-details {
+    background-color: #DDD6FE;
+}
+
+.test-execution-summary {
+    background-color: #DDD6FE;
+}
+
+.filtering-box {
+    background-color: #DDD6FE;
+}
+
+.example-diagrams {
+    border-color: #DDD6FE;
+}
+
+/* ---------- Active toggle buttons (were rgb(66, 133, 244)) ---------- */
+
+.happy-path-toggle.happy-path-active,
+.dependency-toggle.dependency-active,
+.status-toggle.status-active,
+.category-toggle.category-active {
+    background: #8B5CF6;
+    color: white;
+    border-color: #8B5CF6;
+}
+
+.percentile-btn.percentile-active {
+    background: #8B5CF6;
+    color: white;
+}
+
+/* ---------- Toggle hovers (were rgb(230, 240, 255) / rgb(100, 150, 255)) ---------- */
+
+.happy-path-toggle:hover,
+.dependency-toggle:hover,
+.status-toggle:hover,
+.category-toggle:hover {
+    background: #EDE9FE;
+    border-color: #A78BFA;
+}
+
+/* ---------- Mode toggle backgrounds (were rgb(240,240,240)) ---------- */
+
+.dep-mode-toggle,
+.cat-mode-toggle {
+    background: #F5F3FF;
+}
+
+/* ---------- Focused scenario outline ---------- */
+
+.scenario-focused {
+    outline-color: #8B5CF6;
+}
+
+/* ---------- Step attachment links ---------- */
+
+.step-attachment {
+    color: #8B5CF6;
+}
+
+/* ---------- Collapsible note active buttons ---------- */
+
+.details-radio-btn.details-active {
+    background: #8B5CF6;
+    color: white;
+    border-color: #8B5CF6;
+}
+
+/* ---------- iFlow / diagram toggle active ---------- */
+
+.iflow-toggle-active {
+    background: #8B5CF6;
+    color: #fff;
+    border-color: #8B5CF6;
+}
+
+.iflow-toggle-active:hover {
+    background: #7C3AED;
+}
+
+.diagram-toggle-active {
+    background: #8B5CF6;
+    color: #fff;
+    border-color: #8B5CF6;
+}
+
+/* ---------- iFlow relation list hover ---------- */
+
+.iflow-rel-list li:hover {
+    background: #EDE9FE;
+    border-color: #8B5CF6;
+}
+
+/* ---------- Passed step checkmark (was #1daf26 green → violet primary) ---------- */
+
+.step-status.passed {
+    background: #8B5CF6;
+}
+
+/* ---------- Bypassed steps (was #2e7bff blue → light violet) ---------- */
+
+.step-status.bypassed {
+    background: #DDD6FE;
+    color: #5B21B6;
+}
+
+.step-status.passed-bypassed {
+    background: #DDD6FE;
+    color: #5B21B6;
+}
+
+/* ---------- Rule left border ---------- */
+
+.rule {
+    border-left-color: #8B5CF6;
+}
+
+/* ---------- Labels (were rgb(200,200,200)) ---------- */
+
+span.label {
+    background-color: #C4B5FD;
+}
+
+/* ---------- Search bar border ---------- */
+
+#searchbar {
+    border-color: #C4B5FD;
+}
+
+/* ---------- Scenario / sub-step borders ---------- */
+
+.scenario-steps {
+    border-left-color: #C4B5FD;
+}
+
+.sub-steps {
+    border-left-color: #DDD6FE;
+}
+
+/* ---------- Feature summary table header ---------- */
+
+.feature-summary-table th {
+    background: #F5F3FF;
+}
+
+/* ---------- Param success ---------- */
+
+.param-success {
+    background: #EDE9FE;
+}
+
+/* ---------- Duration fast ---------- */
+
+.duration-fast {
+    background: #EDE9FE;
+    color: #5B21B6;
+}
