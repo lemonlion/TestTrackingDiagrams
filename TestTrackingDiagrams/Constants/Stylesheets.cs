@@ -782,6 +782,35 @@ public class Stylesheets
                     font-weight: bold;
                     text-decoration: underline;
                 }
+
+                .step-param-combined-table {
+                    margin: 8px 0 4px 24px;
+                }
+                .step-param-combined-table table {
+                    border-collapse: collapse;
+                    font-size: 0.85em;
+                }
+                .step-param-combined-table th, .step-param-combined-table td {
+                    border: 1px solid #ccc;
+                    padding: 3px 8px;
+                }
+                .step-param-combined-table th {
+                    background: #f5f5f5;
+                }
+                .step-param-combined-table th.key {
+                    font-weight: bold;
+                    text-decoration: underline;
+                }
+                .step-param-combined-table th.combined-separator,
+                .step-param-combined-table td.combined-separator {
+                    border-left: 2px solid #888;
+                    border-right: 2px solid #888;
+                    background: #f0f0f0;
+                    text-align: center;
+                    font-weight: bold;
+                    padding: 3px 4px;
+                    width: 1em;
+                }
                 .row-surplus td:first-child { color: green; }
                 .row-missing td:first-child { color: red; }
 

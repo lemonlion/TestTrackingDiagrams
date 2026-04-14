@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using TestTrackingDiagrams.ComponentDiagram;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
@@ -1346,6 +1347,8 @@ public static class ReportGenerator
                         RenderStep(body, scenario.Steps[si], numberPrefix);
                     }
                     body.Append("</div>");
+
+                    RenderCombinedTabularParameters(body, scenario.Steps);
                 }
 
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
@@ -1732,7 +1735,13 @@ public static class ReportGenerator
             body.Append($"<span class=\"step-keyword\">{System.Net.WebUtility.HtmlEncode(step.Keyword)}</span> ");
         }
 
-        body.Append($"<span class=\"step-text\">{System.Net.WebUtility.HtmlEncode(step.Text)}</span>");
+        var stepText = step.Text;
+
+        // Strip tabular parameter reference suffixes like [paramName: "<$paramName>"] from step text
+        if (step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular) == true)
+            stepText = StripTabularParamSuffixRegex().Replace(stepText, "").TrimEnd();
+
+        body.Append($"<span class=\"step-text\">{System.Net.WebUtility.HtmlEncode(stepText)}</span>");
 
         if (step.Duration.HasValue)
         {
@@ -1764,6 +1773,7 @@ public static class ReportGenerator
         {
             foreach (var param in step.Parameters)
             {
+                if (param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
                 RenderParameter(body, param);
             }
         }
@@ -1882,6 +1892,120 @@ public static class ReportGenerator
 
         body.Append("</div>");
     }
+
+    private static void RenderCombinedTabularParameters(StringBuilder body, ScenarioStep[] steps)
+    {
+        var tabularParams = steps
+            .Where(s => s.Parameters is { Length: > 0 })
+            .SelectMany(s => s.Parameters!)
+            .Where(p => p.Kind == StepParameterKind.Tabular && p.TabularValue is not null)
+            .Select(p => p.TabularValue!)
+            .ToArray();
+
+        if (tabularParams.Length == 0) return;
+
+        var hasSeparator = tabularParams.Length > 1;
+
+        body.Append("<div class=\"step-param-combined-table\"><table><thead><tr><th></th>");
+
+        // Input columns (all tables except the last)
+        var inputTables = tabularParams.Length > 1 ? tabularParams[..^1] : tabularParams;
+        var outputTable = tabularParams.Length > 1 ? tabularParams[^1] : null;
+
+        foreach (var table in inputTables)
+        {
+            foreach (var col in table.Columns)
+                body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
+        }
+
+        if (hasSeparator)
+        {
+            body.Append("<th class=\"combined-separator\">=</th>");
+
+            foreach (var col in outputTable!.Columns)
+                body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
+        }
+
+        body.Append("</tr></thead><tbody>");
+
+        // Determine row count from the table with the most rows
+        var maxRows = tabularParams.Max(t => t.Rows.Length);
+
+        for (var ri = 0; ri < maxRows; ri++)
+        {
+            // Row type is determined by the output (last) table if it has this row, otherwise input
+            var rowType = outputTable is not null && ri < outputTable.Rows.Length
+                ? outputTable.Rows[ri].Type
+                : inputTables[0].Rows.Length > ri
+                    ? inputTables[0].Rows[ri].Type
+                    : TableRowType.Matching;
+
+            var rowIndicator = rowType switch
+            {
+                TableRowType.Matching => "=",
+                TableRowType.Surplus => "+",
+                TableRowType.Missing => "-",
+                _ => ""
+            };
+
+            body.Append($"<tr class=\"row-{rowType.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>");
+
+            // Input cells
+            foreach (var table in inputTables)
+            {
+                if (ri < table.Rows.Length)
+                {
+                    foreach (var cell in table.Rows[ri].Values)
+                        RenderCell(body, cell);
+                }
+                else
+                {
+                    for (var ci = 0; ci < table.Columns.Length; ci++)
+                        body.Append("<td></td>");
+                }
+            }
+
+            if (hasSeparator)
+            {
+                body.Append("<td class=\"combined-separator\"></td>");
+
+                // Output cells
+                if (ri < outputTable!.Rows.Length)
+                {
+                    foreach (var cell in outputTable.Rows[ri].Values)
+                        RenderCell(body, cell);
+                }
+                else
+                {
+                    for (var ci = 0; ci < outputTable.Columns.Length; ci++)
+                        body.Append("<td></td>");
+                }
+            }
+
+            body.Append("</tr>");
+        }
+
+        body.Append("</tbody></table></div>");
+    }
+
+    private static void RenderCell(StringBuilder body, TabularCell cell)
+    {
+        var cellClass = cell.Status switch
+        {
+            VerificationStatus.Success => "param-success",
+            VerificationStatus.Failure => "param-failure",
+            VerificationStatus.Exception => "param-exception",
+            VerificationStatus.NotProvided => "param-not-provided",
+            _ => ""
+        };
+        var cellDisplay = cell.Expectation is not null && cell.Status == VerificationStatus.Failure
+            ? $"{System.Net.WebUtility.HtmlEncode(cell.Value)}/{System.Net.WebUtility.HtmlEncode(cell.Expectation)}"
+            : System.Net.WebUtility.HtmlEncode(cell.Value);
+        body.Append($"<td class=\"{cellClass}\">{cellDisplay}</td>");
+    }
+
+    private static readonly Regex StripTabularParamSuffixCompiledRegex = new(@"\s*\[[a-zA-Z_]\w*:\s*""<\$[a-zA-Z_]\w*>""\]", RegexOptions.Compiled);
+    private static Regex StripTabularParamSuffixRegex() => StripTabularParamSuffixCompiledRegex;
 
     internal static string FormatDurationBadge(TimeSpan duration)
     {
