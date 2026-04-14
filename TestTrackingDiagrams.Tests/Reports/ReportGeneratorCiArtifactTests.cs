@@ -53,14 +53,12 @@ public class ReportGeneratorCiArtifactTests : IDisposable
         var options = new ReportConfigurationOptions
         {
             PublishCiArtifacts = true,
-            WriteCiSummary = true,
-            WriteCiSummaryInteractiveHtml = true
+            WriteCiSummary = true
         };
         var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
 
         ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
         Assert.True(File.Exists(Path.Combine(_reportsDir, "CiSummary.md")));
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "CiSummaryInteractive.html")));
     }
 }

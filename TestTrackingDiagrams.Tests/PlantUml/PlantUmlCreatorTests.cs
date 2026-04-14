@@ -1142,17 +1142,7 @@ public class PlantUmlCreatorTests
     // ─── Color function ─────────────────────────────────────────
 
     [Fact]
-    public void Color_function_is_defined_in_output()
-    {
-        var logs = new[] { MakeRequest() };
-        var plantUml = GetPlantUml(logs);
-
-        Assert.Contains("!function $color($value)", plantUml);
-        Assert.Contains("!return \"<color:\"+$value+\" >\"", plantUml);
-    }
-
-    [Fact]
-    public void Headers_use_gray_color_function()
+    public void Headers_use_gray_color_tag()
     {
         var logs = new[]
         {
@@ -1160,7 +1150,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("$color(gray)", plantUml);
+        Assert.Contains("<color:gray >", plantUml);
     }
 
     // ─── Invalid JSON is treated as plain text ──────────────────
@@ -1198,9 +1188,9 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        // Each chunk gets its own $color(gray) prefix, so >100 chars means multiple lines
-        var colorGrayCount = plantUml.Split("$color(gray)").Length - 1;
-        Assert.True(colorGrayCount >= 2, $"Expected at least 2 $color(gray) lines for long header, got {colorGrayCount}");
+        // Each chunk gets its own <color:gray > prefix, so >100 chars means multiple lines
+        var colorGrayCount = plantUml.Split("<color:gray >").Length - 1;
+        Assert.True(colorGrayCount >= 2, $"Expected at least 2 <color:gray > lines for long header, got {colorGrayCount}");
     }
 
     // ─── Null header value ──────────────────────────────────────
@@ -2224,8 +2214,8 @@ public class PlantUmlCreatorTests
         var logs = new[] { MakeRequest(content: json, headers: [("Authorization", "Bearer xyz")], focusFields: ["name"]) };
         var plantUml = GetPlantUml(logs);
 
-        // Headers still use the gray color function
-        Assert.Contains("$color(gray)[Authorization=Bearer xyz]", plantUml);
+        // Headers still use the gray color tag
+        Assert.Contains("<color:gray >[Authorization=Bearer xyz]", plantUml);
         // But JSON fields use focus formatting
         Assert.Contains("<b>\"name\": \"Alice\"", plantUml);
     }

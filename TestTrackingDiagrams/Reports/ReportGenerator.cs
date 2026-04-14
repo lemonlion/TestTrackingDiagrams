@@ -105,12 +105,6 @@ public static class ReportGenerator
 
             var ciEnvironment = CiEnvironmentDetector.Detect();
             CiSummaryWriter.Write(markdown, ciEnvironment);
-
-            if (options.WriteCiSummaryInteractiveHtml)
-            {
-                var ciFeatures = FilterFeaturesForCiSummary(features, diagrams, options.MaxCiSummaryDiagrams);
-                GenerateHtmlReport(diagrams, ciFeatures, startRunTime, endRunTime, null, "CiSummaryInteractive.html", "CI Test Run Summary", true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata);
-            }
         }
 
         if (options.PublishCiArtifacts)
@@ -1923,45 +1917,6 @@ public static class ReportGenerator
             return fallback;
         }
         return filePath;
-    }
-
-    private static Feature[] FilterFeaturesForCiSummary(Feature[] features, DefaultDiagramsFetcher.DiagramAsCode[] diagrams, int maxDiagrams)
-    {
-        var diagramsByTestId = diagrams.ToLookup(d => d.TestRuntimeId);
-        var hasFailed = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
-
-        if (hasFailed)
-        {
-            var shown = 0;
-            var filtered = new List<Feature>();
-            foreach (var feature in features)
-            {
-                var failedScenarios = feature.Scenarios.Where(s => s.Result == ExecutionResult.Failed).ToArray();
-                if (failedScenarios.Length == 0) continue;
-                var taken = failedScenarios.Take(maxDiagrams - shown).ToArray();
-                filtered.Add(feature with { Scenarios = taken });
-                shown += taken.Length;
-                if (shown >= maxDiagrams) break;
-            }
-            return filtered.ToArray();
-        }
-
-        {
-            var shown = 0;
-            var filtered = new List<Feature>();
-            foreach (var feature in features)
-            {
-                var scenariosWithDiagrams = feature.Scenarios
-                    .Where(s => diagramsByTestId[s.Id].Any())
-                    .Take(maxDiagrams - shown)
-                    .ToArray();
-                if (scenariosWithDiagrams.Length == 0) continue;
-                filtered.Add(feature with { Scenarios = scenariosWithDiagrams });
-                shown += scenariosWithDiagrams.Length;
-                if (shown >= maxDiagrams) break;
-            }
-            return filtered.ToArray();
-        }
     }
 
     internal static HashSet<string> ExtractDependencies(string codeBehind, DiagramFormat format)

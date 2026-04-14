@@ -19,9 +19,6 @@ public class ReportGeneratorCiSummaryTests : IDisposable
 
         var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
         if (File.Exists(ciSummaryPath)) File.Delete(ciSummaryPath);
-
-        var interactivePath = Path.Combine(_reportsDir, "CiSummaryInteractive.html");
-        if (File.Exists(interactivePath)) File.Delete(interactivePath);
     }
 
     public void Dispose()
@@ -31,9 +28,6 @@ public class ReportGeneratorCiSummaryTests : IDisposable
 
         var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
         if (File.Exists(ciSummaryPath)) File.Delete(ciSummaryPath);
-
-        var interactivePath = Path.Combine(_reportsDir, "CiSummaryInteractive.html");
-        if (File.Exists(interactivePath)) File.Delete(interactivePath);
     }
 
     [Fact]
@@ -63,18 +57,4 @@ public class ReportGeneratorCiSummaryTests : IDisposable
         Assert.False(File.Exists(ciSummaryPath));
     }
 
-    [Fact]
-    public void CreateStandardReportsWithDiagrams_writes_interactive_html_when_enabled()
-    {
-        var options = new ReportConfigurationOptions { WriteCiSummary = true, WriteCiSummaryInteractiveHtml = true };
-        var features = new[] { new Feature { DisplayName = "Orders", Scenarios = [new Scenario { Id = "1", DisplayName = "Create order", Result = ExecutionResult.Passed }] } };
-
-        ReportGenerator.CreateStandardReportsWithDiagrams(features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
-
-        var interactivePath = Path.Combine(_reportsDir, "CiSummaryInteractive.html");
-        Assert.True(File.Exists(interactivePath));
-        var content = File.ReadAllText(interactivePath);
-        Assert.Contains("<html>", content);
-        Assert.Contains("CI Test Run Summary", content);
-    }
 }
