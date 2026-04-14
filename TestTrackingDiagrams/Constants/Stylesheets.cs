@@ -109,7 +109,6 @@ public class Stylesheets
                     display: flex;
                     gap: 1em;
                     align-items: stretch;
-                    margin-bottom: 1em;
                 }
 
                 .summary-chart {
@@ -494,6 +493,7 @@ public class Stylesheets
                     gap: 0.5em;
                     align-items: center;
                     justify-content: space-between;
+                    margin-top: 1em;
                     margin-bottom: 0.5em;
                 }
 

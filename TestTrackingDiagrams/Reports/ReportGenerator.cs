@@ -1155,7 +1155,8 @@ public static class ReportGenerator
 
         body.Append("</div>"); // close filters
         body.Append("</div>"); // close filtering-box
-        body.Append("</div>"); // close header-row
+        if (includeTestRunData)
+            body.Append("</div>"); // close header-row
 
         // Toolbar row: expand buttons left, Details/Headers right
         body.Append("""<div class="toolbar-row">""");
