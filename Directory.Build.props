@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.0.95-beta</Version>
+    <Version>2.0.96-beta</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -9,6 +9,10 @@
     <LangVersion>preview</LangVersion>
     <PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Authors>Aryeh Citron</Authors>
+    <Copyright>Copyright (c) 2023 Aryeh Citron</Copyright>
+    <PackageTags>testing;diagrams;bdd;plantuml;sequence-diagram;http-tracking;xunit;nunit;mstest;tunit;lightbdd;reqnroll</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
