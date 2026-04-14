@@ -215,12 +215,13 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void BuildHeadersQueue_does_not_modify_noteSteps()
+    public void BuildHeadersQueue_initializes_noteSteps_from_detailsDefault_when_not_set()
     {
         var funcBody = GetFunction("buildHeadersQueue");
-        // buildHeadersQueue should NOT change noteSteps — it only changes header visibility
-        Assert.DoesNotContain("container._noteSteps[", funcBody);
-        Assert.DoesNotContain("_noteSteps =", funcBody.Replace("if (!container._noteSteps) container._noteSteps = {};", ""));
+        // buildHeadersQueue should initialize noteSteps from window._detailsDefault
+        // when container._noteSteps hasn't been set yet, to prevent note collapse
+        Assert.Contains("_detailsDefault", funcBody);
+        Assert.Contains("isLongNote", funcBody);
     }
 
     [Fact]
@@ -234,11 +235,13 @@ public class DiagramContextMenuTests
     // ─── buildDetailsQueue ──────────────────────────────────
 
     [Fact]
-    public void BuildDetailsQueue_does_not_change_headersHidden()
+    public void BuildDetailsQueue_propagates_headersHidden_from_global_when_not_set()
     {
         var funcBody = GetFunction("buildDetailsQueue");
-        // Details queue should NOT change _headersHidden — it only changes note steps
-        Assert.DoesNotContain("_headersHidden", funcBody);
+        // Details queue should propagate window._headersHidden to containers
+        // where _headersHidden hasn't been explicitly set, so re-rendering
+        // preserves the report-level headers state
+        Assert.Contains("_headersHidden", funcBody);
     }
 
     [Fact]

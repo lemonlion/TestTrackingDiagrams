@@ -1,0 +1,161 @@
+using TestTrackingDiagrams.Reports;
+using static TestTrackingDiagrams.DefaultDiagramsFetcher;
+
+namespace TestTrackingDiagrams.Tests.Reports;
+
+public class HeadersDetailsInterferenceReportTests
+{
+    private const string PlantUmlSourceWithHeaders = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+
+        caller -> svc : POST /api/orders
+        note left
+        <color:gray >Content-Type: application/json
+        <color:gray >Authorization: Bearer token123
+        
+        {"item":"Widget","qty":2}
+        Line 2 of body
+        Line 3 of body
+        Line 4 of body
+        Line 5 of body
+        end note
+
+        svc --> caller : 201 Created
+        note right
+        <color:gray >Content-Type: application/json
+        
+        {"id":"abc-123","status":"created"}
+        end note
+        @enduml
+        """;
+
+    private static string GenerateReport(string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Order Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "t1", DisplayName = "Create order", IsHappyPath = true,
+                        Result = ExecutionResult.Passed,
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the system is running", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I create an order", Status = ExecutionResult.Passed },
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[] { new DiagramAsCode("t1", "", PlantUmlSourceWithHeaders) };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, fileName, "Test", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+        return File.ReadAllText(path);
+    }
+
+    [Fact]
+    public void BuildHeadersQueue_initializes_noteSteps_from_detailsDefault()
+    {
+        // The JS buildHeadersQueue must initialize _noteSteps from window._detailsDefault
+        // not leave it as empty {} (which would collapse all notes).
+        var content = GenerateReport("HD_BuildHeadersQueue.html");
+
+        // The JS should contain logic to populate _noteSteps from window._detailsDefault
+        // when container._noteSteps is first initialized in buildHeadersQueue.
+        // Look for the fix: initializing _noteSteps with default state in buildHeadersQueue
+        Assert.Contains("_detailsDefault", content);
+
+        // The buildHeadersQueue function must reference window._detailsDefault
+        // to properly populate _noteSteps for uninitialized containers
+        var buildHeadersIdx = content.IndexOf("function buildHeadersQueue");
+        var buildHeadersEnd = content.IndexOf("return queue;", buildHeadersIdx);
+        var buildHeadersBody = content[buildHeadersIdx..buildHeadersEnd];
+        Assert.Contains("_detailsDefault", buildHeadersBody);
+    }
+
+    [Fact]
+    public void BuildDetailsQueue_propagates_headersHidden_from_global()
+    {
+        // The JS buildDetailsQueue should set container._headersHidden from window._headersHidden
+        // when it hasn't been set yet, so that re-rendering preserves the headers state.
+        var content = GenerateReport("HD_BuildDetailsQueue.html");
+
+        var buildDetailsIdx = content.IndexOf("function buildDetailsQueue");
+        var buildDetailsEnd = content.IndexOf("return queue;", buildDetailsIdx);
+        var buildDetailsBody = content[buildDetailsIdx..buildDetailsEnd];
+        Assert.Contains("_headersHidden", buildDetailsBody);
+    }
+
+    [Fact]
+    public void PreProcessSource_always_sets_headersHidden()
+    {
+        // _preProcessSource must always set el._headersHidden, even in the early-return path
+        // where state === 'expanded' && !window._headersHidden (which previously skipped it).
+        var content = GenerateReport("HD_PreProcess.html");
+
+        var preProcessIdx = content.IndexOf("_preProcessSource");
+        var preProcessEnd = content.IndexOf("processRenderQueue", preProcessIdx);
+        var preProcessBody = content[preProcessIdx..preProcessEnd];
+
+        // The function should set _headersHidden in all paths, not just the processing path
+        // Count occurrences of _headersHidden assignment in the function
+        var assignmentCount = 0;
+        var searchFrom = 0;
+        while (true)
+        {
+            var idx = preProcessBody.IndexOf("_headersHidden", searchFrom);
+            if (idx < 0) break;
+            assignmentCount++;
+            searchFrom = idx + 1;
+        }
+        // Should reference _headersHidden multiple times (including the always-set line)
+        Assert.True(assignmentCount >= 3, $"_preProcessSource should reference _headersHidden at least 3 times, found {assignmentCount}");
+    }
+
+    [Fact]
+    public void Report_contains_independent_sync_functions_for_headers_and_details()
+    {
+        // Verify that syncRadioButtons uses [data-state] selector (not just .details-radio-btn)
+        // and syncHeadersRadio uses .headers-radio-btn selector
+        var content = GenerateReport("HD_SyncFunctions.html");
+
+        // syncRadioButtons should select '.details-radio-btn[data-state]'
+        Assert.Contains(".details-radio-btn[data-state]", content);
+
+        // syncHeadersRadio should select '.headers-radio-btn'
+        Assert.Contains(".headers-radio-btn", content);
+    }
+
+    [Fact]
+    public void Headers_buttons_use_data_hstate_not_data_state()
+    {
+        // Headers buttons must use data-hstate attribute, NOT data-state,
+        // to prevent syncRadioButtons from interfering with them.
+        var content = GenerateReport("HD_DataAttributes.html");
+
+        // Report-level headers buttons
+        Assert.Contains("data-hstate=\"shown\"", content);
+        Assert.Contains("data-hstate=\"hidden\"", content);
+
+        // Headers buttons should NOT have data-state attribute
+        // Find headers button HTML and verify no data-state
+        var hiddenBtnIdx = content.IndexOf("data-hstate=\"hidden\"");
+        var precedingHtml = content[(hiddenBtnIdx - 200)..hiddenBtnIdx];
+        // Between the opening <button and data-hstate, there should be no data-state
+        var btnOpen = precedingHtml.LastIndexOf("<button");
+        var btnTag = precedingHtml[btnOpen..] + "data-hstate";
+        Assert.DoesNotContain("data-state", btnTag);
+    }
+}

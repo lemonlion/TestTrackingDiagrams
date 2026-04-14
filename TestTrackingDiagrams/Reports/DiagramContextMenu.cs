@@ -1897,8 +1897,8 @@ public static class DiagramContextMenu
                     else { targetStep = 0; }
                     el._noteSteps[i] = targetStep;
                 }
+                el._headersHidden = window._headersHidden;
                 if (state !== 'expanded' || window._headersHidden) {
-                    el._headersHidden = window._headersHidden;
                     return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden);
                 }
                 return source;
@@ -1957,6 +1957,7 @@ public static class DiagramContextMenu
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
                     if (!container._noteSteps) container._noteSteps = {};
+                    if (container._headersHidden === undefined) container._headersHidden = window._headersHidden;
                     var needsUpdate = false;
                     for (var i = 0; i < noteBlocks.length; i++) {
                         var targetStep;
@@ -1983,7 +1984,15 @@ public static class DiagramContextMenu
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
-                    if (!container._noteSteps) container._noteSteps = {};
+                    if (!container._noteSteps) {
+                        container._noteSteps = {};
+                        var state = window._detailsDefault;
+                        for (var i = 0; i < noteBlocks.length; i++) {
+                            if (state === 'expanded') { container._noteSteps[i] = 2; }
+                            else if (state === 'truncated') { container._noteSteps[i] = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
+                            else { container._noteSteps[i] = 0; }
+                        }
+                    }
                     var wasHidden = !!container._headersHidden;
                     if (wasHidden === hiding) return;
                     container._headersHidden = hiding;
