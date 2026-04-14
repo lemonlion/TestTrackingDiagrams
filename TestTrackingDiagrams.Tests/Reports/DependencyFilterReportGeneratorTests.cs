@@ -143,26 +143,6 @@ public class DependencyFilterReportGeneratorTests
     }
 
     [Fact]
-    public void Report_parses_participant_keyword_for_mermaid()
-    {
-        var features = MakeFeatures(("t1", "Create order"));
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("t1", "",
-                "sequenceDiagram\nparticipant Caller\nparticipant OrderService\nCaller->>OrderService: POST /orders")
-        };
-
-        var content = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "DepFilterMermaid.html", "Test", true,
-            diagramFormat: DiagramFormat.Mermaid);
-        var html = File.ReadAllText(content);
-
-        Assert.Contains("data-dependency=\"OrderService\"", html);
-    }
-
-    [Fact]
     public void Report_dependency_toggles_are_sorted_alphabetically()
     {
         var features = MakeFeatures(("t1", "Create order"));

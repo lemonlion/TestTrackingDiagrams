@@ -7,7 +7,7 @@
 
 # Test Tracking Diagrams
 
-Effortlessly autogenerate **PlantUML sequence diagrams** (or **Mermaid sequence diagrams**) from your component and acceptance tests every time you run them. Tracks the HTTP requests between your test caller, your Service Under Test (SUT), and your SUT dependencies, then converts them into diagrams embedded in searchable HTML reports and YAML specification files.
+Effortlessly autogenerate **PlantUML sequence diagrams** from your component and acceptance tests every time you run them. Tracks the HTTP requests between your test caller, your Service Under Test (SUT), and your SUT dependencies, then converts them into diagrams embedded in searchable HTML reports and YAML specification files.
 
 ---
 
@@ -59,7 +59,6 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
                                      ▼
                           ┌──────────────────────┐
                           │   PlantUmlCreator    │
-                          │  or MermaidCreator   │
                           │ (generates diagrams) │
                           └──────────┬───────────┘
                                      │
@@ -76,7 +75,7 @@ Each test that makes HTTP calls through the tracked pipeline automatically produ
 
 2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the method, URI, headers, body, status code, service names, and a trace ID to correlate requests across services. Events and messages are stored alongside HTTP logs with a distinct `Event` meta type.
 
-3. **Generate** — At the end of the test run, `PlantUmlCreator` (or `MermaidCreator` when using Mermaid output) groups logs by test ID and converts them into sequence diagram code. PlantUML diagrams are encoded and rendered via a PlantUML server (or locally via IKVM); Mermaid diagrams are embedded directly in HTML as `<pre class="mermaid">` blocks rendered client-side by [mermaid.js](https://mermaid.js.org/).
+3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into sequence diagram code. PlantUML diagrams are encoded and rendered via a PlantUML server (or locally via IKVM), or rendered client-side in the browser.
 
 4. **Report** — `ReportGenerator` combines the diagrams with test metadata (features, scenarios, results, BDD steps) to produce three output files: a YAML specification, an HTML specification with diagrams, and an HTML test run report.
 
@@ -175,7 +174,6 @@ For full documentation including quick start guides, configuration, customisatio
 Key pages:
 - [Quick Start (xUnit)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit))
 - [Framework Integration Guides](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Framework-Integration-Guides)
-- [Mermaid Output](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Mermaid-Output)
 - [CosmosDB Extension](docs/integration-cosmosdb.md)
 - [EF Core Relational Extension](docs/integration-efcore-relational.md)
 - [Redis Extension](docs/integration-redis.md)

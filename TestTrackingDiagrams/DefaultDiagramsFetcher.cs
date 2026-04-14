@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using TestTrackingDiagrams.Mermaid;
 using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Tracking;
 
@@ -18,9 +17,6 @@ public static class DefaultDiagramsFetcher
 
         return () =>
         {
-            if (options.DiagramFormat == DiagramFormat.Mermaid)
-                return _diagrams = GetMermaidDiagrams(options);
-
             return _diagrams = options.PlantUmlRendering switch
             {
                 PlantUmlRendering.BrowserJs => GetPlantUmlBrowserDiagrams(options),
@@ -233,28 +229,6 @@ public static class DefaultDiagramsFetcher
                 svg = svg[(end + 2)..].TrimStart();
         }
         return svg;
-    }
-
-    private static DiagramAsCode[] GetMermaidDiagrams(DiagramsFetcherOptions options)
-    {
-        var perTestId = MermaidCreator.GetMermaidDiagramsPerTestId(
-            RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
-            requestPostFormattingProcessor: options.RequestPostFormattingProcessor,
-            responsePostFormattingProcessor: options.ResponsePostFormattingProcessor,
-            requestPreFormattingProcessor: options.RequestPreFormattingProcessor,
-            responsePreFormattingProcessor: options.ResponsePreFormattingProcessor,
-            requestMidFormattingProcessor: options.RequestMidFormattingProcessor,
-            responseMidFormattingProcessor: options.ResponseMidFormattingProcessor,
-            excludedHeaders: options.ExcludedHeaders.ToArray(),
-            separateSetup: options.SeparateSetup,
-            highlightSetup: options.HighlightSetup,
-            focusEmphasis: options.FocusEmphasis,
-            focusDeEmphasis: options.FocusDeEmphasis).ToArray();
-
-        return perTestId
-            .SelectMany(test => test.Diagrams.Select(diagram =>
-                new DiagramAsCode(test.TestId, string.Empty, diagram)))
-            .ToArray();
     }
 
     public record DiagramAsCode(string TestRuntimeId, string ImgSrc, string CodeBehind);

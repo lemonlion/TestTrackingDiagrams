@@ -483,13 +483,6 @@ public static class DiagramContextMenu
         </script>
         """;
 
-    public static string GetMermaidScript() => """
-        <script type="module">
-            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-            mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
-        </script>
-        """;
-
     public static string GetContextMenuScript() => """
         <script>
         (function() {
@@ -533,11 +526,11 @@ public static class DiagramContextMenu
             }
 
             function getSource(container) {
-                return container.getAttribute('data-plantuml') || container.getAttribute('data-mermaid-source') || '';
+                return container.getAttribute('data-plantuml') || '';
             }
 
             async function getSourceAsync(container) {
-                var src = container.getAttribute('data-plantuml') || container.getAttribute('data-mermaid-source');
+                var src = container.getAttribute('data-plantuml');
                 if (src) return src;
                 if (container.hasAttribute('data-plantuml-z')) {
                     var decoded = await decompressGzipBase64(container.getAttribute('data-plantuml-z'));
@@ -548,8 +541,7 @@ public static class DiagramContextMenu
             }
 
             function getTypeLabel(container) {
-                var t = container.getAttribute('data-diagram-type');
-                return t === 'mermaid' ? 'Mermaid' : 'PlantUML';
+                return 'PlantUML';
             }
 
             function serializeSvg(svg) {

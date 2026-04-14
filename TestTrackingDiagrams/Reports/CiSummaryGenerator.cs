@@ -162,18 +162,6 @@ public static partial class CiSummaryGenerator
         var truncatedList = truncatedDiagrams.ToArray();
         var fullList = fullDiagrams.ToArray();
 
-        if (diagramFormat == DiagramFormat.Mermaid)
-        {
-            foreach (var diagram in truncatedList)
-            {
-                sb.AppendLine("```mermaid");
-                sb.AppendLine(diagram.CodeBehind);
-                sb.AppendLine("```");
-                sb.AppendLine();
-            }
-            return;
-        }
-
         // Check if truncation actually changed anything by comparing content
         var wasTruncated = truncatedList.Length != fullList.Length ||
             !truncatedList.Select(d => d.CodeBehind).SequenceEqual(fullList.Select(d => d.CodeBehind));

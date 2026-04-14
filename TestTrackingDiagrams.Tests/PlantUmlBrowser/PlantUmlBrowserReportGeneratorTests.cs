@@ -86,21 +86,6 @@ public class PlantUmlBrowserReportGeneratorTests
     }
 
     [Fact]
-    public void PlantUmlBrowser_report_does_not_contain_mermaid()
-    {
-        var html = ReportGenerator.GenerateHtmlReport(
-            MakePlantUmlBrowserDiagrams(), MakeFeatures(),
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "PlantUmlBrowserNoMermaid.html", "Test", true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-
-        var content = File.ReadAllText(html);
-        Assert.DoesNotContain("<pre class=\"mermaid\"", content);
-        Assert.DoesNotContain("mermaid.initialize", content);
-        Assert.DoesNotContain("cdn.jsdelivr.net/npm/mermaid", content);
-    }
-
-    [Fact]
     public void PlantUmlBrowser_report_shows_raw_plantuml_label()
     {
         var html = ReportGenerator.GenerateHtmlReport(

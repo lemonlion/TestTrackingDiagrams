@@ -885,11 +885,9 @@ public static class ReportGenerator
                                  {stylesheet}
                                  """;
 
-        var isMermaid = diagramFormat == DiagramFormat.Mermaid;
-        var isPlantUmlBrowser = !isMermaid && plantUmlRendering == PlantUmlRendering.BrowserJs;
-        var isInlineSvg = !isMermaid && !isPlantUmlBrowser && inlineSvgRendering;
-        var hasInteractiveDiagrams = isMermaid || isPlantUmlBrowser || isInlineSvg;
-        var mermaidScript = isMermaid ? DiagramContextMenu.GetMermaidScript() : "";
+        var isPlantUmlBrowser = plantUmlRendering == PlantUmlRendering.BrowserJs;
+        var isInlineSvg = !isPlantUmlBrowser && inlineSvgRendering;
+        var hasInteractiveDiagrams = isPlantUmlBrowser || isInlineSvg;
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
         var collapsibleNotesScript = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesScript() : "";
         var collapsibleNotesStyles = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesStyles() : "";
@@ -934,7 +932,6 @@ public static class ReportGenerator
                                 {{keyboardNavigationFunction}}
                                 {{initScript}}
                             </script>
-                            {{mermaidScript}}
                             {{plantUmlBrowserScript}}
                             {{collapsibleNotesScript}}
                             {{contextMenuScript}}
@@ -1444,17 +1441,10 @@ public static class ReportGenerator
                         if (seqWrap) body.Append("<div class=\"diagram-view diagram-view-seq\">");
 
                         var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
-                        var rawLabel = isMermaid ? "Raw Mermaid" : "Raw Plant UML";
+                        var rawLabel = "Raw Plant UML";
                         foreach (var diagram in diagramsForTest)
                         {
-                            if (isMermaid)
-                            {
-                                var mermaidEncoded = System.Net.WebUtility.HtmlEncode(diagram.CodeBehind);
-                                body.Append($"""
-                                         <pre class="mermaid" data-mermaid-source="{mermaidEncoded}" data-diagram-type="mermaid">{diagram.CodeBehind}</pre>
-                                         """);
-                            }
-                            else if (isPlantUmlBrowser)
+                            if (isPlantUmlBrowser)
                             {
                                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
                                 var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
@@ -1983,24 +1973,12 @@ public static class ReportGenerator
         {
             var trimmed = line.Trim();
 
-            if (format == DiagramFormat.PlantUml)
-            {
-                // Match: entity "ServiceName" as alias  OR  participant "ServiceName" as alias
-                // Skip: actor "Caller" as caller (these are the test caller, not a dependency)
-                var match = System.Text.RegularExpressions.Regex.Match(trimmed,
-                    @"^(?:entity|participant)\s+""([^""]+)""\s+as\s+");
-                if (match.Success)
-                    deps.Add(match.Groups[1].Value);
-            }
-            else // Mermaid
-            {
-                // Match: participant ServiceName
-                // Skip: actor Caller
-                var match = System.Text.RegularExpressions.Regex.Match(trimmed,
-                    @"^participant\s+(\S+)");
-                if (match.Success)
-                    deps.Add(match.Groups[1].Value);
-            }
+            // Match: entity "ServiceName" as alias  OR  participant "ServiceName" as alias
+            // Skip: actor "Caller" as caller (these are the test caller, not a dependency)
+            var match = System.Text.RegularExpressions.Regex.Match(trimmed,
+                @"^(?:entity|participant)\s+""([^""]+)""\s+as\s+");
+            if (match.Success)
+                deps.Add(match.Groups[1].Value);
         }
 
         return deps;
