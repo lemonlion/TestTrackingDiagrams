@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Humanizer;
 
 namespace TestTrackingDiagrams.xUnit2;
 
@@ -7,7 +6,7 @@ public static partial class DisplayNameFormatter
 {
     public static string FormatFeatureName(string testClassSimpleName)
     {
-        return testClassSimpleName.Humanize(LetterCasing.Title);
+        return testClassSimpleName.Titleize();
     }
 
     public static string FormatScenarioDisplayName(string testDisplayName)

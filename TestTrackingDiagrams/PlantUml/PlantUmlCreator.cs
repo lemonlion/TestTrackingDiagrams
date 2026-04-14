@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Humanizer;
 using System.Text.Json;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;

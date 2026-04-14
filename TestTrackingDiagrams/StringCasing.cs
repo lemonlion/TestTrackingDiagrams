@@ -1,0 +1,96 @@
+// Ported from Humanizer (https://github.com/Humanizr/Humanizer) under the MIT License.
+// Original Copyright (c) .NET Foundation and Contributors
+
+using System.Globalization;
+using System.Text.RegularExpressions;
+
+namespace TestTrackingDiagrams;
+
+public static partial class StringCasing
+{
+    // From Humanizer's StringHumanizeExtensions
+    private const string PascalCaseWordPartsPattern =
+        @"(\p{Lu}?\p{Ll}+|[0-9]+\p{Ll}*|\p{Lu}+(?=\p{Lu}|[0-9]|\b)|\p{Lo}+)[,;]?";
+    private const string FreestandingSpacingCharPattern = @"\s[-_]|[-_]\s";
+
+    // From Humanizer's InflectorExtensions
+    private const string PascalizePattern = @"(?:[ _-]+|^)(.)";
+
+    [GeneratedRegex(PascalCaseWordPartsPattern, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
+    private static partial Regex PascalCaseWordPartsRegex();
+
+    [GeneratedRegex(FreestandingSpacingCharPattern)]
+    private static partial Regex FreestandingSpacingCharRegex();
+
+    [GeneratedRegex(PascalizePattern)]
+    private static partial Regex PascalizeRegex();
+
+    /// <summary>
+    /// Humanizes and applies Title Case. Equivalent to Humanizer's Titleize() / Humanize(LetterCasing.Title).
+    /// </summary>
+    public static string Titleize(this string input)
+    {
+        var humanized = Humanize(input);
+        return humanized.Length == 0
+            ? input
+            : CultureInfo.CurrentCulture.TextInfo.ToTitleCase(humanized);
+    }
+
+    /// <summary>
+    /// Converts to camelCase (PascalCase with lowercase first character).
+    /// </summary>
+    internal static string Camelize(this string input)
+    {
+        var word = Pascalize(input);
+        return word.Length > 0
+            ? $"{char.ToLower(word[0])}{word[1..]}"
+            : word;
+    }
+
+    private static string Pascalize(string input) =>
+        PascalizeRegex().Replace(input, match => match.Groups[1].Value.ToUpper());
+
+    private static string Humanize(string input)
+    {
+        if (input.All(char.IsUpper))
+            return input;
+
+        if (FreestandingSpacingCharRegex().IsMatch(input))
+            return FromPascalCase(FromUnderscoreDashSeparatedWords(input));
+
+        if (input.IndexOfAny(['_', '-']) >= 0)
+            return FromUnderscoreDashSeparatedWords(input);
+
+        return FromPascalCase(input);
+    }
+
+    private static string FromUnderscoreDashSeparatedWords(string input) =>
+        string.Create(input.Length, input, (span, state) =>
+        {
+            state.AsSpan().CopyTo(span);
+            span.Replace('_', ' ');
+            span.Replace('-', ' ');
+        });
+
+    private static string FromPascalCase(string input)
+    {
+        var result = string.Join(" ", PascalCaseWordPartsRegex()
+            .Matches(input)
+            .Cast<Match>()
+            .Select(match =>
+            {
+                var value = match.Value;
+                return value.All(char.IsUpper) &&
+                       (value.Length > 1 || (match.Index > 0 && input[match.Index - 1] == ' ') || value == "I")
+                    ? value
+                    : value.ToLower();
+            }));
+
+        if (result.All(c => c == ' ' || char.IsUpper(c)) && result.Contains(' '))
+            result = result.ToLower();
+
+        return result.Length > 0
+            ? $"{char.ToUpper(result[0])}{result[1..]}"
+            : result;
+    }
+}
