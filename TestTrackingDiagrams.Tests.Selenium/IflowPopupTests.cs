@@ -467,14 +467,15 @@ public class IflowPopupTests : IDisposable
         var menu = WaitFor(By.CssSelector(".diagram-ctx-menu"));
         Assert.True(menu.Displayed);
 
-        var items = menu.FindElements(By.CssSelector("div"));
-        var itemTexts = items.Select(i => i.Text).ToList();
+        // Top-level items are submenu parents (children are hidden until hover)
+        var topItems = menu.FindElements(By.CssSelector(":scope > div"))
+            .Select(i => i.Text.Split('\n')[0].Trim())
+            .Where(t => t.Length > 0)
+            .ToList();
 
-        Assert.Contains("Copy as PNG", itemTexts);
-        Assert.Contains("Copy as PNG (no transparency)", itemTexts);
-        Assert.Contains("Save as PNG", itemTexts);
-        Assert.Contains("Save as PNG (no transparency)", itemTexts);
-        Assert.Contains("Copy as SVG", itemTexts);
+        Assert.Contains("Copy image", topItems);
+        Assert.Contains("Save image", topItems);
+        Assert.Contains("Open image in new tab", topItems);
     }
 
     [Fact]

@@ -634,9 +634,9 @@ public static class ReportGenerator
                                              if (input) { input.focus(); if (input.value) filter_duration(); }
                                          } else {
                                              if (customWrap) customWrap.style.display = 'none';
+                                             btn.classList.add('percentile-active');
                                              var ms = parseFloat(btn.getAttribute('data-threshold-ms'));
                                              if (input) { input.value = (ms / 1000).toFixed(1); filter_duration(); }
-                                             btn.classList.add('percentile-active');
                                          }
                                      }
                                      """;
