@@ -1809,6 +1809,11 @@ public static class DiagramContextMenu
             function makeNotesCollapsible(container) {
                 var svg = container.querySelector('svg');
                 if (!svg) return;
+
+                // Remove existing toggle icons and hover rects from previous renders
+                svg.querySelectorAll('.note-toggle-icon').forEach(function(el) { el.remove(); });
+                svg.querySelectorAll('.note-hover-rect').forEach(function(el) { el.remove(); });
+
                 var source = container._noteOriginalSource || container.getAttribute('data-plantuml');
                 if (!source) return;
                 if (!container._noteOriginalSource) container._noteOriginalSource = source;
@@ -2144,13 +2149,14 @@ public static class DiagramContextMenu
                 var scenario = sel.closest('details.scenario');
                 if (!scenario) return;
                 var scenarioLines = parseInt(sel.value, 10) || 20;
-                // Temporarily set global for rendering, then restore
+                // Temporarily set global for rendering, then restore after async queue completes
                 var prev = window._truncateLines;
                 window._truncateLines = scenarioLines;
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
+                processRenderQueue(buildDetailsQueue(containers, 'truncated', true), function() {
+                    window._truncateLines = prev;
+                });
                 syncRadioButtons(scenario, 'truncated');
-                window._truncateLines = prev;
             };
 
             function syncHeadersRadio(parent, state) {
