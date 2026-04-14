@@ -216,6 +216,7 @@ public static class ReportGenerator
                                                c.items[i].hp = active && !c.items[i].isHappy;
                                            }
                                            applyVisibility(c);
+                                           update_url_hash();
                                        }
                                        """;
         var searchFunction = """
@@ -269,6 +270,7 @@ public static class ReportGenerator
                                          c.items[i].el.removeAttribute('open');
                                      }
                                      applyVisibility(c);
+                                     update_url_hash();
                                      return;
                                  }
                              
@@ -303,6 +305,7 @@ public static class ReportGenerator
                                  }
                              
                                  applyVisibility(c);
+                                 update_url_hash();
                              
                                  // Single match: expand scenario with diagrams
                                  if (matchCount === 1 && singleMatch) {
@@ -409,6 +412,7 @@ public static class ReportGenerator
                                            if (activeSet.size === 0) {
                                                for (var i = 0; i < c.items.length; i++) c.items[i].dep = false;
                                                applyVisibility(c);
+                                               update_url_hash();
                                                return;
                                            }
                                        
@@ -432,6 +436,7 @@ public static class ReportGenerator
                                                d.dep = !match;
                                            }
                                            applyVisibility(c);
+                                           update_url_hash();
                                        }
                                        """;
 
@@ -467,6 +472,7 @@ public static class ReportGenerator
                                          if (allActive) {
                                              for (var i = 0; i < c.items.length; i++) c.items[i].cat = false;
                                              applyVisibility(c);
+                                             update_url_hash();
                                              return;
                                          }
                                          var activeSet = new Set();
@@ -489,6 +495,7 @@ public static class ReportGenerator
                                              }
                                          }
                                          applyVisibility(c);
+                                         update_url_hash();
                                      }
                                      """;
 
@@ -508,6 +515,7 @@ public static class ReportGenerator
                                        if (activeSet.size === 0) {
                                            for (var i = 0; i < c.items.length; i++) c.items[i].st = false;
                                            applyVisibility(c);
+                                           update_url_hash();
                                            return;
                                        }
                                    
@@ -517,6 +525,7 @@ public static class ReportGenerator
                                            c.items[i].st = !activeSet.has(s);
                                        }
                                        applyVisibility(c);
+                                       update_url_hash();
                                    }
                                    """;
 
@@ -733,6 +742,11 @@ public static class ReportGenerator
                                   if (_depMode !== 'AND') parts.push('depmode=' + _depMode);
                                   if (typeof _catMode !== 'undefined' && _catMode !== 'OR') parts.push('catmode=' + _catMode);
                                   if (document.querySelector('.happy-path-toggle.happy-path-active')) parts.push('hp=1');
+                                  var cats = [];
+                                  if (!document.querySelector('.category-toggle.category-active[data-category=""]')) {
+                                      document.querySelectorAll('.category-toggle.category-active').forEach(function(b) { cats.push(b.getAttribute('data-category')); });
+                                  }
+                                  if (cats.length > 0) parts.push('cats=' + encodeURIComponent(cats.join(',')));
                                   var dur = document.getElementById('duration-threshold');
                                   if (dur && dur.value) parts.push('dur=' + dur.value);
                                   var activeP = document.querySelector('.percentile-btn.percentile-active');
@@ -805,6 +819,15 @@ public static class ReportGenerator
                                   if (params.dur) {
                                       var dur = document.getElementById('duration-threshold');
                                       if (dur) { dur.value = params.dur; filter_duration(); }
+                                  }
+                                  if (params.cats) {
+                                      var allBtn = document.querySelector('.category-toggle[data-category=""]');
+                                      if (allBtn) allBtn.classList.remove('category-active');
+                                      params.cats.split(',').forEach(function(c) {
+                                          var btn = document.querySelector('.category-toggle[data-category="' + c + '"]');
+                                          if (btn) btn.classList.add('category-active');
+                                      });
+                                      filter_categories();
                                   }
                               }
                               """;
