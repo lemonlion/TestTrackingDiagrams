@@ -28,8 +28,18 @@ jobs:
               TestTrackingDiagrams.Tests.EfCore.Relational
               TestTrackingDiagrams.Tests.Redis
               TestTrackingDiagrams.Tests.PlantUml.Ikvm
-          - name: Selenium Tests
+          - name: Selenium (Popups & Flows)
             projects: TestTrackingDiagrams.Tests.Selenium
+            filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
+          - name: Selenium (Filters & URL Hash)
+            projects: TestTrackingDiagrams.Tests.Selenium
+            filter: UrlHashFilterHighlightTests|FilterPerformanceTests
+          - name: Selenium (Toolbar & Scenarios)
+            projects: TestTrackingDiagrams.Tests.Selenium
+            filter: ReportToolbarTests|ScenarioInteractionTests
+          - name: Selenium (Diagrams & Context Menu)
+            projects: TestTrackingDiagrams.Tests.Selenium
+            filter: DiagramZoomTests|DiagramNoteTests|ContextMenuExtendedTests
           - name: Example.Api xUnit Tests
             projects: >-
               Example.Api/tests/Example.Api.Tests.Component.xUnit2
@@ -92,7 +102,14 @@ jobs:
         run: |
           FILTER_ARG=""
           if [ -n "${{ matrix.filter }}" ]; then
-            FILTER_ARG="--filter DisplayName~${{ matrix.filter }}"
+            # Build filter: split by | and create FullyQualifiedName~ OR chain
+            IFS='|' read -ra PARTS <<< "${{ matrix.filter }}"
+            CLAUSES=()
+            for part in "${PARTS[@]}"; do
+              CLAUSES+=("FullyQualifiedName~$part")
+            done
+            JOINED=$(IFS='|'; echo "${CLAUSES[*]}")
+            FILTER_ARG="--filter \"$JOINED\""
           fi
           for project in ${{ matrix.projects }}; do
             echo "::group::Testing $project"
