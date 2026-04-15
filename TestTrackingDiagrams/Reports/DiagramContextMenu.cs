@@ -1503,8 +1503,9 @@ public static class DiagramContextMenu
                 return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
             }
 
-            function isLongNote(contentLines) {
-                return contentLines && contentLines.length > window._truncateLines;
+            function isLongNote(contentLines, truncateLines) {
+                var limit = truncateLines || window._truncateLines;
+                return contentLines && contentLines.length > limit;
             }
 
             // noteStep: 0=collapsed, 1=truncated, 2=expanded (3=truncated on way back down)
@@ -1746,7 +1747,8 @@ public static class DiagramContextMenu
                 }
             }
 
-            function buildSourceWithNoteStates(origSource, noteSteps, noteBlocks, hideHeaders) {
+            function buildSourceWithNoteStates(origSource, noteSteps, noteBlocks, hideHeaders, truncateLines) {
+                var limit = truncateLines || window._truncateLines;
                 var lines = origSource.split('\n');
                 var newLines = [];
                 var nIdx = 0;
@@ -1777,7 +1779,7 @@ public static class DiagramContextMenu
                         continue;
                     }
                     if (inNote && trimmed === 'end note') {
-                        if (noteMode === 'truncated' && truncateLineCount > window._truncateLines) {
+                        if (noteMode === 'truncated' && truncateLineCount > limit) {
                             newLines.push('...');
                         }
                         inNote = false;
@@ -1792,7 +1794,7 @@ public static class DiagramContextMenu
                         if (justSkippedGray && trimmed === '') continue;
                         justSkippedGray = false;
                         truncateLineCount++;
-                        if (truncateLineCount <= window._truncateLines) {
+                        if (truncateLineCount <= limit) {
                             newLines.push(lines[i]);
                         }
                         continue;
@@ -1815,7 +1817,7 @@ public static class DiagramContextMenu
 
                 var origSource = container._noteOriginalSource;
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden);
+                var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines);
 
                 container.setAttribute('data-plantuml', newSource);
 
@@ -1890,16 +1892,17 @@ public static class DiagramContextMenu
                 // Always initialize _noteSteps so that subsequent headers toggle
                 // or details changes see the correct state (step 2 = expanded)
                 if (!el._noteSteps) el._noteSteps = {};
+                el._truncateLines = window._truncateLines;
                 for (var i = 0; i < noteBlocks.length; i++) {
                     var targetStep;
                     if (state === 'expanded') { targetStep = 2; }
-                    else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
+                    else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines, el._truncateLines) ? 1 : 2; }
                     else { targetStep = 0; }
                     el._noteSteps[i] = targetStep;
                 }
                 el._headersHidden = window._headersHidden;
                 if (state !== 'expanded' || window._headersHidden) {
-                    return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden);
+                    return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden, el._truncateLines);
                 }
                 return source;
             };
@@ -1910,7 +1913,7 @@ public static class DiagramContextMenu
                     if (queue.length === 0) { if (onAllDone) onAllDone(); return; }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden);
+                    var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines);
                     container.setAttribute('data-plantuml', newSource);
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
@@ -1958,13 +1961,15 @@ public static class DiagramContextMenu
                     if (noteBlocks.length === 0) return;
                     if (!container._noteSteps) container._noteSteps = {};
                     if (container._headersHidden === undefined) container._headersHidden = window._headersHidden;
+                    if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
+                    var containerLines = container._truncateLines;
                     var needsUpdate = false;
                     for (var i = 0; i < noteBlocks.length; i++) {
                         var targetStep;
                         if (targetState === 'expanded') {
                             targetStep = 2;
                         } else if (targetState === 'truncated') {
-                            targetStep = isLongNote(noteBlocks[i].contentLines) ? 1 : 2;
+                            targetStep = isLongNote(noteBlocks[i].contentLines, containerLines) ? 1 : 2;
                         } else {
                             targetStep = 0;
                         }
@@ -1984,12 +1989,14 @@ public static class DiagramContextMenu
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
+                    if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     if (!container._noteSteps) {
                         container._noteSteps = {};
                         var state = window._detailsDefault;
+                        var containerLines = container._truncateLines;
                         for (var i = 0; i < noteBlocks.length; i++) {
                             if (state === 'expanded') { container._noteSteps[i] = 2; }
-                            else if (state === 'truncated') { container._noteSteps[i] = isLongNote(noteBlocks[i].contentLines) ? 1 : 2; }
+                            else if (state === 'truncated') { container._noteSteps[i] = isLongNote(noteBlocks[i].contentLines, containerLines) ? 1 : 2; }
                             else { container._noteSteps[i] = 0; }
                         }
                     }
@@ -2016,6 +2023,15 @@ public static class DiagramContextMenu
             window._setAllNotes = function(btn, targetState) {
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
+                // When switching to truncated, read the scenario's dropdown value
+                if (targetState === 'truncated') {
+                    var sel = scenario.querySelector('.truncate-lines-select');
+                    if (sel) {
+                        var scenarioLines = parseInt(sel.value, 10) || window._truncateLines;
+                        var containers = scenario.querySelectorAll('[data-plantuml]');
+                        containers.forEach(function(c) { c._truncateLines = scenarioLines; });
+                    }
+                }
                 syncRadioButtons(scenario, targetState);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildDetailsQueue(containers, targetState));
@@ -2029,6 +2045,16 @@ public static class DiagramContextMenu
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
                     syncRadioButtons(sc, targetState);
                 });
+                // When switching to truncated at report level, sync container truncate lines from global
+                if (targetState === 'truncated') {
+                    document.querySelectorAll('[data-plantuml]').forEach(function(c) {
+                        c._truncateLines = window._truncateLines;
+                    });
+                    // Sync scenario dropdowns to match global value
+                    document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
+                        s.value = String(window._truncateLines);
+                    });
+                }
                 var containers = document.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildDetailsQueue(containers, targetState));
             };
@@ -2040,8 +2066,10 @@ public static class DiagramContextMenu
                 document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
                     s.value = String(window._truncateLines);
                 });
-                // Force re-render all containers as truncated (even if already truncated — line count changed)
+                // Update per-container truncate lines
                 var containers = document.querySelectorAll('[data-plantuml]');
+                containers.forEach(function(c) { c._truncateLines = window._truncateLines; });
+                // Force re-render all containers as truncated (even if already truncated — line count changed)
                 processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 // Update report + scenario radio buttons to truncated state
                 syncRadioButtons(document.querySelector('.toolbar-right'), 'truncated');
@@ -2055,13 +2083,10 @@ public static class DiagramContextMenu
                 var scenario = sel.closest('details.scenario');
                 if (!scenario) return;
                 var scenarioLines = parseInt(sel.value, 10) || 20;
-                // Temporarily set global for rendering, then restore after async queue completes
-                var prev = window._truncateLines;
-                window._truncateLines = scenarioLines;
+                // Store per-container so headers toggle and details toggle preserve the value
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildDetailsQueue(containers, 'truncated', true), function() {
-                    window._truncateLines = prev;
-                });
+                containers.forEach(function(c) { c._truncateLines = scenarioLines; });
+                processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 syncRadioButtons(scenario, 'truncated');
             };
 

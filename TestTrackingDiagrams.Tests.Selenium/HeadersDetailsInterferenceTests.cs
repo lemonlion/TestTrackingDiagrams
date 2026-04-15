@@ -327,4 +327,175 @@ public class HeadersDetailsInterferenceTests : IDisposable
         Assert.Contains("Widget", source);
         Assert.DoesNotContain("color:gray", source);
     }
+
+    // ── Bug: Headers toggle resets scenario-specific truncation line count ──
+
+    private string GenerateReportWithManyLines(string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Long Note Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "t1", DisplayName = "Long note scenario", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "a system", Status = ExecutionResult.Passed },
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // A note with many lines — truncation at 3 lines should cut most off
+        var diagrams = new[] { new DiagramAsCode("t1", "", PlantUmlSourceManyLines) };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(_tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(OutputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    // PlantUML source with a note containing many lines to test truncation
+    private const string PlantUmlSourceManyLines = """
+        @startuml
+        actor "Caller" as caller
+        participant "Service" as svc
+
+        caller -> svc : POST /api/data
+        note left
+        <color:gray >Content-Type: application/json
+        <color:gray >Authorization: Bearer token
+
+        Line01-body
+        Line02-body
+        Line03-body
+        Line04-body
+        Line05-body
+        Line06-body
+        Line07-body
+        Line08-body
+        Line09-body
+        Line10-body
+        Line11-body
+        Line12-body
+        Line13-body
+        Line14-body
+        Line15-body
+        end note
+
+        svc --> caller : 200 OK
+        @enduml
+        """;
+
+    [Fact]
+    public void Toggling_headers_hidden_preserves_scenario_truncation_line_count()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithManyLines("HD_HeadersPreservesLineCount.html"));
+        ExpandScenario();
+        WaitForDiagramRender();
+
+        // Find scenario-level controls
+        var scenario = _driver.FindElement(By.CssSelector("details.scenario"));
+
+        // Change scenario line count to 5 (note has 2 gray headers + 1 blank + 15 body lines)
+        // With headers shown: lines 1-2 = headers, 3 = blank, 4-5 = Line01-body, Line02-body
+        var select = scenario.FindElement(By.CssSelector(".truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+        Thread.Sleep(2000); // Wait for re-render
+
+        // Verify truncation: Line02-body should be present but Line03-body should NOT
+        var sourceAfterTrunc = GetDataPlantuml();
+        Assert.Contains("Line01-body", sourceAfterTrunc);
+        Assert.Contains("Line02-body", sourceAfterTrunc);
+        Assert.DoesNotContain("Line03-body", sourceAfterTrunc);
+
+        // Now toggle headers to Hidden  
+        // With headers hidden, the 2 gray lines and their trailing blank are removed,
+        // so truncation at 5 lines should now show Line01-Line05
+        scenario.FindElement(By.CssSelector(".headers-radio-btn[data-hstate='hidden']")).Click();
+        Thread.Sleep(2000); // Wait for re-render
+
+        // The truncation line count should still be 5 — but now without headers consuming slots
+        var sourceAfterHeaders = GetDataPlantuml();
+        Assert.Contains("Line01-body", sourceAfterHeaders);
+        Assert.Contains("Line05-body", sourceAfterHeaders);
+        Assert.DoesNotContain("Line06-body", sourceAfterHeaders);
+        // Headers should be removed
+        Assert.DoesNotContain("color:gray", sourceAfterHeaders);
+    }
+
+    [Fact]
+    public void Switching_expanded_to_truncated_respects_scenario_dropdown_value()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithManyLines("HD_ExpandedToTruncDropdown.html"));
+        ExpandScenario();
+        WaitForDiagramRender();
+
+        var scenario = _driver.FindElement(By.CssSelector("details.scenario"));
+
+        // Change scenario line count to 5 (2 gray headers + 1 blank + 2 body = 5 lines when headers shown)
+        var select = scenario.FindElement(By.CssSelector(".truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+        Thread.Sleep(2000);
+
+        // Now switch to Expanded
+        scenario.FindElement(By.CssSelector(".details-radio-btn[data-state='expanded']")).Click();
+        Thread.Sleep(2000);
+
+        // Verify all lines visible in expanded
+        var expandedSource = GetDataPlantuml();
+        Assert.Contains("Line15-body", expandedSource);
+
+        // Now switch back to Truncated — should use the dropdown value (5), not global (40)
+        scenario.FindElement(By.CssSelector(".details-radio-btn[data-state='truncated']")).Click();
+        Thread.Sleep(2000);
+
+        // Should be truncated at 5 lines: 2 headers + blank + Line01 + Line02
+        var truncatedSource = GetDataPlantuml();
+        Assert.Contains("Line01-body", truncatedSource);
+        Assert.Contains("Line02-body", truncatedSource);
+        Assert.DoesNotContain("Line03-body", truncatedSource);
+
+        // Verify dropdown still shows 5
+        select = scenario.FindElement(By.CssSelector(".truncate-lines-select"));
+        Assert.Equal("5", new SelectElement(select).SelectedOption.GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Toggling_headers_shown_after_hidden_preserves_scenario_truncation_line_count()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithManyLines("HD_HeadersShownPreservesLineCount.html"));
+        ExpandScenario();
+        WaitForDiagramRender();
+
+        var scenario = _driver.FindElement(By.CssSelector("details.scenario"));
+
+        // Change scenario line count to 5
+        var select = scenario.FindElement(By.CssSelector(".truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+        Thread.Sleep(2000);
+
+        // Toggle headers: Hidden then Shown
+        scenario.FindElement(By.CssSelector(".headers-radio-btn[data-hstate='hidden']")).Click();
+        Thread.Sleep(2000);
+        scenario.FindElement(By.CssSelector(".headers-radio-btn[data-hstate='shown']")).Click();
+        Thread.Sleep(2000);
+
+        // Truncation should still be at 5 lines (with headers shown: 2 headers + blank + 2 body)
+        var source = GetDataPlantuml();
+        Assert.Contains("Line01-body", source);
+        Assert.Contains("Line02-body", source);
+        Assert.DoesNotContain("Line03-body", source);
+    }
 }

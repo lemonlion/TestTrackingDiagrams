@@ -7,27 +7,27 @@ public class ScenarioTruncateAndCollapsibleNotesTests
     private readonly string _script = DiagramContextMenu.GetCollapsibleNotesScript();
 
     // ═══════════════════════════════════════════════════════════
-    // Bug 1: _setScenarioTruncateLines must defer _truncateLines
-    //         restore until processRenderQueue completes
+    // Fix: _setScenarioTruncateLines stores per-container
+    //       truncateLines instead of temporarily overriding global
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void SetScenarioTruncateLines_restores_truncateLines_in_onAllDone_callback()
+    public void SetScenarioTruncateLines_stores_per_container_truncate_lines()
     {
-        // The restore of window._truncateLines must happen inside the
-        // processRenderQueue callback, not synchronously after the call.
-        // Bad:  processRenderQueue(...); window._truncateLines = prev;
-        // Good: processRenderQueue(..., function() { window._truncateLines = prev; });
+        // The truncation line count must be stored per-container so that
+        // headers toggle and details toggle preserve the scenario's value
+        // instead of reverting to the global default.
+        // Old approach: temporarily override window._truncateLines, restore in callback
+        // New approach: set container._truncateLines on each container
 
         var fnBody = ExtractFunctionBody(_script, "_setScenarioTruncateLines");
 
-        // Should NOT restore _truncateLines synchronously after processRenderQueue
-        Assert.DoesNotContain("processRenderQueue(buildDetailsQueue(containers, 'truncated', true));\n                syncRadioButtons(scenario, 'truncated');\n                window._truncateLines = prev;", fnBody);
+        // Should store per-container
+        Assert.Contains("_truncateLines = scenarioLines", fnBody);
 
-        // Should restore in callback
-        Assert.Contains("_truncateLines = prev", fnBody);
-        // The restore should be inside a function passed to processRenderQueue
-        Assert.Matches(@"processRenderQueue\(.*,\s*function\s*\(\)\s*\{[^}]*_truncateLines\s*=\s*prev", _script);
+        // Should NOT use the old save/restore pattern
+        Assert.DoesNotContain("var prev = window._truncateLines", fnBody);
+        Assert.DoesNotContain("_truncateLines = prev", fnBody);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -51,6 +51,60 @@ public class ScenarioTruncateAndCollapsibleNotesTests
         // Should remove old .note-hover-rect elements
         Assert.Contains(".note-hover-rect", fnBody);
         Assert.Matches(@"querySelectorAll\(['""]\.note-hover-rect['""].*forEach.*remove", fnBody);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Per-container truncation: buildSourceWithNoteStates accepts
+    // truncateLines parameter; buildDetailsQueue/buildHeadersQueue
+    // use container._truncateLines
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void BuildSourceWithNoteStates_accepts_truncateLines_parameter()
+    {
+        var fnBody = ExtractFunctionBody(_script, "buildSourceWithNoteStates");
+        // Should have truncateLines as 5th parameter
+        Assert.Matches(@"function buildSourceWithNoteStates\(origSource,\s*noteSteps,\s*noteBlocks,\s*hideHeaders,\s*truncateLines\)", _script);
+        // Should use local limit instead of global
+        Assert.Contains("var limit = truncateLines || window._truncateLines", fnBody);
+    }
+
+    [Fact]
+    public void BuildDetailsQueue_uses_per_container_truncateLines()
+    {
+        var fnBody = ExtractFunctionBody(_script, "buildDetailsQueue");
+        Assert.Contains("container._truncateLines", fnBody);
+        Assert.Contains("isLongNote(noteBlocks[i].contentLines, containerLines)", fnBody);
+    }
+
+    [Fact]
+    public void BuildHeadersQueue_uses_per_container_truncateLines()
+    {
+        var fnBody = ExtractFunctionBody(_script, "buildHeadersQueue");
+        Assert.Contains("container._truncateLines", fnBody);
+    }
+
+    [Fact]
+    public void ProcessRenderQueue_passes_container_truncateLines()
+    {
+        var fnBody = ExtractFunctionBody(_script, "processRenderQueue");
+        Assert.Contains("container._truncateLines", fnBody);
+    }
+
+    [Fact]
+    public void IsLongNote_accepts_truncateLines_parameter()
+    {
+        var fnBody = ExtractFunctionBody(_script, "isLongNote");
+        Assert.Contains("truncateLines", fnBody);
+    }
+
+    [Fact]
+    public void SetAllNotes_reads_dropdown_when_switching_to_truncated()
+    {
+        var fnBody = ExtractFunctionBody(_script, "_setAllNotes");
+        // When switching to truncated, should read the scenario's dropdown value
+        Assert.Contains(".truncate-lines-select", fnBody);
+        Assert.Contains("c._truncateLines = scenarioLines", fnBody);
     }
 
     // ═══════════════════════════════════════════════════════════
