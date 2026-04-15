@@ -167,4 +167,121 @@ public class ReqNRollScenarioInfoExtensionsTests
         var features = new[] { info }.ToFeatures();
         Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
     }
+
+    // ─── Step duration mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_step_duration()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something", Duration: TimeSpan.FromMilliseconds(250))
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(TimeSpan.FromMilliseconds(250), features[0].Scenarios[0].Steps![0].Duration);
+    }
+
+    [Fact]
+    public void ToFeatures_leaves_step_duration_null_when_not_provided()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "something")
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Null(features[0].Scenarios[0].Steps![0].Duration);
+    }
+
+    // ─── DocString mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_step_doc_string()
+    {
+        var info = MakeScenario(steps:
+        [
+            new ReqNRollStepInfo("Given", "a request body", DocString: """{"name":"test"}""")
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal("""{"name":"test"}""", features[0].Scenarios[0].Steps![0].DocString);
+    }
+
+    // ─── Categories mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_category_tags_to_scenario_categories()
+    {
+        var info = MakeScenario(
+            scenarioTags: ["smoke", "category:Integration"],
+            combinedTags: ["smoke", "category:Integration"]);
+        var features = new[] { info }.ToFeatures();
+        var scenario = features[0].Scenarios[0];
+
+        Assert.NotNull(scenario.Categories);
+        Assert.Equal(["Integration"], scenario.Categories!);
+        Assert.DoesNotContain("category:Integration", scenario.Labels!);
+    }
+
+    [Fact]
+    public void ToFeatures_leaves_categories_null_when_no_category_tags()
+    {
+        var info = MakeScenario(scenarioTags: ["smoke"]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Null(features[0].Scenarios[0].Categories);
+    }
+
+    // ─── Rule mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_rule()
+    {
+        var info = new ReqNRollScenarioInfo
+        {
+            ScenarioId = "s1",
+            ScenarioTitle = "Test",
+            FeatureTitle = "Feature",
+            ScenarioTags = [],
+            CombinedTags = [],
+            Steps = [],
+            Rule = "Business Rule 1"
+        };
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal("Business Rule 1", features[0].Scenarios[0].Rule);
+    }
+
+    // ─── ExampleValues mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_example_values()
+    {
+        var info = new ReqNRollScenarioInfo
+        {
+            ScenarioId = "s1",
+            ScenarioTitle = "Test with <amount>",
+            FeatureTitle = "Feature",
+            ScenarioTags = [],
+            CombinedTags = [],
+            Steps = [],
+            ExampleValues = new Dictionary<string, string> { ["amount"] = "100", ["currency"] = "GBP" }
+        };
+        var features = new[] { info }.ToFeatures();
+        Assert.NotNull(features[0].Scenarios[0].ExampleValues);
+        Assert.Equal("100", features[0].Scenarios[0].ExampleValues!["amount"]);
+        Assert.Equal("GBP", features[0].Scenarios[0].ExampleValues!["currency"]);
+    }
+
+    // ─── Feature labels mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_feature_level_labels_from_combined_tags()
+    {
+        var info = MakeScenario(
+            scenarioTags: ["scenario-tag"],
+            combinedTags: ["feature-api", "scenario-tag", "endpoint:GET /api"]);
+        var features = new[] { info }.ToFeatures();
+
+        Assert.NotNull(features[0].Labels);
+        Assert.Contains("feature-api", features[0].Labels!);
+        Assert.DoesNotContain("scenario-tag", features[0].Labels!);
+        Assert.DoesNotContain("endpoint:GET /api", features[0].Labels!);
+    }
 }

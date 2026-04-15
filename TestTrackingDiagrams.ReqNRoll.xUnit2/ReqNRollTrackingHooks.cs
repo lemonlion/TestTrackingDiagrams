@@ -30,14 +30,25 @@ public class ReqNRollTrackingHooks
     public void BeforeStep()
     {
         ReqNRollTestContext.CurrentStepType = _scenarioContext.StepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString();
+        _scenarioContext[ReqNRollConstants.StepStopwatchKey] = Stopwatch.StartNew();
     }
 
     [AfterStep(Order = int.MaxValue)]
     public void AfterStep()
     {
+        var stepStopwatch = (Stopwatch)_scenarioContext[ReqNRollConstants.StepStopwatchKey];
+        stepStopwatch.Stop();
         var stepContext = _scenarioContext.StepContext;
         var steps = (List<ReqNRollStepInfo>)_scenarioContext[ReqNRollConstants.StepsCollectionKey];
-        steps.Add(new ReqNRollStepInfo(stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(), stepContext.StepInfo.Text, stepContext.Status));
+        var tableText = stepContext.StepInfo.Table?.ToString();
+        var docString = stepContext.StepInfo.MultilineText;
+        steps.Add(new ReqNRollStepInfo(
+            stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(),
+            stepContext.StepInfo.Text,
+            stepContext.Status,
+            stepStopwatch.Elapsed,
+            tableText,
+            docString));
     }
 
     [AfterScenario(Order = int.MaxValue)]
@@ -46,6 +57,15 @@ public class ReqNRollTrackingHooks
         _stopwatch?.Stop();
         var scenarioId = (string)_scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey];
         var steps = (List<ReqNRollStepInfo>)_scenarioContext[ReqNRollConstants.StepsCollectionKey];
+
+        var arguments = _scenarioContext.ScenarioInfo.Arguments;
+        Dictionary<string, string>? exampleValues = null;
+        if (arguments is { Count: > 0 })
+        {
+            exampleValues = new Dictionary<string, string>();
+            foreach (System.Collections.DictionaryEntry entry in arguments)
+                exampleValues[entry.Key?.ToString() ?? ""] = entry.Value?.ToString() ?? "";
+        }
 
         ReqNRollScenarioCollector.Collect(new ReqNRollScenarioInfo
         {
@@ -58,7 +78,9 @@ public class ReqNRollTrackingHooks
             TestError = _scenarioContext.TestError,
             ExecutionStatus = _scenarioContext.ScenarioExecutionStatus,
             Duration = _stopwatch?.Elapsed,
-            Steps = steps
+            Steps = steps,
+            Rule = _scenarioContext.RuleInfo?.Title,
+            ExampleValues = exampleValues
         });
 
         ReqNRollTestContext.CurrentTestInfo = null;

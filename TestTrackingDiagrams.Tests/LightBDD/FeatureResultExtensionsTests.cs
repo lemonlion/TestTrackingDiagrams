@@ -218,6 +218,54 @@ public class FeatureResultExtensionsTests
         Assert.Null(features[0].Scenarios[0].Steps);
     }
 
+    [Fact]
+    public void ToFeatures_maps_error_stack_trace_from_failed_step_exception()
+    {
+        Exception capturedException;
+        try { throw new InvalidOperationException("Something went wrong"); }
+        catch (Exception ex) { capturedException = ex; }
+
+        var step = new StubStepResult("When", "an action fails", ExecutionStatus.Failed,
+            executionException: capturedException);
+        var scenario = new StubExecutionResult("s1", "Test", status: ExecutionStatus.Failed, statusDetails: "Something went wrong")
+            .WithStep(step);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.NotNull(features[0].Scenarios[0].ErrorStackTrace);
+        Assert.Contains("Something went wrong", features[0].Scenarios[0].ErrorMessage!);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_error_stack_trace_from_nested_failed_substep()
+    {
+        Exception capturedException;
+        try { throw new InvalidOperationException("Nested failure"); }
+        catch (Exception ex) { capturedException = ex; }
+
+        var subStep = new StubStepResult("And", "a nested failing action", ExecutionStatus.Failed,
+            executionException: capturedException);
+        var parentStep = new StubStepResult("When", "an action", ExecutionStatus.Failed)
+            .WithSubStep(subStep);
+        var scenario = new StubExecutionResult("s1", "Test", status: ExecutionStatus.Failed, statusDetails: "Nested failure")
+            .WithStep(parentStep);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.NotNull(features[0].Scenarios[0].ErrorStackTrace);
+        Assert.Contains("ToFeatures_maps_error_stack_trace_from_nested_failed_substep", features[0].Scenarios[0].ErrorStackTrace!);
+    }
+
+    [Fact]
+    public void ToFeatures_leaves_error_stack_trace_null_when_scenario_passed()
+    {
+        var scenario = new StubExecutionResult("s1", "Test", status: ExecutionStatus.Passed);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Null(features[0].Scenarios[0].ErrorStackTrace);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult
@@ -279,7 +327,8 @@ public class FeatureResultExtensionsTests
             ExecutionStatus status,
             TimeSpan? duration = null,
             string[]? comments = null,
-            FileAttachment[]? attachments = null)
+            FileAttachment[]? attachments = null,
+            Exception? executionException = null)
         {
             var fullText = keyword != null ? $"{keyword} {text}" : text;
             Info = new StubStepInfo(keyword, fullText);
@@ -289,6 +338,7 @@ public class FeatureResultExtensionsTests
                 : null;
             Comments = comments ?? [];
             FileAttachments = attachments ?? [];
+            ExecutionException = executionException;
         }
 
         public IStepInfo Info { get; }
@@ -296,7 +346,7 @@ public class FeatureResultExtensionsTests
         public string? StatusDetails => null;
         public ExecutionTime? ExecutionTime { get; }
         public IEnumerable<string> Comments { get; }
-        public Exception? ExecutionException => null;
+        public Exception? ExecutionException { get; }
         public IReadOnlyList<IParameterResult> Parameters => Array.Empty<IParameterResult>();
         public IEnumerable<FileAttachment> FileAttachments { get; }
         public IEnumerable<IStepResult> GetSubSteps() => _subSteps;

@@ -173,4 +173,58 @@ public class BDDfyScenarioInfoExtensionsTests
         var features = new[] { info }.ToFeatures();
         Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Steps![1].Status);
     }
+
+    // ─── Error extraction ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_error_message_and_stack_trace()
+    {
+        var info = new BDDfyScenarioInfo
+        {
+            TestId = "t1",
+            StoryTitle = "Story",
+            ScenarioTitle = "Scenario",
+            Tags = [],
+            Steps = [],
+            Result = TestStack.BDDfy.Result.Failed,
+            ErrorMessage = "Expected 200 but got 500",
+            ErrorStackTrace = "at MyTests.Test() in Test.cs:line 42"
+        };
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal("Expected 200 but got 500", features[0].Scenarios[0].ErrorMessage);
+        Assert.Equal("at MyTests.Test() in Test.cs:line 42", features[0].Scenarios[0].ErrorStackTrace);
+    }
+
+    [Fact]
+    public void ToFeatures_leaves_error_fields_null_when_passed()
+    {
+        var info = MakeScenario(result: TestStack.BDDfy.Result.Passed);
+        var features = new[] { info }.ToFeatures();
+        Assert.Null(features[0].Scenarios[0].ErrorMessage);
+        Assert.Null(features[0].Scenarios[0].ErrorStackTrace);
+    }
+
+    // ─── Step duration ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_step_duration()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something", Duration: TimeSpan.FromMilliseconds(150))
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(TimeSpan.FromMilliseconds(150), features[0].Scenarios[0].Steps![0].Duration);
+    }
+
+    [Fact]
+    public void ToFeatures_leaves_step_duration_null_when_not_provided()
+    {
+        var info = MakeScenario(steps:
+        [
+            new BDDfyStepInfo("Given", "something")
+        ]);
+        var features = new[] { info }.ToFeatures();
+        Assert.Null(features[0].Scenarios[0].Steps![0].Duration);
+    }
 }

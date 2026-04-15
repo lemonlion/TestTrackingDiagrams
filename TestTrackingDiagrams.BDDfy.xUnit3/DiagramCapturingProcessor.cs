@@ -45,6 +45,10 @@ public class DiagramCapturingProcessor : IProcessor
                 .Select(s => s.ToBDDfyStepInfo())
                 .ToList();
 
+            var failedException = scenario.Steps
+                .FirstOrDefault(s => s.Result == TestStack.BDDfy.Result.Failed && s.Exception != null)
+                ?.Exception;
+
             BDDfyScenarioCollector.Collect(new BDDfyScenarioInfo
             {
                 TestId = testId,
@@ -55,7 +59,9 @@ public class DiagramCapturingProcessor : IProcessor
                 Tags = scenario.Tags?.ToArray() ?? [],
                 Steps = steps,
                 Result = scenario.Result,
-                Duration = scenario.Duration
+                Duration = scenario.Duration,
+                ErrorMessage = failedException?.Message,
+                ErrorStackTrace = failedException?.StackTrace
             });
         }
     }

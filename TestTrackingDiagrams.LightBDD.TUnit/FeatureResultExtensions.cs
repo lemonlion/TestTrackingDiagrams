@@ -34,12 +34,17 @@ internal static class FeatureResultExtensions
         var labels = result.Info.Labels.ToArray();
         var categories = result.Info.Categories.ToArray();
 
+        var failedException = result.Status == ExecutionStatus.Failed
+            ? FindFirstFailedException(result.GetSteps())
+            : null;
+
         return new Scenario
         {
             Id = result.Info.RuntimeId.ToString(),
             DisplayName = result.Info.Name.ToString(),
             Result = MapStatus(result.Status),
             ErrorMessage = result.Status == ExecutionStatus.Failed ? result.StatusDetails : null,
+            ErrorStackTrace = failedException?.StackTrace,
             Duration = result.ExecutionTime?.Duration,
             Steps = MapSteps(result.GetSteps(), result.Status is ExecutionStatus.Ignored or ExecutionStatus.NotRun),
             IsHappyPath = labels.Contains("Happy Path"),
@@ -195,5 +200,19 @@ internal static class FeatureResultExtensions
             global::LightBDD.Core.Results.Parameters.Tabular.TableRowType.Missing => Reports.TableRowType.Missing,
             _ => Reports.TableRowType.Matching
         };
+    }
+
+    private static Exception? FindFirstFailedException(IEnumerable<IStepResult> steps)
+    {
+        foreach (var step in steps)
+        {
+            if (step.Status == ExecutionStatus.Failed && step.ExecutionException != null)
+                return step.ExecutionException;
+
+            var subException = FindFirstFailedException(step.GetSubSteps());
+            if (subException != null)
+                return subException;
+        }
+        return null;
     }
 }

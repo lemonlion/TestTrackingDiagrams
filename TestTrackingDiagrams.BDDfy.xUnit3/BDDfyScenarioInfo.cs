@@ -11,6 +11,8 @@ public record BDDfyScenarioInfo
     public required List<BDDfyStepInfo> Steps { get; init; }
     public required TestStack.BDDfy.Result Result { get; init; }
     public TimeSpan Duration { get; init; }
+    public string? ErrorMessage { get; init; }
+    public string? ErrorStackTrace { get; init; }
 }
 
-public record BDDfyStepInfo(string Keyword, string Text, TestStack.BDDfy.Result Result = TestStack.BDDfy.Result.NotExecuted);
+public record BDDfyStepInfo(string Keyword, string Text, TestStack.BDDfy.Result Result = TestStack.BDDfy.Result.NotExecuted, TimeSpan? Duration = null);

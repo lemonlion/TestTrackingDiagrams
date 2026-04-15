@@ -39,6 +39,8 @@ internal static class ScenarioInfoExtensions
                                 DisplayName = x.ScenarioTitle,
                                 IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
                                 Result = x.Result.ToExecutionResult(),
+                                ErrorMessage = x.ErrorMessage,
+                                ErrorStackTrace = x.ErrorStackTrace,
                                 Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,
                                 Steps = x.Steps.Count > 0
                                     ? MapSteps(x.Steps)
@@ -61,6 +63,7 @@ internal static class ScenarioInfoExtensions
                 Keyword = steps[i].Keyword,
                 Text = steps[i].Text,
                 Status = steps[i].Result.ToStepResult(priorFailure),
+                Duration = steps[i].Duration,
             };
             if (steps[i].Result == TestStack.BDDfy.Result.Failed)
                 priorFailure = true;

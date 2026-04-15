@@ -10,14 +10,15 @@ internal static class StepExtensions
     {
         var title = step.Title.Trim();
         var firstSpace = title.IndexOf(' ');
+        var duration = step.Duration != TimeSpan.Zero ? step.Duration : (TimeSpan?)null;
 
         if (firstSpace > 0)
         {
             var firstWord = title[..firstSpace];
             if (Keywords.Any(k => k.Equals(firstWord, StringComparison.OrdinalIgnoreCase)))
-                return new BDDfyStepInfo(firstWord, title[(firstSpace + 1)..], step.Result);
+                return new BDDfyStepInfo(firstWord, title[(firstSpace + 1)..], step.Result, duration);
         }
 
-        return new BDDfyStepInfo("Step", title, step.Result);
+        return new BDDfyStepInfo("Step", title, step.Result, duration);
     }
 }
