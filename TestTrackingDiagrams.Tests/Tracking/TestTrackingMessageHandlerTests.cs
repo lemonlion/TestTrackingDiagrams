@@ -384,14 +384,23 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
     // ─── HttpContextAccessor: headers from incoming context ─────
 
-    private static IHttpContextAccessor CreateHttpContextAccessor(params (string Key, string Value)[] headers)
+    private IHttpContextAccessor CreateHttpContextAccessor(params (string Key, string Value)[] headers)
     {
         var context = new DefaultHttpContext();
         foreach (var (key, value) in headers)
         {
             context.Request.Headers[key] = value;
         }
-        return new HttpContextAccessor { HttpContext = context };
+        return new StubHttpContextAccessor(context);
+    }
+
+    /// <summary>
+    /// A simple accessor that avoids the static AsyncLocal in <see cref="HttpContextAccessor"/>
+    /// which leaks context between parallel tests.
+    /// </summary>
+    private class StubHttpContextAccessor(HttpContext context) : IHttpContextAccessor
+    {
+        public HttpContext? HttpContext { get; set; } = context;
     }
 
     [Fact]
