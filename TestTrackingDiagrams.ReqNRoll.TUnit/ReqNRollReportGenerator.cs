@@ -16,27 +16,5 @@ public static class ReqNRollReportGenerator
     {
         var features = scenarios.ToArray().ToFeatures();
         ReportGenerator.CreateStandardReportsWithDiagrams(features, startRunTime, endRunTime, options);
-
-        var fetcherOptions = new DiagramsFetcherOptions
-        {
-            PlantUmlServerBaseUrl = options.PlantUmlServerBaseUrl,
-            PlantUmlRendering = options.PlantUmlRendering,
-            PlantUmlImageFormat = options.PlantUmlImageFormat,
-            PlantUmlTheme = options.PlantUmlTheme,
-            DiagramFormat = options.DiagramFormat,
-            ExcludedHeaders = options.ExcludedHeaders,
-            SeparateSetup = options.SeparateSetup,
-            HighlightSetup = options.HighlightSetup,
-            LazyLoadDiagramImages = options.LazyLoadDiagramImages,
-            FocusEmphasis = options.FocusEmphasis,
-            FocusDeEmphasis = options.FocusDeEmphasis,
-            LocalDiagramRenderer = options.LocalDiagramRenderer,
-            LocalDiagramImageDirectory = options.LocalDiagramImageDirectory,
-            RequestPostFormattingProcessor = options.RequestResponsePostProcessor,
-            ResponsePostFormattingProcessor = options.RequestResponsePostProcessor,
-            RequestMidFormattingProcessor = options.RequestResponseMidProcessor,
-            ResponseMidFormattingProcessor = options.RequestResponseMidProcessor
-        };
-        ReqNRollReportEnhancer.RegisterForEnhancement(fetcherOptions);
     }
 }
