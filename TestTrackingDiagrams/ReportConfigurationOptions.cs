@@ -1,4 +1,5 @@
 ﻿using TestTrackingDiagrams.ComponentDiagram;
+using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams;
 
@@ -53,4 +54,6 @@ public record ReportConfigurationOptions
     public string? CustomCss { get; set; }
     public string? CustomFaviconBase64 { get; set; }
     public string? CustomLogoHtml { get; set; }
+    public DataFormat TestRunReportDataFormat { get; set; } = DataFormat.Json;
+    public DataFormat SpecificationsDataFormat { get; set; } = DataFormat.Yaml;
 }

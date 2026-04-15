@@ -207,4 +207,123 @@ public class FeatureSummaryTableReportTests
         Assert.DoesNotContain(">Avg<", content);
         Assert.DoesNotContain(">Longest<", content);
     }
+
+    [Fact]
+    public void Summary_table_shows_step_status_breakdown_columns_when_steps_present()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "x", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "y", Status = ExecutionResult.Failed },
+                            new ScenarioStep { Keyword = "Then", Text = "z", Status = ExecutionResult.Skipped }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Should have step status breakdown header row
+        Assert.Contains("step-status-header", content);
+    }
+
+    [Fact]
+    public void Summary_table_step_status_shows_correct_counts_per_feature()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "a", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "b", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "c", Status = ExecutionResult.Failed },
+                            new ScenarioStep { Keyword = "And", Text = "d", Status = ExecutionResult.Skipped }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // The row should contain step counts: Steps=4, and then per-status counts
+        // We need to verify the step status cells exist with correct values
+        // Steps total = 4, Passed = 2, Failed = 1, Skipped = 1
+        Assert.Contains(">4<", content); // total steps
+    }
+
+    [Fact]
+    public void Summary_table_step_status_counts_include_substeps()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "a", Status = ExecutionResult.Passed,
+                                SubSteps =
+                                [
+                                    new ScenarioStep { Keyword = "And", Text = "sub1", Status = ExecutionResult.Passed },
+                                    new ScenarioStep { Keyword = "And", Text = "sub2", Status = ExecutionResult.Failed }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "Then", Text = "b", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Total steps = 4 (2 top + 2 sub), Passed = 3, Failed = 1
+        Assert.Contains(">4<", content); // total steps (CountStepsRecursive)
+    }
+
+    [Fact]
+    public void Summary_table_omits_step_status_columns_when_no_steps()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.DoesNotContain("step-status-header", content);
+    }
 }

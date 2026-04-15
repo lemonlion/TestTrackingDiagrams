@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using TestTrackingDiagrams.ComponentDiagram;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
@@ -76,11 +78,15 @@ public static class ReportGenerator
 
         var ciMetadata = CiMetadataDetector.Detect();
 
+        var specsDataExtension = GetDataFormatExtension(options.SpecificationsDataFormat);
+        var testRunDataExtension = GetDataFormatExtension(options.TestRunReportDataFormat);
+
         var actions = new List<Action>
         {
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetFeaturesReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
-            () => GenerateYamlSpecs(diagrams, features, $"{options.YamlSpecificationsFileName}.yml", options.SpecificationsTitle, true)
+            () => GenerateSpecificationsData(features, $"{options.YamlSpecificationsFileName}.{specsDataExtension}", options.SpecificationsTitle, options.SpecificationsDataFormat, true),
+            () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat)
         };
 
         if (options.GenerateComponentDiagram)
@@ -115,7 +121,7 @@ public static class ReportGenerator
             if (Directory.Exists(reportsDirectory))
             {
                 var reportFiles = Directory.GetFiles(reportsDirectory)
-                    .Where(f => f.EndsWith(".html") || f.EndsWith(".yml") || f.EndsWith(".md"))
+                    .Where(f => f.EndsWith(".html") || f.EndsWith(".yml") || f.EndsWith(".md") || f.EndsWith(".json") || f.EndsWith(".xml"))
                     .ToArray();
                 CiArtifactPublisher.Publish(reportFiles, ciEnv, options.CiArtifactName, options.CiArtifactRetentionDays);
             }
@@ -965,7 +971,12 @@ public static class ReportGenerator
             body.Append("<th onclick=\"sort_table(3)\">Failed</th>");
             body.Append("<th onclick=\"sort_table(4)\">Skipped</th>");
             if (hasAnySteps)
+            {
                 body.Append($"<th onclick=\"sort_table({nextCol++})\">Steps</th>");
+                body.Append($"<th class=\"step-status-header\" onclick=\"sort_table({nextCol++})\">Passed</th>");
+                body.Append($"<th class=\"step-status-header\" onclick=\"sort_table({nextCol++})\">Failed</th>");
+                body.Append($"<th class=\"step-status-header\" onclick=\"sort_table({nextCol++})\">Skipped</th>");
+            }
             if (hasAnyDurations)
             {
                 body.Append($"<th onclick=\"sort_table({nextCol++})\">Duration</th>");
@@ -996,7 +1007,11 @@ public static class ReportGenerator
                         .SelectMany(s => s.Steps!)
                         .ToArray();
                     var stepCount = CountStepsRecursive(allSteps);
+                    var stepStatusCounts = CountStepsByStatusRecursive(allSteps);
                     body.Append($"<td>{stepCount}</td>");
+                    body.Append($"<td>{stepStatusCounts.Passed}</td>");
+                    body.Append($"<td>{stepStatusCounts.Failed}</td>");
+                    body.Append($"<td>{stepStatusCounts.Skipped}</td>");
                 }
 
                 if (hasAnyDurations)
@@ -1605,6 +1620,31 @@ public static class ReportGenerator
         return count;
     }
 
+    private static (int Passed, int Failed, int Skipped) CountStepsByStatusRecursive(ScenarioStep[] steps)
+    {
+        var passed = 0;
+        var failed = 0;
+        var skipped = 0;
+        foreach (var step in steps)
+        {
+            switch (step.Status)
+            {
+                case ExecutionResult.Passed: passed++; break;
+                case ExecutionResult.Failed: failed++; break;
+                case ExecutionResult.Skipped or ExecutionResult.Bypassed or ExecutionResult.SkippedAfterFailure: skipped++; break;
+                default: skipped++; break;
+            }
+            if (step.SubSteps is { Length: > 0 })
+            {
+                var sub = CountStepsByStatusRecursive(step.SubSteps);
+                passed += sub.Passed;
+                failed += sub.Failed;
+                skipped += sub.Skipped;
+            }
+        }
+        return (passed, failed, skipped);
+    }
+
     internal static string GeneratePieChartSvg(int passed, int failed, int skipped, int bypassed)
     {
         var total = passed + failed + skipped + bypassed;
@@ -2024,6 +2064,332 @@ public static class ReportGenerator
         return $"scenario-{slug}";
     }
 
+    public static string GenerateTestRunReportData(Feature[] features, DateTime startTime, DateTime endTime, string fileName, DataFormat format)
+    {
+        return format switch
+        {
+            DataFormat.Json => WriteFile(GenerateTestRunReportJson(features, startTime, endTime), fileName),
+            DataFormat.Xml => WriteFile(GenerateTestRunReportXml(features, startTime, endTime), fileName),
+            DataFormat.Yaml => WriteFile(GenerateTestRunReportYaml(features, startTime, endTime), fileName),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    private static string GenerateTestRunReportJson(Feature[] features, DateTime startTime, DateTime endTime)
+    {
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+        var data = new
+        {
+            StartTime = startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            EndTime = endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            Features = features.OrderBy(f => f.DisplayName).Select(f => new
+            {
+                Name = f.DisplayName,
+                f.Endpoint,
+                f.Description,
+                Labels = f.Labels ?? [],
+                Scenarios = f.Scenarios.Select(s => new
+                {
+                    s.Id,
+                    Name = s.DisplayName,
+                    Result = s.Result.ToString(),
+                    DurationSeconds = s.Duration?.TotalSeconds ?? 0.0,
+                    s.IsHappyPath,
+                    s.ErrorMessage,
+                    s.ErrorStackTrace,
+                    Labels = s.Labels ?? [],
+                    Categories = s.Categories ?? [],
+                    Steps = (s.Steps ?? []).Select(MapStepJson).ToArray()
+                }).ToArray()
+            }).ToArray()
+        };
+        return JsonSerializer.Serialize(data, options);
+    }
+
+    private static object MapStepJson(ScenarioStep step) => new
+    {
+        step.Keyword,
+        step.Text,
+        Status = step.Status?.ToString(),
+        DurationSeconds = step.Duration?.TotalSeconds,
+        SubSteps = (step.SubSteps ?? []).Select(MapStepJson).ToArray()
+    };
+
+    private static string GenerateTestRunReportXml(Feature[] features, DateTime startTime, DateTime endTime)
+    {
+        var doc = new XDocument(
+            new XElement("TestRunReport",
+                new XElement("StartTime", startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                new XElement("EndTime", endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                new XElement("Features",
+                    features.OrderBy(f => f.DisplayName).Select(f =>
+                        new XElement("Feature",
+                            new XElement("Name", f.DisplayName),
+                            f.Endpoint != null ? new XElement("Endpoint", f.Endpoint) : null,
+                            f.Description != null ? new XElement("Description", f.Description) : null,
+                            (f.Labels is { Length: > 0 }) ? new XElement("Labels", f.Labels.Select(l => new XElement("Label", l))) : null,
+                            new XElement("Scenarios",
+                                f.Scenarios.Select(s =>
+                                    new XElement("Scenario",
+                                        new XElement("Id", s.Id),
+                                        new XElement("Name", s.DisplayName),
+                                        new XElement("Result", s.Result.ToString()),
+                                        new XElement("DurationSeconds", (s.Duration?.TotalSeconds ?? 0.0).ToString("F3")),
+                                        new XElement("IsHappyPath", s.IsHappyPath.ToString().ToLower()),
+                                        s.ErrorMessage != null ? new XElement("ErrorMessage", s.ErrorMessage) : null,
+                                        s.ErrorStackTrace != null ? new XElement("ErrorStackTrace", s.ErrorStackTrace) : null,
+                                        (s.Labels is { Length: > 0 }) ? new XElement("Labels", s.Labels.Select(l => new XElement("Label", l))) : null,
+                                        (s.Categories is { Length: > 0 }) ? new XElement("Categories", s.Categories.Select(c => new XElement("Category", c))) : null,
+                                        (s.Steps is { Length: > 0 }) ? new XElement("Steps", s.Steps.Select(MapStepXml)) : null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+        return doc.ToString();
+    }
+
+    private static XElement MapStepXml(ScenarioStep step) =>
+        new("Step",
+            step.Keyword != null ? new XElement("Keyword", step.Keyword) : null,
+            new XElement("Text", step.Text),
+            step.Status != null ? new XElement("Status", step.Status.ToString()) : null,
+            step.Duration != null ? new XElement("DurationSeconds", step.Duration.Value.TotalSeconds.ToString("F3")) : null,
+            (step.SubSteps is { Length: > 0 }) ? new XElement("SubSteps", step.SubSteps.Select(MapStepXml)) : null
+        );
+
+    private static string GenerateTestRunReportYaml(Feature[] features, DateTime startTime, DateTime endTime)
+    {
+        var yml = new StringBuilder();
+        yml.Append("StartTime: " + startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n");
+        yml.Append("EndTime: " + endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n");
+        yml.Append("Features:\n");
+
+        foreach (var feature in features.OrderBy(f => f.DisplayName))
+        {
+            yml.Append("  - Name: " + feature.DisplayName.SanitiseForYml() + "\n");
+
+            if (feature.Endpoint is not null)
+                yml.Append("    Endpoint: " + feature.Endpoint + "\n");
+
+            if (feature.Description is not null)
+                yml.Append("    Description: " + feature.Description.SanitiseForYml() + "\n");
+
+            if (feature.Labels is { Length: > 0 })
+            {
+                yml.Append("    Labels:\n");
+                foreach (var label in feature.Labels)
+                    yml.Append("      - " + label.SanitiseForYml() + "\n");
+            }
+
+            yml.Append("    Scenarios:\n");
+            foreach (var scenario in feature.Scenarios)
+            {
+                yml.Append("      - Name: " + scenario.DisplayName.SanitiseForYml() + "\n");
+                yml.Append("        Result: " + scenario.Result + "\n");
+                yml.Append("        DurationSeconds: " + (scenario.Duration?.TotalSeconds ?? 0.0).ToString("F3") + "\n");
+                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
+
+                if (scenario.ErrorMessage is not null)
+                    yml.Append("        ErrorMessage: " + scenario.ErrorMessage.SanitiseForYml() + "\n");
+
+                if (scenario.ErrorStackTrace is not null)
+                    yml.Append("        ErrorStackTrace: " + scenario.ErrorStackTrace.SanitiseForYml() + "\n");
+
+                if (scenario.Labels is { Length: > 0 })
+                {
+                    yml.Append("        Labels:\n");
+                    foreach (var label in scenario.Labels)
+                        yml.Append("          - " + label.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Categories is { Length: > 0 })
+                {
+                    yml.Append("        Categories:\n");
+                    foreach (var cat in scenario.Categories)
+                        yml.Append("          - " + cat.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Steps is { Length: > 0 })
+                {
+                    yml.Append("        Steps:\n");
+                    foreach (var step in scenario.Steps)
+                        AppendTestRunYamlStep(yml, step, "          ");
+                }
+            }
+        }
+
+        return yml.ToString();
+    }
+
+    private static void AppendTestRunYamlStep(StringBuilder yml, ScenarioStep step, string indent)
+    {
+        yml.Append(indent + "- Keyword: " + (step.Keyword ?? "").SanitiseForYml() + "\n");
+        yml.Append(indent + "  Text: " + step.Text.SanitiseForYml() + "\n");
+        yml.Append(indent + "  Status: " + (step.Status?.ToString() ?? "") + "\n");
+        if (step.Duration != null)
+            yml.Append(indent + "  DurationSeconds: " + step.Duration.Value.TotalSeconds.ToString("F3") + "\n");
+
+        if (step.SubSteps is { Length: > 0 })
+        {
+            yml.Append(indent + "  SubSteps:\n");
+            foreach (var sub in step.SubSteps)
+                AppendTestRunYamlStep(yml, sub, indent + "    ");
+        }
+    }
+
+    public static string GenerateSpecificationsData(Feature[] features, string fileName, string title, DataFormat format, bool generateBlankOnFailedTests = false)
+    {
+        if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
+            return WriteFile(string.Empty, fileName);
+
+        return format switch
+        {
+            DataFormat.Yaml => WriteFile(GenerateSpecificationsYaml(features, title), fileName),
+            DataFormat.Json => WriteFile(GenerateSpecificationsJson(features, title), fileName),
+            DataFormat.Xml => WriteFile(GenerateSpecificationsXml(features, title), fileName),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    private static string GenerateSpecificationsYaml(Feature[] features, string title)
+    {
+        var yml = new StringBuilder();
+        yml.Append("Title: " + title + "\n");
+        yml.Append("Features:\n");
+
+        foreach (var feature in features.OrderBy(x => x.DisplayName))
+        {
+            yml.Append("  - Feature: " + feature.DisplayName.SanitiseForYml() + "\n");
+
+            if (feature.Endpoint is not null)
+                yml.Append("    Endpoint: " + feature.Endpoint + "\n");
+
+            if (feature.Description is not null)
+                yml.Append("    Description: " + feature.Description.SanitiseForYml() + "\n");
+
+            if (feature.Labels is { Length: > 0 })
+            {
+                yml.Append("    Labels:\n");
+                foreach (var label in feature.Labels)
+                    yml.Append("      - " + label.SanitiseForYml() + "\n");
+            }
+
+            yml.Append("    Scenarios:\n");
+
+            var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName);
+            foreach (var scenario in orderedScenarios)
+            {
+                yml.Append("      - Scenario: " + scenario.DisplayName.SanitiseForYml() + "\n");
+                yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
+
+                if (scenario.Labels is { Length: > 0 })
+                {
+                    yml.Append("        Labels:\n");
+                    foreach (var label in scenario.Labels)
+                        yml.Append("          - " + label.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Categories is { Length: > 0 })
+                {
+                    yml.Append("        Categories:\n");
+                    foreach (var cat in scenario.Categories)
+                        yml.Append("          - " + cat.SanitiseForYml() + "\n");
+                }
+
+                if (scenario.Steps is { Length: > 0 })
+                {
+                    yml.Append("        Steps:\n");
+                    foreach (var step in scenario.Steps)
+                        AppendYamlStep(yml, step, "          ");
+                }
+
+                yml.Append("\n");
+            }
+        }
+
+        return yml.ToString();
+    }
+
+    private static string GenerateSpecificationsJson(Feature[] features, string title)
+    {
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+        var data = new
+        {
+            Title = title,
+            Features = features.OrderBy(f => f.DisplayName).Select(f => new
+            {
+                Name = f.DisplayName,
+                f.Endpoint,
+                f.Description,
+                Labels = f.Labels ?? [],
+                Scenarios = f.Scenarios.OrderByDescending(s => s.IsHappyPath).ThenBy(s => s.DisplayName).Select(s => new
+                {
+                    Name = s.DisplayName,
+                    s.IsHappyPath,
+                    Labels = s.Labels ?? [],
+                    Categories = s.Categories ?? [],
+                    Steps = (s.Steps ?? []).Select(MapSpecStepJson).ToArray()
+                }).ToArray()
+            }).ToArray()
+        };
+        return JsonSerializer.Serialize(data, options);
+    }
+
+    private static string MapSpecStepJson(ScenarioStep step)
+    {
+        var text = step.Keyword is not null ? $"{step.Keyword} {step.Text}" : step.Text;
+        // Specifications steps are text-only (matching YAML format)
+        // SubSteps are not included as separate entries per the YAML spec format
+        return text;
+    }
+
+    private static string GenerateSpecificationsXml(Feature[] features, string title)
+    {
+        var doc = new XDocument(
+            new XElement("Specifications",
+                new XElement("Title", title),
+                new XElement("Features",
+                    features.OrderBy(f => f.DisplayName).Select(f =>
+                        new XElement("Feature",
+                            new XElement("Name", f.DisplayName),
+                            f.Endpoint != null ? new XElement("Endpoint", f.Endpoint) : null,
+                            f.Description != null ? new XElement("Description", f.Description) : null,
+                            (f.Labels is { Length: > 0 }) ? new XElement("Labels", f.Labels.Select(l => new XElement("Label", l))) : null,
+                            new XElement("Scenarios",
+                                f.Scenarios.OrderByDescending(s => s.IsHappyPath).ThenBy(s => s.DisplayName).Select(s =>
+                                    new XElement("Scenario",
+                                        new XElement("Name", s.DisplayName),
+                                        new XElement("IsHappyPath", s.IsHappyPath.ToString().ToLower()),
+                                        (s.Labels is { Length: > 0 }) ? new XElement("Labels", s.Labels.Select(l => new XElement("Label", l))) : null,
+                                        (s.Categories is { Length: > 0 }) ? new XElement("Categories", s.Categories.Select(c => new XElement("Category", c))) : null,
+                                        (s.Steps is { Length: > 0 }) ? new XElement("Steps", s.Steps.Select(MapSpecStepXml)) : null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+        return doc.ToString();
+    }
+
+    private static XElement MapSpecStepXml(ScenarioStep step)
+    {
+        var text = step.Keyword is not null ? $"{step.Keyword} {step.Text}" : step.Text;
+        var element = new XElement("Step", text);
+        if (step.SubSteps is { Length: > 0 })
+        {
+            foreach (var sub in step.SubSteps)
+                element.Add(MapSpecStepXml(sub));
+        }
+        return element;
+    }
+
     private static string WriteFile(string text, string fileName)
     {
         var directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
@@ -2062,4 +2428,12 @@ public static class ReportGenerator
 
         return deps;
     }
+
+    private static string GetDataFormatExtension(DataFormat format) => format switch
+    {
+        DataFormat.Json => "json",
+        DataFormat.Xml => "xml",
+        DataFormat.Yaml => "yml",
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
 }
