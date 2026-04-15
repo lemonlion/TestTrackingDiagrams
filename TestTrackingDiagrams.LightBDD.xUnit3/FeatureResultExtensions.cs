@@ -3,6 +3,7 @@ using LightBDD.Core.Results.Parameters;
 using LightBDD.Core.Results.Parameters.Tabular;
 using LightBDD.Core.Results.Parameters.Trees;
 using LightBDD.Core.Metadata;
+using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.LightBDD.xUnit3;
@@ -18,7 +19,7 @@ internal static class FeatureResultExtensions
                 var labels = f.Info.Labels.ToArray();
                 return new Feature
                 {
-                    DisplayName = f.Info.Name.ToString(),
+                    DisplayName = f.Info.Name.ToString().Titleize(),
                     Description = f.Info.Description,
                     Labels = labels.Length > 0 ? labels : null,
                     Scenarios = f.GetScenarios()

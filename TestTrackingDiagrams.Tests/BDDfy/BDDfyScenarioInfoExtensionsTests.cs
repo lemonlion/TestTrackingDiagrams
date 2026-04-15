@@ -227,4 +227,18 @@ public class BDDfyScenarioInfoExtensionsTests
         var features = new[] { info }.ToFeatures();
         Assert.Null(features[0].Scenarios[0].Steps![0].Duration);
     }
+
+    // ─── Feature name titleization ────────────────────────────────
+
+    [Theory]
+    [InlineData("AlternativeEvidenceScenarios", "Alternative Evidence Scenarios")]
+    [InlineData("OrderProcessing", "Order Processing")]
+    [InlineData("Alternative Evidence Scenarios", "Alternative Evidence Scenarios")]
+    [InlineData("my_feature_name", "My Feature Name")]
+    public void ToFeatures_titleizes_feature_display_name(string storyTitle, string expected)
+    {
+        var info = MakeScenario(storyTitle: storyTitle);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(expected, features[0].DisplayName);
+    }
 }

@@ -20,7 +20,7 @@ internal static class TestContextEnumerableExtensions
 
                 return new Feature
                 {
-                    DisplayName = firstScenarioForFeature.Test.DisplayName!.Replace("_", " "),
+                    DisplayName = firstScenarioForFeature.Test.DisplayName!.Titleize(),
                     Endpoint = endpoint,
                     Scenarios = scenariosForFeature
                         .DistinctBy(x => x.Test.ID)

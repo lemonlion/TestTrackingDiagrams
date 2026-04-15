@@ -209,4 +209,18 @@ public class ReqNRollTUnitScenarioInfoExtensionsTests
         Assert.Equal("happy-path", ReqNRollConstants.HappyPathTag);
         Assert.Equal("endpoint:", ReqNRollConstants.EndpointTagPrefix);
     }
+
+    // ─── Feature name titleization ────────────────────────────────
+
+    [Theory]
+    [InlineData("AlternativeEvidenceScenarios", "Alternative Evidence Scenarios")]
+    [InlineData("OrderProcessing", "Order Processing")]
+    [InlineData("Alternative Evidence Scenarios", "Alternative Evidence Scenarios")]
+    [InlineData("my_feature_name", "My Feature Name")]
+    public void ToFeatures_titleizes_feature_display_name(string featureTitle, string expected)
+    {
+        var info = MakeScenario(featureTitle: featureTitle);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(expected, features[0].DisplayName);
+    }
 }

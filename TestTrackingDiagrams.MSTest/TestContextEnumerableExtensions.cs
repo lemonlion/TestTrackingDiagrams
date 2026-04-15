@@ -15,7 +15,7 @@ internal static class TestContextEnumerableExtensions
 
                 return new Feature
                 {
-                    DisplayName = firstScenario.TestClassSimpleName.Replace("_", " "),
+                    DisplayName = firstScenario.TestClassSimpleName.Titleize(),
                     Endpoint = firstScenario.Endpoint,
                     Scenarios = scenariosForFeature
                         .DistinctBy(x => x.TestId)

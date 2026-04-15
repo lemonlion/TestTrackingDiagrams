@@ -1,4 +1,5 @@
 using Reqnroll;
+using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.ReqNRoll.TUnit;
@@ -26,7 +27,7 @@ internal static class ScenarioInfoEnumerableExtensions
 
                 return new Feature
                 {
-                    DisplayName = featureGroup.Key,
+                    DisplayName = featureGroup.Key.Titleize(),
                     Endpoint = endpoint,
                     Description = firstScenario.FeatureDescription,
                     Labels = featureLabels.Length > 0 ? featureLabels : null,

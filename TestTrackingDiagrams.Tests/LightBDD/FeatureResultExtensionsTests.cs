@@ -19,7 +19,7 @@ public class FeatureResultExtensionsTests
         var features = new[] { feature }.ToFeatures();
 
         Assert.Single(features);
-        Assert.Equal("OrderService", features[0].DisplayName);
+        Assert.Equal("Order Service", features[0].DisplayName);
         Assert.Equal("Handles orders", features[0].Description);
     }
 
@@ -264,6 +264,22 @@ public class FeatureResultExtensionsTests
 
         var features = new[] { feature }.ToFeatures();
         Assert.Null(features[0].Scenarios[0].ErrorStackTrace);
+    }
+
+    // ─── Feature name titleization ────────────────────────────────
+
+    [Theory]
+    [InlineData("OrderService", "Order Service")]
+    [InlineData("AlternativeEvidenceScenarios", "Alternative Evidence Scenarios")]
+    [InlineData("Alternative Evidence Scenarios", "Alternative Evidence Scenarios")]
+    [InlineData("my_feature_name", "My Feature Name")]
+    public void ToFeatures_titleizes_feature_display_name(string featureName, string expected)
+    {
+        var feature = new StubFeatureResult(featureName)
+            .WithScenario(new StubExecutionResult("s1", "Test"));
+
+        var features = new[] { feature }.ToFeatures();
+        Assert.Equal(expected, features[0].DisplayName);
     }
 
     // ── Stub implementations ──

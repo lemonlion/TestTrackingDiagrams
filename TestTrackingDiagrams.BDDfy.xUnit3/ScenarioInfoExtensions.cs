@@ -1,3 +1,4 @@
+using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
@@ -19,7 +20,7 @@ internal static class ScenarioInfoExtensions
 
                 return new Feature
                 {
-                    DisplayName = featureGroup.Key,
+                    DisplayName = featureGroup.Key.Titleize(),
                     Endpoint = endpoint,
                     Description = firstScenario.StoryDescription,
                     Scenarios = DeduplicateScenarioTitles(featureGroup
