@@ -768,9 +768,12 @@ public static class DiagramContextMenu
                 menu.className = 'diagram-ctx-menu';
 
                 // Check if right-click is on a note
+                var clickedNoteIdx = -1;
+                var _fullNoteText = null;
+                var _currentNoteText = null;
+                var _noteIsNotExpanded = false;
                 if (svg && window._findNoteGroups) {
                     var noteGroups = window._findNoteGroups(svg);
-                    var clickedNoteIdx = -1;
                     for (var ni = 0; ni < noteGroups.length; ni++) {
                         var grp = noteGroups[ni];
                         var els = grp.paths.concat(grp.texts);
@@ -808,9 +811,39 @@ public static class DiagramContextMenu
                         } else {
                             noteText = noteGroups[clickedNoteIdx].texts.map(function(t) { return t.textContent; }).join('\n');
                         }
-                        menu.appendChild(createMenuItem('Copy box text', function() {
-                            navigator.clipboard.writeText(noteText);
-                        }));
+
+                        // Check if note is truncated or collapsed
+                        var noteStep = container._noteSteps && container._noteSteps[clickedNoteIdx];
+                        var isNotExpanded = noteStep !== undefined && noteStep !== 2;
+                        _fullNoteText = noteText;
+                        _noteIsNotExpanded = isNotExpanded;
+
+                        if (isNotExpanded) {
+                            // Get current visible text from current source
+                            var currentSrc = getSource(container);
+                            var currentNoteBlocks = window._parseNoteBlocks(currentSrc);
+                            var currentText;
+                            if (currentNoteBlocks[clickedNoteIdx]) {
+                                currentText = currentNoteBlocks[clickedNoteIdx].contentLines.map(function(l) {
+                                    return l.replace(/^\s*<color:gray\s*>/, '');
+                                }).join('\n').trim();
+                            } else {
+                                currentText = noteGroups[clickedNoteIdx].texts.map(function(t) { return t.textContent; }).join('\n');
+                            }
+                            _currentNoteText = currentText;
+                            menu.appendChild(createSubMenu('Copy box text', [
+                                createMenuItem('Copy full box text', function() {
+                                    navigator.clipboard.writeText(noteText);
+                                }),
+                                createMenuItem('Copy current box text', function() {
+                                    navigator.clipboard.writeText(currentText);
+                                })
+                            ]));
+                        } else {
+                            menu.appendChild(createMenuItem('Copy box text', function() {
+                                navigator.clipboard.writeText(noteText);
+                            }));
+                        }
                         menu.appendChild(createSeparator());
                     }
                 }
@@ -848,7 +881,7 @@ public static class DiagramContextMenu
                         var origSource = container._noteOriginalSource || source;
                         if (origSource !== source) {
                             menu.appendChild(createSubMenu('Copy ' + typeLabel + ' source', [
-                                createMenuItem('Copy original ' + typeLabel + ' source', function() {
+                                createMenuItem('Copy full ' + typeLabel + ' source', function() {
                                     navigator.clipboard.writeText(origSource);
                                 }),
                                 createMenuItem('Copy current ' + typeLabel + ' source', function() {
@@ -918,7 +951,7 @@ public static class DiagramContextMenu
                         var origSource2 = container._noteOriginalSource || source;
                         if (origSource2 !== source) {
                             menu.appendChild(createSubMenu('Open ' + typeLabel + ' source in new tab', [
-                                createMenuItem('Open original ' + typeLabel + ' in new tab', function() {
+                                createMenuItem('Open full ' + typeLabel + ' in new tab', function() {
                                     var blob = new Blob([origSource2], { type: 'text/plain' });
                                     window.open(URL.createObjectURL(blob));
                                 }),
@@ -930,6 +963,25 @@ public static class DiagramContextMenu
                         } else {
                             menu.appendChild(createMenuItem('Open ' + typeLabel + ' source in new tab', function() {
                                 var blob = new Blob([source], { type: 'text/plain' });
+                                window.open(URL.createObjectURL(blob));
+                            }));
+                        }
+                    }
+                    if (clickedNoteIdx >= 0 && _fullNoteText) {
+                        if (_noteIsNotExpanded && _currentNoteText) {
+                            menu.appendChild(createSubMenu('Open box text in new tab', [
+                                createMenuItem('Open full box text in new tab', function() {
+                                    var blob = new Blob([_fullNoteText], { type: 'text/plain' });
+                                    window.open(URL.createObjectURL(blob));
+                                }),
+                                createMenuItem('Open current box text in new tab', function() {
+                                    var blob = new Blob([_currentNoteText], { type: 'text/plain' });
+                                    window.open(URL.createObjectURL(blob));
+                                })
+                            ]));
+                        } else {
+                            menu.appendChild(createMenuItem('Open box text in new tab', function() {
+                                var blob = new Blob([_fullNoteText], { type: 'text/plain' });
                                 window.open(URL.createObjectURL(blob));
                             }));
                         }

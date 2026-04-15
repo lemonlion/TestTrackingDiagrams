@@ -806,4 +806,75 @@ public class DiagramContextMenuTests
         // The "Open image in new tab" submenu items should use URL.createObjectURL
         Assert.Contains("window.open(URL.createObjectURL(blob))", _script);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Copy box text — submenu for truncated/collapsed notes
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void CopyBoxText_shows_submenu_when_note_is_not_expanded()
+    {
+        // When the note has a noteStep and is not expanded (step !== 2),
+        // it should show a submenu with full and current options
+        Assert.Contains("Copy full box text", _script);
+        Assert.Contains("Copy current box text", _script);
+    }
+
+    [Fact]
+    public void CopyBoxText_shows_simple_menu_when_note_is_expanded()
+    {
+        // When the note is expanded or has no noteStep tracking,
+        // it should show a simple "Copy box text" item
+        Assert.Contains("Copy box text", _script);
+    }
+
+    [Fact]
+    public void CopyBoxText_checks_noteSteps_for_expanded_state()
+    {
+        // Should check container._noteSteps for whether note is expanded
+        Assert.Contains("_noteSteps", _script);
+    }
+
+    [Fact]
+    public void CopyBoxText_current_uses_visible_text_from_current_source()
+    {
+        // The "current" copy should use the current (potentially truncated) source
+        // not the original source
+        Assert.Contains("currentNoteBlocks", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Open box text in new tab
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void OpenBoxText_in_new_tab_exists()
+    {
+        Assert.Contains("Open box text in new tab", _script);
+    }
+
+    [Fact]
+    public void OpenBoxText_shows_submenu_when_note_is_not_expanded()
+    {
+        Assert.Contains("Open full box text in new tab", _script);
+        Assert.Contains("Open current box text in new tab", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Rename "original" to "full" in source menus
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Source_copy_menu_uses_full_not_original()
+    {
+        Assert.Contains("Copy full ", _script);
+        Assert.DoesNotContain("Copy original ", _script);
+    }
+
+    [Fact]
+    public void Source_open_menu_uses_full_not_original()
+    {
+        Assert.Contains("Open full ", _script);
+        Assert.DoesNotContain("Open original ", _script);
+    }
 }
