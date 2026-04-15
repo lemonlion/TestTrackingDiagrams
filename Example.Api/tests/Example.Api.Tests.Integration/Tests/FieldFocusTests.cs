@@ -322,9 +322,9 @@ public class FieldFocusTests
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}\n{result.StandardOutput}");
 
         var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
-        Assert.NotNull(reports.FeaturesReportHtml);
+        Assert.NotNull(reports.TestRunReportHtml);
 
-        var plantUmlSources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.FeaturesReportHtml);
+        var plantUmlSources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.TestRunReportHtml);
         Assert.NotEmpty(plantUmlSources);
         return plantUmlSources;
     }

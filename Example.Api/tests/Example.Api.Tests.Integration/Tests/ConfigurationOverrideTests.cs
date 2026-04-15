@@ -131,8 +131,8 @@ public class ConfigurationOverrideTests
     private static async Task<string[]> GetPlantUmlSources(string reportsFolderPath)
     {
         var reports = ReportParser.GetReportFiles(reportsFolderPath);
-        Assert.NotNull(reports.FeaturesReportHtml);
-        var sources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.FeaturesReportHtml);
+        Assert.NotNull(reports.TestRunReportHtml);
+        var sources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.TestRunReportHtml);
         Assert.NotEmpty(sources);
         return sources;
     }

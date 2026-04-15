@@ -28,7 +28,7 @@ public class ReportGenerationTests
         var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
 
         Assert.NotNull(reports.SpecificationsHtml);
-        Assert.NotNull(reports.FeaturesReportHtml);
+        Assert.NotNull(reports.TestRunReportHtml);
         Assert.NotNull(reports.SpecificationsYaml);
     }
 
@@ -45,9 +45,9 @@ public class ReportGenerationTests
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
 
         var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
-        Assert.NotNull(reports.FeaturesReportHtml);
+        Assert.NotNull(reports.TestRunReportHtml);
 
-        var scenarios = await ReportParser.ExtractScenariosAsync(reports.FeaturesReportHtml);
+        var scenarios = await ReportParser.ExtractScenariosAsync(reports.TestRunReportHtml);
         Assert.True(scenarios.Length >= 2, $"Expected at least 2 scenarios, got {scenarios.Length}");
         Assert.Contains(scenarios, s => s.IsHappyPath);
     }
@@ -65,9 +65,9 @@ public class ReportGenerationTests
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
 
         var reports = ReportParser.GetReportFiles(result.ReportsFolderPath);
-        Assert.NotNull(reports.FeaturesReportHtml);
+        Assert.NotNull(reports.TestRunReportHtml);
 
-        var plantUmlSources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.FeaturesReportHtml);
+        var plantUmlSources = await ReportParser.ExtractPlantUmlSourcesAsync(reports.TestRunReportHtml);
         Assert.NotEmpty(plantUmlSources);
 
         // All diagrams should contain the expected service participants

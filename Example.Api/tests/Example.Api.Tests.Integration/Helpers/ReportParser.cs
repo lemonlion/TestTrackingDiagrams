@@ -6,7 +6,7 @@ using AngleSharp.Dom;
 
 namespace Example.Api.Tests.Integration.Helpers;
 
-public record ReportFiles(string? SpecificationsHtml, string? FeaturesReportHtml, string? SpecificationsYaml);
+public record ReportFiles(string? SpecificationsHtml, string? TestRunReportHtml, string? SpecificationsYaml);
 
 public record ParsedScenario(string Name, bool IsHappyPath, string[] PlantUmlSources);
 
