@@ -587,6 +587,17 @@ public static class ReportGenerator
                                            }
                                            """;
 
+        // Toggle timeline
+        var toggleTimelineFunction = """
+                                     function toggle_timeline(btn) {
+                                         var tl = document.getElementById('scenario-timeline');
+                                         if (!tl) return;
+                                         var hidden = tl.style.display === 'none';
+                                         tl.style.display = hidden ? '' : 'none';
+                                         btn.classList.toggle('timeline-toggle-active', hidden);
+                                     }
+                                     """;
+
         // Jump to failure
         var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
         var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ExecutionResult.Failed);
@@ -937,6 +948,7 @@ public static class ReportGenerator
                                 {{sortTableFunction}}
                                 {{copyScenarioNameFunction}}
                                 {{toggleExamplesDetailFunction}}
+                                {{toggleTimelineFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
                                 {{exportFunction}}
@@ -1179,7 +1191,10 @@ public static class ReportGenerator
 
         // Toolbar row: expand buttons left, Details/Headers right
         body.Append("""<div class="toolbar-row">""");
-        body.Append("""<div class="toolbar-left"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button></div>""");
+        body.Append("""<div class="toolbar-left"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
+        if (hasDurations)
+            body.Append("""<button class="timeline-toggle" onclick="toggle_timeline(this)">Scenario Timeline</button>""");
+        body.Append("</div>");
         body.Append("""<div class="toolbar-right">""");
         if (isPlantUmlBrowser)
         {
@@ -1202,6 +1217,69 @@ public static class ReportGenerator
                 .ToArray();
             if (spanCounts.Length > 0)
                 medianSpanCount = spanCounts[(spanCounts.Length - 1) / 2];
+        }
+
+        // Failure clusters
+        var allScenarios = features.SelectMany(f => f.Scenarios).ToArray();
+        var clusters = FailureClusterer.Cluster(allScenarios);
+        if (clusters.Length > 0)
+        {
+            // Build scenario-to-feature lookup for display
+            var scenarioFeatureLookup = new Dictionary<string, string>();
+            foreach (var feature in features)
+            foreach (var scenario in feature.Scenarios)
+                scenarioFeatureLookup[scenario.Id] = feature.DisplayName;
+
+            body.Append("<details class=\"failure-clusters\" open>");
+            body.Append($"<summary>Failure Clusters ({clusters.Length} root cause{(clusters.Length == 1 ? "" : "s")})</summary>");
+            foreach (var cluster in clusters)
+            {
+                var anchorLinks = string.Join("", cluster.Scenarios.Select(s =>
+                {
+                    var anchorId = "scenario-" + s.Id.Replace(" ", "-");
+                    var featureName = scenarioFeatureLookup.GetValueOrDefault(s.Id, "");
+                    var prefix = featureName.Length > 0 ? $"<span style=\"color:rgb(100,100,100);font-size:0.85em\">{System.Net.WebUtility.HtmlEncode(featureName)} &rsaquo;</span> " : "";
+                    return $"<li>{prefix}<a class=\"failure-cluster-scenario-link\" href=\"#{anchorId}\" onclick=\"var el=document.getElementById('{anchorId}');if(el){{var f=el.closest('details.feature');if(f)f.setAttribute('open','');el.setAttribute('open','');}}\">{System.Net.WebUtility.HtmlEncode(s.DisplayName)}</a></li>";
+                }));
+                body.Append($"<details class=\"failure-cluster\"><summary>{System.Net.WebUtility.HtmlEncode(cluster.ClusterKey)}<span class=\"failure-cluster-count\">{cluster.Scenarios.Length} scenarios</span></summary>");
+                body.Append($"<ul class=\"failure-cluster-scenarios\">{anchorLinks}</ul></details>");
+            }
+            body.Append("</details>");
+        }
+
+        // Scenario timeline / Gantt (hidden by default)
+        if (hasDurations)
+        {
+            var timelineScenarios = features
+                .SelectMany(f => f.Scenarios.Select(s => (Feature: f.DisplayName, Scenario: s)))
+                .Where(x => x.Scenario.Duration.HasValue)
+                .OrderByDescending(x => x.Scenario.Duration!.Value)
+                .ToArray();
+
+            if (timelineScenarios.Length > 0)
+            {
+                var maxDuration = timelineScenarios.Max(x => x.Scenario.Duration!.Value.TotalMilliseconds);
+                body.Append("<div id=\"scenario-timeline\" class=\"scenario-timeline\" style=\"display:none\">");
+                body.Append("<div class=\"timeline-header\">Scenario Timeline</div>");
+                foreach (var (featureName, scenario) in timelineScenarios)
+                {
+                    var durationMs = scenario.Duration!.Value.TotalMilliseconds;
+                    var widthPercent = maxDuration > 0 ? (durationMs / maxDuration * 100) : 0;
+                    var statusClass = scenario.Result switch
+                    {
+                        ExecutionResult.Failed => "timeline-bar-failed",
+                        ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "timeline-bar-skipped",
+                        ExecutionResult.Bypassed => "timeline-bar-bypassed",
+                        _ => "timeline-bar-passed"
+                    };
+                    body.Append($"<div class=\"timeline-row\">");
+                    body.Append($"<div class=\"timeline-label\" title=\"{System.Net.WebUtility.HtmlEncode(scenario.DisplayName)}\">{System.Net.WebUtility.HtmlEncode(scenario.DisplayName)}</div>");
+                    body.Append($"<div class=\"timeline-track\"><div class=\"timeline-bar {statusClass}\" style=\"width:{widthPercent:F1}%\" title=\"{FormatDurationBadge(scenario.Duration.Value)}\"></div></div>");
+                    body.Append($"<div class=\"timeline-duration\">{FormatDurationBadge(scenario.Duration.Value)}</div>");
+                    body.Append("</div>");
+                }
+                body.Append("</div>");
+            }
         }
 
         body.Append("<div id=\"report-content\">");
@@ -1347,12 +1425,16 @@ public static class ReportGenerator
                             body.Append($"<tr class=\"examples-detail-row\" style=\"display:none\"><td colspan=\"{colSpan}\">");
                             if (os.ErrorMessage is not null || os.ErrorStackTrace is not null)
                             {
+                                var osDiffHtml = "";
+                                var osDiffResult = ErrorDiffParser.TryParseExpectedActual(os.ErrorMessage);
+                                if (osDiffResult is not null)
+                                    osDiffHtml = ErrorDiffParser.GenerateDiffHtml(osDiffResult.Expected, osDiffResult.Actual);
                                 body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
                                 if (os.ErrorMessage is not null)
                                     body.Append($"Failure Cause: {os.ErrorMessage}\n\n");
                                 if (os.ErrorStackTrace is not null)
                                     body.Append(os.ErrorStackTrace);
-                                body.Append("</pre></details>");
+                                body.Append($"</pre>{osDiffHtml}</details>");
                             }
                             if (os.Steps is { Length: > 0 })
                             {
@@ -1431,6 +1513,11 @@ public static class ReportGenerator
 
                 if (failed)
                 {
+                    var diffHtml = "";
+                    var diffResult = ErrorDiffParser.TryParseExpectedActual(scenario.ErrorMessage);
+                    if (diffResult is not null)
+                        diffHtml = ErrorDiffParser.GenerateDiffHtml(diffResult.Expected, diffResult.Actual);
+
                     body.Append($"""
                               <details class="failure-result" open>
                                  <summary class="h4">Failure Result</summary>
@@ -1439,6 +1526,7 @@ public static class ReportGenerator
                               
                               {scenario.ErrorStackTrace}
                                  </pre>
+                                 {diffHtml}
                               </details>
                               """);
                 }

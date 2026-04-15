@@ -836,6 +836,183 @@ public class Stylesheets
                 .tree-children {
                     margin-left: 16px;
                 }
+
+                /* Error Diff */
+                .error-diff {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.3em;
+                    margin: 0.8em 0;
+                    font-family: monospace;
+                    font-size: 0.9em;
+                }
+                .diff-expected, .diff-actual {
+                    display: flex;
+                    gap: 0.6em;
+                    align-items: baseline;
+                    padding: 0.4em 0.6em;
+                    border-radius: 0.4em;
+                    overflow-x: auto;
+                }
+                .diff-expected {
+                    background: rgb(255, 235, 235);
+                }
+                .diff-actual {
+                    background: rgb(235, 255, 235);
+                }
+                .diff-label {
+                    font-weight: bold;
+                    white-space: nowrap;
+                    min-width: 5.5em;
+                }
+                .diff-del {
+                    background: rgb(255, 180, 180);
+                    text-decoration: line-through;
+                    border-radius: 2px;
+                    padding: 0 1px;
+                }
+                .diff-ins {
+                    background: rgb(180, 255, 180);
+                    border-radius: 2px;
+                    padding: 0 1px;
+                }
+
+                /* Failure Clusters */
+                .failure-clusters {
+                    margin: 1em 0;
+                    border: 2px solid rgb(224, 160, 160);
+                    border-radius: 0.8em;
+                    background: rgb(255, 248, 248);
+                    padding: 0;
+                }
+                .failure-clusters > summary {
+                    padding: 0.6em 1em;
+                    font-weight: bold;
+                    color: rgb(160, 0, 0);
+                    font-size: 1.1em;
+                }
+                .failure-cluster {
+                    margin: 0 1em 0.8em 1em;
+                    border: 1px solid rgb(230, 200, 200);
+                    border-radius: 0.5em;
+                    background: white;
+                }
+                .failure-cluster > summary {
+                    padding: 0.5em 0.8em;
+                    font-weight: 600;
+                    color: rgb(140, 0, 0);
+                    font-size: 0.95em;
+                }
+                .failure-cluster-count {
+                    background: rgb(191, 0, 0);
+                    color: white;
+                    border-radius: 1em;
+                    padding: 0.15em 0.5em;
+                    font-size: 0.8em;
+                    margin-left: 0.4em;
+                }
+                .failure-cluster-scenarios {
+                    list-style: none;
+                    margin: 0;
+                    padding: 0 1em 0.5em 1em;
+                }
+                .failure-cluster-scenarios li {
+                    padding: 0.25em 0;
+                    border-bottom: 1px solid rgb(240, 230, 230);
+                }
+                .failure-cluster-scenarios li:last-child {
+                    border-bottom: none;
+                }
+                .failure-cluster-scenario-link {
+                    color: rgb(66, 133, 244);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                .failure-cluster-scenario-link:hover {
+                    text-decoration: underline;
+                }
+
+                /* Scenario Timeline / Gantt */
+                .scenario-timeline {
+                    margin: 1em 0;
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 0.8em;
+                    padding: 1em;
+                    background: rgb(250, 250, 250);
+                    overflow-x: auto;
+                }
+                .timeline-header {
+                    font-weight: bold;
+                    font-size: 1.05em;
+                    margin-bottom: 0.6em;
+                }
+                .timeline-row {
+                    display: flex;
+                    align-items: center;
+                    margin: 0.2em 0;
+                    gap: 0.5em;
+                }
+                .timeline-label {
+                    min-width: 200px;
+                    max-width: 200px;
+                    font-size: 0.8em;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    text-align: right;
+                    padding-right: 0.4em;
+                }
+                .timeline-track {
+                    flex: 1;
+                    position: relative;
+                    height: 1.2em;
+                    background: rgb(240, 240, 240);
+                    border-radius: 3px;
+                }
+                .timeline-bar {
+                    position: absolute;
+                    height: 100%;
+                    border-radius: 3px;
+                    min-width: 2px;
+                    top: 0;
+                }
+                .timeline-bar-passed {
+                    background: rgb(34, 139, 34);
+                }
+                .timeline-bar-failed {
+                    background: rgb(191, 0, 0);
+                }
+                .timeline-bar-skipped {
+                    background: rgb(148, 148, 148);
+                }
+                .timeline-bar-bypassed {
+                    background: rgb(255, 165, 0);
+                }
+                .timeline-duration {
+                    font-size: 0.75em;
+                    color: rgb(100, 100, 100);
+                    min-width: 3.5em;
+                }
+                .timeline-toggle {
+                    background: rgb(245, 245, 245);
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 0.3em;
+                    padding: 0.3em 0.7em;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                }
+                .timeline-toggle:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+                .timeline-toggle-active {
+                    background: rgb(66, 133, 244);
+                    color: white;
+                    border-color: rgb(66, 133, 244);
+                }
+                .timeline-toggle-active:hover {
+                    background: rgb(50, 110, 220);
+                }
         """;
 
     public const string VioletThemeStyleSheet =
