@@ -144,8 +144,11 @@ public class ScenarioInteractionTests : IDisposable
         var origText = copyBtn.Text;
         copyBtn.Click();
 
-        // Wait for revert (1500ms timeout in JS)
+        // First wait for the checkmark to appear (clipboard is async)
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(_ => copyBtn.Text == "\u2713");
+
+        // Then wait for revert (1500ms timeout in JS)
         wait.Until(_ => copyBtn.Text == origText);
         Assert.Equal(origText, copyBtn.Text);
     }

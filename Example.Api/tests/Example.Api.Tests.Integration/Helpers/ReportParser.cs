@@ -19,9 +19,9 @@ public static class ReportParser
 
         var files = Directory.GetFiles(reportsFolderPath);
         return new ReportFiles(
-            files.FirstOrDefault(f => f.EndsWith("ComponentSpecificationsWithExamples.html")),
-            files.FirstOrDefault(f => f.EndsWith("FeaturesReport.html")),
-            files.FirstOrDefault(f => f.EndsWith("ComponentSpecifications.yml")));
+            files.FirstOrDefault(f => f.EndsWith("Specifications.html")),
+            files.FirstOrDefault(f => f.EndsWith("TestRunReport.html")),
+            files.FirstOrDefault(f => f.EndsWith("Specifications.yml")));
     }
 
     public static async Task<string[]> ExtractPlantUmlSourcesAsync(string htmlFilePath)
