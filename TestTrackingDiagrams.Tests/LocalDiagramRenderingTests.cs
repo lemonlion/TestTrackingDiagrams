@@ -12,13 +12,11 @@ public class LocalDiagramRenderingTests : IDisposable
     public LocalDiagramRenderingTests()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     private static string SeedLog()

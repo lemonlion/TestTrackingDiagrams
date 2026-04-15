@@ -1,6 +1,5 @@
 using System.Reflection;
 using TestTrackingDiagrams.Reports;
-using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Reports;
 
@@ -15,13 +14,11 @@ public class ReportGeneratorCiArtifactTests : IDisposable
     public ReportGeneratorCiArtifactTests()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     [Fact]

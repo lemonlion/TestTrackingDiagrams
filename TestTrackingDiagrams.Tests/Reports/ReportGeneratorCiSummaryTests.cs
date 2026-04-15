@@ -1,6 +1,5 @@
 using System.Reflection;
 using TestTrackingDiagrams.Reports;
-using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Reports;
 
@@ -15,7 +14,6 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public ReportGeneratorCiSummaryTests()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
 
         var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
         if (File.Exists(ciSummaryPath)) File.Delete(ciSummaryPath);
@@ -24,7 +22,6 @@ public class ReportGeneratorCiSummaryTests : IDisposable
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
 
         var ciSummaryPath = Path.Combine(_reportsDir, "CiSummary.md");
         if (File.Exists(ciSummaryPath)) File.Delete(ciSummaryPath);

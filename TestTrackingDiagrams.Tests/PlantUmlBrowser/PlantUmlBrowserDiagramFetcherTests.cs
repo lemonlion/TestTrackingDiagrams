@@ -12,13 +12,11 @@ public class PlantUmlBrowserDiagramFetcherTests : IDisposable
     public PlantUmlBrowserDiagramFetcherTests()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
-        RequestResponseLogger.Clear();
     }
 
     private static string SeedLog(string? content = null)
