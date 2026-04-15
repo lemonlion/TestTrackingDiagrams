@@ -674,6 +674,14 @@ public class Stylesheets
                     background: #f0f0f0;
                 }
 
+                .examples-row-passed { background: #f0fff0; }
+                .examples-row-failed { background: #fff0f0; cursor: pointer; }
+                .examples-row-skipped { background: #fff8e1; }
+                .examples-row-bypassed { background: #f0f0ff; }
+                .examples-row-expandable:hover { background: #ffe0e0; }
+                .examples-row-expanded { background: #ffe0e0; }
+                .examples-detail-row td { padding: 0.5em 1em; background: #fff5f5; }
+
                 .category-filters {
                     display: flex;
                     flex-wrap: wrap;

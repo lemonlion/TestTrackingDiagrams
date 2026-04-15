@@ -80,6 +80,7 @@ public class ReqNRollTrackingHooks
             Duration = _stopwatch?.Elapsed,
             Steps = steps,
             Rule = _scenarioContext.RuleInfo?.Title,
+            OutlineId = exampleValues is not null ? _scenarioContext.ScenarioInfo.Title : null,
             ExampleValues = exampleValues
         });
 

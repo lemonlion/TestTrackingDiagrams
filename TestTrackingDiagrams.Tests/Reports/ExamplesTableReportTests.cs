@@ -162,4 +162,331 @@ public class ExamplesTableReportTests
         Assert.Contains("examples-table", content);
         Assert.Contains("Regular", content);
     }
+
+    [Fact]
+    public void Examples_table_includes_duration_column()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1", Duration = TimeSpan.FromMilliseconds(250),
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1", Duration = TimeSpan.FromSeconds(1.5),
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<th>Duration</th>", content);
+        Assert.Contains("250ms", content);
+        Assert.Contains("1.5s", content);
+    }
+
+    [Fact]
+    public void Examples_table_includes_scenario_name_column()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Withdraw $200", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Withdraw $500", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<th>Scenario</th>", content);
+        Assert.Contains("Withdraw $200", content);
+        Assert.Contains("Withdraw $500", content);
+    }
+
+    [Fact]
+    public void Failed_outline_row_has_expandable_detail_with_error_info()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed,
+                        ErrorMessage = "Expected 5 but got 3",
+                        ErrorStackTrace = "at MyTest.cs:42",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("examples-detail-row", content);
+        Assert.Contains("Expected 5 but got 3", content);
+        Assert.Contains("at MyTest.cs:42", content);
+    }
+
+    [Fact]
+    public void Failed_outline_row_has_expandable_detail_with_steps()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed,
+                        ErrorMessage = "fail",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have a balance", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I withdraw cash", Status = ExecutionResult.Failed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("examples-detail-row", content);
+        Assert.Contains("I have a balance", content);
+        Assert.Contains("I withdraw cash", content);
+    }
+
+    [Fact]
+    public void Passed_outline_rows_do_not_have_detail_rows()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "step one", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.DoesNotContain("<tr class=\"examples-detail-row\"", content);
+    }
+
+    [Fact]
+    public void Outline_section_has_data_search_attribute()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Withdraw $200 from $1000", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Balance"] = "$1000" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Withdraw $500 from $1000", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Balance"] = "$500" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("data-search=", content);
+        Assert.Contains("withdraw $200 from $1000", content.ToLower());
+        Assert.Contains("withdraw $500 from $1000", content.ToLower());
+    }
+
+    [Fact]
+    public void Outline_section_has_data_categories_attribute()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" },
+                        Categories = ["Banking"]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" },
+                        Categories = ["Banking", "ATM"]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("data-categories=", content);
+    }
+
+    [Fact]
+    public void Outline_section_overall_status_reflects_worst_result()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Skipped,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        // The outline status should show skipped (worst non-failure)
+        Assert.Contains("data-status=\"Skipped\"", content);
+    }
+
+    [Fact]
+    public void Outline_rows_have_status_specific_css_class()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Failed, ErrorMessage = "err",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("examples-row-passed", content);
+        Assert.Contains("examples-row-failed", content);
+    }
+
+    [Fact]
+    public void Outline_total_duration_shown_in_summary()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1", Duration = TimeSpan.FromSeconds(1),
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "1" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "S2", Result = ExecutionResult.Passed,
+                        OutlineId = "outline1", Duration = TimeSpan.FromSeconds(2),
+                        ExampleValues = new Dictionary<string, string> { ["A"] = "2" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        // Total duration (3s) should appear in the summary
+        Assert.Contains("duration-badge", content);
+    }
 }

@@ -576,6 +576,17 @@ public static class ReportGenerator
                                        }
                                        """;
 
+        // Toggle examples detail row
+        var toggleExamplesDetailFunction = """
+                                           function toggle_examples_detail(row) {
+                                               var detail = row.nextElementSibling;
+                                               if (detail && detail.classList.contains('examples-detail-row')) {
+                                                   detail.style.display = detail.style.display === 'none' ? '' : 'none';
+                                                   row.classList.toggle('examples-row-expanded');
+                                               }
+                                           }
+                                           """;
+
         // Jump to failure
         var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
         var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ExecutionResult.Failed);
@@ -925,6 +936,7 @@ public static class ReportGenerator
                                 {{collapseExpandAllFunction}}
                                 {{sortTableFunction}}
                                 {{copyScenarioNameFunction}}
+                                {{toggleExamplesDetailFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
                                 {{exportFunction}}
@@ -1253,12 +1265,57 @@ public static class ReportGenerator
                         .Distinct()
                         .ToArray();
                     var outlineHasFailure = outlineScenarios.Any(s => s.Result == ExecutionResult.Failed);
-                    body.Append($"<details class=\"scenario scenario-outline\"{(outlineHasFailure ? " data-status=\"Failed\"" : "")}>");
-                    body.Append($"<summary class=\"h3{(outlineHasFailure ? " failed" : "")}\">Scenario Outline: {System.Net.WebUtility.HtmlEncode(scenario.OutlineId)}</summary>");
-                    body.Append("<table class=\"examples-table\"><thead><tr><th>Status</th>");
+                    var outlineHasSkipped = outlineScenarios.Any(s => s.Result == ExecutionResult.Skipped);
+                    var outlineOverallStatus = outlineHasFailure ? ExecutionResult.Failed
+                        : outlineHasSkipped ? ExecutionResult.Skipped
+                        : outlineScenarios.Any(s => s.Result == ExecutionResult.Bypassed) ? ExecutionResult.Bypassed
+                        : ExecutionResult.Passed;
+
+                    // Build search text from all outline scenario names + error messages
+                    var outlineSearchParts = new List<string> { scenario.OutlineId };
+                    foreach (var os in outlineScenarios)
+                    {
+                        outlineSearchParts.Add(os.DisplayName);
+                        if (os.ErrorMessage is not null) outlineSearchParts.Add(os.ErrorMessage);
+                    }
+                    var outlineSearchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", outlineSearchParts).ToLowerInvariant())}\"";
+
+                    // Aggregate categories and labels from all outline scenarios
+                    var outlineCategories = outlineScenarios
+                        .Where(s => s.Categories is { Length: > 0 })
+                        .SelectMany(s => s.Categories!)
+                        .Distinct()
+                        .ToArray();
+                    var outlineCategoriesAttr = outlineCategories.Length > 0
+                        ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", outlineCategories))}\""
+                        : "";
+                    var outlineLabels = outlineScenarios
+                        .Where(s => s.Labels is { Length: > 0 })
+                        .SelectMany(s => s.Labels!)
+                        .Distinct()
+                        .ToArray();
+                    var outlineLabelsAttr = outlineLabels.Length > 0
+                        ? $" data-labels=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", outlineLabels))}\""
+                        : "";
+
+                    // Total duration
+                    var outlineTotalDuration = outlineScenarios
+                        .Where(s => s.Duration.HasValue)
+                        .Select(s => s.Duration!.Value)
+                        .Aggregate(TimeSpan.Zero, (acc, d) => acc + d);
+                    var outlineDurationAttr = outlineTotalDuration > TimeSpan.Zero
+                        ? $" data-duration-ms=\"{outlineTotalDuration.TotalMilliseconds:F0}\""
+                        : "";
+                    var outlineDurationBadge = outlineTotalDuration > TimeSpan.Zero
+                        ? $" <span class=\"duration-badge {(outlineTotalDuration.TotalMilliseconds < 2000 ? "duration-fast" : outlineTotalDuration.TotalMilliseconds < 5000 ? "duration-moderate" : "duration-slow")}\">{FormatDurationBadge(outlineTotalDuration)}</span>"
+                        : "";
+
+                    body.Append($"<details class=\"scenario scenario-outline\" data-status=\"{outlineOverallStatus}\"{outlineSearchAttr}{outlineDurationAttr}{outlineCategoriesAttr}{outlineLabelsAttr}>");
+                    body.Append($"<summary class=\"h3{(outlineHasFailure ? " failed" : outlineHasSkipped ? " skipped" : "")}\">Scenario Outline: {System.Net.WebUtility.HtmlEncode(scenario.OutlineId)}{outlineDurationBadge}</summary>");
+                    body.Append("<table class=\"examples-table\"><thead><tr><th>Status</th><th>Scenario</th>");
                     foreach (var key in allKeys)
                         body.Append($"<th>{System.Net.WebUtility.HtmlEncode(key)}</th>");
-                    body.Append("</tr></thead><tbody>");
+                    body.Append("<th>Duration</th></tr></thead><tbody>");
                     foreach (var os in outlineScenarios)
                     {
                         var rowStatusIcon = os.Result switch
@@ -1269,13 +1326,46 @@ public static class ReportGenerator
                             ExecutionResult.Bypassed => "&#8631;",
                             _ => ""
                         };
-                        body.Append($"<tr data-status=\"{os.Result}\"><td>{rowStatusIcon}</td>");
+                        var rowStatusClass = $"examples-row-{os.Result.ToString().ToLowerInvariant()}";
+                        var hasDetail = os.Result == ExecutionResult.Failed;
+                        var expandIcon = hasDetail ? " class=\"examples-row-expandable\" onclick=\"toggle_examples_detail(this)\"" : "";
+                        body.Append($"<tr class=\"{rowStatusClass}\" data-status=\"{os.Result}\"{expandIcon}><td>{rowStatusIcon}</td>");
+                        body.Append($"<td>{System.Net.WebUtility.HtmlEncode(os.DisplayName)}</td>");
                         foreach (var key in allKeys)
                         {
                             var val = os.ExampleValues?.GetValueOrDefault(key, "");
                             body.Append($"<td>{System.Net.WebUtility.HtmlEncode(val ?? "")}</td>");
                         }
+                        var durationText = os.Duration.HasValue ? FormatDurationBadge(os.Duration.Value) : "";
+                        body.Append($"<td>{durationText}</td>");
                         body.Append("</tr>");
+
+                        // Expandable detail row for failed scenarios
+                        if (hasDetail)
+                        {
+                            var colSpan = 3 + allKeys.Length; // Status + Scenario + keys + Duration
+                            body.Append($"<tr class=\"examples-detail-row\" style=\"display:none\"><td colspan=\"{colSpan}\">");
+                            if (os.ErrorMessage is not null || os.ErrorStackTrace is not null)
+                            {
+                                body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
+                                if (os.ErrorMessage is not null)
+                                    body.Append($"Failure Cause: {os.ErrorMessage}\n\n");
+                                if (os.ErrorStackTrace is not null)
+                                    body.Append(os.ErrorStackTrace);
+                                body.Append("</pre></details>");
+                            }
+                            if (os.Steps is { Length: > 0 })
+                            {
+                                body.Append("<div class=\"scenario-steps\">");
+                                for (var si = 0; si < os.Steps.Length; si++)
+                                {
+                                    var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
+                                    RenderStep(body, os.Steps[si], numberPrefix);
+                                }
+                                body.Append("</div>");
+                            }
+                            body.Append("</td></tr>");
+                        }
                     }
                     body.Append("</tbody></table></details>");
                     continue;
