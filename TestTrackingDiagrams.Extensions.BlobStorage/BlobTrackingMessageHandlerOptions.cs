@@ -1,0 +1,25 @@
+namespace TestTrackingDiagrams.Extensions.BlobStorage;
+
+public record BlobTrackingMessageHandlerOptions
+{
+    public string ServiceName { get; set; } = "BlobStorage";
+    public string CallingServiceName { get; set; } = "Caller";
+    public BlobTrackingVerbosity Verbosity { get; set; } = BlobTrackingVerbosity.Detailed;
+    public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
+    public Func<string?>? CurrentStepTypeFetcher { get; set; }
+
+    /// <summary>
+    /// Optional list of headers to exclude from the diagram notes.
+    /// Defaults to common noisy Azure Storage headers.
+    /// </summary>
+    public HashSet<string> ExcludedHeaders { get; set; } =
+    [
+        "Authorization",
+        "x-ms-date",
+        "x-ms-version",
+        "x-ms-client-request-id",
+        "x-ms-return-client-request-id",
+        "User-Agent",
+        "Cache-Control"
+    ];
+}
