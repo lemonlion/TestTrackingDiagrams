@@ -11,6 +11,7 @@ public abstract class AbstractBaseTests
 public class ConcreteAlphaTests : AbstractBaseTests;
 public class ConcreteBetaTests : AbstractBaseTests;
 
+[Collection("CollectedScenarios")]
 public class TestTrackingAttributeInheritanceTests : IDisposable
 {
     public TestTrackingAttributeInheritanceTests()

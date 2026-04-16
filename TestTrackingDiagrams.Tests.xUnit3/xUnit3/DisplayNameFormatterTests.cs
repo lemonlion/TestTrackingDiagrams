@@ -83,5 +83,27 @@ public class DisplayNameFormatterTests
 
             Assert.Equal("Test method [url: \"http://example.com\", count: 5]", result);
         }
+
+        [Fact]
+        public void ShouldTruncateVeryLongParameters()
+        {
+            var longValue = new string('x', 300);
+            var result = DisplayNameFormatter.FormatScenarioDisplayName(
+                $"Ns.Class.TestMethod(account: \"{longValue}\")");
+
+            Assert.EndsWith("...]", result);
+            Assert.StartsWith("Test method [", result);
+            Assert.True(result.Length < 300, "Result should be significantly shorter than the raw parameter content");
+        }
+
+        [Fact]
+        public void ShouldNotTruncateShortParameters()
+        {
+            var result = DisplayNameFormatter.FormatScenarioDisplayName(
+                "Ns.Class.TestMethod(x: \"short\")");
+
+            Assert.Equal("Test method [x: \"short\"]", result);
+            Assert.DoesNotContain("...", result);
+        }
     }
 }
