@@ -88,7 +88,7 @@ public static class ReportGenerator
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
             () => GenerateSpecificationsData(features, $"{options.YamlSpecificationsFileName}.{specsDataExtension}", options.SpecificationsTitle, options.SpecificationsDataFormat, true),
-            () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat)
+            () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat, diagrams, trackedLogs)
         };
 
         if (options.GenerateComponentDiagram)
@@ -2253,18 +2253,21 @@ public static class ReportGenerator
         return $"scenario-{slug}";
     }
 
-    public static string GenerateTestRunReportData(Feature[] features, DateTime startTime, DateTime endTime, string fileName, DataFormat format)
+    public static string GenerateTestRunReportData(Feature[] features, DateTime startTime, DateTime endTime, string fileName, DataFormat format, DefaultDiagramsFetcher.DiagramAsCode[]? diagrams = null, RequestResponseLog[]? trackedLogs = null)
     {
+        var diagramLookup = diagrams?.ToLookup(d => d.TestRuntimeId, d => d.CodeBehind);
+        var logLookup = trackedLogs?.ToLookup(l => l.TestId);
+
         return format switch
         {
-            DataFormat.Json => WriteFile(GenerateTestRunReportJson(features, startTime, endTime), fileName),
-            DataFormat.Xml => WriteFile(GenerateTestRunReportXml(features, startTime, endTime), fileName),
-            DataFormat.Yaml => WriteFile(GenerateTestRunReportYaml(features, startTime, endTime), fileName),
+            DataFormat.Json => WriteFile(GenerateTestRunReportJson(features, startTime, endTime, diagramLookup, logLookup), fileName),
+            DataFormat.Xml => WriteFile(GenerateTestRunReportXml(features, startTime, endTime, diagramLookup, logLookup), fileName),
+            DataFormat.Yaml => WriteFile(GenerateTestRunReportYaml(features, startTime, endTime, diagramLookup, logLookup), fileName),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
 
-    private static string GenerateTestRunReportJson(Feature[] features, DateTime startTime, DateTime endTime)
+    private static string GenerateTestRunReportJson(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
     {
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         var data = new
@@ -2277,23 +2280,49 @@ public static class ReportGenerator
                 f.Endpoint,
                 f.Description,
                 Labels = f.Labels ?? [],
-                Scenarios = f.Scenarios.Select(s => new
+                Scenarios = f.Scenarios.Select(s =>
                 {
-                    s.Id,
-                    Name = s.DisplayName,
-                    Result = s.Result.ToString(),
-                    DurationSeconds = s.Duration?.TotalSeconds ?? 0.0,
-                    s.IsHappyPath,
-                    s.ErrorMessage,
-                    s.ErrorStackTrace,
-                    Labels = s.Labels ?? [],
-                    Categories = s.Categories ?? [],
-                    Steps = (s.Steps ?? []).Select(MapStepJson).ToArray()
+                    var scenario = new Dictionary<string, object?>
+                    {
+                        ["id"] = s.Id,
+                        ["name"] = s.DisplayName,
+                        ["result"] = s.Result.ToString(),
+                        ["durationSeconds"] = s.Duration?.TotalSeconds ?? 0.0,
+                        ["isHappyPath"] = s.IsHappyPath,
+                        ["errorMessage"] = s.ErrorMessage,
+                        ["errorStackTrace"] = s.ErrorStackTrace,
+                        ["labels"] = s.Labels ?? [],
+                        ["categories"] = s.Categories ?? [],
+                        ["steps"] = (s.Steps ?? []).Select(MapStepJson).ToArray()
+                    };
+
+                    if (diagramLookup != null)
+                        scenario["diagrams"] = diagramLookup[s.Id].ToArray();
+
+                    if (logLookup != null)
+                        scenario["httpInteractions"] = logLookup[s.Id].Select(MapLogJson).ToArray();
+
+                    return scenario;
                 }).ToArray()
             }).ToArray()
         };
         return JsonSerializer.Serialize(data, options);
     }
+
+    private static object MapLogJson(RequestResponseLog log) => new
+    {
+        Type = log.Type.ToString(),
+        Method = log.Method.Value?.ToString()?.ToUpperInvariant(),
+        Uri = log.Uri.ToString(),
+        log.ServiceName,
+        log.CallerName,
+        log.Content,
+        Headers = log.Headers.Select(h => new { h.Key, h.Value }).ToArray(),
+        StatusCode = log.StatusCode?.Value?.ToString(),
+        TraceId = log.TraceId.ToString(),
+        RequestResponseId = log.RequestResponseId.ToString(),
+        Timestamp = log.Timestamp?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    };
 
     private static object MapStepJson(ScenarioStep step) => new
     {
@@ -2304,7 +2333,7 @@ public static class ReportGenerator
         SubSteps = (step.SubSteps ?? []).Select(MapStepJson).ToArray()
     };
 
-    private static string GenerateTestRunReportXml(Feature[] features, DateTime startTime, DateTime endTime)
+    private static string GenerateTestRunReportXml(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
     {
         var doc = new XDocument(
             new XElement("TestRunReport",
@@ -2319,7 +2348,9 @@ public static class ReportGenerator
                             (f.Labels is { Length: > 0 }) ? new XElement("Labels", f.Labels.Select(l => new XElement("Label", l))) : null,
                             new XElement("Scenarios",
                                 f.Scenarios.Select(s =>
-                                    new XElement("Scenario",
+                                {
+                                    var scenarioElements = new List<object?>
+                                    {
                                         new XElement("Id", s.Id),
                                         new XElement("Name", s.DisplayName),
                                         new XElement("Result", s.Result.ToString()),
@@ -2330,8 +2361,24 @@ public static class ReportGenerator
                                         (s.Labels is { Length: > 0 }) ? new XElement("Labels", s.Labels.Select(l => new XElement("Label", l))) : null,
                                         (s.Categories is { Length: > 0 }) ? new XElement("Categories", s.Categories.Select(c => new XElement("Category", c))) : null,
                                         (s.Steps is { Length: > 0 }) ? new XElement("Steps", s.Steps.Select(MapStepXml)) : null
-                                    )
-                                )
+                                    };
+
+                                    if (diagramLookup != null)
+                                    {
+                                        var diags = diagramLookup[s.Id].ToArray();
+                                        if (diags.Length > 0)
+                                            scenarioElements.Add(new XElement("Diagrams", diags.Select(d => new XElement("Diagram", d))));
+                                    }
+
+                                    if (logLookup != null)
+                                    {
+                                        var logs = logLookup[s.Id].ToArray();
+                                        if (logs.Length > 0)
+                                            scenarioElements.Add(new XElement("HttpInteractions", logs.Select(MapLogXml)));
+                                    }
+
+                                    return new XElement("Scenario", scenarioElements.ToArray());
+                                })
                             )
                         )
                     )
@@ -2340,6 +2387,21 @@ public static class ReportGenerator
         );
         return doc.ToString();
     }
+
+    private static XElement MapLogXml(RequestResponseLog log) =>
+        new("HttpInteraction",
+            new XElement("Type", log.Type.ToString()),
+            new XElement("Method", log.Method.Value?.ToString()?.ToUpperInvariant()),
+            new XElement("Uri", log.Uri.ToString()),
+            new XElement("ServiceName", log.ServiceName),
+            new XElement("CallerName", log.CallerName),
+            log.Content != null ? new XElement("Content", log.Content) : null,
+            log.Headers.Length > 0 ? new XElement("Headers", log.Headers.Select(h => new XElement("Header", new XElement("Key", h.Key), new XElement("Value", h.Value)))) : null,
+            log.StatusCode != null ? new XElement("StatusCode", log.StatusCode.Value?.ToString()) : null,
+            new XElement("TraceId", log.TraceId.ToString()),
+            new XElement("RequestResponseId", log.RequestResponseId.ToString()),
+            log.Timestamp != null ? new XElement("Timestamp", log.Timestamp.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")) : null
+        );
 
     private static XElement MapStepXml(ScenarioStep step) =>
         new("Step",
@@ -2350,7 +2412,7 @@ public static class ReportGenerator
             (step.SubSteps is { Length: > 0 }) ? new XElement("SubSteps", step.SubSteps.Select(MapStepXml)) : null
         );
 
-    private static string GenerateTestRunReportYaml(Feature[] features, DateTime startTime, DateTime endTime)
+    private static string GenerateTestRunReportYaml(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
     {
         var yml = new StringBuilder();
         yml.Append("StartTime: " + startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n");
@@ -2408,6 +2470,28 @@ public static class ReportGenerator
                     foreach (var step in scenario.Steps)
                         AppendTestRunYamlStep(yml, step, "          ");
                 }
+
+                if (diagramLookup != null)
+                {
+                    var diags = diagramLookup[scenario.Id].ToArray();
+                    if (diags.Length > 0)
+                    {
+                        yml.Append("        Diagrams:\n");
+                        foreach (var diag in diags)
+                            yml.Append("          - |\n" + string.Join("\n", diag.Split('\n').Select(line => "            " + line)) + "\n");
+                    }
+                }
+
+                if (logLookup != null)
+                {
+                    var logs = logLookup[scenario.Id].ToArray();
+                    if (logs.Length > 0)
+                    {
+                        yml.Append("        HttpInteractions:\n");
+                        foreach (var log in logs)
+                            AppendTestRunYamlLog(yml, log, "          ");
+                    }
+                }
             }
         }
 
@@ -2427,6 +2511,29 @@ public static class ReportGenerator
             yml.Append(indent + "  SubSteps:\n");
             foreach (var sub in step.SubSteps)
                 AppendTestRunYamlStep(yml, sub, indent + "    ");
+        }
+    }
+
+    private static void AppendTestRunYamlLog(StringBuilder yml, RequestResponseLog log, string indent)
+    {
+        yml.Append(indent + "- Type: " + log.Type + "\n");
+        yml.Append(indent + "  Method: " + (log.Method.Value?.ToString()?.ToUpperInvariant() ?? "") + "\n");
+        yml.Append(indent + "  Uri: " + log.Uri + "\n");
+        yml.Append(indent + "  ServiceName: " + log.ServiceName.SanitiseForYml() + "\n");
+        yml.Append(indent + "  CallerName: " + log.CallerName.SanitiseForYml() + "\n");
+        if (log.Content is not null)
+            yml.Append(indent + "  Content: " + log.Content.SanitiseForYml() + "\n");
+        if (log.StatusCode is not null)
+            yml.Append(indent + "  StatusCode: " + log.StatusCode.Value + "\n");
+        yml.Append(indent + "  TraceId: " + log.TraceId + "\n");
+        yml.Append(indent + "  RequestResponseId: " + log.RequestResponseId + "\n");
+        if (log.Timestamp is not null)
+            yml.Append(indent + "  Timestamp: " + log.Timestamp.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") + "\n");
+        if (log.Headers.Length > 0)
+        {
+            yml.Append(indent + "  Headers:\n");
+            foreach (var h in log.Headers)
+                yml.Append(indent + "    - Key: " + h.Key.SanitiseForYml() + "\n" + indent + "      Value: " + (h.Value ?? "").SanitiseForYml() + "\n");
         }
     }
 
