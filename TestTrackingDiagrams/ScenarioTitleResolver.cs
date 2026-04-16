@@ -22,6 +22,27 @@ public static partial class ScenarioTitleResolver
         return char.ToUpper(humanized[0]) + humanized[1..].ToLowerInvariant();
     }
 
+    /// <summary>
+    /// Extracts the parameter portion from a test display name (e.g. xUnit Theory's
+    /// <c>Ns.Class.Method(param1: "v1", param2: "v2")</c>) and appends it as <c>[param1: "v1", param2: "v2"]</c>.
+    /// Returns the original title unchanged when there are no parameters.
+    /// </summary>
+    public static string AppendTestParameters(string resolvedTitle, string? testDisplayName)
+    {
+        if (testDisplayName is null)
+            return resolvedTitle;
+
+        var parenIndex = testDisplayName.IndexOf('(');
+        if (parenIndex < 0)
+            return resolvedTitle;
+
+        var paramContent = testDisplayName[(parenIndex + 1)..].TrimEnd(')');
+        if (paramContent.Length == 0)
+            return resolvedTitle;
+
+        return $"{resolvedTitle} [{paramContent}]";
+    }
+
     private static string SplitPascalCase(string input)
     {
         var result = LowerToUpperRegex().Replace(input, "$1 $2");

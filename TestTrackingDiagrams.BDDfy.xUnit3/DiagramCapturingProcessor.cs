@@ -33,6 +33,12 @@ public class DiagramCapturingProcessor : IProcessor
             var resolvedTitle = ScenarioTitleResolver.ResolveScenarioTitle(
                 scenario.Title, testClassSimpleName, testMethodName);
 
+            // For parameterised tests (e.g. [Theory] / [InlineData]), append the
+            // parameter values from the xUnit display name so each iteration gets a
+            // unique, descriptive title instead of a plain numeric suffix like "(1)".
+            resolvedTitle = ScenarioTitleResolver.AppendTestParameters(
+                resolvedTitle, testContext.Test?.TestDisplayName);
+
             // Fix the title in-place so BDDfy's own reporters see unique titles
             if (ScenarioTitleField != null)
                 ScenarioTitleField.SetValue(scenario, resolvedTitle);

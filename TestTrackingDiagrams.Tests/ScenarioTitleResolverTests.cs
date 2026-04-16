@@ -93,4 +93,56 @@ public class ScenarioTitleResolverTests
 
         Assert.Equal("Given command is not found when request is made then not found response returned", result);
     }
+
+    // ── AppendTestParameters ──
+
+    [Fact]
+    public void AppendTestParameters_WhenDisplayNameHasParameters_ShouldAppendInBrackets()
+    {
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Given bad xss like values for request",
+            "Namespace.Class.GivenBadXssLikeValuesForRequest(clientId: \"<script>\", sessionId: \"abc\")");
+
+        Assert.Equal("Given bad xss like values for request [clientId: \"<script>\", sessionId: \"abc\"]", result);
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenDisplayNameHasNoParameters_ShouldReturnOriginalTitle()
+    {
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Some scenario title",
+            "Namespace.Class.SomeMethodName");
+
+        Assert.Equal("Some scenario title", result);
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenDisplayNameIsNull_ShouldReturnOriginalTitle()
+    {
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Some scenario title",
+            null);
+
+        Assert.Equal("Some scenario title", result);
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenDisplayNameHasEmptyParentheses_ShouldReturnOriginalTitle()
+    {
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Some scenario title",
+            "Namespace.Class.SomeMethodName()");
+
+        Assert.Equal("Some scenario title", result);
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenDisplayNameHasMultipleInlineDataValues_ShouldAppendAll()
+    {
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Given bad xss like values",
+            "Ns.C.Method(clientId: \"val1\", journeyId: \"val2\", appId: \"val3\", mobile: \"000\")");
+
+        Assert.Equal("Given bad xss like values [clientId: \"val1\", journeyId: \"val2\", appId: \"val3\", mobile: \"000\"]", result);
+    }
 }
