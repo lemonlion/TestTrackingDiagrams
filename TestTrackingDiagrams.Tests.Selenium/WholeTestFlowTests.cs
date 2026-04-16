@@ -14,13 +14,7 @@ public class WholeTestFlowTests : IDisposable
 
     public WholeTestFlowTests()
     {
-        var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--window-size=1280,900");
-        _driver = new ChromeDriver(options);
+        _driver = ChromeDriverFactory.Create(1280, 900);
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-selenium-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);

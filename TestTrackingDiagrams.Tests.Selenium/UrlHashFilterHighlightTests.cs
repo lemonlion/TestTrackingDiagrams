@@ -15,13 +15,7 @@ public class UrlHashFilterHighlightTests : IDisposable
 
     public UrlHashFilterHighlightTests()
     {
-        var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--window-size=1920,1080");
-        _driver = new ChromeDriver(options);
+        _driver = ChromeDriverFactory.Create();
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-urlhash-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
