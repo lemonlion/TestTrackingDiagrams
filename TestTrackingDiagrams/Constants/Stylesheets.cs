@@ -946,6 +946,15 @@ public class Stylesheets
                     font-size: 1.05em;
                     margin-bottom: 0.6em;
                 }
+                .timeline-info {
+                    cursor: help;
+                    font-weight: normal;
+                    font-size: 0.95em;
+                    opacity: 0.55;
+                    margin-left: 0.2em;
+                    vertical-align: middle;
+                }
+                .timeline-info:hover { opacity: 1; }
                 .timeline-row {
                     display: flex;
                     align-items: center;

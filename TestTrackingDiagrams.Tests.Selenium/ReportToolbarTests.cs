@@ -314,4 +314,29 @@ public class ReportToolbarTests : IDisposable
         foreach (var s in scenarios)
             Assert.NotEqual("none", s.GetCssValue("display"));
     }
+
+    // ── Scenario Timeline info icon ──
+
+    [Fact]
+    public void Timeline_info_icon_is_present_with_tooltip()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("ToolbarTimelineInfo.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        // Open the timeline panel
+        var toggleBtn = _driver.FindElement(By.CssSelector(".timeline-toggle"));
+        toggleBtn.Click();
+
+        var timeline = _driver.FindElement(By.Id("scenario-timeline"));
+        Assert.NotEqual("none", timeline.GetCssValue("display"));
+
+        // Verify the ⓘ icon exists inside the timeline header
+        var infoIcon = timeline.FindElement(By.CssSelector(".timeline-info"));
+        Assert.NotNull(infoIcon);
+
+        // Verify it has a non-empty title attribute (the tooltip text)
+        var tooltip = infoIcon.GetAttribute("title");
+        Assert.False(string.IsNullOrWhiteSpace(tooltip));
+        Assert.Contains("duration", tooltip, StringComparison.OrdinalIgnoreCase);
+    }
 }
