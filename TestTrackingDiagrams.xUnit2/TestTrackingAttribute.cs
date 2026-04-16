@@ -21,7 +21,7 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
     public override void Before(MethodInfo methodUnderTest)
     {
         var testId = Guid.NewGuid().ToString();
-        var className = methodUnderTest.DeclaringType?.Name ?? "Unknown";
+        var className = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?.Name ?? "Unknown";
         var methodName = methodUnderTest.Name;
 
         var featureName = DisplayNameFormatter.FormatFeatureName(className);
@@ -29,7 +29,7 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
 
         XUnit2TestTrackingContext.SetCurrentTest($"{className}.{methodName}", testId);
 
-        var endpointAttr = methodUnderTest.DeclaringType?
+        var endpointAttr = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?
             .GetCustomAttributes(inherit: true)
             .OfType<EndpointAttribute>()
             .FirstOrDefault();
@@ -39,7 +39,7 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
             .OfType<HappyPathAttribute>()
             .Any();
 
-        var methodMatchKey = $"{methodUnderTest.DeclaringType!.FullName}.{methodUnderTest.Name}";
+        var methodMatchKey = $"{(methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)!.FullName}.{methodUnderTest.Name}";
 
         XUnit2TestTrackingContext.CollectedScenarios[testId] = new ScenarioInfo
         {
