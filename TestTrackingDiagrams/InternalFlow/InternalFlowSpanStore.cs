@@ -25,6 +25,17 @@ public static class InternalFlowSpanStore
 
     public static Activity[] GetSpans() => CollectedSpans.ToArray();
 
+    /// <summary>
+    /// Stops the activity (if still running) and adds it to the store.
+    /// Useful as a one-liner at the end of an in-process tracking scope.
+    /// </summary>
+    public static void Complete(Activity? activity)
+    {
+        if (activity is null) return;
+        if (!activity.IsStopped) activity.Stop();
+        Add(activity);
+    }
+
     public static void Clear()
     {
         SeenSpans.Clear();

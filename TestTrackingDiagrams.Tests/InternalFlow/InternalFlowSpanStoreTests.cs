@@ -97,4 +97,36 @@ public class InternalFlowSpanStoreTests : IDisposable
         Assert.Equal(threadCount * spansPerThread,
             InternalFlowSpanStore.GetSpans().Count(s => s.Source.Name == _sourceName));
     }
+
+    [Fact]
+    public void Complete_stops_and_adds_activity()
+    {
+        using var activity = _source.StartActivity("complete-op")!;
+        Assert.False(activity.IsStopped);
+
+        InternalFlowSpanStore.Complete(activity);
+
+        Assert.True(activity.IsStopped);
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "complete-op" && s.Source.Name == _sourceName);
+    }
+
+    [Fact]
+    public void Complete_with_null_does_not_throw()
+    {
+        var exception = Record.Exception(() => InternalFlowSpanStore.Complete(null));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void Complete_with_already_stopped_activity_still_adds()
+    {
+        using var activity = _source.StartActivity("already-stopped")!;
+        activity.Stop();
+
+        InternalFlowSpanStore.Complete(activity);
+
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "already-stopped" && s.Source.Name == _sourceName);
+    }
 }

@@ -20,8 +20,8 @@ public class MSTestScenarioInfoToFeaturesTests
         var features = infos.ToFeatures();
 
         Assert.AreEqual(2, features.Length);
-        Assert.AreEqual("FeatureA", features[0].DisplayName);
-        Assert.AreEqual("FeatureB", features[1].DisplayName);
+        Assert.AreEqual("Feature A", features[0].DisplayName);
+        Assert.AreEqual("Feature B", features[1].DisplayName);
     }
 
     [TestMethod]

@@ -100,6 +100,10 @@ public static class ReportGenerator
 
         Parallel.Invoke(actions.ToArray());
 
+        var diagnostics = ReportDiagnostics.Analyse(RequestResponseLogger.RequestAndResponseLogs, features);
+        foreach (var message in diagnostics)
+            Console.WriteLine(message);
+
         if (options.WriteCiSummary)
         {
             var (truncatedDiagrams, fullDiagrams) = DefaultDiagramsFetcher.GetCiSummaryDiagrams(fetcherOptions);
