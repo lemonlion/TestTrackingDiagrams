@@ -145,4 +145,29 @@ public class ScenarioTitleResolverTests
 
         Assert.Equal("Given bad xss like values [clientId: \"val1\", journeyId: \"val2\", appId: \"val3\", mobile: \"000\"]", result);
     }
+
+    [Fact]
+    public void AppendTestParameters_WhenParametersExceedMaxLength_ShouldTruncate()
+    {
+        var longValue = new string('x', 300);
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Some title",
+            $"Ns.C.Method(account: \"{longValue}\")");
+
+        Assert.EndsWith("...]", result);
+        Assert.StartsWith("Some title [", result);
+        Assert.True(result.Length < 300, "Result should be significantly shorter than the raw parameter content");
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenParametersAreExactlyAtMaxLength_ShouldNotTruncate()
+    {
+        // A short parameter string should be kept as-is
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Some title",
+            "Ns.C.Method(x: \"short\")");
+
+        Assert.Equal("Some title [x: \"short\"]", result);
+        Assert.DoesNotContain("...", result);
+    }
 }

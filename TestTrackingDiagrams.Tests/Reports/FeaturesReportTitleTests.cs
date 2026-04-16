@@ -6,29 +6,29 @@ namespace TestTrackingDiagrams.Tests.Reports;
 public class FeaturesReportTitleTests
 {
     [Fact]
-    public void GetFeaturesReportTitle_WithComponentDiagramTitle_UsesTitleAsPrefix()
+    public void GetTestRunReportTitle_WithComponentDiagramTitle_UsesTitleAsPrefix()
     {
         var options = new ReportConfigurationOptions
         {
             ComponentDiagramOptions = new ComponentDiagramOptions { Title = "Payment Gateway" }
         };
 
-        Assert.Equal("Payment Gateway - Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("Payment Gateway - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithFixedNameForReceivingService_UsesServiceNameAsPrefix()
+    public void GetTestRunReportTitle_WithFixedNameForReceivingService_UsesServiceNameAsPrefix()
     {
         var options = new ReportConfigurationOptions
         {
             FixedNameForReceivingService = "OrderService"
         };
 
-        Assert.Equal("OrderService - Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("OrderService - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithBothSet_PrefersComponentDiagramTitle()
+    public void GetTestRunReportTitle_WithBothSet_PrefersComponentDiagramTitle()
     {
         var options = new ReportConfigurationOptions
         {
@@ -36,11 +36,11 @@ public class FeaturesReportTitleTests
             FixedNameForReceivingService = "OrderService"
         };
 
-        Assert.Equal("Payment Gateway - Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("Payment Gateway - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithEmptyComponentDiagramTitle_FallsBackToServiceName()
+    public void GetTestRunReportTitle_WithEmptyComponentDiagramTitle_FallsBackToServiceName()
     {
         var options = new ReportConfigurationOptions
         {
@@ -48,19 +48,19 @@ public class FeaturesReportTitleTests
             FixedNameForReceivingService = "OrderService"
         };
 
-        Assert.Equal("OrderService - Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("OrderService - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithNeitherSet_ReturnsFeaturesReport()
+    public void GetTestRunReportTitle_WithNeitherSet_ReturnsTestRunReport()
     {
         var options = new ReportConfigurationOptions();
 
-        Assert.Equal("Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithNullComponentDiagramOptions_FallsBackToServiceName()
+    public void GetTestRunReportTitle_WithNullComponentDiagramOptions_FallsBackToServiceName()
     {
         var options = new ReportConfigurationOptions
         {
@@ -68,17 +68,17 @@ public class FeaturesReportTitleTests
             FixedNameForReceivingService = "MyService"
         };
 
-        Assert.Equal("MyService - Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("MyService - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 
     [Fact]
-    public void GetFeaturesReportTitle_WithEmptyServiceName_ReturnsFeaturesReport()
+    public void GetTestRunReportTitle_WithEmptyServiceName_ReturnsTestRunReport()
     {
         var options = new ReportConfigurationOptions
         {
             FixedNameForReceivingService = ""
         };
 
-        Assert.Equal("Features Report", ReportGenerator.GetFeaturesReportTitle(options));
+        Assert.Equal("Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
 }

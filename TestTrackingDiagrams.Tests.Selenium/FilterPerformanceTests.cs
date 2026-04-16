@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -230,20 +229,18 @@ public class FilterPerformanceTests : IDisposable
         // Warm up the filter cache
         ((IJavaScriptExecutor)_driver).ExecuteScript("fc();");
 
-        // Click a dependency filter button and measure time
-        var btn = _driver.FindElement(By.CssSelector(".dependency-toggle[data-dependency='OrderService']"));
-
-        var sw = Stopwatch.StartNew();
-        btn.Click();
-        sw.Stop();
+        // Measure filter time inside JavaScript to avoid Selenium IPC overhead
+        var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
+            "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
 
         // Verify the filter was applied (some scenarios should be hidden)
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
         Assert.True(hiddenCount > 0, "Some scenarios should be hidden by the filter");
 
         // Verify performance: should complete in <1 second
-        Assert.True(sw.ElapsedMilliseconds < 1000,
-            $"Dependency filter took {sw.ElapsedMilliseconds}ms, expected <1000ms");
+        Assert.True(ms < 1000,
+            $"Dependency filter took {ms}ms, expected <1000ms");
     }
 
     [Fact]
@@ -259,17 +256,15 @@ public class FilterPerformanceTests : IDisposable
 
         ((IJavaScriptExecutor)_driver).ExecuteScript("fc();");
 
-        var btn = _driver.FindElement(By.CssSelector(".dependency-toggle[data-dependency='OrderService']"));
-
-        var sw = Stopwatch.StartNew();
-        btn.Click();
-        sw.Stop();
+        var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
+            "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
 
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
         Assert.True(hiddenCount > 0, "Some scenarios should be hidden by the filter");
 
-        Assert.True(sw.ElapsedMilliseconds < 1000,
-            $"Dependency filter with 200 scenarios took {sw.ElapsedMilliseconds}ms, expected <1000ms");
+        Assert.True(ms < 1000,
+            $"Dependency filter with 200 scenarios took {ms}ms, expected <1000ms");
     }
 
     [Fact]
@@ -285,21 +280,20 @@ public class FilterPerformanceTests : IDisposable
 
         ((IJavaScriptExecutor)_driver).ExecuteScript("fc();");
 
-        var btn = _driver.FindElement(By.CssSelector(".dependency-toggle[data-dependency='OrderService']"));
-
         // Toggle on
-        btn.Click();
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]').click();");
 
-        // Toggle off and measure
-        var sw = Stopwatch.StartNew();
-        btn.Click();
-        sw.Stop();
+        // Toggle off and measure inside JS
+        var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
+            "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
 
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
         Assert.Equal(0, hiddenCount);
 
-        Assert.True(sw.ElapsedMilliseconds < 1000,
-            $"Dependency filter toggle-off took {sw.ElapsedMilliseconds}ms, expected <1000ms");
+        Assert.True(ms < 1000,
+            $"Dependency filter toggle-off took {ms}ms, expected <1000ms");
     }
 
     [Fact]

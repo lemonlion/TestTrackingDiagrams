@@ -27,6 +27,8 @@ public static partial class ScenarioTitleResolver
     /// <c>Ns.Class.Method(param1: "v1", param2: "v2")</c>) and appends it as <c>[param1: "v1", param2: "v2"]</c>.
     /// Returns the original title unchanged when there are no parameters.
     /// </summary>
+    private const int MaxParameterLength = 200;
+
     public static string AppendTestParameters(string resolvedTitle, string? testDisplayName)
     {
         if (testDisplayName is null)
@@ -39,6 +41,9 @@ public static partial class ScenarioTitleResolver
         var paramContent = testDisplayName[(parenIndex + 1)..].TrimEnd(')');
         if (paramContent.Length == 0)
             return resolvedTitle;
+
+        if (paramContent.Length > MaxParameterLength)
+            paramContent = paramContent[..MaxParameterLength] + "...";
 
         return $"{resolvedTitle} [{paramContent}]";
     }

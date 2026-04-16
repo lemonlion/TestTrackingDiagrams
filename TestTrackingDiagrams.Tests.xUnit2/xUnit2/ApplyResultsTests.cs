@@ -4,6 +4,7 @@ using Xunit.Abstractions;
 
 namespace TestTrackingDiagrams.Tests.xUnit2;
 
+[Collection("CollectedScenarios")]
 public class ApplyResultsTests : IDisposable
 {
     public ApplyResultsTests()

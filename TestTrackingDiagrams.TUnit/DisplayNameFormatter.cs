@@ -4,6 +4,8 @@ namespace TestTrackingDiagrams.TUnit;
 
 public static partial class DisplayNameFormatter
 {
+    private const int MaxParameterLength = 200;
+
     public static string FormatFeatureName(string testClassSimpleName)
     {
         return testClassSimpleName.Titleize();
@@ -21,7 +23,9 @@ public static partial class DisplayNameFormatter
             var paramContent = testDisplayName[(parenIndex + 1)..].TrimEnd(')');
             if (paramContent.Length > 0)
             {
-                parameters = paramContent;
+                parameters = paramContent.Length > MaxParameterLength
+                    ? paramContent[..MaxParameterLength] + "..."
+                    : paramContent;
             }
         }
         else
