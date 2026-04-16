@@ -182,6 +182,64 @@ public class TrackingProxyTests
         Assert.Equal(2, logs.Length);
     }
 
+    [Theory]
+    [InlineData("Cosmos DB")]
+    [InlineData("OTP Service")]
+    [InlineData("Fraud Check Service")]
+    [InlineData("Enhanced KYC API")]
+    [InlineData("Auth & Token")]
+    [InlineData("Cache (Redis)")]
+    public void Service_name_with_spaces_or_special_chars_does_not_throw(string serviceName)
+    {
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = serviceName,
+            CurrentTestInfoFetcher = () => (TestName, _testId)
+        });
+
+        var result = proxy.Add(1, 2);
+
+        Assert.Equal(3, result);
+        var logs = GetLogsForTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    [Fact]
+    public void Service_name_with_spaces_preserves_original_name_in_logs()
+    {
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = "Cosmos DB",
+            CurrentTestInfoFetcher = () => (TestName, _testId)
+        });
+
+        proxy.Add(1, 2);
+
+        var logs = GetLogsForTest();
+        Assert.All(logs, log => Assert.Equal("Cosmos DB", log.ServiceName));
+    }
+
+    [Fact]
+    public void Service_name_with_spaces_builds_valid_uri()
+    {
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = "Cosmos DB",
+            UriScheme = "mock",
+            CurrentTestInfoFetcher = () => (TestName, _testId)
+        });
+
+        proxy.Add(1, 2);
+
+        var logs = GetLogsForTest();
+        var uri = logs[0].Uri;
+        Assert.Contains("mock://", uri.ToString());
+        Assert.Contains("/ICalculator/Add", uri.AbsolutePath);
+    }
+
     public interface ICalculator
     {
         int Add(int a, int b);

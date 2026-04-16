@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using TestTrackingDiagrams.InternalFlow;
 
 namespace TestTrackingDiagrams.Tracking;
@@ -22,10 +23,11 @@ public enum TrackingLogMode
     Deferred
 }
 
-public class TrackingProxy<T> : DispatchProxy where T : class
+public partial class TrackingProxy<T> : DispatchProxy where T : class
 {
     private T _target = null!;
     private TrackingProxyOptions _options = null!;
+    private string _sanitisedHostname = null!;
     private ActivitySource? _activitySource;
 
     public static T Create(T target, TrackingProxyOptions options)
@@ -33,17 +35,24 @@ public class TrackingProxy<T> : DispatchProxy where T : class
         var proxy = Create<T, TrackingProxy<T>>() as TrackingProxy<T>;
         proxy!._target = target;
         proxy._options = options;
+        proxy._sanitisedHostname = SanitiseForUriHostname(options.ServiceName);
         if (options.ActivitySourceName is not null)
             proxy._activitySource = new ActivitySource(options.ActivitySourceName);
         return (proxy as T)!;
     }
+
+    internal static string SanitiseForUriHostname(string name)
+        => InvalidHostnameCharsRegex().Replace(name, "-").Trim('-');
+
+    [GeneratedRegex(@"[^a-zA-Z0-9._~-]")]
+    private static partial Regex InvalidHostnameCharsRegex();
 
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         if (targetMethod is null) return null;
 
         var methodName = targetMethod.Name;
-        var uri = new Uri($"{_options.UriScheme}://{_options.ServiceName}/{typeof(T).Name}/{methodName}");
+        var uri = new Uri($"{_options.UriScheme}://{_sanitisedHostname}/{typeof(T).Name}/{methodName}");
         var requestContent = args is { Length: > 0 }
             ? TrackingSafeSerializer.Serialize(args, _options.SerializerOptions)
             : null;
