@@ -20,7 +20,9 @@ public static class InternalFlowHtmlGenerator
         InternalFlowDiagramStyle diagramStyle,
         bool showFlameChart = false,
         InternalFlowFlameChartPosition flameChartPosition = InternalFlowFlameChartPosition.BehindWithToggle,
-        InternalFlowNoDataBehavior noDataBehavior = InternalFlowNoDataBehavior.HideLink)
+        InternalFlowNoDataBehavior noDataBehavior = InternalFlowNoDataBehavior.HideLink,
+        InternalFlowSpanGranularity granularity = InternalFlowSpanGranularity.AutoInstrumentation,
+        string[]? configuredActivitySources = null)
     {
         var data = new Dictionary<string, object>();
 
@@ -78,15 +80,42 @@ public static class InternalFlowHtmlGenerator
                 if (noDataBehavior == InternalFlowNoDataBehavior.HideLink)
                     continue;
 
+                var totalSpans = InternalFlowSpanStore.GetSpans().Length;
+                var diagnosticHtml = BuildEmptyDiagnosticMessage(totalSpans, granularity, configuredActivitySources);
+
                 data[key] = new
                 {
-                    message = "No internal activity captured for this segment."
+                    message = diagnosticHtml
                 };
             }
         }
 
         var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = false });
         return $"<script>window.__iflowSegments = {json};</script>";
+    }
+
+    private static string BuildEmptyDiagnosticMessage(
+        int totalSpansInStore,
+        InternalFlowSpanGranularity granularity,
+        string[]? configuredActivitySources)
+    {
+        var sb = new StringBuilder();
+        sb.Append("No internal activity captured for this segment.");
+        sb.Append("<br/><br/><details style=\"font-size:0.85em;color:#666\"><summary>Diagnostic info</summary><ul>");
+        sb.Append($"<li>InternalFlowSpanStore: {totalSpansInStore} total span(s) globally</li>");
+        sb.Append($"<li>Granularity: {granularity}</li>");
+
+        if (configuredActivitySources is { Length: > 0 })
+            sb.Append($"<li>Configured activity sources: {string.Join(", ", configuredActivitySources)}</li>");
+        else if (granularity == InternalFlowSpanGranularity.Manual)
+            sb.Append("<li>⚠ Granularity is Manual but no InternalFlowActivitySources configured</li>");
+
+        sb.Append("</ul><p>Common causes:</p><ul>");
+        sb.Append("<li>ActivityListener not registered for the expected source</li>");
+        sb.Append("<li>Activity.Stop() not called before InternalFlowSpanStore.Add()</li>");
+        sb.Append("<li>Wrong InternalFlowSpanGranularity for your setup</li>");
+        sb.Append("</ul></details>");
+        return sb.ToString();
     }
 
     private static string RenderActivityDiagramHtml(InternalFlowSegment segment)

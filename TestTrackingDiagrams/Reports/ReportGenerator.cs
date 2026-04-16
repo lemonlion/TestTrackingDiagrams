@@ -68,7 +68,9 @@ public static class ReportGenerator
                 options.InternalFlowDiagramStyle,
                 options.InternalFlowShowFlameChart,
                 options.InternalFlowFlameChartPosition,
-                options.InternalFlowNoDataBehavior);
+                options.InternalFlowNoDataBehavior,
+                options.InternalFlowSpanGranularity,
+                options.InternalFlowActivitySources);
 
             if (options.WholeTestFlowVisualization != WholeTestFlowVisualization.None)
             {
@@ -100,9 +102,14 @@ public static class ReportGenerator
 
         Parallel.Invoke(actions.ToArray());
 
-        var diagnostics = ReportDiagnostics.Analyse(RequestResponseLogger.RequestAndResponseLogs, features);
+        var diagnostics = ReportDiagnostics.Analyse(
+            RequestResponseLogger.RequestAndResponseLogs, features,
+            includeSourceDiscovery: options.ActivitySourceDiscovery);
         foreach (var message in diagnostics)
             Console.WriteLine(message);
+
+        if (options.DiagnosticMode)
+            DiagnosticReportGenerator.Generate(RequestResponseLogger.RequestAndResponseLogs, features, options);
 
         if (options.WriteCiSummary)
         {

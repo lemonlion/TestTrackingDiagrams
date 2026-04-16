@@ -56,4 +56,6 @@ public record ReportConfigurationOptions
     public string? CustomLogoHtml { get; set; }
     public DataFormat TestRunReportDataFormat { get; set; } = DataFormat.Json;
     public DataFormat SpecificationsDataFormat { get; set; } = DataFormat.Yaml;
+    public bool ActivitySourceDiscovery { get; set; }
+    public bool DiagnosticMode { get; set; }
 }

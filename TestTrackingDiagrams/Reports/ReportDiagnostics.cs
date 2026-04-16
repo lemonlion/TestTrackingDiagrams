@@ -1,10 +1,12 @@
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
 
 public static class ReportDiagnostics
 {
-    public static string[] Analyse(RequestResponseLog[] logs, Feature[] features)
+    public static string[] Analyse(RequestResponseLog[] logs, Feature[] features,
+        bool includeSourceDiscovery = false)
     {
         if (logs.Length == 0 && features.Length == 0)
             return [];
@@ -32,6 +34,22 @@ public static class ReportDiagnostics
 
             if (orphanedTestIds.Length > 0)
                 warnings.Add($"Warning: {orphanedTestIds.Length} orphaned test ID(s) in logs do not match any feature scenario.");
+        }
+
+        var totalSpans = InternalFlowSpanStore.GetSpans().Length;
+        if (totalSpans == 0)
+            warnings.Add("Warning: InternalFlowSpanStore has 0 spans — activity diagrams will be empty.");
+        else
+            warnings.Add($"InternalFlowSpanStore: {totalSpans} span(s).");
+
+        if (includeSourceDiscovery)
+        {
+            var sources = ActivitySourceDiscovery.GetDiscoveredSources();
+            if (sources.Count > 0)
+            {
+                var sourceList = string.Join(", ", sources.OrderByDescending(s => s.Value).Select(s => $"{s.Key} ({s.Value})"));
+                warnings.Add($"Activity sources discovered: {sourceList}");
+            }
         }
 
         return warnings.ToArray();
