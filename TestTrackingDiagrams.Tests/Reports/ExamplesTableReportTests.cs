@@ -77,8 +77,8 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("&#10003;", content); // checkmark for passed
-        Assert.Contains("&#10005;", content); // cross for failed
+        Assert.Contains("badge-pass", content);
+        Assert.Contains("badge-fail", content);
     }
 
     [Fact]
@@ -127,8 +127,8 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("<th>Balance</th>", content);
-        Assert.Contains("<th>Withdrawal</th>", content);
+        Assert.Contains(">Balance</th>", content);
+        Assert.Contains(">Withdrawal</th>", content);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("<th>Duration</th>", content);
+        Assert.Contains(">Duration</th>", content);
         Assert.Contains("250ms", content);
         Assert.Contains("1.5s", content);
     }
@@ -222,9 +222,9 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("<th>Scenario</th>", content);
-        Assert.Contains("Withdraw $200", content);
-        Assert.Contains("Withdraw $500", content);
+        // Display names still appear in the search attribute (lowercased)
+        Assert.Contains("withdraw $200", content);
+        Assert.Contains("withdraw $500", content);
     }
 
     [Fact]

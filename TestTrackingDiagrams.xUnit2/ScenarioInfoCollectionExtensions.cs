@@ -19,15 +19,21 @@ internal static class ScenarioInfoCollectionExtensions
                     Scenarios = scenariosForFeature
                         .OrderByDescending(x => x.IsHappyPath)
                         .ThenBy(x => x.ScenarioName)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.Id,
-                            Result = x.Result,
-                            DisplayName = x.ScenarioName,
-                            IsHappyPath = x.IsHappyPath,
-                            ErrorMessage = x.ErrorMessage ?? string.Empty,
-                            ErrorStackTrace = x.ErrorStackTrace ?? string.Empty,
-                            Duration = x.Duration,
+                            var parsed = ParameterParser.Parse(x.ScenarioName);
+                            return new Scenario
+                            {
+                                Id = x.Id,
+                                Result = x.Result,
+                                DisplayName = x.ScenarioName,
+                                IsHappyPath = x.IsHappyPath,
+                                ErrorMessage = x.ErrorMessage ?? string.Empty,
+                                ErrorStackTrace = x.ErrorStackTrace ?? string.Empty,
+                                Duration = x.Duration,
+                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(x.ScenarioName) : null,
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                            };
                         }).ToArray()
                 };
             }).ToArray();

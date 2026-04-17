@@ -58,4 +58,6 @@ public record ReportConfigurationOptions
     public DataFormat SpecificationsDataFormat { get; set; } = DataFormat.Yaml;
     public bool ActivitySourceDiscovery { get; set; }
     public bool DiagnosticMode { get; set; }
+    public bool GroupParameterizedTests { get; set; } = true;
+    public int MaxParameterColumns { get; set; } = 10;
 }

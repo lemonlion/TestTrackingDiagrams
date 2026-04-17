@@ -34,6 +34,8 @@ internal static class ScenarioInfoExtensions
                                          && !t.StartsWith(BDDfyConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
                                 .ToArray();
 
+                            var parsed = ParameterParser.Parse(x.ScenarioTitle);
+
                             return new Scenario
                             {
                                 Id = x.TestId,
@@ -47,6 +49,8 @@ internal static class ScenarioInfoExtensions
                                     ? MapSteps(x.Steps)
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
+                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(x.ScenarioTitle) : null,
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null,
                             };
                         }).ToArray())
                 };

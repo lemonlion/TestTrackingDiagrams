@@ -22,15 +22,22 @@ internal static class TestContextEnumerableExtensions
                         .DistinctBy(x => x.Test!.UniqueID)
                         .OrderByDescending(x => x.TestMethod!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey))
                         .ThenBy(x => x.Test?.TestDisplayName)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.Test!.UniqueID,
-                            Result = x.TestState!.Result.ToExecutionResult(),
-                            DisplayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName),
-                            IsHappyPath = x.Test!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey),
-                            ErrorMessage = string.Join(Environment.NewLine, x.TestState!.FailureCause) + Environment.NewLine + string.Join(Environment.NewLine, x.TestState!.ExceptionMessages ?? []),
-                            ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? []),
-                            Duration = x.TestState!.ExecutionTime is > 0 ? TimeSpan.FromMilliseconds((double)x.TestState.ExecutionTime.Value) : null
+                            var displayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName);
+                            var parsed = ParameterParser.Parse(displayName);
+                            return new Scenario
+                            {
+                                Id = x.Test!.UniqueID,
+                                Result = x.TestState!.Result.ToExecutionResult(),
+                                DisplayName = displayName,
+                                IsHappyPath = x.Test!.Traits.ContainsKey(HappyPathAttribute.HappyPathTraitKey),
+                                ErrorMessage = string.Join(Environment.NewLine, x.TestState!.FailureCause) + Environment.NewLine + string.Join(Environment.NewLine, x.TestState!.ExceptionMessages ?? []),
+                                ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? []),
+                                Duration = x.TestState!.ExecutionTime is > 0 ? TimeSpan.FromMilliseconds((double)x.TestState.ExecutionTime.Value) : null,
+                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                            };
                         }).ToArray()
                 };
             }).ToArray();

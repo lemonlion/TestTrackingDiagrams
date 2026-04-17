@@ -85,8 +85,8 @@ public static class ReportGenerator
 
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
             () => GenerateSpecificationsData(features, $"{options.YamlSpecificationsFileName}.{specsDataExtension}", options.SpecificationsTitle, options.SpecificationsDataFormat, true),
             () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat, diagrams, trackedLogs)
         };
@@ -169,7 +169,9 @@ public static class ReportGenerator
         bool showStepNumbers = false,
         string? customCss = null,
         string? customFaviconBase64 = null,
-        string? customLogoHtml = null)
+        string? customLogoHtml = null,
+        bool groupParameterizedTests = true,
+        int maxParameterColumns = 10)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -598,6 +600,28 @@ public static class ReportGenerator
                                            }
                                            """;
 
+        // Parameterized row selection
+        var selectRowFunction = """
+                                function selectRow(clickedRow, prefix) {
+                                    var table = clickedRow.closest('table');
+                                    if (!table) return;
+                                    var rows = table.querySelectorAll('tbody tr');
+                                    for (var i = 0; i < rows.length; i++) rows[i].classList.remove('row-active');
+                                    clickedRow.classList.add('row-active');
+                                    var idx = clickedRow.getAttribute('data-row-idx');
+                                    // Switch detail panels
+                                    var panels = document.querySelectorAll('[id^="' + prefix + '-detail-"]');
+                                    for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
+                                    var activePanel = document.getElementById(prefix + '-detail-' + idx);
+                                    if (activePanel) activePanel.style.display = '';
+                                    // Switch diagram divs
+                                    var diagrams = document.querySelectorAll('[id^="' + prefix + '-diagram-"]');
+                                    for (var i = 0; i < diagrams.length; i++) diagrams[i].style.display = 'none';
+                                    var activeDiagram = document.getElementById(prefix + '-diagram-' + idx);
+                                    if (activeDiagram) activeDiagram.style.display = '';
+                                }
+                                """;
+
         // Toggle timeline
         var toggleTimelineFunction = """
                                      function toggle_timeline(btn) {
@@ -959,6 +983,7 @@ public static class ReportGenerator
                                 {{sortTableFunction}}
                                 {{copyScenarioNameFunction}}
                                 {{toggleExamplesDetailFunction}}
+                                {{selectRowFunction}}
                                 {{toggleTimelineFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
@@ -1310,21 +1335,43 @@ public static class ReportGenerator
 
             var orderedScenarios = feature.Scenarios.OrderByDescending(x => x.IsHappyPath).ThenBy(x => x.DisplayName).ToArray();
 
-            // Pre-group scenarios by OutlineId for examples tables
-            var outlineGroups = orderedScenarios
-                .Where(s => s.OutlineId is not null)
-                .GroupBy(s => s.OutlineId!)
-                .ToDictionary(g => g.Key, g => g.ToArray());
-            var renderedOutlineIds = new HashSet<string>();
+            // Group parameterized scenarios using ParameterGrouper
+            Func<Scenario[], bool> diagramComparer = groupScenarios =>
+            {
+                var firstDiags = diagramsByTestId[groupScenarios[0].Id].Select(d => d.CodeBehind).OrderBy(s => s).ToArray();
+                if (firstDiags.Length == 0) return false;
+                for (var gi = 1; gi < groupScenarios.Length; gi++)
+                {
+                    var thisDiags = diagramsByTestId[groupScenarios[gi].Id].Select(d => d.CodeBehind).OrderBy(s => s).ToArray();
+                    if (!firstDiags.SequenceEqual(thisDiags)) return false;
+                }
+                return true;
+            };
+            var (paramGroups, _) = ParameterGrouper.Analyze(orderedScenarios, groupParameterizedTests, maxParameterColumns, diagramComparer);
+
+            // Build lookup from scenario ID → group for first-encounter rendering
+            var scenarioToGroup = new Dictionary<string, ParameterizedGroup>();
+            var renderedGroupKeys = new HashSet<string>();
+            foreach (var pg in paramGroups)
+                foreach (var s in pg.Scenarios)
+                    scenarioToGroup[s.Id] = pg;
 
             // Group by Rule for rendering
             string? currentRule = "__NOTSET__";
             var ruleOpen = false;
+            var paramGroupCounter = 0;
             foreach (var scenario in orderedScenarios)
             {
-                // Skip if this scenario belongs to an outline group already rendered
-                if (scenario.OutlineId is not null && renderedOutlineIds.Contains(scenario.OutlineId))
-                    continue;
+                // Is this scenario part of a parameterized group?
+                ParameterizedGroup? group = null;
+                string? groupKey = null;
+                if (scenarioToGroup.TryGetValue(scenario.Id, out var g))
+                {
+                    groupKey = g.GroupDisplayName + "|" + string.Join(",", g.Scenarios.Select(s => s.Id));
+                    if (renderedGroupKeys.Contains(groupKey))
+                        continue;
+                    group = g;
+                }
 
                 if (scenario.Rule != currentRule)
                 {
@@ -1344,124 +1391,14 @@ public static class ReportGenerator
                     }
                 }
 
-                // Render as examples table if this is an outline group
-                if (scenario.OutlineId is not null && outlineGroups.TryGetValue(scenario.OutlineId, out var outlineScenarios))
+                // Render parameterized group
+                if (group is not null)
                 {
-                    renderedOutlineIds.Add(scenario.OutlineId);
-                    var allKeys = outlineScenarios
-                        .Where(s => s.ExampleValues is not null)
-                        .SelectMany(s => s.ExampleValues!.Keys)
-                        .Distinct()
-                        .ToArray();
-                    var outlineHasFailure = outlineScenarios.Any(s => s.Result == ExecutionResult.Failed);
-                    var outlineHasSkipped = outlineScenarios.Any(s => s.Result == ExecutionResult.Skipped);
-                    var outlineOverallStatus = outlineHasFailure ? ExecutionResult.Failed
-                        : outlineHasSkipped ? ExecutionResult.Skipped
-                        : outlineScenarios.Any(s => s.Result == ExecutionResult.Bypassed) ? ExecutionResult.Bypassed
-                        : ExecutionResult.Passed;
-
-                    // Build search text from all outline scenario names + error messages + step text
-                    var outlineSearchParts = new List<string> { scenario.OutlineId };
-                    foreach (var os in outlineScenarios)
-                    {
-                        outlineSearchParts.Add(os.DisplayName);
-                        if (os.ErrorMessage is not null) outlineSearchParts.Add(os.ErrorMessage);
-                        CollectStepText(os.Steps, outlineSearchParts);
-                    }
-                    var outlineSearchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", outlineSearchParts).ToLowerInvariant())}\"";
-
-                    // Aggregate categories and labels from all outline scenarios
-                    var outlineCategories = outlineScenarios
-                        .Where(s => s.Categories is { Length: > 0 })
-                        .SelectMany(s => s.Categories!)
-                        .Distinct()
-                        .ToArray();
-                    var outlineCategoriesAttr = outlineCategories.Length > 0
-                        ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", outlineCategories))}\""
-                        : "";
-                    var outlineLabels = outlineScenarios
-                        .Where(s => s.Labels is { Length: > 0 })
-                        .SelectMany(s => s.Labels!)
-                        .Distinct()
-                        .ToArray();
-                    var outlineLabelsAttr = outlineLabels.Length > 0
-                        ? $" data-labels=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", outlineLabels))}\""
-                        : "";
-
-                    // Total duration
-                    var outlineTotalDuration = outlineScenarios
-                        .Where(s => s.Duration.HasValue)
-                        .Select(s => s.Duration!.Value)
-                        .Aggregate(TimeSpan.Zero, (acc, d) => acc + d);
-                    var outlineDurationAttr = outlineTotalDuration > TimeSpan.Zero
-                        ? $" data-duration-ms=\"{outlineTotalDuration.TotalMilliseconds:F0}\""
-                        : "";
-                    var outlineDurationBadge = outlineTotalDuration > TimeSpan.Zero
-                        ? $" <span class=\"duration-badge {(outlineTotalDuration.TotalMilliseconds < 2000 ? "duration-fast" : outlineTotalDuration.TotalMilliseconds < 5000 ? "duration-moderate" : "duration-slow")}\">{FormatDurationBadge(outlineTotalDuration)}</span>"
-                        : "";
-
-                    body.Append($"<details class=\"scenario scenario-outline\" data-status=\"{outlineOverallStatus}\"{outlineSearchAttr}{outlineDurationAttr}{outlineCategoriesAttr}{outlineLabelsAttr}>");
-                    body.Append($"<summary class=\"h3{(outlineHasFailure ? " failed" : outlineHasSkipped ? " skipped" : "")}\">Scenario Outline: {System.Net.WebUtility.HtmlEncode(scenario.OutlineId)}{outlineDurationBadge}</summary>");
-                    body.Append("<table class=\"examples-table\"><thead><tr><th>Status</th><th>Scenario</th>");
-                    foreach (var key in allKeys)
-                        body.Append($"<th>{System.Net.WebUtility.HtmlEncode(key)}</th>");
-                    body.Append("<th>Duration</th></tr></thead><tbody>");
-                    foreach (var os in outlineScenarios)
-                    {
-                        var rowStatusIcon = os.Result switch
-                        {
-                            ExecutionResult.Passed => "&#10003;",
-                            ExecutionResult.Failed => "&#10005;",
-                            ExecutionResult.Skipped => "&#216;",
-                            ExecutionResult.Bypassed => "&#8631;",
-                            _ => ""
-                        };
-                        var rowStatusClass = $"examples-row-{os.Result.ToString().ToLowerInvariant()}";
-                        var hasDetail = os.Result == ExecutionResult.Failed;
-                        var expandIcon = hasDetail ? " class=\"examples-row-expandable\" onclick=\"toggle_examples_detail(this)\"" : "";
-                        body.Append($"<tr class=\"{rowStatusClass}\" data-status=\"{os.Result}\"{expandIcon}><td>{rowStatusIcon}</td>");
-                        body.Append($"<td>{System.Net.WebUtility.HtmlEncode(os.DisplayName)}</td>");
-                        foreach (var key in allKeys)
-                        {
-                            var val = os.ExampleValues?.GetValueOrDefault(key, "");
-                            body.Append($"<td>{System.Net.WebUtility.HtmlEncode(val ?? "")}</td>");
-                        }
-                        var durationText = os.Duration.HasValue ? FormatDurationBadge(os.Duration.Value) : "";
-                        body.Append($"<td>{durationText}</td>");
-                        body.Append("</tr>");
-
-                        // Expandable detail row for failed scenarios
-                        if (hasDetail)
-                        {
-                            var colSpan = 3 + allKeys.Length; // Status + Scenario + keys + Duration
-                            body.Append($"<tr class=\"examples-detail-row\" style=\"display:none\"><td colspan=\"{colSpan}\">");
-                            if (os.ErrorMessage is not null || os.ErrorStackTrace is not null)
-                            {
-                                var osDiffHtml = "";
-                                var osDiffResult = ErrorDiffParser.TryParseExpectedActual(os.ErrorMessage);
-                                if (osDiffResult is not null)
-                                    osDiffHtml = ErrorDiffParser.GenerateDiffHtml(osDiffResult.Expected, osDiffResult.Actual);
-                                body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
-                                if (os.ErrorMessage is not null)
-                                    body.Append($"Failure Cause: {os.ErrorMessage}\n\n");
-                                if (os.ErrorStackTrace is not null)
-                                    body.Append(os.ErrorStackTrace);
-                                body.Append($"</pre>{osDiffHtml}</details>");
-                            }
-                            if (os.Steps is { Length: > 0 })
-                            {
-                                body.Append("<div class=\"scenario-steps\">");
-                                for (var si = 0; si < os.Steps.Length; si++)
-                                {
-                                    var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                                    RenderStep(body, os.Steps[si], numberPrefix);
-                                }
-                                body.Append("</div>");
-                            }
-                            body.Append("</td></tr>");
-                        }
-                    }
-                    body.Append("</tbody></table></details>");
+                    renderedGroupKeys.Add(groupKey!);
+                    var groupPrefix = $"pgrp{paramGroupCounter++}";
+                    RenderParameterizedGroup(body, group, groupPrefix, diagramsByTestId, scenarioDependencies,
+                        showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
+                        ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount);
                     continue;
                 }
 
@@ -1901,6 +1838,270 @@ public static class ReportGenerator
             if (HasAnySkipped(sub)) return true;
         }
         return false;
+    }
+
+    private static void RenderParameterizedGroup(
+        StringBuilder body,
+        ParameterizedGroup group,
+        string prefix,
+        ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
+        Dictionary<string, HashSet<string>> scenarioDependencies,
+        bool showStepNumbers,
+        bool isPlantUmlBrowser,
+        bool isInlineSvg,
+        bool lazyLoadImages,
+        ref int plantUmlBrowserCounter,
+        Dictionary<string, InternalFlowSegment>? wholeTestSegments,
+        RequestResponseLog[]? trackedLogs,
+        WholeTestFlowVisualization wholeTestVisualization,
+        int medianSpanCount)
+    {
+        var scenarios = group.Scenarios;
+
+        // Aggregate status
+        var hasFailure = scenarios.Any(s => s.Result == ExecutionResult.Failed);
+        var hasSkipped = scenarios.Any(s => s.Result == ExecutionResult.Skipped);
+        var overallStatus = hasFailure ? ExecutionResult.Failed
+            : hasSkipped ? ExecutionResult.Skipped
+            : scenarios.Any(s => s.Result == ExecutionResult.Bypassed) ? ExecutionResult.Bypassed
+            : ExecutionResult.Passed;
+
+        // Build search text
+        var searchParts = new List<string> { group.GroupDisplayName };
+        foreach (var s in scenarios)
+        {
+            searchParts.Add(s.DisplayName);
+            if (s.ErrorMessage is not null) searchParts.Add(s.ErrorMessage);
+            CollectStepText(s.Steps, searchParts);
+            foreach (var d in diagramsByTestId[s.Id]) searchParts.Add(d.CodeBehind);
+        }
+        var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
+
+        // Aggregate categories, labels, dependencies
+        var categories = scenarios.Where(s => s.Categories is { Length: > 0 }).SelectMany(s => s.Categories!).Distinct().ToArray();
+        var categoriesAttr = categories.Length > 0 ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", categories))}\"" : "";
+        var labels = scenarios.Where(s => s.Labels is { Length: > 0 }).SelectMany(s => s.Labels!).Distinct().ToArray();
+        var labelsAttr = labels.Length > 0 ? $" data-labels=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", labels))}\"" : "";
+        var allDeps = scenarios.Where(s => scenarioDependencies.ContainsKey(s.Id)).SelectMany(s => scenarioDependencies[s.Id]).Distinct().OrderBy(d => d).ToArray();
+        var depsAttr = allDeps.Length > 0 ? $" data-dependencies=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", allDeps))}\"" : "";
+
+        // Total duration
+        var totalDuration = scenarios.Where(s => s.Duration.HasValue).Select(s => s.Duration!.Value).Aggregate(TimeSpan.Zero, (acc, d) => acc + d);
+        var durationAttr = totalDuration > TimeSpan.Zero ? $" data-duration-ms=\"{totalDuration.TotalMilliseconds:F0}\"" : "";
+        var durationBadge = totalDuration > TimeSpan.Zero
+            ? $" <span class=\"duration-badge {(totalDuration.TotalMilliseconds < 2000 ? "duration-fast" : totalDuration.TotalMilliseconds < 5000 ? "duration-moderate" : "duration-slow")}\">{FormatDurationBadge(totalDuration)}</span>"
+            : "";
+
+        // Pass/fail summary
+        var passCount = scenarios.Count(s => s.Result == ExecutionResult.Passed);
+        var failCount = scenarios.Count(s => s.Result == ExecutionResult.Failed);
+        var skipCount = scenarios.Count(s => s.Result is ExecutionResult.Skipped or ExecutionResult.Bypassed or ExecutionResult.SkippedAfterFailure);
+        var summaryParts = new List<string>();
+        if (failCount > 0) summaryParts.Add($"{failCount} failed");
+        if (skipCount > 0) summaryParts.Add($"{skipCount} skipped");
+        summaryParts.Add($"{passCount}/{scenarios.Length} passed");
+        var summaryText = $" <span class=\"label\">{string.Join(", ", summaryParts)}</span>";
+
+        var anchorId = GenerateScenarioAnchorId(group.GroupDisplayName);
+
+        body.Append($"<details class=\"scenario scenario-parameterized\" data-status=\"{overallStatus}\"{depsAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id=\"{anchorId}\" tabindex=\"0\">");
+        body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{System.Net.WebUtility.HtmlEncode(group.GroupDisplayName)}{summaryText}{durationBadge}</summary>");
+
+        // Parameter table
+        body.Append("<table class=\"param-test-table\"><thead>");
+        if (group.Rule == ParameterDisplayRule.ScalarColumns && group.ParameterNames.Length > 0)
+        {
+            // R1: Two-row header with master "Input Parameters" header
+            body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
+            body.Append($"<th colspan=\"{group.ParameterNames.Length}\" class=\"master-header\">Input Parameters</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
+            body.Append("<tr>");
+            foreach (var name in group.ParameterNames)
+                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(name)}</th>");
+            body.Append("</tr>");
+        }
+        else
+        {
+            // R0: Fallback single-row header
+            body.Append("<tr><th style=\"width:2.5em\">#</th><th>Test Case</th><th style=\"width:5em\">Status</th><th style=\"width:5.5em\">Duration</th></tr>");
+        }
+        body.Append("</thead><tbody>");
+
+        for (var ri = 0; ri < scenarios.Length; ri++)
+        {
+            var s = scenarios[ri];
+            var rowStatusClass = s.Result switch
+            {
+                ExecutionResult.Passed => "row-passed",
+                ExecutionResult.Failed => "row-failed",
+                ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "row-skipped",
+                ExecutionResult.Bypassed => "row-bypassed",
+                _ => ""
+            };
+            var activeClass = ri == 0 ? " row-active" : "";
+            var badgeClass = s.Result switch
+            {
+                ExecutionResult.Passed => "badge-pass",
+                ExecutionResult.Failed => "badge-fail",
+                ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "badge-skip",
+                ExecutionResult.Bypassed => "badge-bypass",
+                _ => ""
+            };
+            var badgeText = s.Result switch
+            {
+                ExecutionResult.Passed => "Passed",
+                ExecutionResult.Failed => "Failed",
+                ExecutionResult.Skipped => "Skipped",
+                ExecutionResult.Bypassed => "Bypassed",
+                ExecutionResult.SkippedAfterFailure => "Skipped",
+                _ => ""
+            };
+
+            body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" onclick=\"selectRow(this,'{prefix}')\">");
+            body.Append($"<td>{ri + 1}</td>");
+
+            if (group.Rule == ParameterDisplayRule.ScalarColumns && group.ParameterNames.Length > 0)
+            {
+                // R1: Individual parameter columns
+                foreach (var name in group.ParameterNames)
+                {
+                    var val = s.ExampleValues?.GetValueOrDefault(name, "") ?? "";
+                    body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                }
+            }
+            else
+            {
+                // R0: Full display name as "Test Case"
+                var displayText = s.ExampleDisplayName ?? s.DisplayName;
+                body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(displayText)}</td>");
+            }
+
+            var rowDuration = s.Duration.HasValue ? FormatDurationBadge(s.Duration.Value) : "";
+            body.Append($"<td><span class=\"status-badge {badgeClass}\">{badgeText}</span></td>");
+            body.Append($"<td class=\"mono\">{rowDuration}</td>");
+            body.Append("</tr>");
+        }
+        body.Append("</tbody></table>");
+
+        // Detail panels (steps, failure, tabular params)
+        var hasAnyDetail = scenarios.Any(s => s.Steps is { Length: > 0 } || s.Result == ExecutionResult.Failed);
+        if (hasAnyDetail)
+        {
+            body.Append($"<div class=\"param-detail-panels\">");
+            for (var ri = 0; ri < scenarios.Length; ri++)
+            {
+                var s = scenarios[ri];
+                var display = ri == 0 ? "" : " style=\"display:none\"";
+                body.Append($"<div class=\"param-detail-panel\" id=\"{prefix}-detail-{ri}\"{display}>");
+
+                if (s.Steps is { Length: > 0 })
+                {
+                    body.Append("<div class=\"scenario-steps\">");
+                    for (var si = 0; si < s.Steps.Length; si++)
+                    {
+                        var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
+                        RenderStep(body, s.Steps[si], numberPrefix);
+                    }
+                    body.Append("</div>");
+                    RenderCombinedTabularParameters(body, s.Steps);
+                }
+
+                if (s.Result == ExecutionResult.Failed)
+                {
+                    var diffHtml = "";
+                    var diffResult = ErrorDiffParser.TryParseExpectedActual(s.ErrorMessage);
+                    if (diffResult is not null)
+                        diffHtml = ErrorDiffParser.GenerateDiffHtml(diffResult.Expected, diffResult.Actual);
+                    body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
+                    if (s.ErrorMessage is not null)
+                        body.Append($"Failure Cause: {s.ErrorMessage}\n\n");
+                    if (s.ErrorStackTrace is not null)
+                        body.Append(s.ErrorStackTrace);
+                    body.Append($"</pre>{diffHtml}</details>");
+                }
+
+                body.Append("</div>");
+            }
+            body.Append("</div>");
+        }
+
+        // Diagrams
+        if (group.AllDiagramsIdentical)
+        {
+            // Show a single diagram with a badge
+            var firstDiagrams = diagramsByTestId[scenarios[0].Id].ToArray();
+            if (firstDiagrams.Length > 0)
+            {
+                body.Append("<div class=\"param-diagram-area\">");
+                body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
+                RenderDiagramsForScenario(body, firstDiagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                body.Append("</div>");
+            }
+        }
+        else
+        {
+            // Per-row diagram switching
+            var hasAnyDiagrams = scenarios.Any(s => diagramsByTestId[s.Id].Any());
+            if (hasAnyDiagrams)
+            {
+                body.Append("<div class=\"param-diagram-area\">");
+                for (var ri = 0; ri < scenarios.Length; ri++)
+                {
+                    var s = scenarios[ri];
+                    var display = ri == 0 ? "" : " style=\"display:none\"";
+                    body.Append($"<div id=\"{prefix}-diagram-{ri}\"{display}>");
+                    var diagrams = diagramsByTestId[s.Id].ToArray();
+                    if (diagrams.Length > 0)
+                    {
+                        RenderDiagramsForScenario(body, diagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                    }
+                    body.Append("</div>");
+                }
+                body.Append("</div>");
+            }
+        }
+
+        body.Append("</details>");
+    }
+
+    private static void RenderDiagramsForScenario(
+        StringBuilder body,
+        DefaultDiagramsFetcher.DiagramAsCode[] diagrams,
+        bool isPlantUmlBrowser,
+        bool isInlineSvg,
+        bool lazyLoadImages,
+        ref int plantUmlBrowserCounter)
+    {
+        var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
+        foreach (var diagram in diagrams)
+        {
+            if (isPlantUmlBrowser)
+            {
+                var diagramId = $"puml-{plantUmlBrowserCounter++}";
+                var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
+                body.Append($"<div class=\"plantuml-browser\" id=\"{diagramId}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading diagram...</div>");
+            }
+            else if (isInlineSvg)
+            {
+                var sourceCompressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
+                body.Append($"<div class=\"plantuml-inline-svg\" data-plantuml-z=\"{sourceCompressed}\" data-diagram-type=\"plantuml\">{diagram.ImgSrc}</div>");
+            }
+            else
+            {
+                body.Append($"""
+                         <details class="example">
+                            <summary class="example-image">
+                                <img{lazyLoadAttr} src="{diagram.ImgSrc}">
+                            </summary>
+                            <div class="raw-plantuml">
+                                <h4>Raw Plant UML</h4>
+                                <pre>{diagram.CodeBehind}</pre>
+                             </div>
+                         </details>
+                         """);
+            }
+        }
     }
 
     private static void RenderStep(StringBuilder body, ScenarioStep step, string? numberPrefix = null)

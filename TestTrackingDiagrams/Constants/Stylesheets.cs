@@ -1022,6 +1022,79 @@ public class Stylesheets
                 .timeline-toggle-active:hover {
                     background: rgb(50, 110, 220);
                 }
+
+                /* Parameterized test grouping table */
+                .param-test-table {
+                    border-collapse: collapse;
+                    margin: 0.5em 0 0.5em 1em;
+                    font-size: 0.9em;
+                    width: calc(100% - 2em);
+                }
+                .param-test-table th, .param-test-table td {
+                    border: 1px solid #ddd;
+                    padding: 0.3em 0.6em;
+                    text-align: left;
+                }
+                .param-test-table thead {
+                    background: #f0f0f0;
+                }
+                .param-test-table .master-header {
+                    text-align: center;
+                    background: #e8e8e8;
+                    font-weight: 600;
+                }
+                .param-test-table .sub-header {
+                    font-weight: 500;
+                    font-size: 0.95em;
+                }
+                .param-test-table tbody tr {
+                    cursor: pointer;
+                    transition: background 0.15s;
+                }
+                .param-test-table tbody tr:hover {
+                    background: #e8f0fe;
+                }
+                .param-test-table tbody tr.row-active {
+                    background: #d2e3fc;
+                    font-weight: 500;
+                }
+                .param-test-table tbody tr.row-passed { background: #f0fff0; }
+                .param-test-table tbody tr.row-failed { background: #fff0f0; }
+                .param-test-table tbody tr.row-skipped { background: #fff8e1; }
+                .param-test-table tbody tr.row-bypassed { background: #f0f0ff; }
+                .param-test-table tbody tr.row-active.row-passed { background: #d5f5e3; }
+                .param-test-table tbody tr.row-active.row-failed { background: #fadbd8; }
+                .param-test-table tbody tr.row-active.row-skipped { background: #fef9e7; }
+                .param-test-table .mono { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; }
+
+                /* Status badges */
+                .status-badge {
+                    display: inline-block;
+                    padding: 0.1em 0.4em;
+                    border-radius: 3px;
+                    font-size: 0.75em;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                .status-badge.badge-pass { background: #d5f5e3; color: #1e8449; }
+                .status-badge.badge-fail { background: #fadbd8; color: #c0392b; }
+                .status-badge.badge-skip { background: #fef9e7; color: #b7950b; }
+                .status-badge.badge-bypass { background: #e8eaf6; color: #3949ab; }
+
+                /* Detail panels and diagram area for parameterized groups */
+                .param-detail-panels { margin: 0.5em 0 0.5em 1em; }
+                .param-detail-panel { padding: 0.5em 0; }
+                .param-diagram-area { margin: 0.5em 0 0.5em 1em; }
+                .param-diagram-identical-badge {
+                    display: inline-block;
+                    padding: 0.2em 0.6em;
+                    background: #e8f5e9;
+                    color: #2e7d32;
+                    border-radius: 4px;
+                    font-size: 0.85em;
+                    font-weight: 500;
+                    margin-bottom: 0.5em;
+                }
         """;
 
     public const string VioletThemeStyleSheet =

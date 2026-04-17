@@ -26,15 +26,22 @@ internal static class TestContextEnumerableExtensions
                         .DistinctBy(x => x.Test.ID)
                         .OrderByDescending(x => x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey))
                         .ThenBy(x => x.Test.MethodName)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.Test.ID,
-                            Result = x.Result.Outcome.Status.ToExecutionResult(),
-                            DisplayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test.Name!),
-                            IsHappyPath = x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey),
-                            ErrorMessage = x.Result.Message,
-                            ErrorStackTrace = x.Result.StackTrace,
-                            Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null
+                            var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test.Name!);
+                            var parsed = ParameterParser.Parse(displayName);
+                            return new Scenario
+                            {
+                                Id = x.Test.ID,
+                                Result = x.Result.Outcome.Status.ToExecutionResult(),
+                                DisplayName = displayName,
+                                IsHappyPath = x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey),
+                                ErrorMessage = x.Result.Message,
+                                ErrorStackTrace = x.Result.StackTrace,
+                                Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null,
+                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                            };
                         }).ToArray()
                 };
             }).ToArray();

@@ -39,10 +39,13 @@ internal static class FeatureResultExtensions
             ? FindFirstFailedException(result.GetSteps())
             : null;
 
+        var displayName = result.Info.Name.ToString();
+        var parsed = ParameterParser.Parse(displayName);
+
         return new Scenario
         {
             Id = result.Info.RuntimeId.ToString(),
-            DisplayName = result.Info.Name.ToString(),
+            DisplayName = displayName,
             Result = MapStatus(result.Status),
             ErrorMessage = result.Status == ExecutionStatus.Failed ? result.StatusDetails : null,
             ErrorStackTrace = failedException?.StackTrace,
@@ -51,6 +54,8 @@ internal static class FeatureResultExtensions
             IsHappyPath = labels.Contains("Happy Path"),
             Labels = labels.Length > 0 ? labels : null,
             Categories = categories.Length > 0 ? categories : null,
+            OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+            ExampleValues = parsed is { Count: > 0 } ? parsed : null,
         };
     }
 

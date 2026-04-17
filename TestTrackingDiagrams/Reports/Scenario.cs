@@ -15,4 +15,5 @@ public record Scenario
     public string? Rule { get; set; }
     public string? OutlineId { get; set; }
     public Dictionary<string, string>? ExampleValues { get; set; }
+    public string? ExampleDisplayName { get; set; }
 }

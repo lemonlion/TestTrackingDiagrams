@@ -28,15 +28,22 @@ internal static class TestContextEnumerableExtensions
                         .DistinctBy(x => x.Id)
                         .OrderByDescending(x => x.Metadata.TestDetails.Categories.Contains(HappyPathAttribute.HappyPathCategoryKey))
                         .ThenBy(x => x.Metadata.DisplayName)
-                        .Select(x => new Scenario
+                        .Select(x =>
                         {
-                            Id = x.Id,
-                            Result = x.Execution.Result?.State.ToExecutionResult() ?? ExecutionResult.Skipped,
-                            DisplayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Metadata.DisplayName),
-                            IsHappyPath = x.Metadata.TestDetails.Categories.Contains(HappyPathAttribute.HappyPathCategoryKey),
-                            ErrorMessage = x.Execution.Result?.Exception?.Message,
-                            ErrorStackTrace = x.Execution.Result?.Exception?.StackTrace,
-                            Duration = x.Execution.Result?.Duration
+                            var displayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Metadata.DisplayName);
+                            var parsed = ParameterParser.Parse(displayName);
+                            return new Scenario
+                            {
+                                Id = x.Id,
+                                Result = x.Execution.Result?.State.ToExecutionResult() ?? ExecutionResult.Skipped,
+                                DisplayName = displayName,
+                                IsHappyPath = x.Metadata.TestDetails.Categories.Contains(HappyPathAttribute.HappyPathCategoryKey),
+                                ErrorMessage = x.Execution.Result?.Exception?.Message,
+                                ErrorStackTrace = x.Execution.Result?.Exception?.StackTrace,
+                                Duration = x.Execution.Result?.Duration,
+                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                            };
                         }).ToArray()
                 };
             }).ToArray();
