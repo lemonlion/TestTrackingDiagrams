@@ -160,6 +160,9 @@ public class Stylesheets
 
                 .filter-search {
                     width: 100%;
+                    display: flex;
+                    gap: 0.4em;
+                    align-items: center;
                 }
 
                 #searchbar {
@@ -168,6 +171,70 @@ public class Stylesheets
                     width: 100%;
                     box-sizing: border-box;
                     border: 1px solid rgb(180, 180, 180);
+                }
+
+                .search-help-toggle {
+                    flex-shrink: 0;
+                    width: 1.6em;
+                    height: 1.6em;
+                    border-radius: 50%;
+                    border: 1px solid rgb(180, 180, 180);
+                    background: transparent;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 0.9em;
+                    line-height: 1;
+                    color: rgb(100, 100, 100);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .search-help-toggle:hover {
+                    background: rgb(240, 240, 240);
+                    color: rgb(50, 50, 50);
+                }
+
+                .search-help-panel {
+                    margin-top: 0.5em;
+                    padding: 0.8em 1em;
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 0.5em;
+                    background: rgb(250, 250, 250);
+                    font-size: 0.85em;
+                    line-height: 1.6;
+                }
+                .search-help-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 0.5em;
+                }
+                .search-help-table th {
+                    text-align: left;
+                    border-bottom: 1px solid rgb(200, 200, 200);
+                    padding: 0.3em 0.6em;
+                    font-size: 0.9em;
+                }
+                .search-help-table td {
+                    padding: 0.25em 0.6em;
+                    border-bottom: 1px solid rgb(230, 230, 230);
+                }
+                .search-help-table code {
+                    background: rgb(230, 230, 230);
+                    padding: 0.1em 0.3em;
+                    border-radius: 3px;
+                    font-size: 0.95em;
+                }
+                .search-help-note {
+                    margin: 0.4em 0 0;
+                    color: rgb(100, 100, 100);
+                    font-size: 0.9em;
+                }
+                .search-help-note kbd {
+                    background: rgb(230, 230, 230);
+                    border: 1px solid rgb(200, 200, 200);
+                    border-radius: 3px;
+                    padding: 0.1em 0.4em;
+                    font-size: 0.9em;
                 }
 
                 .filter-row {
@@ -1149,6 +1216,14 @@ public class Stylesheets
                 .rule { border-left-color: #8B5CF6; }
                 span.label { background-color: #C4B5FD; }
                 #searchbar { border-color: #C4B5FD; }
+                .search-help-toggle { border-color: #C4B5FD; color: #C4B5FD; }
+                .search-help-toggle:hover { background: #3B2F63; color: #E9D5FF; }
+                .search-help-panel { border-color: #5B21B6; background: #1E1534; }
+                .search-help-table th { border-bottom-color: #5B21B6; }
+                .search-help-table td { border-bottom-color: #2E2048; }
+                .search-help-table code { background: #2E2048; }
+                .search-help-note { color: #A78BFA; }
+                .search-help-note kbd { background: #2E2048; border-color: #5B21B6; }
                 .scenario-steps { border-left-color: #C4B5FD; }
                 .sub-steps { border-left-color: #DDD6FE; }
                 .feature-summary-table th { background: #F5F3FF; }

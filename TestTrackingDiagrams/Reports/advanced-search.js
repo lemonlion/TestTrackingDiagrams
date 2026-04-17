@@ -2,11 +2,12 @@
 // Pure functions — no DOM access. Tested via Jint.
 
 /**
- * Returns true if the input contains advanced search operators (&&, ||, !!).
+ * Returns true if the input contains advanced search operators (&&, ||, !!)
+ * or a $status filter (which has no legacy equivalent).
  * When false, the caller should use the legacy search path.
  */
 function isAdvancedSearch(input) {
-    return /&&|\|\||!!/.test(input);
+    return /&&|\|\||!!|\$\w/.test(input);
 }
 
 /**

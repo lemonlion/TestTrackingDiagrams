@@ -248,6 +248,11 @@ public static class ReportGenerator
                                        """;
         var searchFunction = """
                              var searchTimeoutId;
+
+                             function toggle_search_help() {
+                                 var panel = document.querySelector('.search-help-panel');
+                                 if (panel) panel.style.display = panel.style.display === 'none' ? '' : 'none';
+                             }
                              
                              function search_scenarios() {
                                  if (searchTimeoutId)
@@ -1291,7 +1296,21 @@ public static class ReportGenerator
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
-                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /></div>
+                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /><button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
+                    <div class="search-help-panel" style="display:none">
+                    <table class="search-help-table">
+                    <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
+                    <tr><td><code>word</code></td><td>Text search (scenario name, step text)</td><td><code>order</code></td></tr>
+                    <tr><td><code>"phrase"</code></td><td>Exact phrase match</td><td><code>"create order"</code></td></tr>
+                    <tr><td><code>&&</code></td><td>AND — both sides must match</td><td><code>order && create</code></td></tr>
+                    <tr><td><code>||</code></td><td>OR — either side must match</td><td><code>payment || order</code></td></tr>
+                    <tr><td><code>!!</code></td><td>NOT — excludes matches</td><td><code>order && !!delete</code></td></tr>
+                    <tr><td><code>( )</code></td><td>Parentheses — group expressions</td><td><code>(a || b) && c</code></td></tr>
+                    <tr><td><code>@tag</code></td><td>Filter by tag / category</td><td><code>@smoke && @api</code></td></tr>
+                    <tr><td><code>$status</code></td><td>Filter by status</td><td><code>$failed</code>, <code>$passed</code>, <code>$skipped</code></td></tr>
+                    </table>
+                    <p class="search-help-note">Space-separated words use implicit AND. Press <kbd>/</kbd> to focus the search bar. Operators <code>&&</code> <code>||</code> <code>!!</code> activate advanced mode; without them, legacy tag expressions (<code>@a and @b or not @c</code>) are also supported.</p>
+                    </div>
                     <div class="filter-row">
                  """);
 

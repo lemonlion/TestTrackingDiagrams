@@ -38,6 +38,10 @@ public class BackwardCompatibilityTests : JintTestBase
     [InlineData("login && $failed")]
     [InlineData("\"error message\" || timeout")]
     [InlineData("(a || b) && c")]
+    [InlineData("$failed")]
+    [InlineData("$passed")]
+    [InlineData("$skipped")]
+    [InlineData("$failed order")]
     public void Advanced_inputs_are_detected(string input)
     {
         Assert.True(CallIsAdvancedSearch(input));
