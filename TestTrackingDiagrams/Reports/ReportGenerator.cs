@@ -1360,12 +1360,13 @@ public static class ReportGenerator
                         : outlineScenarios.Any(s => s.Result == ExecutionResult.Bypassed) ? ExecutionResult.Bypassed
                         : ExecutionResult.Passed;
 
-                    // Build search text from all outline scenario names + error messages
+                    // Build search text from all outline scenario names + error messages + step text
                     var outlineSearchParts = new List<string> { scenario.OutlineId };
                     foreach (var os in outlineScenarios)
                     {
                         outlineSearchParts.Add(os.DisplayName);
                         if (os.ErrorMessage is not null) outlineSearchParts.Add(os.ErrorMessage);
+                        CollectStepText(os.Steps, outlineSearchParts);
                     }
                     var outlineSearchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", outlineSearchParts).ToLowerInvariant())}\"";
 
@@ -1485,9 +1486,10 @@ public static class ReportGenerator
                 // Deep link anchor ID
                 var anchorId = GenerateScenarioAnchorId(scenario.DisplayName);
 
-                // Pre-build searchable text: scenario name + error info + diagram sources
+                // Pre-build searchable text: scenario name + error info + step text + diagram sources
                 var searchParts = new List<string> { scenario.DisplayName };
                 if (failed && scenario.ErrorMessage is not null) searchParts.Add(scenario.ErrorMessage);
+                CollectStepText(scenario.Steps, searchParts);
                 var diagramsForSearch = diagramsByTestId[scenario.Id].ToArray();
                 foreach (var d in diagramsForSearch) searchParts.Add(d.CodeBehind);
                 var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
@@ -2723,6 +2725,16 @@ public static class ReportGenerator
         }
 
         return deps;
+    }
+
+    private static void CollectStepText(ScenarioStep[]? steps, List<string> parts)
+    {
+        if (steps is null) return;
+        foreach (var step in steps)
+        {
+            parts.Add(step.Text);
+            CollectStepText(step.SubSteps, parts);
+        }
     }
 
     private static string GetDataFormatExtension(DataFormat format) => format switch

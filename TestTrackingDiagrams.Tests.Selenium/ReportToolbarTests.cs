@@ -283,6 +283,79 @@ public class ReportToolbarTests : IDisposable
         Assert.NotNull(scenario.GetAttribute("open"));
     }
 
+    [Fact]
+    public void Search_with_quoted_phrase_matches_scenarios()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("ToolbarSearchQuoted.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        var searchbar = _driver.FindElement(By.Id("searchbar"));
+        // Search for "Delete order" with quotes — should match "Delete order fails gracefully"
+        searchbar.SendKeys("\"Delete order\"");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        var matchingScenarios = wait.Until(_ =>
+        {
+            var visible = _driver.FindElements(By.CssSelector(".scenario"))
+                .Where(s => s.GetCssValue("display") != "none")
+                .ToList();
+            // Wait for debounce to settle — we expect exactly 1 match
+            return visible.Count <= 1 ? visible : null;
+        });
+
+        Assert.NotNull(matchingScenarios);
+        Assert.Single(matchingScenarios);
+        Assert.Contains("delete order", matchingScenarios[0].GetAttribute("data-search")!);
+    }
+
+    [Fact]
+    public void Search_with_quoted_phrase_that_does_not_match_hides_all()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("ToolbarSearchQuotedNoMatch.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        var searchbar = _driver.FindElement(By.Id("searchbar"));
+        // "order create" is not a contiguous phrase in any scenario name
+        searchbar.SendKeys("\"order create\"");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        wait.Until(_ =>
+        {
+            var visible = _driver.FindElements(By.CssSelector(".scenario"))
+                .Where(s => s.GetCssValue("display") != "none")
+                .ToList();
+            return visible.Count == 0;
+        });
+
+        var allHidden = _driver.FindElements(By.CssSelector(".scenario"))
+            .All(s => s.GetCssValue("display") == "none");
+        Assert.True(allHidden, "All scenarios should be hidden when quoted phrase doesn't match");
+    }
+
+    [Fact]
+    public void Search_by_step_text_matches_scenario()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("ToolbarSearchStepText.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        var searchbar = _driver.FindElement(By.Id("searchbar"));
+        // "non-existent" only appears in a step of "Delete order fails gracefully", not in any scenario name
+        searchbar.SendKeys("non-existent");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        var matchingScenarios = wait.Until(_ =>
+        {
+            var visible = _driver.FindElements(By.CssSelector(".scenario"))
+                .Where(s => s.GetCssValue("display") != "none")
+                .ToList();
+            return visible.Count == 1 ? visible : null;
+        });
+
+        Assert.NotNull(matchingScenarios);
+        Assert.Single(matchingScenarios);
+        Assert.Contains("delete order", matchingScenarios[0].GetAttribute("data-search")!);
+    }
+
     // ── Clear All button ──
 
     [Fact]
