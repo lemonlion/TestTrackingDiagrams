@@ -100,7 +100,8 @@ public static class ReportGenerator
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
             () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
             () => GenerateSpecificationsData(features, $"{options.YamlSpecificationsFileName}.{specsDataExtension}", options.SpecificationsTitle, options.SpecificationsDataFormat, true),
-            () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat, diagrams, trackedLogs)
+            () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat, diagrams, trackedLogs),
+            () => GenerateTestRunReportSchema($"{options.HtmlTestRunReportFileName}.schema.{GetSchemaExtension(options.TestRunReportDataFormat)}", options.TestRunReportDataFormat)
         };
 
         if (options.GenerateComponentDiagram)
@@ -3226,4 +3227,305 @@ public static class ReportGenerator
         DataFormat.Yaml => "yml",
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
+
+    private static string GetSchemaExtension(DataFormat format) => format switch
+    {
+        DataFormat.Json => "json",
+        DataFormat.Xml => "xsd",
+        DataFormat.Yaml => "json", // YAML uses JSON Schema
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+
+    public static string GenerateTestRunReportSchema(string fileName, DataFormat format)
+    {
+        return format switch
+        {
+            DataFormat.Json => WriteFile(GenerateTestRunReportJsonSchema(), fileName),
+            DataFormat.Xml => WriteFile(GenerateTestRunReportXmlSchema(), fileName),
+            DataFormat.Yaml => WriteFile(GenerateTestRunReportJsonSchema(), fileName), // YAML uses JSON Schema
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    private static string GenerateTestRunReportJsonSchema()
+    {
+        var resultEnumValues = Enum.GetNames(typeof(ExecutionResult));
+        var statusEnumValues = resultEnumValues;
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+
+        var schema = new Dictionary<string, object?>
+        {
+            ["$schema"] = "https://json-schema.org/draft/2020-12/schema",
+            ["title"] = "TestRunReport",
+            ["description"] = "Schema for TestTrackingDiagrams test run report data",
+            ["type"] = "object",
+            ["required"] = new[] { "startTime", "endTime", "features" },
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["startTime"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date-time", ["description"] = "UTC start time of the test run" },
+                ["endTime"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date-time", ["description"] = "UTC end time of the test run" },
+                ["features"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["items"] = new Dictionary<string, object?>
+                    {
+                        ["type"] = "object",
+                        ["required"] = new[] { "name", "labels", "scenarios" },
+                        ["properties"] = new Dictionary<string, object?>
+                        {
+                            ["name"] = new Dictionary<string, object?> { ["type"] = "string" },
+                            ["endpoint"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                            ["description"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                            ["labels"] = new Dictionary<string, object?> { ["type"] = "array", ["items"] = new Dictionary<string, object?> { ["type"] = "string" } },
+                            ["scenarios"] = new Dictionary<string, object?>
+                            {
+                                ["type"] = "array",
+                                ["items"] = new Dictionary<string, object?>
+                                {
+                                    ["type"] = "object",
+                                    ["required"] = new[] { "id", "name", "result", "durationSeconds", "isHappyPath", "labels", "categories", "steps" },
+                                    ["properties"] = new Dictionary<string, object?>
+                                    {
+                                        ["id"] = new Dictionary<string, object?> { ["type"] = "string" },
+                                        ["name"] = new Dictionary<string, object?> { ["type"] = "string" },
+                                        ["result"] = new Dictionary<string, object?> { ["type"] = "string", ["enum"] = resultEnumValues },
+                                        ["durationSeconds"] = new Dictionary<string, object?> { ["type"] = "number" },
+                                        ["isHappyPath"] = new Dictionary<string, object?> { ["type"] = "boolean" },
+                                        ["errorMessage"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                                        ["errorStackTrace"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                                        ["labels"] = new Dictionary<string, object?> { ["type"] = "array", ["items"] = new Dictionary<string, object?> { ["type"] = "string" } },
+                                        ["categories"] = new Dictionary<string, object?> { ["type"] = "array", ["items"] = new Dictionary<string, object?> { ["type"] = "string" } },
+                                        ["steps"] = new Dictionary<string, object?>
+                                        {
+                                            ["type"] = "array",
+                                            ["items"] = new Dictionary<string, object?> { ["$ref"] = "#/$defs/step" }
+                                        },
+                                        ["diagrams"] = new Dictionary<string, object?>
+                                        {
+                                            ["type"] = "array",
+                                            ["items"] = new Dictionary<string, object?> { ["type"] = "string" }
+                                        },
+                                        ["httpInteractions"] = new Dictionary<string, object?>
+                                        {
+                                            ["type"] = "array",
+                                            ["items"] = new Dictionary<string, object?> { ["$ref"] = "#/$defs/httpInteraction" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            ["$defs"] = new Dictionary<string, object?>
+            {
+                ["step"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object?>
+                    {
+                        ["keyword"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                        ["text"] = new Dictionary<string, object?> { ["type"] = "string" },
+                        ["status"] = new Dictionary<string, object?> { ["type"] = "string", ["enum"] = statusEnumValues, ["nullable"] = true },
+                        ["durationSeconds"] = new Dictionary<string, object?> { ["type"] = "number", ["nullable"] = true },
+                        ["subSteps"] = new Dictionary<string, object?>
+                        {
+                            ["type"] = "array",
+                            ["items"] = new Dictionary<string, object?> { ["$ref"] = "#/$defs/step" }
+                        }
+                    }
+                },
+                ["httpInteraction"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object?>
+                    {
+                        ["type"] = new Dictionary<string, object?> { ["type"] = "string", ["enum"] = new[] { "Request", "Response" } },
+                        ["method"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                        ["uri"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "uri" },
+                        ["serviceName"] = new Dictionary<string, object?> { ["type"] = "string" },
+                        ["callerName"] = new Dictionary<string, object?> { ["type"] = "string" },
+                        ["content"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                        ["headers"] = new Dictionary<string, object?>
+                        {
+                            ["type"] = "array",
+                            ["items"] = new Dictionary<string, object?>
+                            {
+                                ["type"] = "object",
+                                ["properties"] = new Dictionary<string, object?>
+                                {
+                                    ["key"] = new Dictionary<string, object?> { ["type"] = "string" },
+                                    ["value"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true }
+                                }
+                            }
+                        },
+                        ["statusCode"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
+                        ["traceId"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "uuid" },
+                        ["requestResponseId"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "uuid" },
+                        ["timestamp"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date-time", ["nullable"] = true }
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(schema, options);
+    }
+
+    private static string GenerateTestRunReportXmlSchema()
+    {
+        var xs = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
+
+        var resultEnumValues = Enum.GetNames(typeof(ExecutionResult));
+
+        var executionResultType = new XElement(xs + "simpleType",
+            new XAttribute("name", "ExecutionResult"),
+            new XElement(xs + "restriction",
+                new XAttribute("base", "xs:string"),
+                resultEnumValues.Select(v => new XElement(xs + "enumeration", new XAttribute("value", v)))
+            ));
+
+        var headerType = new XElement(xs + "complexType",
+            new XAttribute("name", "HeaderType"),
+            new XElement(xs + "sequence",
+                new XElement(xs + "element", new XAttribute("name", "Key"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Value"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"))
+            ));
+
+        var stepType = new XElement(xs + "complexType",
+            new XAttribute("name", "StepType"),
+            new XElement(xs + "sequence",
+                new XElement(xs + "element", new XAttribute("name", "Keyword"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Text"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Status"), new XAttribute("type", "ExecutionResult"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "DurationSeconds"), new XAttribute("type", "xs:decimal"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "SubSteps"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Step"), new XAttribute("type", "StepType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                )
+            ));
+
+        var httpInteractionType = new XElement(xs + "complexType",
+            new XAttribute("name", "HttpInteractionType"),
+            new XElement(xs + "sequence",
+                new XElement(xs + "element", new XAttribute("name", "Type"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Method"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Uri"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "ServiceName"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "CallerName"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Content"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Headers"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Header"), new XAttribute("type", "HeaderType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "StatusCode"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "TraceId"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "RequestResponseId"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Timestamp"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"))
+            ));
+
+        var scenarioType = new XElement(xs + "complexType",
+            new XAttribute("name", "ScenarioType"),
+            new XElement(xs + "sequence",
+                new XElement(xs + "element", new XAttribute("name", "Id"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Name"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Result"), new XAttribute("type", "ExecutionResult")),
+                new XElement(xs + "element", new XAttribute("name", "DurationSeconds"), new XAttribute("type", "xs:decimal")),
+                new XElement(xs + "element", new XAttribute("name", "IsHappyPath"), new XAttribute("type", "xs:boolean")),
+                new XElement(xs + "element", new XAttribute("name", "ErrorMessage"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "ErrorStackTrace"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Labels"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Label"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Categories"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Category"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Steps"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Step"), new XAttribute("type", "StepType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Diagrams"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Diagram"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "HttpInteractions"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "HttpInteraction"), new XAttribute("type", "HttpInteractionType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                )
+            ));
+
+        var featureType = new XElement(xs + "complexType",
+            new XAttribute("name", "FeatureType"),
+            new XElement(xs + "sequence",
+                new XElement(xs + "element", new XAttribute("name", "Name"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "Endpoint"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Description"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "Labels"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Label"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Scenarios"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Scenario"), new XAttribute("type", "ScenarioType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                )
+            ));
+
+        var doc = new XDocument(
+            new XElement(xs + "schema",
+                new XAttribute(XNamespace.Xmlns + "xs", "http://www.w3.org/2001/XMLSchema"),
+                executionResultType,
+                headerType,
+                stepType,
+                httpInteractionType,
+                scenarioType,
+                featureType,
+                new XElement(xs + "element",
+                    new XAttribute("name", "TestRunReport"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "StartTime"), new XAttribute("type", "xs:string")),
+                            new XElement(xs + "element", new XAttribute("name", "EndTime"), new XAttribute("type", "xs:string")),
+                            new XElement(xs + "element", new XAttribute("name", "Features"),
+                                new XElement(xs + "complexType",
+                                    new XElement(xs + "sequence",
+                                        new XElement(xs + "element", new XAttribute("name", "Feature"), new XAttribute("type", "FeatureType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ));
+
+        return doc.Declaration != null ? doc.Declaration + "\n" + doc : doc.ToString();
+    }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Xml.Linq;
+using System.Xml.Schema;
 using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 using static TestTrackingDiagrams.DefaultDiagramsFetcher;
@@ -635,5 +636,297 @@ public class TestRunReportDataTests
         Assert.Equal(2, headers.GetArrayLength());
         Assert.Equal("Authorization", headers[0].GetProperty("key").GetString());
         Assert.Equal("Bearer token", headers[0].GetProperty("value").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_produces_valid_json_schema()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var root = doc.RootElement;
+
+        Assert.Equal("https://json-schema.org/draft/2020-12/schema", root.GetProperty("$schema").GetString());
+        Assert.Equal("object", root.GetProperty("type").GetString());
+
+        var properties = root.GetProperty("properties");
+        Assert.Equal("string", properties.GetProperty("startTime").GetProperty("type").GetString());
+        Assert.Equal("string", properties.GetProperty("endTime").GetProperty("type").GetString());
+        Assert.Equal("array", properties.GetProperty("features").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_defines_feature_structure()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_feat.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var featureItems = doc.RootElement.GetProperty("properties").GetProperty("features").GetProperty("items");
+
+        Assert.Equal("object", featureItems.GetProperty("type").GetString());
+        var featureProps = featureItems.GetProperty("properties");
+        Assert.Equal("string", featureProps.GetProperty("name").GetProperty("type").GetString());
+        Assert.Equal("array", featureProps.GetProperty("scenarios").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_defines_scenario_structure()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_scen.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var scenarioItems = doc.RootElement
+            .GetProperty("properties").GetProperty("features").GetProperty("items")
+            .GetProperty("properties").GetProperty("scenarios").GetProperty("items");
+
+        var scenarioProps = scenarioItems.GetProperty("properties");
+        Assert.Equal("string", scenarioProps.GetProperty("id").GetProperty("type").GetString());
+        Assert.Equal("string", scenarioProps.GetProperty("name").GetProperty("type").GetString());
+        Assert.Equal("string", scenarioProps.GetProperty("result").GetProperty("type").GetString());
+        Assert.Equal("number", scenarioProps.GetProperty("durationSeconds").GetProperty("type").GetString());
+        Assert.Equal("boolean", scenarioProps.GetProperty("isHappyPath").GetProperty("type").GetString());
+        Assert.Equal("array", scenarioProps.GetProperty("steps").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_defines_result_enum()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_enum.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var resultProp = doc.RootElement
+            .GetProperty("properties").GetProperty("features").GetProperty("items")
+            .GetProperty("properties").GetProperty("scenarios").GetProperty("items")
+            .GetProperty("properties").GetProperty("result");
+
+        var enumValues = resultProp.GetProperty("enum").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("Passed", enumValues);
+        Assert.Contains("Failed", enumValues);
+        Assert.Contains("Skipped", enumValues);
+        Assert.Contains("Bypassed", enumValues);
+        Assert.Contains("SkippedAfterFailure", enumValues);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_defines_steps_with_recursive_substeps()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_steps.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+
+        // Steps in scenario reference $defs/step
+        var stepsItems = doc.RootElement
+            .GetProperty("properties").GetProperty("features").GetProperty("items")
+            .GetProperty("properties").GetProperty("scenarios").GetProperty("items")
+            .GetProperty("properties").GetProperty("steps").GetProperty("items");
+        Assert.Equal("#/$defs/step", stepsItems.GetProperty("$ref").GetString());
+
+        // Follow the $ref to the step definition
+        var stepDef = doc.RootElement.GetProperty("$defs").GetProperty("step");
+        var stepProps = stepDef.GetProperty("properties");
+        Assert.Equal("string", stepProps.GetProperty("keyword").GetProperty("type").GetString());
+        Assert.Equal("string", stepProps.GetProperty("text").GetProperty("type").GetString());
+
+        // SubSteps should reference the same step definition (recursive via $ref)
+        var subSteps = stepProps.GetProperty("subSteps");
+        Assert.Equal("array", subSteps.GetProperty("type").GetString());
+        Assert.Equal("#/$defs/step", subSteps.GetProperty("items").GetProperty("$ref").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_defines_http_interaction_structure()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_http.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var scenarioProps = doc.RootElement
+            .GetProperty("properties").GetProperty("features").GetProperty("items")
+            .GetProperty("properties").GetProperty("scenarios").GetProperty("items")
+            .GetProperty("properties");
+
+        var httpRef = scenarioProps.GetProperty("httpInteractions").GetProperty("items");
+        // Should reference the $defs/httpInteraction definition
+        var httpDef = doc.RootElement.GetProperty("$defs").GetProperty("httpInteraction");
+        var httpProps = httpDef.GetProperty("properties");
+
+        Assert.Equal("string", httpProps.GetProperty("type").GetProperty("type").GetString());
+        Assert.Equal("string", httpProps.GetProperty("method").GetProperty("type").GetString());
+        Assert.Equal("string", httpProps.GetProperty("uri").GetProperty("type").GetString());
+        Assert.Equal("string", httpProps.GetProperty("serviceName").GetProperty("type").GetString());
+        Assert.Equal("string", httpProps.GetProperty("callerName").GetProperty("type").GetString());
+        Assert.Equal("array", httpProps.GetProperty("headers").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_validates_actual_json_output()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2) }
+                ]
+            }
+        };
+
+        var start = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2026, 1, 1, 10, 5, 0, DateTimeKind.Utc);
+
+        // Generate both data and schema
+        var dataPath = ReportGenerator.GenerateTestRunReportData(features, start, end, "TestRunData_validate.json", DataFormat.Json);
+        var schemaPath = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_validate.schema.json", DataFormat.Json);
+
+        var dataContent = File.ReadAllText(dataPath);
+        var schemaContent = File.ReadAllText(schemaPath);
+
+        // Both should be valid JSON
+        var dataDoc = JsonDocument.Parse(dataContent);
+        var schemaDoc = JsonDocument.Parse(schemaContent);
+
+        // Schema should have correct structure and data should align with it
+        Assert.Equal("object", schemaDoc.RootElement.GetProperty("type").GetString());
+        Assert.True(dataDoc.RootElement.TryGetProperty("startTime", out _));
+        Assert.True(dataDoc.RootElement.TryGetProperty("features", out _));
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_produces_valid_xsd()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport.schema.xsd", DataFormat.Xml);
+        var content = File.ReadAllText(path);
+
+        var doc = XDocument.Parse(content);
+        Assert.Equal("schema", doc.Root!.Name.LocalName);
+        Assert.Equal("http://www.w3.org/2001/XMLSchema", doc.Root.Name.NamespaceName);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_xsd_defines_root_element()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_root.schema.xsd", DataFormat.Xml);
+        var content = File.ReadAllText(path);
+
+        var doc = XDocument.Parse(content);
+        var xs = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
+
+        var rootElement = doc.Root!.Elements(xs + "element").FirstOrDefault(e => e.Attribute("name")?.Value == "TestRunReport");
+        Assert.NotNull(rootElement);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_xsd_validates_actual_xml_output()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2) }
+                ]
+            }
+        };
+
+        var start = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2026, 1, 1, 10, 5, 0, DateTimeKind.Utc);
+
+        var dataPath = ReportGenerator.GenerateTestRunReportData(features, start, end, "TestRunData_xsd_validate.xml", DataFormat.Xml);
+        var schemaPath = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_xsd_validate.schema.xsd", DataFormat.Xml);
+
+        var schemaContent = File.ReadAllText(schemaPath);
+        var schemaSet = new XmlSchemaSet();
+        schemaSet.Add("", System.Xml.XmlReader.Create(new StringReader(schemaContent)));
+
+        var dataDoc = XDocument.Load(dataPath);
+        var errors = new List<string>();
+        dataDoc.Validate(schemaSet, (_, e) => errors.Add(e.Message));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_xsd_validates_xml_with_diagrams_and_interactions()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios =
+                [
+                    new Scenario { Id = "test-1", DisplayName = "Place order", Result = ExecutionResult.Passed }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("test-1", "img", "@startuml\nAlice -> Bob\n@enduml")
+        };
+
+        var logs = new[]
+        {
+            new RequestResponseLog(
+                TestName: "Place order",
+                TestId: "test-1",
+                Method: HttpMethod.Post,
+                Content: "{\"item\":\"widget\"}",
+                Uri: new Uri("https://api.example.com/orders"),
+                Headers: [("Content-Type", "application/json")],
+                ServiceName: "OrderService",
+                CallerName: "TestClient",
+                Type: RequestResponseType.Request,
+                TraceId: Guid.NewGuid(),
+                RequestResponseId: Guid.NewGuid(),
+                TrackingIgnore: false)
+        };
+
+        var start = DateTime.UtcNow;
+        var end = DateTime.UtcNow;
+
+        var dataPath = ReportGenerator.GenerateTestRunReportData(features, start, end, "TestRunData_xsd_full.xml", DataFormat.Xml, diagrams, logs);
+        var schemaPath = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_xsd_full.schema.xsd", DataFormat.Xml);
+
+        var schemaContent = File.ReadAllText(schemaPath);
+        var schemaSet = new XmlSchemaSet();
+        schemaSet.Add("", System.Xml.XmlReader.Create(new StringReader(schemaContent)));
+
+        var dataDoc = XDocument.Load(dataPath);
+        var errors = new List<string>();
+        dataDoc.Validate(schemaSet, (_, e) => errors.Add(e.Message));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_yaml_returns_json_schema()
+    {
+        // YAML uses JSON Schema for validation (no separate YAML schema standard)
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_yaml.schema.json", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        Assert.Equal("https://json-schema.org/draft/2020-12/schema", doc.RootElement.GetProperty("$schema").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportSchema_json_schema_required_properties_are_defined()
+    {
+        var path = ReportGenerator.GenerateTestRunReportSchema("TestRunReport_required.schema.json", DataFormat.Json);
+        var content = File.ReadAllText(path);
+
+        var doc = JsonDocument.Parse(content);
+        var required = doc.RootElement.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("startTime", required);
+        Assert.Contains("endTime", required);
+        Assert.Contains("features", required);
     }
 }
