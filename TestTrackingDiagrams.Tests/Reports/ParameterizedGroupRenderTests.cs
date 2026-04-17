@@ -238,7 +238,7 @@ public class ParameterizedGroupRenderTests
         var content = GenerateReport(MakeFeature(scenarios), diagrams);
 
         Assert.DoesNotContain("class=\"param-diagram-identical-badge\"", content);
-        Assert.Contains("class=\"param-diagram-area\"", content);
+        Assert.Contains("class=\"example-diagrams\"", content);
         // Two diagram divs with different IDs
         var diagramDivs = Regex.Matches(content, @"id=""pgrp\d+-diagram-\d+""");
         Assert.True(diagramDivs.Count >= 2);
@@ -401,5 +401,117 @@ public class ParameterizedGroupRenderTests
 
         Assert.DoesNotContain("<script>alert(1)</script>", content);
         Assert.Contains("&lt;script&gt;", content);
+    }
+
+    // ── Copy scenario name button on groups ──
+
+    [Fact]
+    public void Group_summary_has_copy_scenario_name_button()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Proc(x: 1)", outlineId: "Proc", exampleValues: new() { ["x"] = "1" }),
+            MakeScenario("s2", "Proc(x: 2)", outlineId: "Proc", exampleValues: new() { ["x"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("copy-scenario-name", content);
+        Assert.Contains("data-scenario-name=\"Proc\"", content);
+    }
+
+    [Fact]
+    public void Group_summary_has_scenario_link()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Proc(x: 1)", outlineId: "Proc", exampleValues: new() { ["x"] = "1" }),
+            MakeScenario("s2", "Proc(x: 2)", outlineId: "Proc", exampleValues: new() { ["x"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("class=\"scenario-link\"", content);
+        Assert.Contains("href=\"#scenario-proc\"", content);
+    }
+
+    // ── Deep link per row ──
+
+    [Fact]
+    public void Rows_have_data_scenario_id_for_deep_linking()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" }),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test", exampleValues: new() { ["a"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Each row should have data-scenario-id attribute in table HTML
+        var dataScenarioIds = Regex.Matches(content, @"<tr[^>]+data-scenario-id=""([^""]+)""");
+        Assert.Equal(2, dataScenarioIds.Count);
+    }
+
+    [Fact]
+    public void Deep_link_JS_handles_row_inside_parameterized_group()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" }),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test", exampleValues: new() { ["a"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // The JS should have code for finding rows by data-scenario-id
+        Assert.Contains("data-scenario-id", content);
+        Assert.Contains("scenario-parameterized", content);
+    }
+
+    // ── Search row highlighting ──
+
+    [Fact]
+    public void Rows_have_data_row_search_for_search_matching()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: foo)", outlineId: "Test", exampleValues: new() { ["a"] = "foo" }),
+            MakeScenario("s2", "Test(a: bar)", outlineId: "Test", exampleValues: new() { ["a"] = "bar" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        var rowSearchAttrs = Regex.Matches(content, @"data-row-search=""[^""]+""");
+        Assert.Equal(2, rowSearchAttrs.Count);
+        // Each row's search text includes its display name
+        Assert.Contains("test(a: foo)", content.ToLowerInvariant());
+        Assert.Contains("test(a: bar)", content.ToLowerInvariant());
+    }
+
+    [Fact]
+    public void Search_JS_includes_row_search_match_logic()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" }),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test", exampleValues: new() { ["a"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("row-search-match", content);
+        Assert.Contains("data-row-search", content);
+    }
+
+    // ── SelectRow JS switching for activity/flame ──
+
+    [Fact]
+    public void SelectRow_JS_switches_activity_and_flame_divs()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" }),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test", exampleValues: new() { ["a"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // The selectRow JS should handle activity and flame divs
+        Assert.Contains("-activity-", content);
+        Assert.Contains("-flame-", content);
     }
 }

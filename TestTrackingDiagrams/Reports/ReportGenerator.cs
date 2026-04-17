@@ -327,6 +327,29 @@ public static class ReportGenerator
                                      let diagrams = singleMatch.querySelector('details.example-diagrams');
                                      if (diagrams) diagrams.setAttribute('open', '');
                                  }
+
+                                 // For parameterized groups: highlight matching row(s) based on per-row search data
+                                 if (searchTokens.length > 0) {
+                                     document.querySelectorAll('details.scenario-parameterized').forEach(function(group) {
+                                         if (group.style.display === 'none') return;
+                                         var rows = group.querySelectorAll('tr[data-row-search]');
+                                         var firstMatchRow = null;
+                                         for (var ri = 0; ri < rows.length; ri++) {
+                                             var rowText = rows[ri].getAttribute('data-row-search') || '';
+                                             var allMatch = true;
+                                             for (var j = 0; j < searchTokens.length; j++) {
+                                                 if (!rowText.includes(searchTokens[j])) { allMatch = false; break; }
+                                             }
+                                             if (allMatch && !firstMatchRow) { firstMatchRow = rows[ri]; }
+                                             rows[ri].classList.toggle('row-search-match', allMatch);
+                                         }
+                                         if (firstMatchRow && !firstMatchRow.classList.contains('row-active')) {
+                                             firstMatchRow.click();
+                                         }
+                                     });
+                                 } else {
+                                     document.querySelectorAll('tr.row-search-match').forEach(function(r) { r.classList.remove('row-search-match'); });
+                                 }
                              }
                              
                              function parseSearchTokensIncludingQuotes(str) {
@@ -614,11 +637,21 @@ public static class ReportGenerator
                                     for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
                                     var activePanel = document.getElementById(prefix + '-detail-' + idx);
                                     if (activePanel) activePanel.style.display = '';
-                                    // Switch diagram divs
+                                    // Switch diagram divs (sequence)
                                     var diagrams = document.querySelectorAll('[id^="' + prefix + '-diagram-"]');
                                     for (var i = 0; i < diagrams.length; i++) diagrams[i].style.display = 'none';
                                     var activeDiagram = document.getElementById(prefix + '-diagram-' + idx);
                                     if (activeDiagram) activeDiagram.style.display = '';
+                                    // Switch activity diagram divs
+                                    var activities = document.querySelectorAll('[id^="' + prefix + '-activity-"]');
+                                    for (var i = 0; i < activities.length; i++) activities[i].style.display = 'none';
+                                    var activeActivity = document.getElementById(prefix + '-activity-' + idx);
+                                    if (activeActivity) activeActivity.style.display = '';
+                                    // Switch flame chart divs
+                                    var flames = document.querySelectorAll('[id^="' + prefix + '-flame-"]');
+                                    for (var i = 0; i < flames.length; i++) flames[i].style.display = 'none';
+                                    var activeFlame = document.getElementById(prefix + '-flame-' + idx);
+                                    if (activeFlame) activeFlame.style.display = '';
                                 }
                                 """;
 
@@ -823,6 +856,19 @@ public static class ReportGenerator
                                           if (feature) feature.setAttribute('open', '');
                                           el.setAttribute('open', '');
                                           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                          return;
+                                      }
+                                      // Not a direct element — check if it's a row inside a parameterized group
+                                      var row = document.querySelector('tr[data-scenario-id="' + hash + '"]');
+                                      if (row) {
+                                          var group = row.closest('details.scenario-parameterized');
+                                          if (group) {
+                                              var feature = group.closest('details.feature');
+                                              if (feature) feature.setAttribute('open', '');
+                                              group.setAttribute('open', '');
+                                              row.click();
+                                              group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                          }
                                       }
                                       return;
                                   }
@@ -1903,9 +1949,10 @@ public static class ReportGenerator
         var summaryText = $" <span class=\"label\">{string.Join(", ", summaryParts)}</span>";
 
         var anchorId = GenerateScenarioAnchorId(group.GroupDisplayName);
+        var encodedGroupName = System.Net.WebUtility.HtmlEncode(group.GroupDisplayName);
 
         body.Append($"<details class=\"scenario scenario-parameterized\" data-status=\"{overallStatus}\"{depsAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id=\"{anchorId}\" tabindex=\"0\">");
-        body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{System.Net.WebUtility.HtmlEncode(group.GroupDisplayName)}{summaryText}{durationBadge}</summary>");
+        body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
 
         // Parameter table
         body.Append("<table class=\"param-test-table\"><thead>");
@@ -1958,7 +2005,14 @@ public static class ReportGenerator
                 _ => ""
             };
 
-            body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" onclick=\"selectRow(this,'{prefix}')\">");
+            var rowSearchParts = new List<string> { s.DisplayName };
+            if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
+            CollectStepText(s.Steps, rowSearchParts);
+            foreach (var d in diagramsByTestId[s.Id]) rowSearchParts.Add(d.CodeBehind);
+            var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
+
+            var rowAnchorId = GenerateScenarioAnchorId(s.DisplayName);
+            body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
             body.Append($"<td>{ri + 1}</td>");
 
             if (group.Rule == ParameterDisplayRule.ScalarColumns && group.ParameterNames.Length > 0)
@@ -2026,40 +2080,176 @@ public static class ReportGenerator
             body.Append("</div>");
         }
 
-        // Diagrams
-        if (group.AllDiagramsIdentical)
+        // Compute whole-test-flow content per scenario
+        var wholeTestContents = new (string ActivityHtml, string FlameHtml, int SpanCount)?[scenarios.Length];
+        if (wholeTestSegments is not null && wholeTestVisualization != WholeTestFlowVisualization.None)
         {
-            // Show a single diagram with a badge
-            var firstDiagrams = diagramsByTestId[scenarios[0].Id].ToArray();
-            if (firstDiagrams.Length > 0)
+            for (var ri = 0; ri < scenarios.Length; ri++)
             {
-                body.Append("<div class=\"param-diagram-area\">");
-                body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
-                RenderDiagramsForScenario(body, firstDiagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
-                body.Append("</div>");
+                var s = scenarios[ri];
+                var boundaryLogs = trackedLogs?
+                    .Where(l => l.TestId == s.Id && l.Type == RequestResponseType.Request && l.Timestamp.HasValue)
+                    .OrderBy(l => l.Timestamp!.Value)
+                    .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
+                    .ToArray() ?? [];
+                wholeTestContents[ri] = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
+                    wholeTestSegments, s.Id, boundaryLogs, wholeTestVisualization);
             }
         }
-        else
+
+        var hasAnyWholeTestFlow = wholeTestContents.Any(w => w is not null);
+        var allWtfIdentical = false;
+        if (hasAnyWholeTestFlow && group.AllDiagramsIdentical)
         {
-            // Per-row diagram switching
-            var hasAnyDiagrams = scenarios.Any(s => diagramsByTestId[s.Id].Any());
-            if (hasAnyDiagrams)
+            // Check if all whole-test-flow content is identical too
+            var firstActivity = wholeTestContents[0]?.ActivityHtml ?? "";
+            var firstFlame = wholeTestContents[0]?.FlameHtml ?? "";
+            allWtfIdentical = wholeTestContents.All(w =>
+                (w?.ActivityHtml ?? "") == firstActivity && (w?.FlameHtml ?? "") == firstFlame);
+        }
+
+        // Diagrams
+        var hasAnySeqDiagrams = scenarios.Any(s => diagramsByTestId[s.Id].Any());
+        var hasDiagramContent = hasAnySeqDiagrams || hasAnyWholeTestFlow;
+
+        if (hasDiagramContent)
+        {
+            body.Append("<details class=\"example-diagrams\" open>");
+
+            // Determine toggle buttons needed
+            var showSeqToggle = hasAnySeqDiagrams;
+            var showActivityToggle = hasAnyWholeTestFlow && wholeTestContents.Any(w => !string.IsNullOrEmpty(w?.ActivityHtml));
+            var showFlameToggle = hasAnyWholeTestFlow && wholeTestContents.Any(w => !string.IsNullOrEmpty(w?.FlameHtml));
+            var multipleTypes = (showSeqToggle ? 1 : 0) + (showActivityToggle ? 1 : 0) + (showFlameToggle ? 1 : 0) > 1;
+
+            if (multipleTypes)
             {
-                body.Append("<div class=\"param-diagram-area\">");
-                for (var ri = 0; ri < scenarios.Length; ri++)
-                {
-                    var s = scenarios[ri];
-                    var display = ri == 0 ? "" : " style=\"display:none\"";
-                    body.Append($"<div id=\"{prefix}-diagram-{ri}\"{display}>");
-                    var diagrams = diagramsByTestId[s.Id].ToArray();
-                    if (diagrams.Length > 0)
-                    {
-                        RenderDiagramsForScenario(body, diagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
-                    }
-                    body.Append("</div>");
-                }
+                body.Append("<summary class=\"h4\">Diagrams</summary>");
+                body.Append("<div class=\"diagram-toggle\">");
+                if (showSeqToggle)
+                    body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"seq\">Sequence Diagrams</button>");
+                if (showActivityToggle)
+                    body.Append($"<button class=\"diagram-toggle-btn{(!showSeqToggle ? " diagram-toggle-active" : "")}\" data-dtype=\"activity\">Activity Diagrams</button>");
+                if (showFlameToggle)
+                    body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                if (isPlantUmlBrowser && showSeqToggle)
+                    body.Append("<span class=\"diagram-toggle-spacer\"></span><span class=\"details-radio\"><span class=\"details-radio-label\">Details:</span><button class=\"details-radio-btn\" data-state=\"expanded\" onclick=\"window._setAllNotes(this,'expanded')\">Expanded</button><button class=\"details-radio-btn\" data-state=\"collapsed\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapsed</button><button class=\"details-radio-btn details-active\" data-state=\"truncated\" onclick=\"window._setAllNotes(this,'truncated')\">Truncated</button><select class=\"truncate-lines-select\" onchange=\"window._setScenarioTruncateLines(this)\"><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"10\">10</option><option value=\"15\">15</option><option value=\"20\">20</option><option value=\"25\">25</option><option value=\"30\">30</option><option value=\"35\">35</option><option value=\"40\" selected>40</option><option value=\"50\">50</option><option value=\"60\">60</option><option value=\"80\">80</option><option value=\"100\">100</option></select><span class=\"truncate-lines-label\">lines</span></span><span class=\"headers-radio\"><span class=\"details-radio-label\">Headers:</span><button class=\"details-radio-btn headers-radio-btn details-active\" data-hstate=\"shown\" onclick=\"window._setScenarioHeaders(this,'shown')\">Shown</button><button class=\"details-radio-btn headers-radio-btn\" data-hstate=\"hidden\" onclick=\"window._setScenarioHeaders(this,'hidden')\">Hidden</button></span>");
                 body.Append("</div>");
             }
+            else if (showSeqToggle)
+            {
+                body.Append("<summary class=\"h4\">Sequence Diagrams</summary>");
+                if (isPlantUmlBrowser)
+                {
+                    body.Append("<div class=\"diagram-toggle\">");
+                    body.Append("<span class=\"diagram-toggle-spacer\"></span><span class=\"details-radio\"><span class=\"details-radio-label\">Details:</span><button class=\"details-radio-btn\" data-state=\"expanded\" onclick=\"window._setAllNotes(this,'expanded')\">Expanded</button><button class=\"details-radio-btn\" data-state=\"collapsed\" onclick=\"window._setAllNotes(this,'collapsed')\">Collapsed</button><button class=\"details-radio-btn details-active\" data-state=\"truncated\" onclick=\"window._setAllNotes(this,'truncated')\">Truncated</button><select class=\"truncate-lines-select\" onchange=\"window._setScenarioTruncateLines(this)\"><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"10\">10</option><option value=\"15\">15</option><option value=\"20\">20</option><option value=\"25\">25</option><option value=\"30\">30</option><option value=\"35\">35</option><option value=\"40\" selected>40</option><option value=\"50\">50</option><option value=\"60\">60</option><option value=\"80\">80</option><option value=\"100\">100</option></select><span class=\"truncate-lines-label\">lines</span></span><span class=\"headers-radio\"><span class=\"details-radio-label\">Headers:</span><button class=\"details-radio-btn headers-radio-btn details-active\" data-hstate=\"shown\" onclick=\"window._setScenarioHeaders(this,'shown')\">Shown</button><button class=\"details-radio-btn headers-radio-btn\" data-hstate=\"hidden\" onclick=\"window._setScenarioHeaders(this,'hidden')\">Hidden</button></span>");
+                    body.Append("</div>");
+                }
+            }
+            else if (showActivityToggle && showFlameToggle)
+            {
+                body.Append("<summary class=\"h4\">Diagrams</summary>");
+                body.Append("<div class=\"diagram-toggle\">");
+                body.Append("<button class=\"diagram-toggle-btn diagram-toggle-active\" data-dtype=\"activity\">Activity Diagrams</button>");
+                body.Append("<button class=\"diagram-toggle-btn\" data-dtype=\"flame\">Flame Chart</button>");
+                body.Append("</div>");
+            }
+            else if (showActivityToggle)
+            {
+                body.Append("<summary class=\"h4\">Activity Diagrams</summary>");
+            }
+            else
+            {
+                body.Append("<summary class=\"h4\">Flame Chart</summary>");
+            }
+
+            // Sequence diagrams
+            if (hasAnySeqDiagrams)
+            {
+                var seqWrap = hasAnyWholeTestFlow && multipleTypes;
+                if (seqWrap) body.Append("<div class=\"diagram-view diagram-view-seq\">");
+
+                if (group.AllDiagramsIdentical)
+                {
+                    var firstDiagrams = diagramsByTestId[scenarios[0].Id].ToArray();
+                    if (firstDiagrams.Length > 0)
+                    {
+                        body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
+                        RenderDiagramsForScenario(body, firstDiagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                    }
+                }
+                else
+                {
+                    for (var ri = 0; ri < scenarios.Length; ri++)
+                    {
+                        var s = scenarios[ri];
+                        var display = ri == 0 ? "" : " style=\"display:none\"";
+                        body.Append($"<div id=\"{prefix}-diagram-{ri}\"{display}>");
+                        var diagrams = diagramsByTestId[s.Id].ToArray();
+                        if (diagrams.Length > 0)
+                            RenderDiagramsForScenario(body, diagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                        body.Append("</div>");
+                    }
+                }
+
+                if (seqWrap) body.Append("</div>");
+            }
+
+            // Activity diagrams
+            if (showActivityToggle)
+            {
+                var hideActivity = showSeqToggle; // hidden when seq is default
+                if (hideActivity) body.Append("<div class=\"diagram-view diagram-view-activity\" style=\"display:none\">");
+                else body.Append("<div class=\"diagram-view diagram-view-activity\">");
+
+                if (allWtfIdentical && wholeTestContents[0] is not null)
+                {
+                    body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
+                    body.Append(wholeTestContents[0]!.Value.ActivityHtml);
+                }
+                else
+                {
+                    for (var ri = 0; ri < scenarios.Length; ri++)
+                    {
+                        var display = ri == 0 ? "" : " style=\"display:none\"";
+                        body.Append($"<div id=\"{prefix}-activity-{ri}\"{display}>");
+                        if (wholeTestContents[ri] is not null && !string.IsNullOrEmpty(wholeTestContents[ri]!.Value.ActivityHtml))
+                            body.Append(wholeTestContents[ri]!.Value.ActivityHtml);
+                        body.Append("</div>");
+                    }
+                }
+
+                body.Append("</div>");
+            }
+
+            // Flame charts
+            if (showFlameToggle)
+            {
+                var hideFlame = showSeqToggle || (showActivityToggle && !showSeqToggle);
+                if (hideFlame) body.Append("<div class=\"diagram-view diagram-view-flame\" style=\"display:none\">");
+                else body.Append("<div class=\"diagram-view diagram-view-flame\">");
+
+                if (allWtfIdentical && wholeTestContents[0] is not null)
+                {
+                    body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
+                    body.Append(wholeTestContents[0]!.Value.FlameHtml);
+                }
+                else
+                {
+                    for (var ri = 0; ri < scenarios.Length; ri++)
+                    {
+                        var display = ri == 0 ? "" : " style=\"display:none\"";
+                        body.Append($"<div id=\"{prefix}-flame-{ri}\"{display}>");
+                        if (wholeTestContents[ri] is not null && !string.IsNullOrEmpty(wholeTestContents[ri]!.Value.FlameHtml))
+                            body.Append(wholeTestContents[ri]!.Value.FlameHtml);
+                        body.Append("</div>");
+                    }
+                }
+
+                body.Append("</div>");
+            }
+
+            body.Append("</details>");
         }
 
         body.Append("</details>");
