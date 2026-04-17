@@ -1132,7 +1132,7 @@ public class Stylesheets
                 .param-test-table tbody tr.row-active.row-passed { background: #d5f5e3; }
                 .param-test-table tbody tr.row-active.row-failed { background: #fadbd8; }
                 .param-test-table tbody tr.row-active.row-skipped { background: #fef9e7; }
-                .param-test-table tbody tr.row-search-match { outline: 2px solid #4285f4; outline-offset: -2px; }
+                .param-test-table tbody tr.row-search-match { box-shadow: inset 4px 0 0 #4285f4; }
                 .param-test-table .mono { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; }
 
                 /* Status badges */

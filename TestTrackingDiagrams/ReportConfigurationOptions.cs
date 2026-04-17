@@ -60,4 +60,5 @@ public record ReportConfigurationOptions
     public bool DiagnosticMode { get; set; }
     public bool GroupParameterizedTests { get; set; } = true;
     public int MaxParameterColumns { get; set; } = 10;
+    public bool TitleizeParameterNames { get; set; } = true;
 }

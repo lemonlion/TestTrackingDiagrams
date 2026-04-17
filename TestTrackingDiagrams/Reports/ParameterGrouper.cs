@@ -28,7 +28,7 @@ public static class ParameterGrouper
         foreach (var og in outlineGroups)
         {
             var members = og.ToArray();
-            if (members.Length < 2)
+            if (members.Length < 2 && !HasParameters(members))
             {
                 ungrouped.AddRange(members);
             }
@@ -52,7 +52,7 @@ public static class ParameterGrouper
         foreach (var pg in prefixGroups)
         {
             var members = pg.Select(x => x.Scenario).ToArray();
-            if (members.Length < 2)
+            if (members.Length < 2 && !HasParameters(members))
             {
                 ungrouped.AddRange(members);
             }
@@ -77,6 +77,9 @@ public static class ParameterGrouper
 
         return new ParameterizedGroup(groupName, paramNames, rule, members, identical);
     }
+
+    private static bool HasParameters(Scenario[] members) =>
+        members.Any(m => m.ExampleValues is { Count: > 0 } || ParameterParser.Parse(m.DisplayName) is { Count: > 0 });
 
     private static (string[] ParamNames, ParameterDisplayRule Rule) DetermineParamsAndRule(
         Scenario[] members, int maxColumns)

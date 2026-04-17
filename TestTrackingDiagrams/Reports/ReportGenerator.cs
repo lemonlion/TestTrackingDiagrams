@@ -97,8 +97,8 @@ public static class ReportGenerator
 
         var actions = new List<Action>
         {
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
-            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames),
+            () => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.FeaturesReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames),
             () => GenerateSpecificationsData(features, $"{options.YamlSpecificationsFileName}.{specsDataExtension}", options.SpecificationsTitle, options.SpecificationsDataFormat, true),
             () => GenerateTestRunReportData(features, startRunTime, endRunTime, $"{options.HtmlTestRunReportFileName}.{testRunDataExtension}", options.TestRunReportDataFormat, diagrams, trackedLogs),
             () => GenerateTestRunReportSchema($"{options.HtmlTestRunReportFileName}.schema.{GetSchemaExtension(options.TestRunReportDataFormat)}", options.TestRunReportDataFormat)
@@ -184,7 +184,8 @@ public static class ReportGenerator
         string? customFaviconBase64 = null,
         string? customLogoHtml = null,
         bool groupParameterizedTests = true,
-        int maxParameterColumns = 10)
+        int maxParameterColumns = 10,
+        bool titleizeParameterNames = true)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -1564,7 +1565,8 @@ public static class ReportGenerator
                     var groupPrefix = $"pgrp{paramGroupCounter++}";
                     RenderParameterizedGroup(body, group, groupPrefix, diagramsByTestId, scenarioDependencies,
                         showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
-                        ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount);
+                        ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
+                        titleizeParameterNames);
                     continue;
                 }
 
@@ -2020,7 +2022,8 @@ public static class ReportGenerator
         Dictionary<string, InternalFlowSegment>? wholeTestSegments,
         RequestResponseLog[]? trackedLogs,
         WholeTestFlowVisualization wholeTestVisualization,
-        int medianSpanCount)
+        int medianSpanCount,
+        bool titleizeParameterNames = true)
     {
         var scenarios = group.Scenarios;
 
@@ -2085,7 +2088,10 @@ public static class ReportGenerator
             body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
             body.Append("<tr>");
             foreach (var name in group.ParameterNames)
-                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(name)}</th>");
+            {
+                var displayName = titleizeParameterNames ? name.Titleize() : name;
+                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(displayName)}</th>");
+            }
             body.Append("</tr>");
         }
         else

@@ -103,6 +103,41 @@ public class ParameterizedGroupTests : IDisposable
         return new Uri(path).AbsoluteUri;
     }
 
+    private string GenerateSingleParamReport(string fileName)
+    {
+        var scenario = new Scenario
+        {
+            Id = "single1", DisplayName = "Process(region: UK, amount: 100)", IsHappyPath = true,
+            Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+            OutlineId = "Process",
+            ExampleValues = new Dictionary<string, string> { ["region"] = "UK", ["amount"] = "100" },
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Given", Text = "a valid region UK", Status = ExecutionResult.Passed },
+                new ScenarioStep { Keyword = "When", Text = "processing amount 100", Status = ExecutionResult.Passed },
+                new ScenarioStep { Keyword = "Then", Text = "the result is success", Status = ExecutionResult.Passed }
+            ]
+        };
+
+        var features = new[]
+        {
+            new Feature { DisplayName = "Single Param Feature", Scenarios = [scenario] }
+        };
+        var diagrams = new[] { new DefaultDiagramsFetcher.DiagramAsCode(scenario.Id, "",
+            "@startuml\nActor -> Service : UK\n@enduml") };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(_tempDir, fileName), "Single Param Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            groupParameterizedTests: true);
+
+        File.Copy(path, Path.Combine(OutputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
     private IWebElement WaitFor(By by, int timeoutSeconds = 5)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
@@ -464,5 +499,93 @@ public class ParameterizedGroupTests : IDisposable
                 Assert.False(otherDiv.Displayed, $"Diagram div for row {j} should be hidden when row {i} is active");
             }
         }
+    }
+
+    // ── Parameter name titleization in UI ──
+
+    [Fact]
+    public void Parameter_column_headers_are_titleized()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamTitleize.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFeatures();
+
+        var group = WaitFor(By.CssSelector("details.scenario-parameterized"));
+        group.FindElement(By.CssSelector("summary")).Click();
+
+        var subHeaders = group.FindElements(By.CssSelector("th.sub-header"));
+        Assert.True(subHeaders.Count >= 2);
+        // "region" should be titleized to "Region", "amount" to "Amount"
+        Assert.Equal("Region", subHeaders[0].Text);
+        Assert.Equal("Amount", subHeaders[1].Text);
+    }
+
+    // ── Single-instance parameterized scenario uses table format ──
+
+    [Fact]
+    public void Single_instance_parameterized_scenario_renders_as_table()
+    {
+        _driver.Navigate().GoToUrl(GenerateSingleParamReport("ParamSingle.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFeatures();
+
+        var group = WaitFor(By.CssSelector("details.scenario-parameterized"));
+        Assert.NotNull(group);
+
+        var table = group.FindElement(By.CssSelector("table.param-test-table"));
+        Assert.NotNull(table);
+
+        var rows = table.FindElements(By.CssSelector("tbody tr"));
+        Assert.Single(rows);
+    }
+
+    [Fact]
+    public void Single_instance_parameterized_scenario_shows_titleized_headers()
+    {
+        _driver.Navigate().GoToUrl(GenerateSingleParamReport("ParamSingleHeaders.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFeatures();
+
+        var group = WaitFor(By.CssSelector("details.scenario-parameterized"));
+        group.FindElement(By.CssSelector("summary")).Click();
+
+        var subHeaders = group.FindElements(By.CssSelector("th.sub-header"));
+        Assert.Contains(subHeaders, h => h.Text == "Region");
+        Assert.Contains(subHeaders, h => h.Text == "Amount");
+    }
+
+    [Fact]
+    public void Single_instance_parameterized_scenario_shows_parameter_values()
+    {
+        _driver.Navigate().GoToUrl(GenerateSingleParamReport("ParamSingleValues.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFeatures();
+
+        var group = WaitFor(By.CssSelector("details.scenario-parameterized"));
+        group.FindElement(By.CssSelector("summary")).Click();
+
+        var monoCells = group.FindElements(By.CssSelector("td.mono"));
+        var cellTexts = monoCells.Select(c => c.Text).ToArray();
+        Assert.Contains("UK", cellTexts);
+        Assert.Contains("100", cellTexts);
+    }
+
+    // ── Search row highlight uses box-shadow, not outline ──
+
+    [Fact]
+    public void Search_match_uses_box_shadow_not_outline()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamSearchStyle.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        var searchbar = _driver.FindElement(By.Id("searchbar"));
+        searchbar.SendKeys("region: US");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        wait.Until(d => d.FindElements(By.CssSelector("tr.row-search-match")).Count > 0);
+
+        var matchedRow = _driver.FindElement(By.CssSelector("tr.row-search-match"));
+        var outline = matchedRow.GetCssValue("outline-style");
+        Assert.Equal("none", outline);
     }
 }

@@ -36,7 +36,7 @@ public class ParameterizedGroupRenderTests
         diagrams.Select(d => new DefaultDiagramsFetcher.DiagramAsCode(d.testId, "", d.plantuml)).ToArray();
 
     private string GenerateReport(Feature[] features, DefaultDiagramsFetcher.DiagramAsCode[]? diagrams = null, string? fileName = null,
-        bool groupParameterizedTests = true, int maxParameterColumns = 10)
+        bool groupParameterizedTests = true, int maxParameterColumns = 10, bool titleizeParameterNames = true)
     {
         diagrams ??= features.SelectMany(f => f.Scenarios).Select(s => new DefaultDiagramsFetcher.DiagramAsCode(s.Id, "", "")).ToArray();
         var path = ReportGenerator.GenerateHtmlReport(
@@ -45,7 +45,8 @@ public class ParameterizedGroupRenderTests
             null, fileName ?? $"ParamGroup_{Guid.NewGuid():N}.html", "Test", true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs,
             groupParameterizedTests: groupParameterizedTests,
-            maxParameterColumns: maxParameterColumns);
+            maxParameterColumns: maxParameterColumns,
+            titleizeParameterNames: titleizeParameterNames);
         return File.ReadAllText(path);
     }
 
@@ -91,8 +92,9 @@ public class ParameterizedGroupRenderTests
         };
         var content = GenerateReport(MakeFeature(scenarios));
 
-        Assert.Contains(">x</th>", content);
-        Assert.Contains(">y</th>", content);
+        // Titleized by default: x → X, y → Y
+        Assert.Contains(">X</th>", content);
+        Assert.Contains(">Y</th>", content);
     }
 
     [Fact]
@@ -345,8 +347,9 @@ public class ParameterizedGroupRenderTests
 
         Assert.Contains("param-test-table", content);
         Assert.Contains("scenario-parameterized", content);
-        Assert.Contains(">x</th>", content);
-        Assert.Contains(">y</th>", content);
+        // Titleized by default
+        Assert.Contains(">X</th>", content);
+        Assert.Contains(">Y</th>", content);
     }
 
     [Fact]
@@ -513,5 +516,130 @@ public class ParameterizedGroupRenderTests
         // The selectRow JS should handle activity and flame divs
         Assert.Contains("-activity-", content);
         Assert.Contains("-flame-", content);
+    }
+
+    // ── Outline removal ──
+
+    [Fact]
+    public void Search_match_style_does_not_use_outline()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" }),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test", exampleValues: new() { ["a"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // The row-search-match style should use box-shadow, not outline
+        Assert.DoesNotContain("row-search-match { outline:", content);
+        Assert.Contains("row-search-match { box-shadow:", content);
+    }
+
+    // ── Parameter name titleization ──
+
+    [Fact]
+    public void Parameter_names_are_titleized_by_default()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Calc(region: UK, amount: 100)", outlineId: "Calc",
+                exampleValues: new() { ["region"] = "UK", ["amount"] = "100" }),
+            MakeScenario("s2", "Calc(region: US, amount: 200)", outlineId: "Calc",
+                exampleValues: new() { ["region"] = "US", ["amount"] = "200" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains(">Region</th>", content);
+        Assert.Contains(">Amount</th>", content);
+        Assert.DoesNotContain(">region</th>", content);
+        Assert.DoesNotContain(">amount</th>", content);
+    }
+
+    [Fact]
+    public void Parameter_names_titleization_handles_camelCase()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(firstName: Jo)", outlineId: "Test",
+                exampleValues: new() { ["firstName"] = "Jo" }),
+            MakeScenario("s2", "Test(firstName: Al)", outlineId: "Test",
+                exampleValues: new() { ["firstName"] = "Al" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains(">First Name</th>", content);
+    }
+
+    [Fact]
+    public void Parameter_names_titleization_can_be_disabled()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Calc(region: UK)", outlineId: "Calc",
+                exampleValues: new() { ["region"] = "UK" }),
+            MakeScenario("s2", "Calc(region: US)", outlineId: "Calc",
+                exampleValues: new() { ["region"] = "US" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios), titleizeParameterNames: false);
+
+        Assert.Contains(">region</th>", content);
+        Assert.DoesNotContain(">Region</th>", content);
+    }
+
+    // ── Single-instance parameterized scenarios use table format ──
+
+    [Fact]
+    public void Single_scenario_with_parameters_renders_as_parameterized_group()
+    {
+        var scenario = MakeScenario("s1", "Process(region: UK, amount: 100)",
+            outlineId: "Process",
+            exampleValues: new() { ["region"] = "UK", ["amount"] = "100" });
+        var content = GenerateReport(MakeFeature(scenario));
+
+        Assert.Contains("scenario-parameterized", content);
+        Assert.Contains("param-test-table", content);
+    }
+
+    [Fact]
+    public void Single_scenario_with_parsed_parameters_renders_as_parameterized_group()
+    {
+        var scenario = MakeScenario("s1", "Calculate(x: 10, y: 20)");
+        var content = GenerateReport(MakeFeature(scenario));
+
+        Assert.Contains("scenario-parameterized", content);
+        Assert.Contains("param-test-table", content);
+    }
+
+    [Fact]
+    public void Single_scenario_with_parameters_shows_titleized_column_headers()
+    {
+        var scenario = MakeScenario("s1", "Process(region: UK, amount: 100)",
+            outlineId: "Process",
+            exampleValues: new() { ["region"] = "UK", ["amount"] = "100" });
+        var content = GenerateReport(MakeFeature(scenario));
+
+        Assert.Contains(">Region</th>", content);
+        Assert.Contains(">Amount</th>", content);
+    }
+
+    [Fact]
+    public void Single_scenario_without_parameters_renders_normally()
+    {
+        var scenario = MakeScenario("s1", "Create order");
+        var content = GenerateReport(MakeFeature(scenario));
+
+        // Should be a regular scenario, not a parameterized group
+        Assert.DoesNotContain("<details class=\"scenario scenario-parameterized\"", content);
+        Assert.DoesNotContain("<table class=\"param-test-table\"", content);
+    }
+
+    [Fact]
+    public void Single_scenario_with_bracket_parameters_renders_as_parameterized_group()
+    {
+        var scenario = MakeScenario("s1", "Scenario name [count: 5]");
+        var content = GenerateReport(MakeFeature(scenario));
+
+        Assert.Contains("scenario-parameterized", content);
+        Assert.Contains("param-test-table", content);
     }
 }

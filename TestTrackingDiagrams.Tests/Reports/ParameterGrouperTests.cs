@@ -62,23 +62,41 @@ public class ParameterGrouperTests
     }
 
     [Fact]
-    public void Single_member_group_treated_as_ungrouped()
+    public void Single_member_OutlineId_with_params_treated_as_group()
     {
-        var s1 = MakeScenario("s1", "Ns.Class.MethodA(a: 1)");
-        var s2 = MakeScenario("s2", "Ns.Class.MethodB(b: 2)");
-        var (groups, ungrouped) = ParameterGrouper.Analyze([s1, s2]);
-        Assert.Empty(groups);
-        Assert.Equal(2, ungrouped.Length);
+        var s1 = MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" });
+        var (groups, ungrouped) = ParameterGrouper.Analyze([s1]);
+        Assert.Single(groups);
+        Assert.Empty(ungrouped);
     }
 
     [Fact]
-    public void Different_classes_same_method_name_not_grouped()
+    public void Single_member_OutlineId_without_params_treated_as_ungrouped()
+    {
+        var s1 = MakeScenario("s1", "Test variant A", outlineId: "Test");
+        var (groups, ungrouped) = ParameterGrouper.Analyze([s1]);
+        Assert.Empty(groups);
+        Assert.Single(ungrouped);
+    }
+
+    [Fact]
+    public void Single_member_display_name_with_params_treated_as_group()
+    {
+        var s1 = MakeScenario("s1", "Calculate(x: 10, y: 20)");
+        var (groups, ungrouped) = ParameterGrouper.Analyze([s1]);
+        Assert.Single(groups);
+        Assert.Empty(ungrouped);
+    }
+
+    [Fact]
+    public void Different_classes_same_method_name_each_become_single_member_groups()
     {
         var s1 = MakeScenario("s1", "Ns.ClassA.Method(a: 1)");
         var s2 = MakeScenario("s2", "Ns.ClassB.Method(a: 2)");
         var (groups, ungrouped) = ParameterGrouper.Analyze([s1, s2]);
-        Assert.Empty(groups);
-        Assert.Equal(2, ungrouped.Length);
+        // Different prefixes means they don't merge, but each has params so each becomes its own group
+        Assert.Equal(2, groups.Length);
+        Assert.Empty(ungrouped);
     }
 
     [Fact]
@@ -154,14 +172,13 @@ public class ParameterGrouperTests
     [Fact]
     public void OutlineId_groups_take_precedence_over_display_name_grouping()
     {
-        // s1+s2 share OutlineId "GroupA", s3 has different OutlineId "GroupB" (single member → ungrouped)
+        // s1+s2 share OutlineId "GroupA", s3 has different OutlineId "GroupB" (single member with params → still a group)
         var s1 = MakeScenario("s1", "Test variant A", outlineId: "GroupA", exampleValues: new() { ["x"] = "1" });
         var s2 = MakeScenario("s2", "Test variant B", outlineId: "GroupA", exampleValues: new() { ["x"] = "2" });
         var s3 = MakeScenario("s3", "Test variant C", outlineId: "GroupB", exampleValues: new() { ["x"] = "3" });
         var (groups, ungrouped) = ParameterGrouper.Analyze([s1, s2, s3]);
-        Assert.Single(groups); // Only GroupA (2 members)
-        Assert.Equal("GroupA", groups[0].GroupDisplayName);
-        Assert.Single(ungrouped); // GroupB (1 member)
+        Assert.Equal(2, groups.Length); // GroupA (2 members) and GroupB (1 member with params)
+        Assert.Empty(ungrouped);
     }
 
     [Fact]
