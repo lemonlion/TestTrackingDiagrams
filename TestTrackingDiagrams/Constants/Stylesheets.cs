@@ -951,8 +951,8 @@ public class Stylesheets
                     font-weight: normal;
                     font-size: 0.95em;
                     opacity: 0.55;
-                    margin-left: 0.2em;
-                    vertical-align: middle;
+                    vertical-align: top;
+                    line-height: 1;
                 }
                 .timeline-info:hover { opacity: 1; }
                 .timeline-row {
