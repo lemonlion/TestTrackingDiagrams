@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.xUnit3;
 
+[Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, XUnitTestTrackingMessageHandlerOptions options) where T : class

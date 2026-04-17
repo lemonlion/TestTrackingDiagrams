@@ -24,8 +24,8 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
         var className = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?.Name ?? "Unknown";
         var methodName = methodUnderTest.Name;
 
-        var featureName = DisplayNameFormatter.FormatFeatureName(className);
-        var scenarioName = DisplayNameFormatter.FormatScenarioDisplayName(methodName);
+        var featureName = ScenarioTitleResolver.FormatFeatureName(className);
+        var scenarioName = ScenarioTitleResolver.FormatScenarioDisplayName(methodName);
 
         XUnit2TestTrackingContext.SetCurrentTest($"{className}.{methodName}", testId);
 

@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+[Obsolete("Use TestTrackingDiagrams.ServiceCollectionExtensions instead. This wrapper will be removed in a future version.")]
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection TrackDependenciesForDiagrams(this IServiceCollection services, BDDfyTestTrackingMessageHandlerOptions options)

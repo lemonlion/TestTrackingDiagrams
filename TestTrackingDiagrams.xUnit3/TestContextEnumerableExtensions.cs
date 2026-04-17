@@ -17,7 +17,7 @@ internal static class TestContextEnumerableExtensions
                 var featureClass = scenariosForFeature.First().TestClass!;
                 return new Feature
                 {
-                    DisplayName = DisplayNameFormatter.FormatFeatureName(scenariosForFeature.Key),
+                    DisplayName = ScenarioTitleResolver.FormatFeatureName(scenariosForFeature.Key),
                     Endpoint = featureClass.Traits.SingleOrDefault(y => y.Key == EndpointAttribute.EndpointTraitKey).Value?.FirstOrDefault(),
                     Scenarios = scenariosForFeature
                         .DistinctBy(x => x.Test!.UniqueID)
@@ -25,7 +25,7 @@ internal static class TestContextEnumerableExtensions
                         .ThenBy(x => x.Test?.TestDisplayName)
                         .Select(x =>
                         {
-                            var displayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Test!.TestDisplayName);
+                            var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test!.TestDisplayName);
 
                             // Try structured extraction from TestMethodArguments first
                             var structuredParams = TryExtractStructuredParameters(x);

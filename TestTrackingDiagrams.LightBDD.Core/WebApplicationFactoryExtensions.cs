@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD;
 
+[Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, LightBddTestTrackingMessageHandlerOptions options) where T : class

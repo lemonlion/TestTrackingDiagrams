@@ -88,4 +88,11 @@ public static class DefaultTrackingDiagramOverride
         };
         RequestResponseLogger.Log(log);
     }
+
+    // Delegate-based overloads for framework adapters
+    public static void StartOverride(Func<string> getTestId, string? plantUml = null) => StartOverride(getTestId(), plantUml);
+    public static void EndOverride(Func<string> getTestId, string? plantUml = null) => EndOverride(getTestId(), plantUml);
+    public static void InsertPlantUml(Func<string> getTestId, string plantUml) => InsertPlantUml(getTestId(), plantUml);
+    public static void InsertTestDelimiter(Func<string> getTestId, string testIdentifier) => InsertTestDelimiter(getTestId(), testIdentifier);
+    public static void StartAction(Func<string> getTestId) => StartAction(getTestId());
 }

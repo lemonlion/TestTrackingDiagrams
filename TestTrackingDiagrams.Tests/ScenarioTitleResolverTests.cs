@@ -218,4 +218,18 @@ public class ScenarioTitleResolverTests
         Assert.EndsWith("...]", result);
         Assert.StartsWith("Test method [", result);
     }
+
+    // ── FormatFeatureName ──
+
+    [Theory]
+    [InlineData("GetTests", "Get Tests")]
+    [InlineData("Get_Tests", "Get Tests")]
+    [InlineData("SimpleTest", "Simple Test")]
+    [InlineData("ABCTests", "ABC Tests")]
+    [InlineData("Already Spaced", "Already Spaced")]
+    public void FormatFeatureName_ShouldTitleizePascalCaseClassName(string input, string expected)
+    {
+        var result = ScenarioTitleResolver.FormatFeatureName(input);
+        Assert.Equal(expected, result);
+    }
 }

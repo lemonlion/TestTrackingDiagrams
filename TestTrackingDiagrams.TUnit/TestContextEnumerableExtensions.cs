@@ -22,7 +22,7 @@ internal static class TestContextEnumerableExtensions
 
                 return new Feature
                 {
-                    DisplayName = DisplayNameFormatter.FormatFeatureName(scenariosForFeature.Key),
+                    DisplayName = ScenarioTitleResolver.FormatFeatureName(scenariosForFeature.Key),
                     Endpoint = endpoint,
                     Scenarios = scenariosForFeature
                         .DistinctBy(x => x.Id)
@@ -30,7 +30,7 @@ internal static class TestContextEnumerableExtensions
                         .ThenBy(x => x.Metadata.DisplayName)
                         .Select(x =>
                         {
-                            var displayName = DisplayNameFormatter.FormatScenarioDisplayName(x.Metadata.DisplayName);
+                            var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Metadata.DisplayName);
                             var parsed = ParameterParser.Parse(displayName);
                             return new Scenario
                             {

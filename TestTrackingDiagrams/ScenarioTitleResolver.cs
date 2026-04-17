@@ -49,6 +49,11 @@ public static partial class ScenarioTitleResolver
     }
 
     /// <summary>
+    /// Humanizes a test class simple name (e.g. PascalCase) into a Title Case feature name.
+    /// </summary>
+    public static string FormatFeatureName(string testClassSimpleName) => testClassSimpleName.Titleize();
+
+    /// <summary>
     /// Parses a test display name (optionally fully-qualified), humanizes the method name,
     /// and appends any parameter values in brackets.
     /// <c>Ns.Class.MyTestMethod(p: "v")</c> → <c>My test method [p: "v"]</c>.

@@ -141,7 +141,7 @@ internal sealed class TestResultCapturingSink : IMessageSink
                     // [InlineData] / [Theory] test cases include their parameters
                     // (e.g. "Loads successfully [type: \"Purchase\"]") instead of
                     // all sharing the bare method name.
-                    scenario.ScenarioName = DisplayNameFormatter.FormatScenarioDisplayName(outcome.DisplayName);
+                    scenario.ScenarioName = ScenarioTitleResolver.FormatScenarioDisplayName(outcome.DisplayName);
 
                     matchedTestIds.Add(testId);
                     break;
