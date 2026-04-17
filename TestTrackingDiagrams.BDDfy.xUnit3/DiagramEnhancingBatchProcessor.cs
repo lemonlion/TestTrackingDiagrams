@@ -78,7 +78,7 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
                         index = 0;
                     titleIndex[title] = index + 1;
 
-                    SetScenarioTitle(scenario, $"{title} ({index + 1})");
+                    SetScenarioTitle(scenario, $"{title} [{index + 1}]");
                 }
             }
         }

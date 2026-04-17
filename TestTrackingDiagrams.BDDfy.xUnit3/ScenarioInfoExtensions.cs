@@ -86,7 +86,7 @@ internal static class ScenarioInfoExtensions
                 index = 0;
             titleIndex[scenario.DisplayName] = index + 1;
 
-            scenario.DisplayName = $"{scenario.DisplayName} ({index + 1})";
+            scenario.DisplayName = $"{scenario.DisplayName} [{index + 1}]";
         }
 
         return scenarios;

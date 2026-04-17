@@ -1,3 +1,4 @@
+using System.Linq;
 using TestTrackingDiagrams.BDDfy.xUnit3;
 using TestTrackingDiagrams.Reports;
 
@@ -240,5 +241,41 @@ public class BDDfyScenarioInfoExtensionsTests
         var info = MakeScenario(storyTitle: storyTitle);
         var features = new[] { info }.ToFeatures();
         Assert.Equal(expected, features[0].DisplayName);
+    }
+
+    // ─── Deduplication uses bracket format ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_deduplicates_scenario_titles_with_bracket_suffix()
+    {
+        var infos = new[]
+        {
+            MakeScenario(testId: "t1", scenarioTitle: "Validate something"),
+            MakeScenario(testId: "t2", scenarioTitle: "Validate something"),
+            MakeScenario(testId: "t3", scenarioTitle: "Validate something")
+        };
+
+        var features = infos.ToFeatures();
+        var names = features[0].Scenarios.Select(s => s.DisplayName).ToArray();
+
+        Assert.Equal("Validate something [1]", names[0]);
+        Assert.Equal("Validate something [2]", names[1]);
+        Assert.Equal("Validate something [3]", names[2]);
+    }
+
+    [Fact]
+    public void ToFeatures_does_not_deduplicate_unique_titles()
+    {
+        var infos = new[]
+        {
+            MakeScenario(testId: "t1", scenarioTitle: "First scenario"),
+            MakeScenario(testId: "t2", scenarioTitle: "Second scenario")
+        };
+
+        var features = infos.ToFeatures();
+        var names = features[0].Scenarios.Select(s => s.DisplayName).ToArray();
+
+        Assert.Equal("First scenario", names[0]);
+        Assert.Equal("Second scenario", names[1]);
     }
 }
