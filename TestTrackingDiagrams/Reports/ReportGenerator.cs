@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -11,6 +12,17 @@ namespace TestTrackingDiagrams.Reports;
 
 public static class ReportGenerator
 {
+    private static readonly Lazy<string> AdvancedSearchJs = new(() =>
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = assembly.GetManifestResourceNames()
+            .FirstOrDefault(n => n.EndsWith("advanced-search.js", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("Embedded resource advanced-search.js not found.");
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    });
+
     public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
     {
         if (options.InternalFlowTracking && options.DiagramFormat == DiagramFormat.PlantUml)
@@ -249,7 +261,83 @@ public static class ReportGenerator
                                  var c = fc();
                                  let input = document.getElementById('searchbar').value;
                                  input = input.toLowerCase().trim();
+
+                                 // Advanced search path: when input contains &&, ||, or !!
+                                 if (isAdvancedSearch(input)) {
+                                     if (input.length === 0) {
+                                         for (let i = 0; i < c.items.length; i++) {
+                                             c.items[i].sr = false;
+                                             c.items[i].el.removeAttribute('open');
+                                         }
+                                         applyVisibility(c);
+                                         update_url_hash();
+                                         return;
+                                     }
+
+                                     let advancedFailed = false;
+                                     let matchCount = 0;
+                                     let singleMatch = null;
+                                     let advSearchTokens = [];
+                                     for (let i = 0; i < c.items.length; i++) {
+                                         let item = c.items[i];
+                                         let tags = new Set();
+                                         let cats = (item.el.getAttribute('data-categories') || '').toLowerCase();
+                                         let labels = (item.el.getAttribute('data-labels') || '').toLowerCase();
+                                         if (cats) cats.split(',').forEach(function(t) { tags.add(t.trim()); });
+                                         if (labels) labels.split(',').forEach(function(t) { tags.add(t.trim()); });
+
+                                         let result = advancedSearchMatch(input, item.searchText, tags, item.status);
+                                         if (result === null) {
+                                             advancedFailed = true;
+                                             break;
+                                         }
+                                         item.sr = !result;
+                                         if (result) {
+                                             matchCount++;
+                                             singleMatch = item.el;
+                                         }
+                                     }
+
+                                     if (!advancedFailed) {
+                                         applyVisibility(c);
+                                         update_url_hash();
+
+                                         if (matchCount === 1 && singleMatch) {
+                                             singleMatch.setAttribute('open', '');
+                                             let diagrams = singleMatch.querySelector('details.example-diagrams');
+                                             if (diagrams) diagrams.setAttribute('open', '');
+                                         }
+
+                                         // Parameterized group row highlighting for advanced search
+                                         let tokens = advancedSearchTokenise(input);
+                                         advSearchTokens = tokens.filter(function(t) { return t.type === 'text' || t.type === 'phrase'; }).map(function(t) { return t.value; });
+                                         if (advSearchTokens.length > 0) {
+                                             document.querySelectorAll('details.scenario-parameterized').forEach(function(group) {
+                                                 if (group.style.display === 'none') return;
+                                                 var rows = group.querySelectorAll('tr[data-row-search]');
+                                                 var firstMatchRow = null;
+                                                 for (var ri = 0; ri < rows.length; ri++) {
+                                                     var rowText = rows[ri].getAttribute('data-row-search') || '';
+                                                     var allMatch = true;
+                                                     for (var j = 0; j < advSearchTokens.length; j++) {
+                                                         if (!rowText.includes(advSearchTokens[j])) { allMatch = false; break; }
+                                                     }
+                                                     if (allMatch && !firstMatchRow) { firstMatchRow = rows[ri]; }
+                                                     rows[ri].classList.toggle('row-search-match', allMatch);
+                                                 }
+                                                 if (firstMatchRow && !firstMatchRow.classList.contains('row-active')) {
+                                                     firstMatchRow.click();
+                                                 }
+                                             });
+                                         } else {
+                                             document.querySelectorAll('tr.row-search-match').forEach(function(r) { r.classList.remove('row-search-match'); });
+                                         }
+                                         return;
+                                     }
+                                     // If advancedFailed, fall through to legacy path
+                                 }
                              
+                                 // Legacy search path
                                  // Extract @tag expressions
                                  let tagExpr = null;
                                  let textInput = input;
@@ -1006,6 +1094,8 @@ public static class ReportGenerator
         var customCssBlock = customCss is not null ? $"<style>{customCss}</style>" : "";
         var faviconLink = customFaviconBase64 is not null ? $"<link rel=\"icon\" href=\"{customFaviconBase64}\">" : "";
 
+        var advancedSearchScript = AdvancedSearchJs.Value;
+
         var html = $$"""
                     <html>
                         <head>
@@ -1019,6 +1109,7 @@ public static class ReportGenerator
                             {{customCssBlock}}
                             {{faviconLink}}
                             <script>
+                                {{advancedSearchScript}}
                                 {{scenarioFeatureMapHelper}}
                                 {{toggleHappyPathsFunction}}
                                 {{searchFunction}}
@@ -1199,7 +1290,7 @@ public static class ReportGenerator
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
-                    <div class="filter-search"><input id="searchbar" placeholder="Search (use @tag for tag filtering)" onkeyup="search_scenarios()" /></div>
+                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /></div>
                     <div class="filter-row">
                  """);
 

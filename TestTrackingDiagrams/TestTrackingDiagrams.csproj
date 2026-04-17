@@ -14,6 +14,7 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="PlantUml\plantuml-render.js" />
+		<EmbeddedResource Include="Reports\advanced-search.js" />
 	</ItemGroup>
 
 	<ItemGroup>

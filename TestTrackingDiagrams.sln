@@ -75,6 +75,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.Core", "TestTrackingDiagrams.LightBDD.Core\TestTrackingDiagrams.LightBDD.Core.csproj", "{F9B8ECC4-517B-415C-8D63-2F323705B236}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.SearchEngine", "TestTrackingDiagrams.Tests.SearchEngine\TestTrackingDiagrams.Tests.SearchEngine.csproj", "{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -517,6 +519,18 @@ Global
 		{F9B8ECC4-517B-415C-8D63-2F323705B236}.Release|x64.Build.0 = Release|Any CPU
 		{F9B8ECC4-517B-415C-8D63-2F323705B236}.Release|x86.ActiveCfg = Release|Any CPU
 		{F9B8ECC4-517B-415C-8D63-2F323705B236}.Release|x86.Build.0 = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|x64.Build.0 = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Debug|x86.Build.0 = Debug|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|x64.ActiveCfg = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|x64.Build.0 = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|x86.ActiveCfg = Release|Any CPU
+		{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
