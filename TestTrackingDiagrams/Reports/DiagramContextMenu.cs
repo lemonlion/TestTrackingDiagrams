@@ -1116,6 +1116,7 @@ public static class DiagramContextMenu
                 if (!container.classList.contains('diagram-natural-size') && !isDiagramZoomable(container)) return;
                 e.preventDefault();
                 toggleDiagramZoom(container);
+                if (window.getSelection) window.getSelection().removeAllRanges();
             });
 
             // Add floating zoom toggle button to each diagram container

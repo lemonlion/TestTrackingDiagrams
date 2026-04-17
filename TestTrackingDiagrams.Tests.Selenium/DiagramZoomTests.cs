@@ -295,4 +295,46 @@ public class DiagramZoomTests : IDisposable
 
         Assert.DoesNotContain("diagram-natural-size", container.GetAttribute("class") ?? "");
     }
+
+    // ── Text selection on double-click zoom ──
+
+    [Fact]
+    public void Double_click_zoom_does_not_select_text()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomDblClickNoSelect.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        var svg = WaitForDiagramSvg();
+
+        new Actions(_driver).DoubleClick(svg).Perform();
+
+        var selectedText = (string)((IJavaScriptExecutor)_driver).ExecuteScript(
+            "return window.getSelection().toString();")!;
+        Assert.Equal("", selectedText);
+    }
+
+    [Fact]
+    public void Text_in_steps_can_still_be_highlighted()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("StepTextSelectable.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // Find a step text element to select
+        var stepElement = _driver.FindElement(By.CssSelector(".scenario-steps li, .step, .scenario li"));
+
+        // Use JavaScript to select the text content of the step
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var el = arguments[0];
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);", stepElement);
+
+        var selectedText = (string)((IJavaScriptExecutor)_driver).ExecuteScript(
+            "return window.getSelection().toString();")!;
+        Assert.NotEqual("", selectedText.Trim());
+    }
 }
