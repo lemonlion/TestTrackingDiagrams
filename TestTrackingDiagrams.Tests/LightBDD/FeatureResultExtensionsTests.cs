@@ -2,7 +2,7 @@ using LightBDD.Core.Results;
 using LightBDD.Core.Formatting.NameDecorators;
 using LightBDD.Core.Metadata;
 using LightBDD.Core.Results.Parameters;
-using TestTrackingDiagrams.LightBDD.xUnit3;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.Reports;
 using FileAttachment = LightBDD.Core.Results.FileAttachment;
 

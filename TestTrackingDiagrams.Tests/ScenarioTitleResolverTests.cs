@@ -170,4 +170,52 @@ public class ScenarioTitleResolverTests
         Assert.Equal("Some title [x: \"short\"]", result);
         Assert.DoesNotContain("...", result);
     }
+
+    // ── FormatScenarioDisplayName ──
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldHumanizePascalCaseMethodName()
+    {
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName("ValidateOtpValidationTests");
+        Assert.Equal("Validate otp validation tests", result);
+    }
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldStripNamespaceAndHumanize()
+    {
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName("Ns.Class.GivenRequest_WhenCalled_ThenReturns");
+        Assert.Equal("Given request when called then returns", result);
+    }
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldExtractParametersIntoBrackets()
+    {
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName(
+            "Ns.Class.TestMethod(param1: \"value1\", param2: 42)");
+        Assert.Equal("Test method [param1: \"value1\", param2: 42]", result);
+    }
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldHandleNUnitStyleParams()
+    {
+        // NUnit Test.Name format: MethodName(1,"hello")
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName("ValidateOtpValidation(1,\"hello\")");
+        Assert.Equal("Validate otp validation [1,\"hello\"]", result);
+    }
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldHandleEmptyParentheses()
+    {
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName("Ns.Class.SimpleTest()");
+        Assert.Equal("Simple test", result);
+    }
+
+    [Fact]
+    public void FormatScenarioDisplayName_ShouldTruncateLongParameters()
+    {
+        var longValue = new string('x', 300);
+        var result = ScenarioTitleResolver.FormatScenarioDisplayName($"Ns.Class.TestMethod(a: \"{longValue}\")");
+        Assert.EndsWith("...]", result);
+        Assert.StartsWith("Test method [", result);
+    }
 }

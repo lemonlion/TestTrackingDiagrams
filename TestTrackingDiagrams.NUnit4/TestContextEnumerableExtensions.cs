@@ -30,7 +30,7 @@ internal static class TestContextEnumerableExtensions
                         {
                             Id = x.Test.ID,
                             Result = x.Result.Outcome.Status.ToExecutionResult(),
-                            DisplayName = x.Test.MethodName!.Replace("_", " "),
+                            DisplayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test.Name!),
                             IsHappyPath = x.Test.Properties.ContainsKey(HappyPathAttribute.HappyPathPropertyKey),
                             ErrorMessage = x.Result.Message,
                             ErrorStackTrace = x.Result.StackTrace,

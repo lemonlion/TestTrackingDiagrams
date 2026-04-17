@@ -41,7 +41,7 @@ public class MSTestScenarioInfoToFeaturesTests
 
         var features = infos.ToFeatures();
 
-        Assert.AreEqual("Given a request When called Then returns", features[0].Scenarios[0].DisplayName);
+        Assert.AreEqual("Given a request when called then returns", features[0].Scenarios[0].DisplayName);
     }
 
     [TestMethod]
@@ -75,9 +75,9 @@ public class MSTestScenarioInfoToFeaturesTests
 
         var features = infos.ToFeatures();
 
-        Assert.AreEqual("ZZZ HappyPath", features[0].Scenarios[0].DisplayName);
+        Assert.AreEqual("Zzz happy path", features[0].Scenarios[0].DisplayName);
         Assert.IsTrue(features[0].Scenarios[0].IsHappyPath);
-        Assert.AreEqual("AAA NonHappy", features[0].Scenarios[1].DisplayName);
+        Assert.AreEqual("Aaa non happy", features[0].Scenarios[1].DisplayName);
         Assert.IsFalse(features[0].Scenarios[1].IsHappyPath);
     }
 
@@ -168,9 +168,9 @@ public class MSTestScenarioInfoToFeaturesTests
 
         var features = infos.ToFeatures();
 
-        Assert.AreEqual("Alpha Test", features[0].Scenarios[0].DisplayName);
-        Assert.AreEqual("Bravo Test", features[0].Scenarios[1].DisplayName);
-        Assert.AreEqual("Charlie Test", features[0].Scenarios[2].DisplayName);
+        Assert.AreEqual("Alpha test", features[0].Scenarios[0].DisplayName);
+        Assert.AreEqual("Bravo test", features[0].Scenarios[1].DisplayName);
+        Assert.AreEqual("Charlie test", features[0].Scenarios[2].DisplayName);
     }
 
     [TestMethod]
@@ -183,9 +183,40 @@ public class MSTestScenarioInfoToFeaturesTests
         Assert.AreEqual(0, features.Length);
     }
 
+    [TestMethod]
+    public void ShouldHumanizePascalCaseScenarioDisplayNames()
+    {
+        var infos = new[] { CreateScenarioInfo("Feature", "ValidateOtpValidation") };
+
+        var features = infos.ToFeatures();
+
+        Assert.AreEqual("Validate otp validation", features[0].Scenarios[0].DisplayName);
+    }
+
+    [TestMethod]
+    public void ShouldIncludeParametersFromTestDisplayName()
+    {
+        var infos = new[]
+        {
+            CreateScenarioInfo("Feature", "ValidateOtpValidation",
+                testDisplayName: "ValidateOtpValidation (\"abc\",42)",
+                testId: "Feature.ValidateOtpValidation1"),
+            CreateScenarioInfo("Feature", "ValidateOtpValidation",
+                testDisplayName: "ValidateOtpValidation (\"def\",99)",
+                testId: "Feature.ValidateOtpValidation2")
+        };
+
+        var features = infos.ToFeatures();
+
+        Assert.AreEqual(2, features[0].Scenarios.Length);
+        Assert.AreEqual("Validate otp validation [\"abc\",42]", features[0].Scenarios[0].DisplayName);
+        Assert.AreEqual("Validate otp validation [\"def\",99]", features[0].Scenarios[1].DisplayName);
+    }
+
     private static MSTestScenarioInfo CreateScenarioInfo(
         string className = "TestClass",
         string methodName = "TestMethod",
+        string? testDisplayName = null,
         string? testId = null,
         UnitTestOutcome outcome = UnitTestOutcome.Passed,
         string? endpoint = null,
@@ -197,6 +228,7 @@ public class MSTestScenarioInfoToFeaturesTests
         {
             TestClassSimpleName = className,
             TestMethodName = methodName,
+            TestDisplayName = testDisplayName,
             TestId = testId ?? $"{className}.{methodName}",
             Outcome = outcome,
             Endpoint = endpoint,

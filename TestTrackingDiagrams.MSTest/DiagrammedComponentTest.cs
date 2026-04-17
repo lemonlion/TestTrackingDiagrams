@@ -31,6 +31,7 @@ public abstract class DiagrammedComponentTest
         {
             TestClassSimpleName = type.Name,
             TestMethodName = TestContext.TestName!,
+            TestDisplayName = TestContext.TestDisplayName,
             TestId = $"{TestContext.FullyQualifiedTestClassName}.{TestContext.TestName}",
             Outcome = TestContext.CurrentTestOutcome,
             ErrorMessage = TestContext.CurrentTestOutcome == UnitTestOutcome.Failed

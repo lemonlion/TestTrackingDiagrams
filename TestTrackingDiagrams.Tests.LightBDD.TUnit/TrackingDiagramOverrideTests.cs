@@ -1,4 +1,4 @@
-using TestTrackingDiagrams.LightBDD.TUnit;
+using TestTrackingDiagrams.LightBDD;
 
 namespace TestTrackingDiagrams.Tests.LightBDD.TUnit;
 

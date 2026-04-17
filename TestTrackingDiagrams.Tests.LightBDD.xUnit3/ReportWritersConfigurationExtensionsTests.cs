@@ -1,5 +1,6 @@
 using LightBDD.Core.Configuration;
 using LightBDD.Framework.Configuration;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.LightBDD.xUnit3;
 
 namespace TestTrackingDiagrams.Tests.LightBDD.xUnit3;

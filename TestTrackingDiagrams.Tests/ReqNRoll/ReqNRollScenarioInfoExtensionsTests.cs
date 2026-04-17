@@ -1,5 +1,5 @@
 using Reqnroll;
-using TestTrackingDiagrams.ReqNRoll.xUnit3;
+using TestTrackingDiagrams.ReqNRoll;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.ReqNRoll;

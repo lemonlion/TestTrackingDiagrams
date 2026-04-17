@@ -6,6 +6,7 @@ public record MSTestScenarioInfo
 {
     public required string TestClassSimpleName { get; init; }
     public required string TestMethodName { get; init; }
+    public string? TestDisplayName { get; init; }
     public required string TestId { get; init; }
     public required UnitTestOutcome Outcome { get; init; }
     public string? ErrorMessage { get; init; }

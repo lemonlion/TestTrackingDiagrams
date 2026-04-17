@@ -48,6 +48,44 @@ public static partial class ScenarioTitleResolver
         return $"{resolvedTitle} [{paramContent}]";
     }
 
+    /// <summary>
+    /// Parses a test display name (optionally fully-qualified), humanizes the method name,
+    /// and appends any parameter values in brackets.
+    /// <c>Ns.Class.MyTestMethod(p: "v")</c> → <c>My test method [p: "v"]</c>.
+    /// </summary>
+    public static string FormatScenarioDisplayName(string testDisplayName)
+    {
+        string methodPath;
+        string? parameters = null;
+
+        var parenIndex = testDisplayName.IndexOf('(');
+        if (parenIndex >= 0)
+        {
+            methodPath = testDisplayName[..parenIndex];
+            var paramContent = testDisplayName[(parenIndex + 1)..].TrimEnd(')');
+            if (paramContent.Length > 0)
+            {
+                parameters = paramContent.Length > MaxParameterLength
+                    ? paramContent[..MaxParameterLength] + "..."
+                    : paramContent;
+            }
+        }
+        else
+        {
+            methodPath = testDisplayName;
+        }
+
+        var lastDotIndex = methodPath.LastIndexOf('.');
+        var methodName = lastDotIndex >= 0 ? methodPath[(lastDotIndex + 1)..] : methodPath;
+
+        var humanized = SplitPascalCase(methodName);
+        humanized = humanized.Replace("_", " ");
+        humanized = MultipleSpacesRegex().Replace(humanized, " ").Trim();
+        humanized = char.ToUpper(humanized[0]) + humanized[1..].ToLowerInvariant();
+
+        return parameters is not null ? $"{humanized} [{parameters}]" : humanized;
+    }
+
     private static string SplitPascalCase(string input)
     {
         var result = LowerToUpperRegex().Replace(input, "$1 $2");

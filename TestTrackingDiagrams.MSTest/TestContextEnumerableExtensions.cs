@@ -25,7 +25,7 @@ internal static class TestContextEnumerableExtensions
                         {
                             Id = x.TestId,
                             Result = x.Outcome.ToExecutionResult(),
-                            DisplayName = x.TestMethodName.Replace("_", " "),
+                            DisplayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.TestDisplayName ?? x.TestMethodName),
                             IsHappyPath = x.IsHappyPath,
                             ErrorMessage = x.ErrorMessage,
                             ErrorStackTrace = x.ErrorStackTrace,

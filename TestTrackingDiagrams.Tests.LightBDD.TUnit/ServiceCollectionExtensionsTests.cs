@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams.LightBDD.TUnit;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.LightBDD.TUnit;

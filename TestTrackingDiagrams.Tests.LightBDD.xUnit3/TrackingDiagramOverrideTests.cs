@@ -1,4 +1,4 @@
-using TestTrackingDiagrams.LightBDD.xUnit3;
+using TestTrackingDiagrams.LightBDD;
 
 namespace TestTrackingDiagrams.Tests.LightBDD.xUnit3;
 

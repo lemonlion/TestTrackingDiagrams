@@ -1,6 +1,6 @@
 using LightBDD.Core.ExecutionContext;
 using LightBDD.Core.Metadata;
-using TestTrackingDiagrams.LightBDD.TUnit;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.LightBDD.TUnit;

@@ -19,13 +19,10 @@
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>build;buildTransitive;buildMultitargeting</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.25" Condition="'$(TargetFramework)' == 'net8.0'" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.14" Condition="'$(TargetFramework)' == 'net9.0'" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+    <ProjectReference Include="..\TestTrackingDiagrams.LightBDD.Core\TestTrackingDiagrams.LightBDD.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
