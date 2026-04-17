@@ -786,6 +786,22 @@ public class DiagramContextMenuTests
         Assert.Contains("addEventListener('DOMContentLoaded', initZoom)", _script);
     }
 
+    [Fact]
+    public void ZoomButton_not_added_when_diagram_fits_container()
+    {
+        // addZoomButtons should check isDiagramZoomable before adding a button
+        Assert.Contains("function isDiagramZoomable(container)", _script);
+        Assert.Contains("if (!isDiagramZoomable(container)) return", _script);
+    }
+
+    [Fact]
+    public void DblClick_skips_zoom_for_non_zoomable_diagrams()
+    {
+        // Double-click handler should check isDiagramZoomable (allowing unzoom if already zoomed)
+        Assert.Contains("!isDiagramZoomable(container)", _script);
+        Assert.Contains("diagram-natural-size", _script);
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Open in new tab — uses blob URLs not data URIs
     // ═══════════════════════════════════════════════════════════

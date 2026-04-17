@@ -31,6 +31,9 @@ public class DiagramZoomTests : IDisposable
     private string GenerateReport(string fileName) =>
         ReportTestHelper.GenerateReport(_tempDir, OutputDir, fileName);
 
+    private string GenerateReportWithWideDiagram(string fileName) =>
+        ReportTestHelper.GenerateReportWithWideDiagram(_tempDir, OutputDir, fileName);
+
     private IWebElement WaitFor(By by, int timeoutSeconds = 5)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
@@ -74,7 +77,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Zoom_button_appears_on_diagram_container()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomButtonExists.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomButtonExists.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -86,7 +89,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Zoom_button_is_hidden_until_hover()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomHoverHidden.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomHoverHidden.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -99,7 +102,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Zoom_button_becomes_visible_on_container_hover()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomHoverVisible.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomHoverVisible.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -120,7 +123,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Clicking_zoom_button_adds_natural_size_class()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomClickNatural.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomClickNatural.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -139,7 +142,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Clicking_zoom_button_again_removes_natural_size_class()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomClickToggle.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomClickToggle.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -159,7 +162,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Zoomed_container_has_overflow_auto_and_max_height()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomOverflow.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomOverflow.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -181,7 +184,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Unzooming_clears_overflow_and_max_height()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomClearOverflow.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomClearOverflow.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -206,7 +209,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Double_click_on_svg_toggles_zoom()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomDblClick.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomDblClick.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         var svg = WaitForDiagramSvg();
@@ -220,7 +223,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Double_click_again_unzooms()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomDblClickToggle.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomDblClickToggle.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         var svg = WaitForDiagramSvg();
@@ -238,7 +241,7 @@ public class DiagramZoomTests : IDisposable
     [Fact]
     public void Zoom_button_icon_changes_when_zoomed()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("ZoomIcon.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithWideDiagram("ZoomIcon.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
@@ -262,5 +265,34 @@ public class DiagramZoomTests : IDisposable
         var revertedText = (string)((IJavaScriptExecutor)_driver).ExecuteScript(
             "return arguments[0].textContent;", zoomBtn)!;
         Assert.Equal(initialText, revertedText);
+    }
+
+    // ── Non-zoomable diagrams (already at 100% natural size) ──
+
+    [Fact]
+    public void Non_zoomable_diagram_has_no_zoom_button()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NonZoomableNoButton.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // Small diagram at 1920px viewport fits naturally — no zoom button should exist
+        var zoomBtns = _driver.FindElements(By.CssSelector(".diagram-zoom-toggle"));
+        Assert.Empty(zoomBtns);
+    }
+
+    [Fact]
+    public void Double_click_on_non_zoomable_diagram_does_not_zoom()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NonZoomableDblClick.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        var svg = WaitForDiagramSvg();
+
+        var container = GetDiagramContainer();
+        new Actions(_driver).DoubleClick(svg).Perform();
+
+        Assert.DoesNotContain("diagram-natural-size", container.GetAttribute("class") ?? "");
     }
 }

@@ -1021,7 +1021,7 @@ public static class DiagramContextMenu
                     var callerSource = container._noteOriginalSource || source;
                     var payloads = extractCallerPayloads(callerSource);
                     if (payloads) {
-                        menu.appendChild(createMenuItem('Copy All Caller Request Payloads', function() {
+                        menu.appendChild(createMenuItem('Copy all caller request payloads', function() {
                             navigator.clipboard.writeText(payloads);
                             showToast('Copied ' + payloads.split('\n\n').length + ' request payload(s)');
                         }));
@@ -1054,6 +1054,17 @@ public static class DiagramContextMenu
             });
             document.addEventListener('scroll', closeMenu, true);
 
+            // Check whether an SVG diagram is wider than its container (needs zoom)
+            function isDiagramZoomable(container) {
+                var svg = getSvg(container);
+                if (!svg) return false;
+                var saved = svg.style.maxWidth;
+                svg.style.maxWidth = 'none';
+                var naturalW = svg.getBoundingClientRect().width;
+                svg.style.maxWidth = saved;
+                return naturalW > container.clientWidth + 1;
+            }
+
             // Toggle diagram between fit-to-width and natural size
             function toggleDiagramZoom(container) {
                 var svg = getSvg(container);
@@ -1080,6 +1091,7 @@ public static class DiagramContextMenu
                 var container = findDiagramContainer(e.target);
                 if (!container) return;
                 if (!getSvg(container)) return;
+                if (!container.classList.contains('diagram-natural-size') && !isDiagramZoomable(container)) return;
                 e.preventDefault();
                 toggleDiagramZoom(container);
             });
@@ -1090,6 +1102,7 @@ public static class DiagramContextMenu
                     if (container.querySelector('.diagram-zoom-toggle')) return;
                     var svg = getSvg(container);
                     if (!svg) return;
+                    if (!isDiagramZoomable(container)) return;
                     container.style.position = 'relative';
                     var btn = document.createElement('button');
                     btn.className = 'diagram-zoom-toggle';

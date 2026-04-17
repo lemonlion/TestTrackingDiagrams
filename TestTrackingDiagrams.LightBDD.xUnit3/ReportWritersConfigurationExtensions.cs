@@ -109,7 +109,23 @@ namespace TestTrackingDiagrams.LightBDD.xUnit3
                     formatter.WholeTestSegments = wholeTestSegments;
                     formatter.TrackedLogs = trackedLogs;
                     formatter.WholeTestVisualization = options.WholeTestFlowVisualization;
+                })
+                .AddFileWriter<UnifiedTestRunDataFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.{GetDataFormatExtension(options.TestRunReportDataFormat)}",
+                formatter =>
+                {
+                    formatter.TestAssembly = testAssembly;
+                    formatter.DiagramsFetcher = diagramsFetcher;
+                    formatter.DataFormat = options.TestRunReportDataFormat;
+                    formatter.TrackedLogs = trackedLogs;
                 });
         }
+
+        private static string GetDataFormatExtension(DataFormat format) => format switch
+        {
+            DataFormat.Json => "json",
+            DataFormat.Xml => "xml",
+            DataFormat.Yaml => "yml",
+            _ => "json"
+        };
     }
 }
