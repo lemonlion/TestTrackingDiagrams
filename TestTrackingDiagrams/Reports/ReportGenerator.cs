@@ -735,17 +735,26 @@ public static class ReportGenerator
                                     var diagrams = document.querySelectorAll('[id^="' + prefix + '-diagram-"]');
                                     for (var i = 0; i < diagrams.length; i++) diagrams[i].style.display = 'none';
                                     var activeDiagram = document.getElementById(prefix + '-diagram-' + idx);
-                                    if (activeDiagram) activeDiagram.style.display = '';
+                                    if (activeDiagram) {
+                                        activeDiagram.style.display = '';
+                                        if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(activeDiagram);
+                                    }
                                     // Switch activity diagram divs
                                     var activities = document.querySelectorAll('[id^="' + prefix + '-activity-"]');
                                     for (var i = 0; i < activities.length; i++) activities[i].style.display = 'none';
                                     var activeActivity = document.getElementById(prefix + '-activity-' + idx);
-                                    if (activeActivity) activeActivity.style.display = '';
+                                    if (activeActivity) {
+                                        activeActivity.style.display = '';
+                                        if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(activeActivity);
+                                    }
                                     // Switch flame chart divs
                                     var flames = document.querySelectorAll('[id^="' + prefix + '-flame-"]');
                                     for (var i = 0; i < flames.length; i++) flames[i].style.display = 'none';
                                     var activeFlame = document.getElementById(prefix + '-flame-' + idx);
-                                    if (activeFlame) activeFlame.style.display = '';
+                                    if (activeFlame) {
+                                        activeFlame.style.display = '';
+                                        if (window._renderFlameCharts) window._renderFlameCharts(activeFlame);
+                                    }
                                 }
                                 """;
 

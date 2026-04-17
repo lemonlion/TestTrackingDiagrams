@@ -115,6 +115,13 @@ public class ParameterizedGroupTests : IDisposable
             "//button[contains(@class,'collapse-expand-all') and contains(text(),'Expand All Features')]")).Click();
     }
 
+    private void ExpandAll()
+    {
+        ExpandFeatures();
+        _driver.FindElement(By.XPath(
+            "//button[contains(@class,'collapse-expand-all') and contains(text(),'Expand All Scenarios')]")).Click();
+    }
+
     // ── Parameterized group renders ──
 
     [Fact]
@@ -193,9 +200,11 @@ public class ParameterizedGroupTests : IDisposable
         var badges = group.FindElements(By.CssSelector(".status-badge"));
         Assert.True(badges.Count >= 3);
 
-        // First row passed, second failed
+        // Scenarios are sorted by IsHappyPath DESC, DisplayName ASC:
+        // [0] UK (happy, pass), [1] DE (pass), [2] US (fail)
         Assert.Contains("badge-pass", badges[0].GetAttribute("class"));
-        Assert.Contains("badge-fail", badges[1].GetAttribute("class"));
+        Assert.Contains("badge-pass", badges[1].GetAttribute("class"));
+        Assert.Contains("badge-fail", badges[2].GetAttribute("class"));
     }
 
     // ── Copy button ──
@@ -317,5 +326,143 @@ public class ParameterizedGroupTests : IDisposable
 
         var diagrams = group.FindElement(By.CssSelector("details.example-diagrams"));
         Assert.NotNull(diagrams);
+    }
+
+    // ── Diagram rendering on row click ──
+
+    private IWebElement WaitForParamDiagramSvg(IWebElement group, int idx, int timeoutSeconds = 20)
+    {
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
+        return wait.Until(d =>
+        {
+            try
+            {
+                var div = group.FindElement(By.CssSelector($"[id$='-diagram-{idx}']"));
+                return div.Displayed && div.FindElements(By.CssSelector("svg")).Count > 0 ? div : null;
+            }
+            catch (NoSuchElementException) { return null; }
+        }) ?? throw new TimeoutException($"Diagram SVG for row {idx} did not render");
+    }
+
+    [Fact]
+    public void First_row_diagram_renders_on_page_load()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamDiagramFirstRow.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        // Scroll the group's diagram section into view
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", group);
+
+        var firstDiagram = WaitForParamDiagramSvg(group, 0);
+        Assert.NotNull(firstDiagram);
+        Assert.True(firstDiagram.Displayed);
+    }
+
+    [Fact]
+    public void Clicking_second_row_renders_its_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamDiagramSecondRow.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", group);
+
+        // Wait for first diagram to render before clicking another row
+        WaitForParamDiagramSvg(group, 0);
+
+        // Click the second row
+        var rows = group.FindElements(By.CssSelector("tbody tr"));
+        rows[1].Click();
+
+        // The second row's diagram div should become visible and render an SVG
+        var secondDiagram = WaitForParamDiagramSvg(group, 1);
+        Assert.NotNull(secondDiagram);
+        Assert.True(secondDiagram.Displayed);
+
+        // First row's diagram should be hidden
+        var firstDiagram = group.FindElement(By.CssSelector("[id$='-diagram-0']"));
+        Assert.False(firstDiagram.Displayed);
+    }
+
+    [Fact]
+    public void Clicking_third_row_renders_its_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamDiagramThirdRow.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", group);
+        WaitForParamDiagramSvg(group, 0);
+
+        // Click the third row
+        var rows = group.FindElements(By.CssSelector("tbody tr"));
+        rows[2].Click();
+
+        var thirdDiagram = WaitForParamDiagramSvg(group, 2);
+        Assert.NotNull(thirdDiagram);
+        Assert.True(thirdDiagram.Displayed);
+    }
+
+    [Fact]
+    public void Switching_back_to_first_row_still_shows_its_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamDiagramSwitchBack.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", group);
+        WaitForParamDiagramSvg(group, 0);
+
+        var rows = group.FindElements(By.CssSelector("tbody tr"));
+
+        // Click second row, wait for it to render
+        rows[1].Click();
+        WaitForParamDiagramSvg(group, 1);
+
+        // Switch back to first row
+        rows[0].Click();
+
+        var firstDiagram = group.FindElement(By.CssSelector("[id$='-diagram-0']"));
+        Assert.True(firstDiagram.Displayed);
+        Assert.True(firstDiagram.FindElements(By.CssSelector("svg")).Count > 0,
+            "First row diagram SVG should still be present after switching back");
+    }
+
+    [Fact]
+    public void Each_row_click_renders_a_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamDiagramDistinct.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].scrollIntoView(true);", group);
+        WaitForParamDiagramSvg(group, 0);
+
+        var rows = group.FindElements(By.CssSelector("tbody tr"));
+
+        // Click each row and verify an SVG renders
+        for (var i = 0; i < rows.Count; i++)
+        {
+            rows[i].Click();
+            WaitForParamDiagramSvg(group, i);
+
+            // Verify this row's diagram div is visible
+            var diagramDiv = group.FindElement(By.CssSelector($"[id$='-diagram-{i}']"));
+            Assert.True(diagramDiv.Displayed, $"Diagram div for row {i} should be visible after click");
+
+            // Verify other rows' diagram divs are hidden
+            for (var j = 0; j < rows.Count; j++)
+            {
+                if (j == i) continue;
+                var otherDiv = group.FindElement(By.CssSelector($"[id$='-diagram-{j}']"));
+                Assert.False(otherDiv.Displayed, $"Diagram div for row {j} should be hidden when row {i} is active");
+            }
+        }
     }
 }

@@ -460,6 +460,28 @@ public static class DiagramContextMenu
                     return new Response(stream).text();
                 }
                 window.decompressGzipBase64 = decompressGzipBase64;
+                window._renderDiagramsInContainer = function(container) {
+                    if (!container) return;
+                    container.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                        if (el.dataset.rendered) return;
+                        el.dataset.rendered = '1';
+                        observer.unobserve(el);
+                        var source = el.getAttribute('data-plantuml');
+                        if (source) {
+                            if (window._preProcessSource) source = window._preProcessSource(el, source);
+                            renderQueue.push({ el: el, source: source });
+                            processQueue();
+                        } else if (el.hasAttribute('data-plantuml-z')) {
+                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                el.setAttribute('data-plantuml', decoded);
+                                var src = decoded;
+                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                renderQueue.push({ el: el, source: src });
+                                processQueue();
+                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        }
+                    });
+                };
                 document.querySelectorAll('.plantuml-browser').forEach(function(el) {
                     observer.observe(el);
                 });
