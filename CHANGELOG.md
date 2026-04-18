@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.152-beta] - 2026-04-18
+
+### Changed
+- Renamed README title from "Test Tracking Diagrams" to "TestTrackingDiagrams" (PascalCase, matching .NET package naming convention)
+- Added TTD icon prefix to README title
+- Updated nuget-readme.md title to match
+
 ## [2.0.151-beta] - 2026-04-18
 
 ### Added

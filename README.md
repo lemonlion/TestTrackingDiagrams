@@ -5,7 +5,7 @@
 
 <a name="top"></a>
 
-# Test Tracking Diagrams
+# <img src="icon.svg" width="32" height="32" alt="TTD icon" style="vertical-align: middle;"> TestTrackingDiagrams
 
 Effortlessly autogenerate **PlantUML sequence diagrams** from your component and acceptance tests every time you run them. Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into diagrams embedded in searchable HTML reports and YAML specification files.
 
