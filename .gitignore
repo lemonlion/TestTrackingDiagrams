@@ -358,3 +358,6 @@ generate-poc.ps1
 prototype-parameterized-grouping.html
 local-feed/
 *.DotSettings.user
+
+# Orphaned pre-restructure directory (active copy is under examples/)
+/Example.Api/
