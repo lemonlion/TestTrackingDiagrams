@@ -43,6 +43,22 @@ public class CustomBrandingReportTests
     }
 
     [Fact]
+    public void Report_uses_default_ttd_favicon_when_none_specified()
+    {
+        var content = GenerateReport(SimpleFeatures());
+        Assert.Contains("<link rel=\"icon\" href=\"data:image/svg+xml;base64,", content);
+        Assert.Contains("VFREPC90ZXh0", content); // TTD text element from the SVG
+    }
+
+    [Fact]
+    public void Report_custom_favicon_overrides_default()
+    {
+        var content = GenerateReport(SimpleFeatures(), customFaviconBase64: "data:image/png;base64,CUSTOM");
+        Assert.Contains("<link rel=\"icon\" href=\"data:image/png;base64,CUSTOM\">", content);
+        Assert.DoesNotContain($"<link rel=\"icon\" href=\"{TestTrackingDiagrams.Constants.DefaultFavicon.DataUri}\">", content);
+    }
+
+    [Fact]
     public void Report_injects_custom_logo_html()
     {
         var content = GenerateReport(SimpleFeatures(), customLogoHtml: "<img src=\"logo.png\" alt=\"Logo\">");
@@ -58,7 +74,7 @@ public class CustomBrandingReportTests
     {
         var content = GenerateReport(SimpleFeatures());
         Assert.DoesNotContain("custom-logo", content);
-        Assert.DoesNotContain("<link rel=\"icon\"", content);
+        Assert.Contains("<link rel=\"icon\"", content); // default TTD favicon is always present
         // Should only have one <style> block (the default one)
         var styleCount = 0;
         var idx = 0;

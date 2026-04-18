@@ -119,6 +119,7 @@ public static class ComponentDiagramReportGenerator
                 <html>
                     <head>
                         <meta charset="utf-8">
+                        <link rel="icon" href="{{Constants.DefaultFavicon.DataUri}}">
                         <style>
                             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 2rem; }
                             h1 { color: #333; }

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.151-beta] - 2026-04-18
+
+### Added
+- Default TTD favicon for all HTML reports — reports now show the TTD icon in the browser tab without any configuration
+- `DefaultFavicon.DataUri` constant containing the base64-encoded SVG icon
+- Favicon added to component diagram reports (previously had no favicon support)
+
+### Changed
+- `CustomFaviconBase64` now overrides the default TTD favicon instead of switching between a custom favicon and no favicon
+
 ## [2.0.150-beta] - 2026-04-18
 
 ### Changed

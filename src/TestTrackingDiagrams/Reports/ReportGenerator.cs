@@ -1126,7 +1126,7 @@ public static class ReportGenerator
         var toggleScript = internalFlowTracking ? DiagramContextMenu.GetToggleScript() : "";
 
         var customCssBlock = customCss is not null ? $"<style>{customCss}</style>" : "";
-        var faviconLink = customFaviconBase64 is not null ? $"<link rel=\"icon\" href=\"{customFaviconBase64}\">" : "";
+        var faviconLink = $"<link rel=\"icon\" href=\"{customFaviconBase64 ?? Constants.DefaultFavicon.DataUri}\">";
 
         var advancedSearchScript = AdvancedSearchJs.Value;
 
