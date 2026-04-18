@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.148-beta] - 2026-04-19
+
+### Changed
+- Updated README.md to reflect all tracking capabilities beyond HTTP — now covers Cosmos DB, EF Core SQL, Redis, TrackingProxy, and events/messages
+- Updated nuget-readme.md with the same broader language
+- Revised ASCII architecture diagram to show CosmosDB, SQL DB, Redis, and proxy dependencies alongside HTTP and events
+- Replaced HTTP-specific wording in How It Works, Use Cases, and Deterministic vs AI-Generated Diagrams sections with inclusive language covering all tracked interaction types
+- Step 1 (Intercept) now uses a table summarising all six tracking mechanisms
+
 ## [2.0.139-beta] - 2026-04-18
 
 ### Added

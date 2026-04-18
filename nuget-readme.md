@@ -1,17 +1,17 @@
 # Test Tracking Diagrams
 
-Effortlessly autogenerate **PlantUML sequence diagrams** (or Mermaid) from your component and acceptance tests. Tracks HTTP requests between your test caller, your Service Under Test (SUT), and its dependencies, then converts them into diagrams embedded in searchable HTML reports and structured data files.
+Effortlessly autogenerate **PlantUML sequence diagrams** (or Mermaid) from your component and acceptance tests. Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into diagrams embedded in searchable HTML reports and structured data files.
 
 ## Example Output
 
 ![Example sequence diagram](https://github.com/user-attachments/assets/43d48a00-ba37-4951-945c-dd75de64c2bb)
 
-Each test that makes HTTP calls through the tracked pipeline automatically produces a sequence diagram showing the full request/response flow between services.
+Each test that uses tracked dependencies automatically produces a sequence diagram showing the full request/response flow between services.
 
 ## How It Works
 
-1. **Intercept** — A `TestTrackingMessageHandler` (`DelegatingHandler`) is inserted into the HTTP pipeline, logging every request and response with tracking headers.
-2. **Collect** — All logged entries are held in the static `RequestResponseLogger`, capturing method, URI, headers, body, status code, and service names.
+1. **Intercept** — Dedicated tracking mechanisms intercept each type of dependency: `TestTrackingMessageHandler` for HTTP, `CosmosTrackingMessageHandler` for Cosmos DB, `SqlTrackingInterceptor` for EF Core SQL, `RedisTrackingDatabase` for Redis, `TrackingProxy<T>` for arbitrary interfaces, and `MessageTracker` for events/messages.
+2. **Collect** — All logged entries are held in the static `RequestResponseLogger`, capturing operation details, service names, and trace IDs.
 3. **Generate** — At the end of the test run, `PlantUmlCreator` (or `MermaidCreator`) groups logs by test ID and converts them into sequence diagram code.
 4. **Report** — `ReportGenerator` combines the diagrams with test metadata to produce HTML reports and structured data files.
 
@@ -48,10 +48,10 @@ See the [Quick Start guide](https://github.com/lemonlion/TestTrackingDiagrams/wi
 
 ## Use Cases
 
-- **Debugging failed tests** — see the exact HTTP call that returned an unexpected response
+- **Debugging failed tests** — see the exact interaction that returned an unexpected result
 - **Living documentation** — HTML reports and data files that stay in sync with your tests
 - **AI-assisted analysis** — feed deterministic PlantUML to AI tools for accurate reasoning
-- **PR reviews** — sequence diagrams make HTTP interaction changes immediately visible
+- **PR reviews** — sequence diagrams make interaction changes immediately visible
 - **Onboarding** — new team members can browse reports to understand service interactions
 - **CI integration** — surface results in GitHub Actions / Azure DevOps job summaries
 
