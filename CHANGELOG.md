@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - XML doc comments on all core public API types: `ReportConfigurationOptions`, `TestTrackingMessageHandlerOptions`, `ComponentDiagramOptions`, `ServiceCollectionExtensions`, `WebApplicationFactoryExtensions`
 
 ### Fixed
-- Removed copy-pasted `.gitignore` entry referencing unrelated project (`NewDay.Platform.Identity.Provider`)
+- Removed copy-pasted `.gitignore` entry referencing unrelated project
 - Removed 5 orphaned `Example.Api/` files with unresolved git merge conflict markers
 - Removed untracked prototype/PoC files from repository root (`generate-poc.ps1`, `prototype-parameterized-grouping.html`)
 - Moved `themes/` directory under `examples/` to match reorganised structure
