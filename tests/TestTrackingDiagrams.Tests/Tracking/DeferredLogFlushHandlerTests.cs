@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("PendingLogs")]
 public class DeferredLogFlushHandlerTests
 {
     private readonly string _testId = Guid.NewGuid().ToString();
@@ -14,6 +15,7 @@ public class DeferredLogFlushHandlerTests
     [Fact]
     public async Task Flushes_pending_entries_after_response()
     {
+        PendingRequestResponseLogs.Clear();
         PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
             "Svc", "Caller", "Op", null, null, new Uri("mock://svc/op")));
 
@@ -53,6 +55,7 @@ public class DeferredLogFlushHandlerTests
     [Fact]
     public async Task Flushes_multiple_pending_entries()
     {
+        PendingRequestResponseLogs.Clear();
         PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
             "Svc1", "Caller", "Op1", null, null, new Uri("mock://svc1/op1")));
         PendingRequestResponseLogs.Enqueue(new PendingLogEntry(

@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("PendingLogs")]
 public class PendingRequestResponseLogsTests
 {
     private readonly string _testId = Guid.NewGuid().ToString();

@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("PendingLogs")]
 public class TrackingProxyTests
 {
     private readonly string _testId = Guid.NewGuid().ToString();
@@ -121,6 +122,7 @@ public class TrackingProxyTests
     [Fact]
     public void Deferred_mode_enqueues_pending_logs()
     {
+        PendingRequestResponseLogs.Clear();
         var mock = new FakeCalculator();
         var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
         {
