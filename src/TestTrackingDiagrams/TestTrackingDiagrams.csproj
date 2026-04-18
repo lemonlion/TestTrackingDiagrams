@@ -4,7 +4,7 @@
     <TargetFramework />
     <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
     <Title>Test Tracking Diagrams</Title>
-    <Description>A mechanism for tracking your request-responses in your tests and converting them into diagrams.</Description>
+    <Description>Autogenerate PlantUML sequence diagrams from your component and acceptance tests. Tracks HTTP calls, database operations (Cosmos DB, SQL via EF Core), Redis commands, events/messages, and arbitrary method calls, then converts them into searchable HTML reports and structured data files.</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 

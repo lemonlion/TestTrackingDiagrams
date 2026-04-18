@@ -4,7 +4,7 @@
 	  <TargetFramework />
 	  <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
 	  <Title>Test Tracking Diagrams For LightBDD xUnit2</Title>
-	  <Description>LightBDD + xUnit 2 extensions for tracking the request-responses in your tests and converting them into diagrams. This is the renamed successor to TestTrackingDiagrams.LightBDD.XUnit.</Description>
+	  <Description>LightBDD + xUnit 2 extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams. This is the renamed successor to TestTrackingDiagrams.LightBDD.XUnit.</Description>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 

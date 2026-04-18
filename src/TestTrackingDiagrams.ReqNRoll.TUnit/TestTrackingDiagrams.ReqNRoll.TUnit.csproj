@@ -4,7 +4,7 @@
 	  <TargetFramework />
 	  <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
 	  <Title>Test Tracking Diagrams For ReqNRoll (TUnit)</Title>
-	  <Description>ReqNRoll extensions for tracking the request-responses in your tests and converting them into diagrams. For use with TUnit.</Description>
+	  <Description>ReqNRoll + TUnit extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams.</Description>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
