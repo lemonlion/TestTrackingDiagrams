@@ -6,7 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.0.148-beta] - 2026-04-19
+## [2.0.149-beta] - 2026-04-18
+
+### Removed
+- Removed incorrect Mermaid references from nuget-readme.md (Mermaid is not currently supported)
+
+## [2.0.148-beta] - 2026-04-18
 
 ### Changed
 - Updated README.md to reflect all tracking capabilities beyond HTTP — now covers Cosmos DB, EF Core SQL, Redis, TrackingProxy, and events/messages

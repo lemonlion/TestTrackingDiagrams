@@ -1,6 +1,6 @@
 # Test Tracking Diagrams
 
-Effortlessly autogenerate **PlantUML sequence diagrams** (or Mermaid) from your component and acceptance tests. Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into diagrams embedded in searchable HTML reports and structured data files.
+Effortlessly autogenerate **PlantUML sequence diagrams** from your component and acceptance tests. Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into diagrams embedded in searchable HTML reports and structured data files.
 
 ## Example Output
 
@@ -12,7 +12,7 @@ Each test that uses tracked dependencies automatically produces a sequence diagr
 
 1. **Intercept** — Dedicated tracking mechanisms intercept each type of dependency: `TestTrackingMessageHandler` for HTTP, `CosmosTrackingMessageHandler` for Cosmos DB, `SqlTrackingInterceptor` for EF Core SQL, `RedisTrackingDatabase` for Redis, `TrackingProxy<T>` for arbitrary interfaces, and `MessageTracker` for events/messages.
 2. **Collect** — All logged entries are held in the static `RequestResponseLogger`, capturing operation details, service names, and trace IDs.
-3. **Generate** — At the end of the test run, `PlantUmlCreator` (or `MermaidCreator`) groups logs by test ID and converts them into sequence diagram code.
+3. **Generate** — At the end of the test run, `PlantUmlCreator` groups logs by test ID and converts them into sequence diagram code.
 4. **Report** — `ReportGenerator` combines the diagrams with test metadata to produce HTML reports and structured data files.
 
 ## Quick Start

@@ -1064,7 +1064,7 @@ public class WikiGifTests : IDisposable
         // Use the real ComponentDiagram.html from Example.Api build output
         var componentHtml = Path.Combine(
             Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
-            "..", "..", "..", "..", "Example.Api", "tests",
+            "..", "..", "..", "..", "..", "examples", "Example.Api", "tests",
             "Example.Api.Tests.Component.BDDfy.xUnit3", "bin", "Debug", "net10.0",
             "Reports", "ComponentDiagram.html");
         componentHtml = Path.GetFullPath(componentHtml);
@@ -1695,7 +1695,7 @@ public class WikiGifTests : IDisposable
     {
         var basePath = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
-            "..", "..", "..", "..", "Example.Api", "tests"));
+            "..", "..", "..", "..", "..", "examples", "Example.Api", "tests"));
 
         var xunitReport = Path.Combine(basePath,
             "Example.Api.Tests.Component.xUnit3", "bin", "Debug", "net10.0", "Reports", "Specifications.html");
@@ -1711,7 +1711,7 @@ public class WikiGifTests : IDisposable
     {
         var basePath = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
-            "..", "..", "..", "..", "Example.Api", "tests"));
+            "..", "..", "..", "..", "..", "examples", "Example.Api", "tests"));
 
         // Try ReqNRoll.xUnit3 first, fall back to xUnit2
         var report = Path.Combine(basePath,
@@ -1731,7 +1731,7 @@ public class WikiGifTests : IDisposable
     {
         var basePath = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
-            "..", "..", "..", "..", "Example.Api", "tests"));
+            "..", "..", "..", "..", "..", "examples", "Example.Api", "tests"));
 
         var report = Path.Combine(basePath,
             "Example.Api.Tests.Component.LightBDD.xUnit2", "bin", "Debug", "net10.0", "Reports", "Specifications.html");
