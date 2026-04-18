@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.0.138-beta</Version>
+    <Version>2.0.139-beta</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,16 +11,18 @@
     <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Authors>Aryeh Citron</Authors>
-    <Copyright>Copyright (c) 2023 Aryeh Citron</Copyright>
+    <Copyright>Copyright (c) 2023-2026 Aryeh Citron</Copyright>
     <PackageTags>testing;diagrams;bdd;plantuml;sequence-diagram;http-tracking;xunit;nunit;mstest;tunit;lightbdd;reqnroll</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
-  <!-- Include LICENSE and README in all NuGet packages -->
+  <!-- Include LICENSE, README, and icon in all NuGet packages -->
   <ItemGroup Condition="'$(IsPackable)' != 'false' AND '$(IsTestProject)' != 'true'">
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" />
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Link="icon.png" />
   </ItemGroup>
 
 </Project>

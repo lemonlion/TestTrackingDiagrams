@@ -91,9 +91,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Pin SDK
-        run: echo '{"sdk":{"version":"10.0.0","rollForward":"latestFeature"}}' > global.json
-
       - name: Restore dependencies
         if: matrix.restore-first
         run: dotnet restore ${{ matrix.restore-first }}
