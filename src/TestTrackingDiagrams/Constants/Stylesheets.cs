@@ -315,7 +315,6 @@ public class Stylesheets
                 }
 
                 .happy-path-filters {
-                    margin-left: 1em;
                 }
                 
                 .happy-path-filters-label, .dependency-filters-label, .status-filters-label {
