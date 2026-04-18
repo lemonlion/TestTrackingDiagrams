@@ -137,18 +137,18 @@ public class DiagramContextMenuTests
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
         // When hideHeaders is true and note is in normal (expanded) mode,
-        // lines matching <color:gray > should be skipped (setting justSkippedGray)
-        Assert.Contains(@"if (inNote && hideHeaders && /^<color:gray\s*>/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
+        // lines matching <color:gray> should be skipped (setting justSkippedGray)
+        Assert.Contains(@"if (inNote && hideHeaders && /^<color:gray>/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
     }
 
     [Fact]
     public void BuildSourceWithNoteStates_expanded_without_hideHeaders_preserves_all_lines()
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
-        // The <color:gray > skip only happens when hideHeaders is true
+        // The <color:gray> skip only happens when hideHeaders is true
         // The normal mode path should only skip when hideHeaders is true
         Assert.Contains("hideHeaders", funcBody);
-        // Should NOT unconditionally strip <color:gray > lines
+        // Should NOT unconditionally strip <color:gray> lines
         Assert.DoesNotContain("continue; // always strip gray", funcBody);
     }
 
@@ -165,8 +165,8 @@ public class DiagramContextMenuTests
     public void BuildSourceWithNoteStates_truncated_mode_also_respects_hideHeaders()
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
-        // In truncated mode, <color:gray > lines should be skippable when hideHeaders is true
-        Assert.Contains(@"if (hideHeaders && /^<color:gray\s*>/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
+        // In truncated mode, <color:gray> lines should be skippable when hideHeaders is true
+        Assert.Contains(@"if (hideHeaders && /^<color:gray>/.test(trimmed)) { justSkippedGray = true; continue; }", funcBody);
     }
 
     // ─── _preProcessSource ──────────────────────────────────
@@ -553,7 +553,7 @@ public class DiagramContextMenuTests
     public void BuildSourceWithNoteStates_skips_blank_lines_after_hidden_headers()
     {
         var funcBody = GetFunction("buildSourceWithNoteStates");
-        // justSkippedGray tracking removes blank lines left after hiding <color:gray > lines
+        // justSkippedGray tracking removes blank lines left after hiding <color:gray> lines
         Assert.Contains("justSkippedGray", funcBody);
         Assert.Contains("justSkippedGray && trimmed === ''", funcBody);
     }

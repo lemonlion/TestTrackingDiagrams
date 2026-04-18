@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=960, initial-scale=1">
+<title>TestTrackingDiagrams — 60s Feature Showcase</title>
+<style>
+/* ============================================================
+   GLOBAL
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #334155;
+  --border: #475569;
+  --text: #f1f5f9;
+  --text-dim: #94a3b8;
+  --accent: #4285f4;
+  --accent-glow: rgba(66,133,244,0.25);
+  --green: #1daf26;
+  --red: #cc0000;
+  --yellow: #f59e0b;
+  --blue: #2e7bff;
+  --violet: #8b5cf6;
+  --cyan: #22d3ee;
+  --orange: #f97316;
+  --pass-bg: #f0fff0;
+  --fail-bg: #fff0f0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+  width: 960px;
+  height: 540px;
+}
+
+/* ============================================================
+   SCENE SYSTEM — 8 scenes, each 7.5s = 60s total
+   ============================================================ */
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  padding: 32px 48px;
+}
+
+/* Scene timing: 7.5s each × 8 = 60s */
+/* Each scene: 0.4s fade-in, 6.7s hold, 0.4s fade-out over 7.5s */
+@keyframes scene-lifecycle {
+  0%      { opacity: 0; transform: translateY(20px); pointer-events: none; }
+  5.3%    { opacity: 1; transform: translateY(0);    pointer-events: auto; }  /* 0.4s in */
+  94.7%   { opacity: 1; transform: translateY(0);    pointer-events: auto; }  /* hold */
+  100%    { opacity: 0; transform: translateY(-20px); pointer-events: none; } /* fade out */
+}
+
+.scene { animation: scene-lifecycle 7.5s linear both; }
+.scene-1 { animation-delay: 0s; }
+.scene-2 { animation-delay: 7.5s; }
+.scene-3 { animation-delay: 15s; }
+.scene-4 { animation-delay: 22.5s; }
+.scene-5 { animation-delay: 30s; }
+.scene-6 { animation-delay: 37.5s; }
+.scene-7 { animation-delay: 45s; }
+.scene-8 { animation-delay: 52.5s; }
+
+/* ============================================================
+   COMMON ELEMENTS
+   ============================================================ */
+.scene-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #4285f4, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.scene-subtitle {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+  text-align: center;
+  max-width: 700px;
+  line-height: 1.5;
+}
+
+.code-block {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow: hidden;
+  color: #e6edf3;
+}
+
+.keyword { color: #ff7b72; }
+.string { color: #a5d6ff; }
+.type { color: #79c0ff; }
+.method { color: #d2a8ff; }
+.comment { color: #8b949e; }
+.number { color: #79c0ff; }
+.attr { color: #ffa657; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.badge-pass { background: rgba(29,175,38,0.15); color: #4ade80; }
+.badge-fail { background: rgba(204,0,0,0.15); color: #f87171; }
+.badge-skip { background: rgba(148,163,184,0.15); color: #94a3b8; }
+
+/* Progress bar at top */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4285f4, #22d3ee);
+  animation: progress 60s linear forwards;
+  z-index: 999;
+}
+@keyframes progress { from { width: 0%; } to { width: 100%; } }
+
+/* ============================================================
+   SCENE 1: Hero — "Write tests, get diagrams"
+   ============================================================ */
+.scene-1 .hero-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.scene-1 .hero-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.scene-1 .hero-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.scene-1 .arrow-line {
+  width: 60px;
+  height: 3px;
+  background: var(--accent);
+  position: relative;
+  animation: arrow-pulse 2s ease-in-out infinite;
+}
+.scene-1 .arrow-line::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: -5px;
+  border: 6px solid transparent;
+  border-left-color: var(--accent);
+}
+@keyframes arrow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.scene-1 .arrow-text {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.scene-1 .hero-right {
+  flex: 1.1;
+  min-width: 0;
+}
+
+/* Mock sequence diagram */
+.diagram-mock {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  color: #333;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagram-mock .participants {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.diagram-mock .participant {
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 4px 12px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  background: #f8f9fa;
+}
+.diagram-mock .participant.actor {
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 10px;
+}
+
+.diagram-msg {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 10.5px;
+  animation: msg-appear 0.3s ease-out both;
+}
+.diagram-msg:nth-child(1) { animation-delay: 1s; }
+.diagram-msg:nth-child(2) { animation-delay: 1.8s; }
+.diagram-msg:nth-child(3) { animation-delay: 2.6s; }
+.diagram-msg:nth-child(4) { animation-delay: 3.4s; }
+.diagram-msg:nth-child(5) { animation-delay: 4.2s; }
+.diagram-msg:nth-child(6) { animation-delay: 5.0s; }
+
+@keyframes msg-appear {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.msg-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #333;
+  color: #fff;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.msg-arrow {
+  flex: 1;
+  height: 0;
+  border-top: 2px solid #333;
+  position: relative;
+  margin: 0 4px;
+}
+.msg-arrow.response {
+  border-top-style: dashed;
+  border-color: #666;
+}
+.msg-arrow::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -5px;
+  border: 5px solid transparent;
+  border-left-color: #333;
+}
+.msg-arrow.response::after { border-left-color: #666; }
+.msg-arrow.left::after { right: auto; left: -1px; border-left-color: transparent; border-right-color: #666; }
+
+.msg-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+.msg-label .http-method { color: #0550ae; font-weight: 700; }
+.msg-label .status-ok { color: #1a7f37; font-weight: 600; }
+.msg-label .status-err { color: #cf222e; font-weight: 600; }
+
+/* ============================================================
+   SCENE 2: Interactive HTML Reports
+   ============================================================ */
+.report-mock {
+  background: #fff;
+  border-radius: 10px;
+  width: 100%;
+  color: #333;
+  font-size: 13px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.report-header {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 12px 20px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.report-body { padding: 16px 20px; }
+
+/* Summary row */
+.summary-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+.summary-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px 16px;
+  flex: 1;
+}
+.summary-box h4 { font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.summary-box .val { font-size: 22px; font-weight: 700; }
+.summary-box .val.green { color: var(--green); }
+.summary-box .val.red { color: var(--red); }
+
+.mini-pie {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: conic-gradient(#1daf26 0% 82%, #cc0000 82% 88%, #949494 88% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.mini-pie::after {
+  content: '82%';
+  position: absolute;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* Feature boxes in report */
+.mock-feature {
+  background: rgb(224, 224, 224);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.mock-feature .feat-title {
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mock-feature .feat-arrow { color: #999; font-size: 10px; transition: transform 0.3s; }
+.mock-feature.open .feat-arrow { transform: rotate(90deg); }
+
+.mock-scenario {
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 6px 0 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  animation: slideDown 0.4s ease-out both;
+}
+
+.mock-scenario .scenario-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.scenario-status.pass { background: var(--green); }
+.scenario-status.fail { background: var(--red); }
+.scenario-status.skip { background: #949494; }
+
+.mock-scenario .duration {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+  font-weight: 600;
+}
+.duration.fast { background: rgb(220, 245, 220); color: rgb(30, 100, 30); }
+.duration.slow { background: rgb(255, 220, 220); color: rgb(191, 0, 0); }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+  to { opacity: 1; transform: translateY(0); max-height: 60px; }
+}
+
+/* Expand animation */
+.expand-in { animation: slideDown 0.4s ease-out both; }
+.expand-in:nth-child(2) { animation-delay: 0.15s; }
+.expand-in:nth-child(3) { animation-delay: 0.3s; }
+.expand-in:nth-child(4) { animation-delay: 0.45s; }
+
+/* Feature expand animation */
+.feat-expand { animation: feat-reveal 5s ease forwards; }
+@keyframes feat-reveal {
+  0%, 30% { max-height: 0; overflow: hidden; opacity: 0; }
+  40% { max-height: 300px; opacity: 1; }
+  100% { max-height: 300px; opacity: 1; }
+}
+
+/* ============================================================
+   SCENE 3: Advanced Search
+   ============================================================ */
+.search-demo {
+  width: 100%;
+  max-width: 800px;
+}
+
+.search-input-mock {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #333;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  height: 48px;
+}
+
+.typing-text {
+  display: inline;
+}
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--accent);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Typing animation */
+.search-typing {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2.5s steps(28) 0.5s forwards;
+  width: 0;
+  display: inline-block;
+}
+@keyframes typing { to { width: 100%; } }
+
+.syntax-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  margin: 4px;
+}
+.syntax-chip code {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--cyan);
+  font-size: 12px;
+}
+.syntax-chip span { color: var(--text-dim); }
+
+.search-results-mock {
+  display: grid;
+  gap: 8px;
+}
+
+.search-result-item {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+}
+.search-result-item.matched {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.search-result-item.dimmed { opacity: 0.25; }
+
+/* Staggered appearance */
+.search-result-animate {
+  animation: result-filter 5s ease forwards;
+}
+@keyframes result-filter {
+  0%, 45% { opacity: 1; border-color: transparent; box-shadow: none; }
+  55% { opacity: 1; border-color: transparent; box-shadow: none; }
+  65%, 100% { opacity: 1; }
+}
+
+.search-result-match {
+  animation: result-match 5s ease forwards;
+}
+@keyframes result-match {
+  0%, 45% { border-color: transparent; box-shadow: none; }
+  65%, 100% { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+}
+
+.search-result-dim {
+  animation: result-dim 5s ease forwards;
+}
+@keyframes result-dim {
+  0%, 45% { opacity: 1; }
+  65%, 100% { opacity: 0.2; }
+}
+
+.highlight-match {
+  animation: hl-pulse 5s ease forwards;
+}
+@keyframes hl-pulse {
+  0%, 50% { background: transparent; color: inherit; }
+  60%, 100% { background: rgba(66,133,244,0.2); color: #4285f4; border-radius: 2px; padding: 0 2px; }
+}
+
+/* ============================================================
+   SCENE 4: Parameterized Test Tables
+   ============================================================ */
+.param-demo {
+  width: 100%;
+  max-width: 820px;
+}
+
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: #333;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.param-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+}
+.param-table td {
+  padding: 7px 12px;
+  border-top: 1px solid #eee;
+}
+
+.param-table .master-header {
+  background: #e8eef4;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #555;
+  font-size: 10px;
+}
+.param-table .sub-header { background: #f0f0f0; }
+.param-table .status-header { background: #f0f0f0; width: 60px; }
+
+.param-table tbody tr { transition: all 0.2s; }
+.param-table tr.row-pass { background: #f0fff0; }
+.param-table tr.row-fail { background: #fff0f0; }
+
+.param-table tr.row-active {
+  background: #d2e3fc !important;
+  border-left: 3px solid #2980b9;
+}
+
+/* Row highlight animation */
+.row-highlight-1 { animation: row-hl-1 7s ease forwards; }
+@keyframes row-hl-1 {
+  0%, 25% { background: #f0fff0; border-left: none; }
+  30%, 55% { background: #d2e3fc; border-left: 3px solid #2980b9; }
+  60%, 100% { background: #f0fff0; border-left: none; }
+}
+.row-highlight-2 { animation: row-hl-2 7s ease forwards; }
+@keyframes row-hl-2 {
+  0%, 55% { background: #fff0f0; border-left: none; }
+  60%, 85% { background: #d2e3fc; border-left: 3px solid #2980b9; }
+  90%, 100% { background: #fff0f0; border-left: none; }
+}
+
+.param-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.param-status.pass { background: #d5f5e3; color: #1e8449; }
+.param-status.fail { background: #fadbd8; color: #c0392b; }
+
+/* Diagram swap animation */
+.diagram-swap {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px dashed var(--border);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  position: relative;
+  height: 80px;
+  overflow: hidden;
+}
+
+.diagram-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.diagram-label-1 { animation: swap-1 7s ease forwards; }
+@keyframes swap-1 {
+  0%, 25% { opacity: 0; }
+  30%, 55% { opacity: 1; }
+  60% { opacity: 0; }
+  100% { opacity: 0; }
+}
+.diagram-label-2 { animation: swap-2 7s ease forwards; }
+@keyframes swap-2 {
+  0%, 55% { opacity: 0; }
+  60%, 85% { opacity: 1; }
+  90%, 100% { opacity: 0; }
+}
+
+/* ============================================================
+   SCENE 5: Focus & Emphasis
+   ============================================================ */
+.focus-demo {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.focus-code {
+  flex: 1;
+}
+
+.focus-json {
+  flex: 1.2;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.json-key { color: #7ee787; }
+.json-val { color: #a5d6ff; }
+.json-str { color: #a5d6ff; }
+.json-num { color: #79c0ff; }
+
+/* Focus transitions */
+.focus-normal { transition: all 1.5s ease; }
+.focus-bold {
+  animation: go-bold 5s ease forwards;
+}
+@keyframes go-bold {
+  0%, 35% { font-weight: 400; color: #a5d6ff; }
+  50%, 100% { font-weight: 700; color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.3); font-size: 13px; }
+}
+.focus-dim {
+  animation: go-dim 5s ease forwards;
+}
+@keyframes go-dim {
+  0%, 35% { opacity: 1; color: #a5d6ff; font-size: 12px; }
+  50%, 100% { opacity: 0.3; color: #6e7681; font-size: 10px; }
+}
+
+.focus-arrow-anim {
+  animation: focus-appear 5s ease forwards;
+}
+@keyframes focus-appear {
+  0%, 30% { opacity: 0; }
+  45%, 100% { opacity: 1; }
+}
+
+/* ============================================================
+   SCENE 6: Track Everything
+   ============================================================ */
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 750px;
+}
+
+.track-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: card-pop 0.5s ease-out forwards;
+}
+.track-card:nth-child(1) { animation-delay: 0.2s; }
+.track-card:nth-child(2) { animation-delay: 0.5s; }
+.track-card:nth-child(3) { animation-delay: 0.8s; }
+.track-card:nth-child(4) { animation-delay: 1.1s; }
+.track-card:nth-child(5) { animation-delay: 1.4s; }
+.track-card:nth-child(6) { animation-delay: 1.7s; }
+
+@keyframes card-pop {
+  to { opacity: 1; transform: scale(1); }
+}
+
+.track-card .icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+.track-card .card-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.track-card .card-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.track-card.http { border-color: var(--accent); }
+.track-card.cosmos { border-color: var(--blue); }
+.track-card.ef { border-color: var(--violet); }
+.track-card.redis { border-color: var(--red); }
+.track-card.events { border-color: var(--cyan); }
+.track-card.opentel { border-color: var(--orange); }
+
+/* ============================================================
+   SCENE 7: Framework Support
+   ============================================================ */
+.fw-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 800px;
+}
+
+.fw-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fw-appear 0.4s ease-out forwards;
+}
+.fw-pill:nth-child(1)  { animation-delay: 0.2s; }
+.fw-pill:nth-child(2)  { animation-delay: 0.35s; }
+.fw-pill:nth-child(3)  { animation-delay: 0.5s; }
+.fw-pill:nth-child(4)  { animation-delay: 0.65s; }
+.fw-pill:nth-child(5)  { animation-delay: 0.8s; }
+.fw-pill:nth-child(6)  { animation-delay: 0.95s; }
+.fw-pill:nth-child(7)  { animation-delay: 1.1s; }
+.fw-pill:nth-child(8)  { animation-delay: 1.25s; }
+.fw-pill:nth-child(9)  { animation-delay: 1.4s; }
+.fw-pill:nth-child(10) { animation-delay: 1.55s; }
+.fw-pill:nth-child(11) { animation-delay: 1.7s; }
+.fw-pill:nth-child(12) { animation-delay: 1.85s; }
+.fw-pill:nth-child(13) { animation-delay: 2.0s; }
+
+@keyframes fw-appear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fw-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.dot-xunit  { background: #4285f4; }
+.dot-nunit  { background: #1daf26; }
+.dot-mstest { background: #68217a; }
+.dot-tunit  { background: #00bcd4; }
+.dot-bddfy  { background: #ff9800; }
+.dot-lbdd   { background: #e91e63; }
+.dot-reqn   { background: #9c27b0; }
+
+.net-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #512bd4, #7b3ff2);
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 20px;
+  opacity: 0;
+  animation: fw-appear 0.5s ease-out 2.2s forwards;
+}
+
+/* ============================================================
+   SCENE 8: CTA / Get Started
+   ============================================================ */
+.cta-install {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 20px 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  margin-bottom: 24px;
+  text-align: center;
+  color: #e6edf3;
+}
+.cta-install .prompt { color: #8b949e; }
+.cta-install .pkg { color: #79c0ff; }
+
+.cta-links {
+  display: flex;
+  gap: 16px;
+}
+.cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.2s;
+}
+.cta-link:hover { transform: translateY(-2px); }
+.cta-link.github { background: #333; }
+.cta-link.nuget { background: linear-gradient(135deg, #004880, #0078d4); }
+.cta-link.wiki { background: linear-gradient(135deg, #1a5276, #2e86c1); }
+
+/* Floating tag */
+.version-tag {
+  position: fixed;
+  bottom: 12px;
+  right: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  z-index: 100;
+}
+
+/* Scene counter */
+.scene-counter {
+  position: fixed;
+  bottom: 12px;
+  left: 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+  z-index: 100;
+  display: flex;
+  gap: 6px;
+}
+.scene-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface2);
+  transition: background 0.3s;
+}
+
+/* Scene dot activation */
+.scene-dot:nth-child(1) { animation: dot-active 60s step-end forwards; }
+@keyframes dot-active {
+  0%     { background: var(--accent); }
+  12.5%  { background: var(--surface2); }
+}
+.scene-dot:nth-child(2) { animation: dot-active-2 60s step-end forwards; }
+@keyframes dot-active-2 {
+  0%     { background: var(--surface2); }
+  12.5%  { background: var(--accent); }
+  25%    { background: var(--surface2); }
+}
+.scene-dot:nth-child(3) { animation: dot-active-3 60s step-end forwards; }
+@keyframes dot-active-3 {
+  0%     { background: var(--surface2); }
+  25%    { background: var(--accent); }
+  37.5%  { background: var(--surface2); }
+}
+.scene-dot:nth-child(4) { animation: dot-active-4 60s step-end forwards; }
+@keyframes dot-active-4 {
+  0%     { background: var(--surface2); }
+  37.5%  { background: var(--accent); }
+  50%    { background: var(--surface2); }
+}
+.scene-dot:nth-child(5) { animation: dot-active-5 60s step-end forwards; }
+@keyframes dot-active-5 {
+  0%     { background: var(--surface2); }
+  50%    { background: var(--accent); }
+  62.5%  { background: var(--surface2); }
+}
+.scene-dot:nth-child(6) { animation: dot-active-6 60s step-end forwards; }
+@keyframes dot-active-6 {
+  0%     { background: var(--surface2); }
+  62.5%  { background: var(--accent); }
+  75%    { background: var(--surface2); }
+}
+.scene-dot:nth-child(7) { animation: dot-active-7 60s step-end forwards; }
+@keyframes dot-active-7 {
+  0%     { background: var(--surface2); }
+  75%    { background: var(--accent); }
+  87.5%  { background: var(--surface2); }
+}
+.scene-dot:nth-child(8) { animation: dot-active-8 60s step-end forwards; }
+@keyframes dot-active-8 {
+  0%     { background: var(--surface2); }
+  87.5%  { background: var(--accent); }
+  100%   { background: var(--accent); }
+}
+
+/* CI summary mock */
+.ci-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 16px;
+  opacity: 0;
+  animation: card-pop 0.5s ease-out 2.2s forwards;
+}
+.ci-badge.gh { background: rgba(66,133,244,0.15); color: #79c0ff; }
+.ci-badge.ado { background: rgba(0,120,212,0.15); color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"></div>
+
+<!-- ============================================================
+     SCENE 1: Hero — Write tests, get diagrams
+     ============================================================ -->
+<div class="scene scene-1">
+  <div class="scene-title">Write tests. Get diagrams.</div>
+  <div class="scene-subtitle">Auto-generate PlantUML sequence diagrams from your component tests — every time you run them</div>
+  <div class="hero-layout">
+    <div class="hero-left">
+      <div class="code-block" style="font-size: 11.5px; line-height: 1.55;">
+        <span class="comment">// Your component test</span><br>
+        <span class="attr">[Fact]</span><br>
+        <span class="keyword">public async</span> <span class="type">Task</span> <span class="method">Creating_an_order_reserves_stock</span>()<br>
+        {<br>
+        &nbsp;&nbsp;<span class="keyword">var</span> order = <span class="keyword">new</span> { ProductId = <span class="string">"SKU-42"</span>, Qty = <span class="number">3</span> };<br>
+        <br>
+        &nbsp;&nbsp;<span class="keyword">var</span> response = <span class="keyword">await</span> _client<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;.<span class="method">PostAsJsonAsync</span>(<span class="string">"/api/orders"</span>, order);<br>
+        <br>
+        &nbsp;&nbsp;response.StatusCode<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;.<span class="method">Should</span>().<span class="method">Be</span>(<span class="type">HttpStatusCode</span>.Created);<br>
+        }
+      </div>
+    </div>
+    <div class="hero-arrow">
+      <div class="arrow-text">auto-generates</div>
+      <div class="arrow-line"></div>
+    </div>
+    <div class="hero-right">
+      <div class="diagram-mock">
+        <div class="participants">
+          <div class="participant actor">Test</div>
+          <div class="participant">Orders API</div>
+          <div class="participant">Stock Service</div>
+        </div>
+        <div class="diagram-msg">
+          <span class="msg-num">1</span>
+          <span class="msg-label"><span class="http-method">POST</span> /api/orders</span>
+          <span class="msg-arrow"></span>
+        </div>
+        <div class="diagram-msg">
+          <span class="msg-num">2</span>
+          <span style="width:130px"></span>
+          <span class="msg-label"><span class="http-method">PUT</span> /stock/reserve</span>
+          <span class="msg-arrow"></span>
+        </div>
+        <div class="diagram-msg">
+          <span class="msg-num">3</span>
+          <span style="width:130px"></span>
+          <span class="msg-arrow response left" style="flex:1"></span>
+          <span class="msg-label"><span class="status-ok">200 OK</span></span>
+        </div>
+        <div class="diagram-msg">
+          <span class="msg-num">4</span>
+          <span class="msg-arrow response left" style="flex:1"></span>
+          <span class="msg-label"><span class="status-ok">201 Created</span></span>
+        </div>
+        <div class="diagram-msg">
+          <span class="msg-num">5</span>
+          <span style="width:0"></span>
+          <span class="msg-label" style="font-size:9px; color:#2e7bff;">📨 OrderCreated → EventGrid</span>
+          <span style="flex:1; border-top: 2px solid #2e7bff; position:relative; margin: 0 4px;">
+            <span style="position:absolute; right:-1px; top:-5px; border:5px solid transparent; border-left-color:#2e7bff;"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 2: Interactive HTML Reports
+     ============================================================ -->
+<div class="scene scene-2">
+  <div class="scene-title">Rich Interactive Reports</div>
+  <div class="scene-subtitle">HTML test reports with execution summaries, status badges, duration metrics, and collapsible features</div>
+  <div class="report-mock" style="max-width: 820px;">
+    <div class="report-header">
+      <h3>📊 Test Run Report</h3>
+      <span style="margin-left:auto; font-size:11px; color:#999;">Generated 2026-04-17 14:32</span>
+    </div>
+    <div class="report-body">
+      <div class="summary-row">
+        <div class="summary-box">
+          <h4>Features</h4>
+          <div class="val">12</div>
+        </div>
+        <div class="summary-box">
+          <h4>Scenarios</h4>
+          <div class="val">147</div>
+        </div>
+        <div class="summary-box">
+          <h4>Passed</h4>
+          <div class="val green">121</div>
+        </div>
+        <div class="summary-box">
+          <h4>Failed</h4>
+          <div class="val red">8</div>
+        </div>
+        <div class="summary-box" style="display:flex; align-items:center; justify-content:center;">
+          <div class="mini-pie"></div>
+        </div>
+      </div>
+
+      <div class="mock-feature open">
+        <div class="feat-title"><span class="feat-arrow">▾</span> Order Management</div>
+        <div class="feat-expand">
+          <div class="mock-scenario expand-in">
+            <span class="scenario-status pass"></span>
+            Creating an order reserves stock
+            <span class="duration fast">42ms</span>
+          </div>
+          <div class="mock-scenario expand-in">
+            <span class="scenario-status pass"></span>
+            Cancelling an order releases reserved stock
+            <span class="duration fast">38ms</span>
+          </div>
+          <div class="mock-scenario expand-in">
+            <span class="scenario-status fail"></span>
+            <span style="color:#c0392b">Insufficient stock returns 409 Conflict</span>
+            <span class="duration slow">1204ms</span>
+          </div>
+        </div>
+      </div>
+      <div class="mock-feature">
+        <div class="feat-title"><span class="feat-arrow">▸</span> Payment Processing</div>
+      </div>
+      <div class="mock-feature">
+        <div class="feat-title"><span class="feat-arrow">▸</span> User Authentication</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 3: Advanced Search
+     ============================================================ -->
+<div class="scene scene-3">
+  <div class="scene-title">Powerful Search Engine</div>
+  <div class="scene-subtitle">Boolean operators, tag filters, status filters, quoted phrases — find any scenario instantly</div>
+  <div class="search-demo">
+    <div class="search-input-mock">
+      <span class="search-typing">$failed && @payments || "timeout"</span><span class="typing-cursor"></span>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; justify-content:center;">
+      <span class="syntax-chip"><code>&&</code> <span>AND</span></span>
+      <span class="syntax-chip"><code>||</code> <span>OR</span></span>
+      <span class="syntax-chip"><code>!!</code> <span>NOT</span></span>
+      <span class="syntax-chip"><code>@tag</code> <span>Category</span></span>
+      <span class="syntax-chip"><code>$status</code> <span>Filter</span></span>
+      <span class="syntax-chip"><code>"phrase"</code> <span>Exact match</span></span>
+      <span class="syntax-chip"><code>( )</code> <span>Grouping</span></span>
+    </div>
+
+    <div class="search-results-mock">
+      <div class="search-result-item search-result-match">
+        <span class="scenario-status fail" style="width:10px;height:10px;border-radius:50;flex-shrink:0;background:var(--red)"></span>
+        <span>Payment <span class="highlight-match">timeout</span> after 30s — returns 504</span>
+        <span class="badge badge-fail" style="margin-left:auto">Failed</span>
+        <span style="font-size:10px;color:var(--violet)">@payments</span>
+      </div>
+      <div class="search-result-item search-result-match">
+        <span class="scenario-status fail" style="width:10px;height:10px;border-radius:50;flex-shrink:0;background:var(--red)"></span>
+        <span>Refund fails when <span class="highlight-match">payment</span> gateway is down</span>
+        <span class="badge badge-fail" style="margin-left:auto">Failed</span>
+        <span style="font-size:10px;color:var(--violet)">@payments</span>
+      </div>
+      <div class="search-result-item search-result-dim">
+        <span class="scenario-status pass" style="width:10px;height:10px;border-radius:50;flex-shrink:0;background:var(--green)"></span>
+        <span>Creating an order reserves stock</span>
+        <span class="badge badge-pass" style="margin-left:auto">Passed</span>
+        <span style="font-size:10px;color:var(--text-dim)">@orders</span>
+      </div>
+      <div class="search-result-item search-result-dim">
+        <span class="scenario-status pass" style="width:10px;height:10px;border-radius:50;flex-shrink:0;background:var(--green)"></span>
+        <span>User login with valid credentials</span>
+        <span class="badge badge-pass" style="margin-left:auto">Passed</span>
+        <span style="font-size:10px;color:var(--text-dim)">@auth</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 4: Parameterized Test Tables
+     ============================================================ -->
+<div class="scene scene-4">
+  <div class="scene-title">Parameterized Test Grouping</div>
+  <div class="scene-subtitle">Smart table layouts with clickable rows — each row loads its own sequence diagram</div>
+  <div class="param-demo">
+    <table class="param-table">
+      <thead>
+        <tr>
+          <th class="status-header"></th>
+          <th class="master-header" colspan="3">Input Parameters</th>
+          <th class="sub-header" style="width:80px">Duration</th>
+        </tr>
+        <tr>
+          <th class="sub-header">Status</th>
+          <th class="sub-header">Amount</th>
+          <th class="sub-header">Currency</th>
+          <th class="sub-header">Region</th>
+          <th class="sub-header">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-pass row-highlight-1">
+          <td><span class="param-status pass">✓ Pass</span></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">100.00</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">GBP</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">EU</td>
+          <td style="font-size:11px; color:#1e8449">34ms</td>
+        </tr>
+        <tr class="row-pass">
+          <td><span class="param-status pass">✓ Pass</span></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">250.50</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">USD</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">US</td>
+          <td style="font-size:11px; color:#1e8449">28ms</td>
+        </tr>
+        <tr class="row-fail row-highlight-2">
+          <td><span class="param-status fail">✗ Fail</span></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">999.99</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">EUR</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">APAC</td>
+          <td style="font-size:11px; color:#c0392b">1.2s</td>
+        </tr>
+        <tr class="row-pass">
+          <td><span class="param-status pass">✓ Pass</span></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">0.01</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">JPY</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px">APAC</td>
+          <td style="font-size:11px; color:#1e8449">31ms</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="diagram-swap">
+      <div class="diagram-label diagram-label-1">
+        <span>📊</span> Diagram for <strong style="color:var(--accent)">GBP / EU / £100.00</strong> — 4 HTTP calls tracked
+      </div>
+      <div class="diagram-label diagram-label-2">
+        <span>📊</span> Diagram for <strong style="color:var(--red)">EUR / APAC / €999.99</strong> — showing 503 from payment gateway
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 5: Focus & Emphasis
+     ============================================================ -->
+<div class="scene scene-5">
+  <div class="scene-title">Focus What Matters</div>
+  <div class="scene-subtitle">Highlight critical fields in request/response bodies — dim the noise, spotlight the signal</div>
+  <div class="focus-demo">
+    <div class="focus-code">
+      <div class="code-block" style="font-size: 11px; line-height: 1.6; margin-bottom: 12px;">
+        <span class="comment">// Highlight just the fields you care about</span><br>
+        <span class="keyword">var</span> response = <span class="keyword">await</span> _client<br>
+        &nbsp;&nbsp;.<span class="method">WithDiagramFocus</span>()<br>
+        &nbsp;&nbsp;.<span class="method">OnResponse</span>&lt;<span class="type">OrderResponse</span>&gt;(<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;x => x.<span class="attr">Status</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;x => x.<span class="attr">TotalAmount</span><br>
+        &nbsp;&nbsp;)<br>
+        &nbsp;&nbsp;.<span class="method">PostAsJsonAsync</span>(<span class="string">"/orders"</span>, req);
+      </div>
+      <div class="focus-arrow-anim" style="text-align:center; color:var(--text-dim); font-size:12px; padding:8px;">
+        ← Bold &amp; colored focus fields<br>
+        ← Dimmed non-focus fields
+      </div>
+    </div>
+    <div class="focus-json">
+      <span style="color:#8b949e">// Response body in diagram note</span><br>
+      {<br>
+      &nbsp;&nbsp;<span class="json-key">"orderId"</span>: <span class="json-str focus-dim">"ord-7f3a"</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"customerId"</span>: <span class="json-str focus-dim">"cust-1234"</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"status"</span>: <span class="json-str focus-bold">"Confirmed"</span>, ⭐<br>
+      &nbsp;&nbsp;<span class="json-key">"totalAmount"</span>: <span class="json-num focus-bold">250.50</span>, ⭐<br>
+      &nbsp;&nbsp;<span class="json-key">"currency"</span>: <span class="json-str focus-dim">"GBP"</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"createdAt"</span>: <span class="json-str focus-dim">"2026-04-17"</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"items"</span>: <span class="json-str focus-dim">[...]</span><br>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 6: Track Everything
+     ============================================================ -->
+<div class="scene scene-6">
+  <div class="scene-title">Track Every Integration</div>
+  <div class="scene-subtitle">HTTP, databases, caches, events — all tracked automatically and rendered in one diagram</div>
+  <div class="track-grid">
+    <div class="track-card http">
+      <div class="icon">🌐</div>
+      <div class="card-title">HTTP</div>
+      <div class="card-desc">DelegatingHandler intercepts every HTTP call with request & response bodies</div>
+    </div>
+    <div class="track-card cosmos">
+      <div class="icon">🪐</div>
+      <div class="card-title">Cosmos DB</div>
+      <div class="card-desc">SDK operations with classified labels — Create, Query, Upsert, Patch</div>
+    </div>
+    <div class="track-card ef">
+      <div class="icon">🗃️</div>
+      <div class="card-title">EF Core / SQL</div>
+      <div class="card-desc">Any EF Core relational provider — SQL Server, PostgreSQL, MySQL, SQLite</div>
+    </div>
+    <div class="track-card redis">
+      <div class="icon">⚡</div>
+      <div class="card-title">Redis</div>
+      <div class="card-desc">Cache hit/miss visualization, classified ops — Get, Set, Hash, List</div>
+    </div>
+    <div class="track-card events">
+      <div class="icon">📨</div>
+      <div class="card-title">Events & Messages</div>
+      <div class="card-desc">Kafka, EventGrid, SNS, RabbitMQ — blue event notes in diagrams</div>
+    </div>
+    <div class="track-card opentel">
+      <div class="icon">📡</div>
+      <div class="card-title">OpenTelemetry</div>
+      <div class="card-desc">Activity/span tracking integration with trace correlation</div>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px; margin-top:16px;">
+    <div class="ci-badge gh">🔧 GitHub Actions Summary</div>
+    <div class="ci-badge ado">🔧 Azure DevOps Summary</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 7: Framework Support
+     ============================================================ -->
+<div class="scene scene-7">
+  <div class="scene-title">Every Framework. One Library.</div>
+  <div class="scene-subtitle">First-class support for all major .NET test frameworks and BDD libraries</div>
+  <div class="fw-grid">
+    <div class="fw-pill"><span class="fw-dot dot-xunit"></span> xUnit v3</div>
+    <div class="fw-pill"><span class="fw-dot dot-xunit"></span> xUnit v2</div>
+    <div class="fw-pill"><span class="fw-dot dot-nunit"></span> NUnit 4</div>
+    <div class="fw-pill"><span class="fw-dot dot-mstest"></span> MSTest v3</div>
+    <div class="fw-pill"><span class="fw-dot dot-tunit"></span> TUnit</div>
+    <div class="fw-pill"><span class="fw-dot dot-bddfy"></span> BDDfy</div>
+    <div class="fw-pill"><span class="fw-dot dot-lbdd"></span> LightBDD</div>
+    <div class="fw-pill"><span class="fw-dot dot-reqn"></span> ReqNRoll</div>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; justify-content:center;">
+    <div class="fw-pill" style="animation-delay:1.6s; border-color:var(--blue)"><span style="font-size:16px">🪐</span> Cosmos DB</div>
+    <div class="fw-pill" style="animation-delay:1.75s; border-color:var(--violet)"><span style="font-size:16px">🗃️</span> EF Core</div>
+    <div class="fw-pill" style="animation-delay:1.9s; border-color:var(--red)"><span style="font-size:16px">⚡</span> Redis</div>
+    <div class="fw-pill" style="animation-delay:2.05s; border-color:var(--orange)"><span style="font-size:16px">📡</span> OpenTelemetry</div>
+    <div class="fw-pill" style="animation-delay:2.2s; border-color:var(--cyan)"><span style="font-size:16px">🖼️</span> PlantUML IKVM</div>
+  </div>
+  <div class="net-badge">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#512BD4"/><text x="10" y="14" text-anchor="middle" fill="white" font-size="10" font-weight="bold">.N</text></svg>
+    .NET 8 · .NET 9 · .NET 10
+  </div>
+</div>
+
+<!-- ============================================================
+     SCENE 8: Get Started
+     ============================================================ -->
+<div class="scene scene-8">
+  <div class="scene-title" style="font-size:32px;">Get Started in Minutes</div>
+  <div class="scene-subtitle">One NuGet package. Zero configuration. Diagrams from your very first test run.</div>
+  <div class="cta-install">
+    <span class="prompt">$</span> dotnet add package <span class="pkg">TestTrackingDiagrams.xUnit3</span>
+  </div>
+  <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+    <div style="display:flex; gap:12px;">
+      <span class="cta-link github">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="white"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </span>
+      <span class="cta-link nuget">
+        <svg width="18" height="18" viewBox="0 0 64 64" fill="white"><path d="M24 14a10 10 0 1 1-20 0 10 10 0 0 1 20 0zM58 42a16 16 0 1 1-32 0 16 16 0 0 1 32 0zM20 32a6 6 0 1 1-12 0 6 6 0 0 1 12 0z"/></svg>
+        NuGet
+      </span>
+      <span class="cta-link wiki">
+        📖 Wiki
+      </span>
+    </div>
+    <div style="margin-top:8px; font-size:13px; color:var(--text-dim);">
+      Deterministic diagrams from real HTTP traffic — not AI hallucinations
+    </div>
+  </div>
+</div>
+
+<!-- Fixed elements -->
+<div class="version-tag">TestTrackingDiagrams</div>
+<div class="scene-counter">
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+  <div class="scene-dot"></div>
+</div>
+
+</body>
+</html>

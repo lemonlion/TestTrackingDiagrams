@@ -22,8 +22,8 @@ public class HeadersDetailsInterferenceTests : IDisposable
 
         caller -> svc : POST /api/orders
         note left
-        <color:gray >Content-Type: application/json
-        <color:gray >Authorization: Bearer token123
+        <color:gray>Content-Type: application/json
+        <color:gray>Authorization: Bearer token123
         
         {"item":"Widget","qty":2}
         Line 2 of body
@@ -34,8 +34,8 @@ public class HeadersDetailsInterferenceTests : IDisposable
 
         svc --> caller : 201 Created
         note right
-        <color:gray >Content-Type: application/json
-        <color:gray >X-Request-Id: abc-123
+        <color:gray>Content-Type: application/json
+        <color:gray>X-Request-Id: abc-123
         
         {"id":"abc-123","status":"created"}
         end note
@@ -368,8 +368,8 @@ public class HeadersDetailsInterferenceTests : IDisposable
 
         caller -> svc : POST /api/data
         note left
-        <color:gray >Content-Type: application/json
-        <color:gray >Authorization: Bearer token
+        <color:gray>Content-Type: application/json
+        <color:gray>Authorization: Bearer token
 
         Line01-body
         Line02-body

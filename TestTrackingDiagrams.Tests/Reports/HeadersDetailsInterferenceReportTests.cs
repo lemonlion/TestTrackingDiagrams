@@ -12,8 +12,8 @@ public class HeadersDetailsInterferenceReportTests
 
         caller -> svc : POST /api/orders
         note left
-        <color:gray >Content-Type: application/json
-        <color:gray >Authorization: Bearer token123
+        <color:gray>Content-Type: application/json
+        <color:gray>Authorization: Bearer token123
         
         {"item":"Widget","qty":2}
         Line 2 of body
@@ -24,7 +24,7 @@ public class HeadersDetailsInterferenceReportTests
 
         svc --> caller : 201 Created
         note right
-        <color:gray >Content-Type: application/json
+        <color:gray>Content-Type: application/json
         
         {"id":"abc-123","status":"created"}
         end note

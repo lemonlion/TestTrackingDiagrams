@@ -17,14 +17,21 @@ internal static class ChromeDriverFactory
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\Application\chrome.exe")
     ];
 
-    public static ChromeDriver Create(int width = 1920, int height = 1080)
+    public static ChromeDriver Create(int width = 1920, int height = 1080, bool headless = true)
     {
         var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
+        if (headless)
+        {
+            options.AddArgument("--headless=new");
+            options.AddArgument($"--window-size={width},{height}");
+        }
+        else
+        {
+            options.AddArgument("--start-maximized");
+        }
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument($"--window-size={width},{height}");
 
         var systemChrome = SystemChromePaths.FirstOrDefault(File.Exists);
         if (systemChrome is not null)

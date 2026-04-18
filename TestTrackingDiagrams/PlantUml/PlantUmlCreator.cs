@@ -447,7 +447,7 @@ public static partial class PlantUmlCreator
 
     private static IEnumerable<string> BatchGray(string value)
     {
-        return value.ChunksUpTo(100).Select(x => $"<color:gray >{x}");
+        return value.ChunksUpTo(100).Select(x => "<color:gray>" + x);
     }
 
     private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest, string? plantUmlTheme = null, int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength)

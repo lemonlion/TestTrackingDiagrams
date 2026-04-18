@@ -1150,7 +1150,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("<color:gray >", plantUml);
+        Assert.Contains("<color:gray>", plantUml);
     }
 
     // ─── Invalid JSON is treated as plain text ──────────────────
@@ -1188,9 +1188,9 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        // Each chunk gets its own <color:gray > prefix, so >100 chars means multiple lines
-        var colorGrayCount = plantUml.Split("<color:gray >").Length - 1;
-        Assert.True(colorGrayCount >= 2, $"Expected at least 2 <color:gray > lines for long header, got {colorGrayCount}");
+        // Each chunk gets its own <color:gray> prefix, so >100 chars means multiple lines
+        var colorGrayCount = plantUml.Split("<color:gray>").Length - 1;
+        Assert.True(colorGrayCount >= 2, $"Expected at least 2 <color:gray> lines for long header, got {colorGrayCount}");
     }
 
     // ─── Null header value ──────────────────────────────────────
@@ -2215,7 +2215,7 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs);
 
         // Headers still use the gray color tag
-        Assert.Contains("<color:gray >[Authorization=Bearer xyz]", plantUml);
+        Assert.Contains("<color:gray>[Authorization=Bearer xyz]", plantUml);
         // But JSON fields use focus formatting
         Assert.Contains("<b>\"name\": \"Alice\"", plantUml);
     }

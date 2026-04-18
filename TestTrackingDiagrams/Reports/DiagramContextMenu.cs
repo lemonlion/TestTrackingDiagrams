@@ -245,7 +245,7 @@ public static class DiagramContextMenu
         .iflow-boundary-marker:hover { border-left-color: rgba(0,0,0,0.6); pointer-events: auto; }
         .whole-test-flow { margin-top: 8px; padding-top: 4px; }
         .whole-test-flow > summary { cursor: pointer; font-weight: 600; color: #555; }
-        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; padding-right: 1em; display: flex; align-items: center; }
+        .diagram-toggle { margin-top: 8px; margin-bottom: 8px; padding-left: 1em; padding-right: 1em; display: flex; align-items: center; width: 100%; box-sizing: border-box; }
         .diagram-toggle-btn {
             padding: 4px 14px;
             border: 1px solid #ccc;
@@ -756,7 +756,7 @@ public static class DiagramContextMenu
                             inNote = false;
                             afterCallerRequest = false;
                             var body = noteLines
-                                .filter(function(l) { return !l.match(/^\s*<color:gray\s*>/); })
+                                .filter(function(l) { return !l.match(/^\s*<color:gray>/); })
                                 .join('\n').trim();
                             if (body) payloads.push(body);
                         } else {
@@ -837,7 +837,7 @@ public static class DiagramContextMenu
                         var noteText;
                         if (noteBlocks[clickedNoteIdx]) {
                             noteText = noteBlocks[clickedNoteIdx].contentLines.map(function(l) {
-                                return l.replace(/^\s*<color:gray\s*>/, '');
+                                return l.replace(/^\s*<color:gray>/, '');
                             }).join('\n').trim();
                         } else {
                             noteText = noteGroups[clickedNoteIdx].texts.map(function(t) { return t.textContent; }).join('\n');
@@ -856,7 +856,7 @@ public static class DiagramContextMenu
                             var currentText;
                             if (currentNoteBlocks[clickedNoteIdx]) {
                                 currentText = currentNoteBlocks[clickedNoteIdx].contentLines.map(function(l) {
-                                    return l.replace(/^\s*<color:gray\s*>/, '');
+                                    return l.replace(/^\s*<color:gray>/, '');
                                 }).join('\n').trim();
                             } else {
                                 currentText = noteGroups[clickedNoteIdx].texts.map(function(t) { return t.textContent; }).join('\n');
@@ -1604,7 +1604,7 @@ public static class DiagramContextMenu
 
             function getNotePreview(contentLines) {
                 var nonGray = contentLines.map(function(l) { return l.trim(); })
-                    .filter(function(l) { return !l.match(/^<color:gray\s*>/); });
+                    .filter(function(l) { return !l.match(/^<color:gray>/); });
                 var raw = nonGray.join(' ').trim();
                 if (!raw) return '';
                 if (raw.length <= 60) return raw;
@@ -1825,7 +1825,7 @@ public static class DiagramContextMenu
                 // Tooltip for collapsed notes
                 if (state === 'collapsed' && contentLines && grp && grp.paths.length > 0) {
                     var tipLines = contentLines.map(function(l) {
-                        return l.replace(/^\s*<color:gray\s*>/, '');
+                        return l.replace(/^\s*<color:gray>/, '');
                     });
                     var tipText = tipLines.join('\n').trim();
                     if (tipText) {
@@ -1951,7 +1951,7 @@ public static class DiagramContextMenu
                     }
                     if (noteMode === 'collapsed') continue;
                     if (noteMode === 'truncated') {
-                        if (hideHeaders && /^<color:gray\s*>/.test(trimmed)) { justSkippedGray = true; continue; }
+                        if (hideHeaders && /^<color:gray>/.test(trimmed)) { justSkippedGray = true; continue; }
                         if (justSkippedGray && trimmed === '') continue;
                         justSkippedGray = false;
                         truncateLineCount++;
@@ -1960,7 +1960,7 @@ public static class DiagramContextMenu
                         }
                         continue;
                     }
-                    if (inNote && hideHeaders && /^<color:gray\s*>/.test(trimmed)) { justSkippedGray = true; continue; }
+                    if (inNote && hideHeaders && /^<color:gray>/.test(trimmed)) { justSkippedGray = true; continue; }
                     if (justSkippedGray && trimmed === '') continue;
                     justSkippedGray = false;
                     newLines.push(lines[i]);
