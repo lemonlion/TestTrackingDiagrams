@@ -38,7 +38,7 @@ jobs:
         run: dotnet build TestTrackingDiagrams.sln --configuration Release -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Test
-        run: dotnet test TestTrackingDiagrams.Tests/TestTrackingDiagrams.Tests.csproj --configuration Release --no-build --verbosity normal
+        run: dotnet test tests/TestTrackingDiagrams.Tests/TestTrackingDiagrams.Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Pack
         run: dotnet pack TestTrackingDiagrams.sln --configuration Release --no-build --output ./nupkgs -p:Version=${{ steps.version.outputs.VERSION }}

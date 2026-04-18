@@ -1,81 +1,81 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams", "TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{83A2F310-B1DA-4721-9305-2659298CA3A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams", "src\TestTrackingDiagrams\TestTrackingDiagrams.csproj", "{83A2F310-B1DA-4721-9305-2659298CA3A0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightBDD.xUnit2", "TestTrackingDiagrams.LightBDD.xUnit2\TestTrackingDiagrams.LightBDD.xUnit2.csproj", "{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.LightBDD.xUnit2", "src\TestTrackingDiagrams.LightBDD.xUnit2\TestTrackingDiagrams.LightBDD.xUnit2.csproj", "{7C979AD7-6CBE-4C61-ADFA-C7827A48C1D9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit4", "TestTrackingDiagrams.NUnit4\TestTrackingDiagrams.NUnit4.csproj", "{57117522-8940-40E0-A9E6-EAFD9E54A076}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.NUnit4", "src\TestTrackingDiagrams.NUnit4\TestTrackingDiagrams.NUnit4.csproj", "{57117522-8940-40E0-A9E6-EAFD9E54A076}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.xUnit3", "TestTrackingDiagrams.xUnit3\TestTrackingDiagrams.xUnit3.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTrackingDiagrams.xUnit3", "src\TestTrackingDiagrams.xUnit3\TestTrackingDiagrams.xUnit3.csproj", "{6B355E54-9734-46D6-AC37-E16F8F6F2C55}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit3", "TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj", "{531C6839-BC2A-440D-B681-EE1743CF15B0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit3", "src\TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj", "{531C6839-BC2A-440D-B681-EE1743CF15B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit2", "TestTrackingDiagrams.ReqNRoll.xUnit2\TestTrackingDiagrams.ReqNRoll.xUnit2.csproj", "{28746024-1AE0-4982-9651-D5CF6C1BBC1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.xUnit2", "src\TestTrackingDiagrams.ReqNRoll.xUnit2\TestTrackingDiagrams.ReqNRoll.xUnit2.csproj", "{28746024-1AE0-4982-9651-D5CF6C1BBC1A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.BDDfy.xUnit3", "TestTrackingDiagrams.BDDfy.xUnit3\TestTrackingDiagrams.BDDfy.xUnit3.csproj", "{387E1822-D53D-44D5-B4D6-961D5755FED9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.BDDfy.xUnit3", "src\TestTrackingDiagrams.BDDfy.xUnit3\TestTrackingDiagrams.BDDfy.xUnit3.csproj", "{387E1822-D53D-44D5-B4D6-961D5755FED9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests", "TestTrackingDiagrams.Tests\TestTrackingDiagrams.Tests.csproj", "{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests", "tests\TestTrackingDiagrams.Tests\TestTrackingDiagrams.Tests.csproj", "{B93291EE-D017-454F-BDF6-DAE33F6ED5B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit3", "TestTrackingDiagrams.Tests.xUnit3\TestTrackingDiagrams.Tests.xUnit3.csproj", "{0234135C-5B45-479B-B347-EA6B09821191}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit3", "tests\TestTrackingDiagrams.Tests.xUnit3\TestTrackingDiagrams.Tests.xUnit3.csproj", "{0234135C-5B45-479B-B347-EA6B09821191}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.xUnit2", "TestTrackingDiagrams.xUnit2\TestTrackingDiagrams.xUnit2.csproj", "{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.xUnit2", "src\TestTrackingDiagrams.xUnit2\TestTrackingDiagrams.xUnit2.csproj", "{9C1EE2CC-FD84-4495-9838-A3DE73A0E794}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit2", "TestTrackingDiagrams.Tests.xUnit2\TestTrackingDiagrams.Tests.xUnit2.csproj", "{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.xUnit2", "tests\TestTrackingDiagrams.Tests.xUnit2\TestTrackingDiagrams.Tests.xUnit2.csproj", "{27ABFBC3-09E5-4546-8750-1A5C0FF6F61E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.CosmosDB", "TestTrackingDiagrams.Extensions.CosmosDB\TestTrackingDiagrams.Extensions.CosmosDB.csproj", "{87893C0E-C12C-43B5-AA1A-E909EC8E2E92}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.CosmosDB", "src\TestTrackingDiagrams.Extensions.CosmosDB\TestTrackingDiagrams.Extensions.CosmosDB.csproj", "{87893C0E-C12C-43B5-AA1A-E909EC8E2E92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.CosmosDB", "TestTrackingDiagrams.Tests.CosmosDB\TestTrackingDiagrams.Tests.CosmosDB.csproj", "{BA080E5F-0296-4DEE-9A0C-A12C7E2F0EEF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.CosmosDB", "tests\TestTrackingDiagrams.Tests.CosmosDB\TestTrackingDiagrams.Tests.CosmosDB.csproj", "{BA080E5F-0296-4DEE-9A0C-A12C7E2F0EEF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.PlantUml.Ikvm", "TestTrackingDiagrams.PlantUml.Ikvm\TestTrackingDiagrams.PlantUml.Ikvm.csproj", "{19A4BBCD-6A55-4085-9CCB-CAEBFF6D333F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.PlantUml.Ikvm", "src\TestTrackingDiagrams.PlantUml.Ikvm\TestTrackingDiagrams.PlantUml.Ikvm.csproj", "{19A4BBCD-6A55-4085-9CCB-CAEBFF6D333F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.PlantUml.Ikvm", "TestTrackingDiagrams.Tests.PlantUml.Ikvm\TestTrackingDiagrams.Tests.PlantUml.Ikvm.csproj", "{A0C97618-635B-4B7F-9639-0D1264F13116}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.PlantUml.Ikvm", "tests\TestTrackingDiagrams.Tests.PlantUml.Ikvm\TestTrackingDiagrams.Tests.PlantUml.Ikvm.csproj", "{A0C97618-635B-4B7F-9639-0D1264F13116}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.EfCore.Relational", "TestTrackingDiagrams.Extensions.EfCore.Relational\TestTrackingDiagrams.Extensions.EfCore.Relational.csproj", "{4356CDE3-2357-4D51-AC81-7614D5D1B9CF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.EfCore.Relational", "src\TestTrackingDiagrams.Extensions.EfCore.Relational\TestTrackingDiagrams.Extensions.EfCore.Relational.csproj", "{4356CDE3-2357-4D51-AC81-7614D5D1B9CF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.EfCore.Relational", "TestTrackingDiagrams.Tests.EfCore.Relational\TestTrackingDiagrams.Tests.EfCore.Relational.csproj", "{D5130409-8B69-4141-AC7C-0663B5F2EF77}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.EfCore.Relational", "tests\TestTrackingDiagrams.Tests.EfCore.Relational\TestTrackingDiagrams.Tests.EfCore.Relational.csproj", "{D5130409-8B69-4141-AC7C-0663B5F2EF77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.MSTest", "TestTrackingDiagrams.MSTest\TestTrackingDiagrams.MSTest.csproj", "{C3418898-AA05-41CB-AD41-DBF30826EC89}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.MSTest", "src\TestTrackingDiagrams.MSTest\TestTrackingDiagrams.MSTest.csproj", "{C3418898-AA05-41CB-AD41-DBF30826EC89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.MSTest", "TestTrackingDiagrams.Tests.MSTest\TestTrackingDiagrams.Tests.MSTest.csproj", "{28777C16-CC57-41DE-9678-366F915F9AB5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.MSTest", "tests\TestTrackingDiagrams.Tests.MSTest\TestTrackingDiagrams.Tests.MSTest.csproj", "{28777C16-CC57-41DE-9678-366F915F9AB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.xUnit3", "TestTrackingDiagrams.LightBDD.xUnit3\TestTrackingDiagrams.LightBDD.xUnit3.csproj", "{25C2E966-284D-449D-96C0-3B17456FDE88}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.xUnit3", "src\TestTrackingDiagrams.LightBDD.xUnit3\TestTrackingDiagrams.LightBDD.xUnit3.csproj", "{25C2E966-284D-449D-96C0-3B17456FDE88}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.LightBDD.xUnit3", "TestTrackingDiagrams.Tests.LightBDD.xUnit3\TestTrackingDiagrams.Tests.LightBDD.xUnit3.csproj", "{FD98F047-1B96-473B-8B56-D7A41B192E9E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.LightBDD.xUnit3", "tests\TestTrackingDiagrams.Tests.LightBDD.xUnit3\TestTrackingDiagrams.Tests.LightBDD.xUnit3.csproj", "{FD98F047-1B96-473B-8B56-D7A41B192E9E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.Redis", "TestTrackingDiagrams.Extensions.Redis\TestTrackingDiagrams.Extensions.Redis.csproj", "{C93D71DB-9928-45E8-AB05-AD088B0FAC99}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.Redis", "src\TestTrackingDiagrams.Extensions.Redis\TestTrackingDiagrams.Extensions.Redis.csproj", "{C93D71DB-9928-45E8-AB05-AD088B0FAC99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Redis", "TestTrackingDiagrams.Tests.Redis\TestTrackingDiagrams.Tests.Redis.csproj", "{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Redis", "tests\TestTrackingDiagrams.Tests.Redis\TestTrackingDiagrams.Tests.Redis.csproj", "{1EBD5EBC-9998-486C-AFF2-8C2FB75ECF35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.OpenTelemetry", "TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj", "{F636ED8D-472F-4354-AAD6-2EAA045AC976}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.OpenTelemetry", "src\TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj", "{F636ED8D-472F-4354-AAD6-2EAA045AC976}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Selenium", "TestTrackingDiagrams.Tests.Selenium\TestTrackingDiagrams.Tests.Selenium.csproj", "{7683910A-7114-4B6D-A695-F65B7CF433D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Selenium", "tests\TestTrackingDiagrams.Tests.Selenium\TestTrackingDiagrams.Tests.Selenium.csproj", "{7683910A-7114-4B6D-A695-F65B7CF433D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.TUnit", "TestTrackingDiagrams.TUnit\TestTrackingDiagrams.TUnit.csproj", "{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.TUnit", "src\TestTrackingDiagrams.TUnit\TestTrackingDiagrams.TUnit.csproj", "{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.TUnit", "TestTrackingDiagrams.Tests.TUnit\TestTrackingDiagrams.Tests.TUnit.csproj", "{A5364DD5-8A4B-4E9D-B688-2D7BFD0FBF15}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.TUnit", "tests\TestTrackingDiagrams.Tests.TUnit\TestTrackingDiagrams.Tests.TUnit.csproj", "{A5364DD5-8A4B-4E9D-B688-2D7BFD0FBF15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.TUnit", "TestTrackingDiagrams.LightBDD.TUnit\TestTrackingDiagrams.LightBDD.TUnit.csproj", "{D56F3E05-AF44-4791-9862-F2C3F1E3B04D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.TUnit", "src\TestTrackingDiagrams.LightBDD.TUnit\TestTrackingDiagrams.LightBDD.TUnit.csproj", "{D56F3E05-AF44-4791-9862-F2C3F1E3B04D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.LightBDD.TUnit", "TestTrackingDiagrams.Tests.LightBDD.TUnit\TestTrackingDiagrams.Tests.LightBDD.TUnit.csproj", "{46025930-64DA-4CFC-A257-FEF8D8D91652}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.LightBDD.TUnit", "tests\TestTrackingDiagrams.Tests.LightBDD.TUnit\TestTrackingDiagrams.Tests.LightBDD.TUnit.csproj", "{46025930-64DA-4CFC-A257-FEF8D8D91652}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.TUnit", "TestTrackingDiagrams.ReqNRoll.TUnit\TestTrackingDiagrams.ReqNRoll.TUnit.csproj", "{CB614173-9DF7-4AF1-AB7A-6E2499B87BD2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.TUnit", "src\TestTrackingDiagrams.ReqNRoll.TUnit\TestTrackingDiagrams.ReqNRoll.TUnit.csproj", "{CB614173-9DF7-4AF1-AB7A-6E2499B87BD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.DispatchProxy", "TestTrackingDiagrams.Extensions.DispatchProxy\TestTrackingDiagrams.Extensions.DispatchProxy.csproj", "{5EFE9DAF-5D99-455A-BF66-13D340F96212}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.DispatchProxy", "src\TestTrackingDiagrams.Extensions.DispatchProxy\TestTrackingDiagrams.Extensions.DispatchProxy.csproj", "{5EFE9DAF-5D99-455A-BF66-13D340F96212}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.MediatR", "TestTrackingDiagrams.Extensions.MediatR\TestTrackingDiagrams.Extensions.MediatR.csproj", "{939D68F7-BEDA-4FF4-8D89-A3E38697D3AC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.MediatR", "src\TestTrackingDiagrams.Extensions.MediatR\TestTrackingDiagrams.Extensions.MediatR.csproj", "{939D68F7-BEDA-4FF4-8D89-A3E38697D3AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.BlobStorage", "TestTrackingDiagrams.Extensions.BlobStorage\TestTrackingDiagrams.Extensions.BlobStorage.csproj", "{D42BEA9D-CC3C-447B-91D8-8BBE2C67B4BC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.BlobStorage", "src\TestTrackingDiagrams.Extensions.BlobStorage\TestTrackingDiagrams.Extensions.BlobStorage.csproj", "{D42BEA9D-CC3C-447B-91D8-8BBE2C67B4BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.BlobStorage", "TestTrackingDiagrams.Tests.BlobStorage\TestTrackingDiagrams.Tests.BlobStorage.csproj", "{773793F4-8B43-421F-B886-4487250EE94A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.BlobStorage", "tests\TestTrackingDiagrams.Tests.BlobStorage\TestTrackingDiagrams.Tests.BlobStorage.csproj", "{773793F4-8B43-421F-B886-4487250EE94A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.Core", "TestTrackingDiagrams.ReqNRoll.Core\TestTrackingDiagrams.ReqNRoll.Core.csproj", "{069E5796-B6EA-47A3-8430-FE906D0D8E22}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.ReqNRoll.Core", "src\TestTrackingDiagrams.ReqNRoll.Core\TestTrackingDiagrams.ReqNRoll.Core.csproj", "{069E5796-B6EA-47A3-8430-FE906D0D8E22}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.Core", "TestTrackingDiagrams.LightBDD.Core\TestTrackingDiagrams.LightBDD.Core.csproj", "{F9B8ECC4-517B-415C-8D63-2F323705B236}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.LightBDD.Core", "src\TestTrackingDiagrams.LightBDD.Core\TestTrackingDiagrams.LightBDD.Core.csproj", "{F9B8ECC4-517B-415C-8D63-2F323705B236}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.SearchEngine", "TestTrackingDiagrams.Tests.SearchEngine\TestTrackingDiagrams.Tests.SearchEngine.csproj", "{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.SearchEngine", "tests\TestTrackingDiagrams.Tests.SearchEngine\TestTrackingDiagrams.Tests.SearchEngine.csproj", "{27BE51B1-B11A-47AC-BD7E-D1AE9AD80D6D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

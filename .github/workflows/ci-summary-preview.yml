@@ -15,11 +15,11 @@ jobs:
       matrix:
         include:
           - name: "CI Preview — All Passing (10 tests)"
-            project: Example.Api/tests/Example.Api.Tests.CiPreview.AllPassing
+            project: examples/Example.Api/tests/Example.Api.Tests.CiPreview.AllPassing
           - name: "CI Preview — All Failing (10 tests)"
-            project: Example.Api/tests/Example.Api.Tests.CiPreview.AllFailing
+            project: examples/Example.Api/tests/Example.Api.Tests.CiPreview.AllFailing
           - name: "CI Preview — Mixed (5 pass, 5 fail)"
-            project: Example.Api/tests/Example.Api.Tests.CiPreview.Mixed
+            project: examples/Example.Api/tests/Example.Api.Tests.CiPreview.Mixed
     steps:
       - uses: actions/checkout@v5
 

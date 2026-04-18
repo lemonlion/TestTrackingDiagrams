@@ -15,73 +15,73 @@ jobs:
       matrix:
         include:
           - name: Core Tests
-            projects: TestTrackingDiagrams.Tests
+            projects: tests/TestTrackingDiagrams.Tests
           - name: Adapter Tests
             projects: >-
-              TestTrackingDiagrams.Tests.MSTest
-              TestTrackingDiagrams.Tests.xUnit2
-              TestTrackingDiagrams.Tests.xUnit3
-              TestTrackingDiagrams.Tests.LightBDD.xUnit3
+              tests/TestTrackingDiagrams.Tests.MSTest
+              tests/TestTrackingDiagrams.Tests.xUnit2
+              tests/TestTrackingDiagrams.Tests.xUnit3
+              tests/TestTrackingDiagrams.Tests.LightBDD.xUnit3
           - name: Extension Tests
             projects: >-
-              TestTrackingDiagrams.Tests.CosmosDB
-              TestTrackingDiagrams.Tests.EfCore.Relational
-              TestTrackingDiagrams.Tests.Redis
-              TestTrackingDiagrams.Tests.PlantUml.Ikvm
+              tests/TestTrackingDiagrams.Tests.CosmosDB
+              tests/TestTrackingDiagrams.Tests.EfCore.Relational
+              tests/TestTrackingDiagrams.Tests.Redis
+              tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
           - name: Selenium (Popups & Flows)
-            projects: TestTrackingDiagrams.Tests.Selenium
+            projects: tests/TestTrackingDiagrams.Tests.Selenium
             filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
           - name: Selenium (Filters & URL Hash)
-            projects: TestTrackingDiagrams.Tests.Selenium
+            projects: tests/TestTrackingDiagrams.Tests.Selenium
             filter: UrlHashFilterHighlightTests|FilterPerformanceTests
           - name: Selenium (Toolbar & Scenarios)
-            projects: TestTrackingDiagrams.Tests.Selenium
+            projects: tests/TestTrackingDiagrams.Tests.Selenium
             filter: ReportToolbarTests|ScenarioInteractionTests
           - name: Selenium (Diagrams & Context Menu)
-            projects: TestTrackingDiagrams.Tests.Selenium
+            projects: tests/TestTrackingDiagrams.Tests.Selenium
             filter: DiagramZoomTests|DiagramNoteTests|ContextMenuExtendedTests
           - name: Example.Api xUnit Tests
             projects: >-
-              Example.Api/tests/Example.Api.Tests.Component.xUnit2
-              Example.Api/tests/Example.Api.Tests.Component.xUnit3
+              examples/Example.Api/tests/Example.Api.Tests.Component.xUnit2
+              examples/Example.Api/tests/Example.Api.Tests.Component.xUnit3
           - name: Example.Api BDD Tests
             projects: >-
-              Example.Api/tests/Example.Api.Tests.Component.BDDfy.xUnit3
-              Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit2
-              Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit3
+              examples/Example.Api/tests/Example.Api.Tests.Component.BDDfy.xUnit3
+              examples/Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit2
+              examples/Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit3
           - name: Example.Api ReqNRoll.xUnit2 Tests
-            projects: Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
+            projects: examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
           - name: Example.Api ReqNRoll.xUnit3 Tests
-            projects: Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
+            projects: examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
           - name: Example.Api NUnit4 Tests
-            projects: Example.Api/tests/Example.Api.Tests.Component.NUnit4
+            projects: examples/Example.Api/tests/Example.Api.Tests.Component.NUnit4
           - name: Integration (xUnit2)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.xUnit2
           - name: Integration (xUnit3)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.xUnit3
           - name: Integration (NUnit4)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.NUnit4
           - name: Integration (LightBDD)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.LightBDD
           - name: Integration (BDDfy)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.BDDfy
           - name: Integration (ReqNRoll.xUnit2)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.ReqNRoll.xUnit2
           - name: Integration (ReqNRoll.xUnit3)
-            projects: Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: Example.Api/Example.Api.sln
+            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
+            restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.ReqNRoll.xUnit3
     steps:
       - uses: actions/checkout@v5
