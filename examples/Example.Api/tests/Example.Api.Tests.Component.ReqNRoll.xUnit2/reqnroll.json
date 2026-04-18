@@ -3,6 +3,9 @@
   "bindingAssemblies": [
     {
       "assembly": "TestTrackingDiagrams.ReqNRoll.xUnit2"
+    },
+    {
+      "assembly": "TestTrackingDiagrams.ReqNRoll.Core"
     }
   ],
   "formatters": {

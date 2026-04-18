@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.LightBDD.xUnit3;
 using TestTrackingDiagrams.Tracking;
 

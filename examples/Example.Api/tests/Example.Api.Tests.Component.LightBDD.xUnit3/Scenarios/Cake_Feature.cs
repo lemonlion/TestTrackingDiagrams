@@ -1,4 +1,5 @@
 using Example.Api.Tests.Component.LightBDD.xUnit3.Models;
+using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.LightBDD.xUnit3;
 using LightBDD.Framework;
 using LightBDD.Framework.Scenarios;
