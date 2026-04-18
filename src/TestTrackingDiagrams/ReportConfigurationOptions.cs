@@ -122,6 +122,21 @@ public record ReportConfigurationOptions
     /// <summary>When <c>true</c>, a C4-style component diagram is generated alongside reports. Default: <c>true</c>.</summary>
     public bool GenerateComponentDiagram { get; set; } = true;
 
+    /// <summary>When <c>true</c>, the HTML specifications report is generated. Default: <c>true</c>.</summary>
+    public bool GenerateSpecificationsReport { get; set; } = true;
+
+    /// <summary>When <c>true</c>, the HTML test run report is generated. Default: <c>true</c>.</summary>
+    public bool GenerateTestRunReport { get; set; } = true;
+
+    /// <summary>When <c>true</c>, the specifications data file (YAML/JSON/XML) is generated. Default: <c>true</c>.</summary>
+    public bool GenerateSpecificationsData { get; set; } = true;
+
+    /// <summary>When <c>true</c>, the test run report data file (JSON/XML/YAML) is generated. Default: <c>true</c>.</summary>
+    public bool GenerateTestRunReportData { get; set; } = true;
+
+    /// <summary>When <c>true</c>, the test run report schema file is generated. Default: <c>true</c>.</summary>
+    public bool GenerateTestRunReportSchema { get; set; } = true;
+
     /// <summary>When <c>true</c>, writes a test summary to the CI job summary (e.g. GitHub Actions).</summary>
     public bool WriteCiSummary { get; set; }
 

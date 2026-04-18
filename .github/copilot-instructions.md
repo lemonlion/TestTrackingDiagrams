@@ -17,6 +17,7 @@
 
 - After every session of bug fixes or feature updates is complete and the full test suite has passed, increment the patch version in **all** packages (not just the main one)
 - All packages must use the same version number.
+- The Change Log must be updated with a clear description of the changes made in the new version, including any new features, bug fixes, or breaking changes.
 - Commit, create a git tag (`v{version}`), and push both the commit and the tag to origin.
 
 ## Documentation
