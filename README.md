@@ -17,7 +17,6 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [How It Works](#how-it-works)
 - [Use Cases](#use-cases)
 - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
-- [Component Diagrams (C4-style)](#component-diagrams)
 - [Supported Frameworks & NuGet Packages](#supported-frameworks)
 - [Recommended BDD Framework](#recommended-bdd)
 - [Documentation](#documentation)
@@ -103,10 +102,6 @@ The per-test sequence diagrams provide a ground-truth foundation for building hi
 
 When a PR changes HTTP interactions (new downstream calls, modified payloads, changed endpoints), the sequence diagrams in the test reports make the impact immediately visible. Reviewers can compare the before and after diagrams to understand exactly what changed in the service communication, without having to mentally trace through the code.
 
-### Regression detection
-
-If a code change unintentionally alters the HTTP interaction pattern — an extra call to a downstream service, a missing header, a changed payload shape — the updated diagram makes it obvious. The YAML specification files are particularly useful for automated diffing in CI pipelines.
-
 ### Onboarding and knowledge transfer
 
 New team members can browse the HTML reports to quickly understand how the system's services interact, what endpoints exist, and what the expected request/response shapes look like — all backed by real, passing tests rather than potentially stale wiki pages.
@@ -181,6 +176,5 @@ Key pages:
 - [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
 - [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
 - [Report Configuration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Report-Configuration)
-- [Component Diagrams (C4-style)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Component-Diagrams)
 - [API Reference](https://github.com/lemonlion/TestTrackingDiagrams/wiki/API-Reference)
 - [Example Project](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Example-Project)

@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.0.145-beta</Version>
+    <Version>2.0.146-beta</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,14 +14,14 @@
     <Copyright>Copyright (c) 2023-2026 Aryeh Citron</Copyright>
     <PackageTags>testing;diagrams;bdd;plantuml;sequence-diagram;http-tracking;xunit;nunit;mstest;tunit;lightbdd;reqnroll</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>nuget-readme.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <!-- Include LICENSE, README, and icon in all NuGet packages -->
   <ItemGroup Condition="'$(IsPackable)' != 'false' AND '$(IsTestProject)' != 'true'">
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" />
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="$(MSBuildThisFileDirectory)nuget-readme.md" Pack="true" PackagePath="\" Link="nuget-readme.md" />
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Link="icon.png" />
   </ItemGroup>
 

@@ -10,23 +10,31 @@ public class ReportToggleTests : IDisposable
         typeof(DefaultDiagramsFetcher).GetField("_diagrams", BindingFlags.Static | BindingFlags.NonPublic)!;
 
     private readonly string _reportsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+    private readonly string _suffix = Guid.NewGuid().ToString("N")[..8];
 
     public ReportToggleTests()
     {
         DiagramsField.SetValue(null, null);
-        CleanReports();
     }
 
     public void Dispose()
     {
         DiagramsField.SetValue(null, null);
-        CleanReports();
+        // Clean up files created by this test instance
+        foreach (var file in Directory.GetFiles(_reportsDir, $"*{_suffix}*"))
+            try { File.Delete(file); } catch { /* best-effort */ }
     }
 
-    private void CleanReports()
+    private ReportConfigurationOptions MakeOptions(Action<ReportConfigurationOptions>? configure = null)
     {
-        if (Directory.Exists(_reportsDir))
-            Directory.Delete(_reportsDir, true);
+        var options = new ReportConfigurationOptions
+        {
+            HtmlSpecificationsFileName = $"Specifications_{_suffix}",
+            HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
+            YamlSpecificationsFileName = $"Specifications_{_suffix}"
+        };
+        configure?.Invoke(options);
+        return options;
     }
 
     private static Feature[] SimpleFeatures =>
@@ -52,23 +60,23 @@ public class ReportToggleTests : IDisposable
     [Fact]
     public void SpecificationsReport_generated_by_default()
     {
-        var options = new ReportConfigurationOptions();
+        var options = MakeOptions();
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "Specifications.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
     }
 
     [Fact]
     public void SpecificationsReport_skipped_when_disabled()
     {
-        var options = new ReportConfigurationOptions { GenerateSpecificationsReport = false };
+        var options = MakeOptions(o => o.GenerateSpecificationsReport = false);
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, "Specifications.html")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
     }
 
     // --- Test Run Report HTML ---
@@ -76,23 +84,23 @@ public class ReportToggleTests : IDisposable
     [Fact]
     public void TestRunReport_generated_by_default()
     {
-        var options = new ReportConfigurationOptions();
+        var options = MakeOptions();
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "TestRunReport.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
     }
 
     [Fact]
     public void TestRunReport_skipped_when_disabled()
     {
-        var options = new ReportConfigurationOptions { GenerateTestRunReport = false };
+        var options = MakeOptions(o => o.GenerateTestRunReport = false);
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, "TestRunReport.html")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
     }
 
     // --- Specifications Data ---
@@ -100,23 +108,23 @@ public class ReportToggleTests : IDisposable
     [Fact]
     public void SpecificationsData_generated_by_default()
     {
-        var options = new ReportConfigurationOptions();
+        var options = MakeOptions();
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "Specifications.yml")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.yml")));
     }
 
     [Fact]
     public void SpecificationsData_skipped_when_disabled()
     {
-        var options = new ReportConfigurationOptions { GenerateSpecificationsData = false };
+        var options = MakeOptions(o => o.GenerateSpecificationsData = false);
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, "Specifications.yml")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.yml")));
     }
 
     // --- Test Run Report Data ---
@@ -124,23 +132,23 @@ public class ReportToggleTests : IDisposable
     [Fact]
     public void TestRunReportData_generated_by_default()
     {
-        var options = new ReportConfigurationOptions();
+        var options = MakeOptions();
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "TestRunReport.json")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.json")));
     }
 
     [Fact]
     public void TestRunReportData_skipped_when_disabled()
     {
-        var options = new ReportConfigurationOptions { GenerateTestRunReportData = false };
+        var options = MakeOptions(o => o.GenerateTestRunReportData = false);
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, "TestRunReport.json")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.json")));
     }
 
     // --- Test Run Report Schema ---
@@ -148,22 +156,22 @@ public class ReportToggleTests : IDisposable
     [Fact]
     public void TestRunReportSchema_generated_by_default()
     {
-        var options = new ReportConfigurationOptions();
+        var options = MakeOptions();
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.True(File.Exists(Path.Combine(_reportsDir, "TestRunReport.schema.json")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.schema.json")));
     }
 
     [Fact]
     public void TestRunReportSchema_skipped_when_disabled()
     {
-        var options = new ReportConfigurationOptions { GenerateTestRunReportSchema = false };
+        var options = MakeOptions(o => o.GenerateTestRunReportSchema = false);
 
         ReportGenerator.CreateStandardReportsWithDiagrams(
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, "TestRunReport.schema.json")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.schema.json")));
     }
 }
