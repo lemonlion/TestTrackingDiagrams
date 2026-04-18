@@ -176,9 +176,13 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 | **CosmosDB** | `TestTrackingDiagrams.Extensions.CosmosDB` | Tracks Azure Cosmos DB SDK operations with classified labels (Create, Read, Query, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.CosmosDB)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.CosmosDB) |
 | **EF Core Relational** | `TestTrackingDiagrams.Extensions.EfCore.Relational` | Tracks SQL operations from any EF Core relational provider (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, Spanner) with classified labels and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.EfCore.Relational)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.EfCore.Relational) |
 | **Redis** | `TestTrackingDiagrams.Extensions.Redis` | Tracks StackExchange.Redis operations with cache hit/miss visualization, classified labels (Get, Set, Delete, Hash, List, Set, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.Redis)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.Redis) |
+| **Blob Storage** | `TestTrackingDiagrams.Extensions.BlobStorage` | Tracks Azure Blob Storage operations in your tests and converts them into diagrams | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.BlobStorage)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.BlobStorage) |
+| **DispatchProxy** | `TestTrackingDiagrams.Extensions.DispatchProxy` | DI integration helpers for `TrackingProxy<T>` — provides `ReplaceWithTracked<T>()` extension method for `IServiceCollection` to replace service registrations with tracking proxies | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.DispatchProxy)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.DispatchProxy) |
+| **MediatR** | `TestTrackingDiagrams.Extensions.MediatR` | Wraps `IMediator` and `ISender` with `TrackingProxy` to record Send, Publish, and CreateStream calls with command/query type names as diagram labels | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.MediatR)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.MediatR) |
+| **OpenTelemetry** | `TestTrackingDiagrams.Extensions.OpenTelemetry` | Captures internal SUT spans during tests for internal flow visualization in sequence diagram popups | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.OpenTelemetry)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.OpenTelemetry) |
 | **PlantUML IKVM** | `TestTrackingDiagrams.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.PlantUml.Ikvm)](https://www.nuget.org/packages/TestTrackingDiagrams.PlantUml.Ikvm) |
 
-All packages from 1.23.X onwards target **.NET 10.0** .
+All packages from 1.23.X onwards target **.NET 8.0**, **.NET 9.0**, and **.NET 10.0** (multi-target).
 
 ---
 
@@ -189,9 +193,13 @@ For full documentation including quick start guides, configuration, customisatio
 Key pages:
 - [Quick Start (xUnit)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit))
 - [Framework Integration Guides](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Framework-Integration-Guides)
-- [CosmosDB Extension](docs/integration-cosmosdb.md)
-- [EF Core Relational Extension](docs/integration-efcore-relational.md)
-- [Redis Extension](docs/integration-redis.md)
+- [CosmosDB Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-CosmosDB-Extension)
+- [EF Core Relational Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-EF-Core-Relational-Extension)
+- [Redis Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-Redis-Extension)
+- [Blob Storage Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-BlobStorage-Extension)
+- [DispatchProxy Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-DispatchProxy-Extension)
+- [MediatR Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-MediatR-Extension)
+- [OpenTelemetry Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-OpenTelemetry-Extension)
 - [PlantUML IKVM (Local Rendering)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-PlantUML-IKVM)
 - [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
 - [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
