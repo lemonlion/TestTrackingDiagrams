@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90D9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2C5F8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="22" fill="url(#bg)"/>
+  <!-- Top arrow: pointing right -->
+  <line x1="22" y1="20" x2="88" y2="20" stroke="#80DEEA" stroke-width="11" stroke-linecap="round"/>
+  <polygon points="86,7 110,20 86,33" fill="#80DEEA"/>
+  <!-- "TTD" monogram -->
+  <text x="64" y="82" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="54" fill="white" letter-spacing="-3">TTD</text>
+  <!-- Bottom arrow: pointing left -->
+  <line x1="106" y1="106" x2="40" y2="106" stroke="#80DEEA" stroke-width="11" stroke-linecap="round"/>
+  <polygon points="42,119 18,106 42,93" fill="#80DEEA"/>
+</svg>
+
