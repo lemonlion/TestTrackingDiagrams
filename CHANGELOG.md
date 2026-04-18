@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.153-beta] - 2026-04-18
+
+### Added
+- GitHub issue templates (bug report and feature request) with structured forms
+- Pull request template with checklist (TDD, tests, docs, changelog, version)
+- CodeQL security scanning workflow (runs on push, PR, and weekly schedule)
+
+### Changed
+- Added explicit least-privilege `permissions: contents: read` to CI and CI Summary Preview workflows
+
 ## [2.0.152-beta] - 2026-04-18
 
 ### Changed
