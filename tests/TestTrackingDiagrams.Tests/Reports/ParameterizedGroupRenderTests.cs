@@ -17,7 +17,7 @@ public class ParameterizedGroupRenderTests
     private static Scenario MakeScenario(string id, string displayName, ExecutionResult result = ExecutionResult.Passed,
         string? outlineId = null, Dictionary<string, string>? exampleValues = null,
         string? exampleDisplayName = null, string? errorMessage = null, string? errorStackTrace = null,
-        TimeSpan? duration = null, ScenarioStep[]? steps = null) =>
+        TimeSpan? duration = null, ScenarioStep[]? steps = null, bool isHappyPath = false) =>
         new()
         {
             Id = id,
@@ -29,7 +29,8 @@ public class ParameterizedGroupRenderTests
             ErrorMessage = errorMessage,
             ErrorStackTrace = errorStackTrace,
             Duration = duration,
-            Steps = steps
+            Steps = steps,
+            IsHappyPath = isHappyPath
         };
 
     private static DefaultDiagramsFetcher.DiagramAsCode[] MakeDiagrams(params (string testId, string plantuml)[] diagrams) =>
@@ -656,5 +657,52 @@ public class ParameterizedGroupRenderTests
 
         Assert.Contains("scenario-parameterized", content);
         Assert.Contains("param-test-table", content);
+    }
+
+    [Fact]
+    public void Parameterized_group_with_happy_path_scenarios_gets_happy_path_class()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Reset(version: V1)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V1" }, isHappyPath: true),
+            MakeScenario("s2", "Reset(version: V2)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V2" }, isHappyPath: true)
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("scenario-parameterized happy-path", content);
+        Assert.Contains(">Happy Path</span>", content);
+    }
+
+    [Fact]
+    public void Parameterized_group_without_happy_path_scenarios_does_not_get_happy_path_class()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Reset(version: V1)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V1" }),
+            MakeScenario("s2", "Reset(version: V2)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.DoesNotContain("scenario-parameterized happy-path", content);
+        Assert.DoesNotContain(">Happy Path</span>", content);
+    }
+
+    [Fact]
+    public void Parameterized_group_with_mixed_happy_path_gets_happy_path_class()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Reset(version: V1)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V1" }, isHappyPath: true),
+            MakeScenario("s2", "Reset(version: V2)", outlineId: "Reset",
+                exampleValues: new() { ["version"] = "V2" }, isHappyPath: false)
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("scenario-parameterized happy-path", content);
     }
 }

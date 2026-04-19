@@ -2092,9 +2092,12 @@ public static class ReportGenerator
 
         var anchorId = GenerateScenarioAnchorId(group.GroupDisplayName);
         var encodedGroupName = System.Net.WebUtility.HtmlEncode(group.GroupDisplayName);
+        var isGroupHappyPath = scenarios.Any(s => s.IsHappyPath);
+        var happyPathClass = isGroupHappyPath ? " happy-path" : "";
+        var happyPathBadge = isGroupHappyPath ? " <span class=\"label\">Happy Path</span>" : "";
 
-        body.Append($"<details class=\"scenario scenario-parameterized\" data-status=\"{overallStatus}\"{depsAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id=\"{anchorId}\" tabindex=\"0\">");
-        body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
+        body.Append($"<details class=\"scenario scenario-parameterized{happyPathClass}\" data-status=\"{overallStatus}\"{depsAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id=\"{anchorId}\" tabindex=\"0\">");
+        body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{happyPathBadge}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
 
         // Parameter table
         body.Append("<table class=\"param-test-table\"><thead>");
