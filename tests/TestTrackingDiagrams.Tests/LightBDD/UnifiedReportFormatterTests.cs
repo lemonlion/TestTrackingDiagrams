@@ -3,33 +3,19 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.LightBDD;
 
-public class UnifiedReportFormatterTests
+public class StandardPipelineFormatterTests
 {
     [Fact]
-    public void Default_GroupParameterizedTests_matches_GenerateHtmlReport_default()
+    public void Default_Options_is_new_ReportConfigurationOptions()
     {
-        var formatter = new UnifiedReportFormatter();
-        Assert.True(formatter.GroupParameterizedTests);
+        var formatter = new StandardPipelineFormatter();
+        Assert.NotNull(formatter.Options);
     }
 
     [Fact]
-    public void Default_MaxParameterColumns_matches_GenerateHtmlReport_default()
+    public void Default_ExpectedTestCount_is_null()
     {
-        var formatter = new UnifiedReportFormatter();
-        Assert.Equal(10, formatter.MaxParameterColumns);
-    }
-
-    [Fact]
-    public void Default_TitleizeParameterNames_matches_GenerateHtmlReport_default()
-    {
-        var formatter = new UnifiedReportFormatter();
-        Assert.True(formatter.TitleizeParameterNames);
-    }
-
-    [Fact]
-    public void Default_Title_is_TestRunReport()
-    {
-        var formatter = new UnifiedReportFormatter();
-        Assert.Equal("Test Run Report", formatter.Title);
+        var formatter = new StandardPipelineFormatter();
+        Assert.Null(formatter.ExpectedTestCount);
     }
 }
