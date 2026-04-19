@@ -1504,6 +1504,7 @@ public static class ReportGenerator
         }
 
         body.Append("<div id=\"report-content\">");
+        var paramGroupCounter = 0;
         foreach (var feature in features)
         {
             var featureHasFailures = feature.Scenarios.Any(s => s.Result == ExecutionResult.Failed);
@@ -1545,7 +1546,6 @@ public static class ReportGenerator
             // Group by Rule for rendering
             string? currentRule = "__NOTSET__";
             var ruleOpen = false;
-            var paramGroupCounter = 0;
             foreach (var scenario in orderedScenarios)
             {
                 // Is this scenario part of a parameterized group?

@@ -588,4 +588,124 @@ public class ParameterizedGroupTests : IDisposable
         var outline = matchedRow.GetCssValue("outline-style");
         Assert.Equal("none", outline);
     }
+
+    // ── Cross-feature parameterized group prefix collision ──
+
+    private string GenerateMultiFeatureParamReport(string fileName)
+    {
+        Scenario[] MakeScenarios(string prefix, string outlineId)
+        {
+            return
+            [
+                new Scenario
+                {
+                    Id = $"{prefix}-1", DisplayName = $"{outlineId}(v: V1)",
+                    Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                    OutlineId = outlineId,
+                    ExampleValues = new Dictionary<string, string> { ["v"] = "V1" },
+                    Steps =
+                    [
+                        new ScenarioStep { Keyword = "Given", Text = $"{prefix} step 1", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "Then", Text = $"{prefix} step 2", Status = ExecutionResult.Passed }
+                    ]
+                },
+                new Scenario
+                {
+                    Id = $"{prefix}-2", DisplayName = $"{outlineId}(v: V2)",
+                    Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2),
+                    OutlineId = outlineId,
+                    ExampleValues = new Dictionary<string, string> { ["v"] = "V2" },
+                    Steps =
+                    [
+                        new ScenarioStep { Keyword = "Given", Text = $"{prefix} step A", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "Then", Text = $"{prefix} step B", Status = ExecutionResult.Passed }
+                    ]
+                }
+            ];
+        }
+
+        var scenariosA = MakeScenarios("fA", "ProcessA");
+        var scenariosB = MakeScenarios("fB", "ProcessB");
+
+        var features = new[]
+        {
+            new Feature { DisplayName = "Feature Alpha", Scenarios = scenariosA },
+            new Feature { DisplayName = "Feature Beta", Scenarios = scenariosB }
+        };
+
+        var allScenarios = scenariosA.Concat(scenariosB).ToArray();
+        var diagrams = allScenarios.Select(s =>
+            new DefaultDiagramsFetcher.DiagramAsCode(s.Id, "",
+                $"@startuml\nActor -> Service : {s.Id}\n@enduml")).ToArray();
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(_tempDir, fileName), "Cross Feature Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            groupParameterizedTests: true);
+
+        File.Copy(path, Path.Combine(OutputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    [Fact]
+    public void Cross_feature_parameterized_groups_have_unique_prefixes()
+    {
+        var url = GenerateMultiFeatureParamReport("ParamCrossFeature.html");
+
+        // Read the generated file and check for unique pgrp prefixes
+        var htmlPath = new Uri(url).LocalPath;
+        var html = File.ReadAllText(htmlPath);
+
+        // All detail panel IDs should be unique
+        var detailIds = System.Text.RegularExpressions.Regex.Matches(html, @"id=""(pgrp\d+-detail-\d+)""")
+            .Cast<System.Text.RegularExpressions.Match>()
+            .Select(m => m.Groups[1].Value)
+            .ToArray();
+        Assert.Equal(detailIds.Length, detailIds.Distinct().Count());
+
+        // All diagram div IDs should be unique
+        var diagramIds = System.Text.RegularExpressions.Regex.Matches(html, @"id=""(pgrp\d+-diagram-\d+)""")
+            .Cast<System.Text.RegularExpressions.Match>()
+            .Select(m => m.Groups[1].Value)
+            .ToArray();
+        Assert.Equal(diagramIds.Length, diagramIds.Distinct().Count());
+    }
+
+    [Fact]
+    public void Clicking_row_in_second_feature_does_not_hide_first_feature_panels()
+    {
+        _driver.Navigate().GoToUrl(GenerateMultiFeatureParamReport("ParamCrossFeatureClick.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandAll();
+
+        var groups = _driver.FindElements(By.CssSelector("details.scenario-parameterized"));
+        Assert.True(groups.Count >= 2, $"Expected at least 2 parameterized groups but found {groups.Count}");
+
+        // Open both parameterized groups
+        foreach (var g in groups)
+        {
+            var summary = g.FindElement(By.CssSelector("summary"));
+            if (g.GetAttribute("open") == null) summary.Click();
+        }
+
+        // Feature Alpha's first detail panel should be visible
+        var groupA = groups[0];
+        var panelsA = groupA.FindElements(By.CssSelector(".param-detail-panel"));
+        Assert.True(panelsA[0].Displayed, "Feature Alpha detail panel 0 should be visible initially");
+
+        // Click the second row in Feature Beta's group
+        var groupB = groups[1];
+        var rowsB = groupB.FindElements(By.CssSelector("tbody tr"));
+        rowsB[1].Click();
+
+        // Feature Alpha's first detail panel should STILL be visible
+        Assert.True(panelsA[0].Displayed, "Feature Alpha detail panel 0 should still be visible after clicking in Feature Beta");
+
+        // Feature Beta's second detail panel should be visible
+        var panelsB = groupB.FindElements(By.CssSelector(".param-detail-panel"));
+        Assert.True(panelsB[1].Displayed, "Feature Beta detail panel 1 should be visible after clicking row 1");
+    }
 }
