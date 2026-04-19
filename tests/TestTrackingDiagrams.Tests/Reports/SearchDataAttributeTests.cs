@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text;
 using System.Text.RegularExpressions;
 using TestTrackingDiagrams.Reports;
 
@@ -15,10 +17,19 @@ public class SearchDataAttributeTests
         return File.ReadAllText(path);
     }
 
+    private static string DecompressBase64(string base64)
+    {
+        var bytes = Convert.FromBase64String(base64);
+        using var input = new MemoryStream(bytes);
+        using var gzip = new GZipStream(input, CompressionMode.Decompress);
+        using var reader = new StreamReader(gzip, Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
     private static string[] ExtractDataSearchValues(string html)
     {
-        return Regex.Matches(html, @"data-search=""([^""]*)""")
-            .Select(m => m.Groups[1].Value)
+        return Regex.Matches(html, @"data-search-z=""([^""]*)""\s")
+            .Select(m => DecompressBase64(m.Groups[1].Value))
             .ToArray();
     }
 

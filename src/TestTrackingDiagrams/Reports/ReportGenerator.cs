@@ -283,6 +283,10 @@ public static class ReportGenerator
                              }
                              
                              function run_search_scenarios() {
+                                 if (!window.__searchReady) {
+                                     setTimeout(run_search_scenarios, 100);
+                                     return;
+                                 }
                                  var c = fc();
                                  let input = document.getElementById('searchbar').value;
                                  input = input.toLowerCase().trim();
@@ -1106,6 +1110,70 @@ public static class ReportGenerator
                          });
                          """;
 
+        // Script to decompress data-search-z / data-row-search-z on page load with progress overlay
+        var searchDecompressScript = """
+            <script>
+            (function() {
+                function decompressB64(base64) {
+                    var raw = atob(base64);
+                    var bytes = new Uint8Array(raw.length);
+                    for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+                    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                    return new Response(stream).text();
+                }
+                document.addEventListener('DOMContentLoaded', async function() {
+                    var overlay = document.getElementById('search-loading-overlay');
+                    var bar = document.getElementById('search-loading-bar');
+                    var pct = document.getElementById('search-loading-pct');
+                    var els = document.querySelectorAll('[data-search-z]');
+                    var rows = document.querySelectorAll('[data-row-search-z]');
+                    var total = els.length + rows.length;
+                    if (total === 0) {
+                        if (overlay) overlay.remove();
+                        window.__searchReady = true;
+                        return;
+                    }
+                    var done = 0;
+                    function updateProgress() {
+                        var p = Math.round(done / total * 100);
+                        if (bar) bar.style.width = p + '%';
+                        if (pct) pct.textContent = p + '%';
+                    }
+                    // Process in batches to keep UI responsive
+                    async function processBatch(items, attr, targetAttr) {
+                        for (var i = 0; i < items.length; i++) {
+                            var el = items[i];
+                            var z = el.getAttribute(attr);
+                            if (z) {
+                                try {
+                                    var text = await decompressB64(z);
+                                    el.setAttribute(targetAttr, text);
+                                } catch(e) {
+                                    el.setAttribute(targetAttr, '');
+                                }
+                                el.removeAttribute(attr);
+                            }
+                            done++;
+                            if (done % 50 === 0 || done === total) {
+                                updateProgress();
+                                await new Promise(function(r) { requestAnimationFrame(r); });
+                            }
+                        }
+                    }
+                    await processBatch(els, 'data-search-z', 'data-search');
+                    await processBatch(rows, 'data-row-search-z', 'data-row-search');
+                    updateProgress();
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                        setTimeout(function() { overlay.remove(); }, 300);
+                    }
+                    _filterCache = null; // reset so fc() picks up decompressed attributes
+                    window.__searchReady = true;
+                });
+            })();
+            </script>
+            """;
+
         var combinedStylesheet = $"""
                                  {Stylesheets.HtmlReportStyleSheet}
                                  {stylesheet}
@@ -1171,11 +1239,22 @@ public static class ReportGenerator
                             {{internalFlowDataScript}}
                             {{internalFlowPopupScript}}
                             {{toggleScript}}
+                            {{searchDecompressScript}}
                         </head>
                         <body>
                     """;
 
         var body = new StringBuilder();
+        body.Append("""
+            <div id="search-loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;transition:opacity 0.3s ease">
+                <div style="text-align:center;font-family:system-ui,sans-serif">
+                    <div style="font-size:14px;color:#555;margin-bottom:8px">Preparing search index… <span id="search-loading-pct">0%</span></div>
+                    <div style="width:260px;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden">
+                        <div id="search-loading-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:3px;transition:width 0.15s ease"></div>
+                    </div>
+                </div>
+            </div>
+            """);
         if (customLogoHtml is not null)
             body.Append($"<div class=\"custom-logo\">{customLogoHtml}</div>");
         body.Append($"<h1>{title}</h1>");
@@ -1616,7 +1695,7 @@ public static class ReportGenerator
                 CollectStepText(scenario.Steps, searchParts);
                 var diagramsForSearch = diagramsByTestId[scenario.Id].ToArray();
                 foreach (var d in diagramsForSearch) searchParts.Add(d.CodeBehind);
-                var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
+                var searchAttr = $" data-search-z=\"{InternalFlowHtmlGenerator.CompressToBase64(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
                 var categoriesAttr = scenario.Categories is { Length: > 0 }
                     ? $" data-categories=\"{System.Net.WebUtility.HtmlEncode(string.Join(",", scenario.Categories))}\""
@@ -2063,7 +2142,7 @@ public static class ReportGenerator
             CollectStepText(s.Steps, searchParts);
             foreach (var d in diagramsByTestId[s.Id]) searchParts.Add(d.CodeBehind);
         }
-        var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
+        var searchAttr = $" data-search-z=\"{InternalFlowHtmlGenerator.CompressToBase64(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
         // Aggregate categories, labels, dependencies
         var categories = scenarios.Where(s => s.Categories is { Length: > 0 }).SelectMany(s => s.Categories!).Distinct().ToArray();
@@ -2157,7 +2236,7 @@ public static class ReportGenerator
             if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, rowSearchParts);
             foreach (var d in diagramsByTestId[s.Id]) rowSearchParts.Add(d.CodeBehind);
-            var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
+            var rowSearchAttr = $" data-row-search-z=\"{InternalFlowHtmlGenerator.CompressToBase64(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
             var rowAnchorId = GenerateScenarioAnchorId(s.DisplayName);
             body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");

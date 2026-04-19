@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.162-beta] - 2026-04-19
+
+### Changed
+- Search data attributes (`data-search`, `data-row-search`) are now gzip-compressed and base64-encoded in the HTML report, dramatically reducing file size for large projects (~80% reduction). Search text is decompressed on page load with a progress overlay showing percentage complete. Search functionality is unchanged — the decompressed data is identical to what was previously stored inline.
+
 ## [2.0.161-beta] - 2026-04-19
 
 ### Fixed
