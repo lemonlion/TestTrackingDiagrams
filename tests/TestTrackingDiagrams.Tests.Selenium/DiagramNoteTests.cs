@@ -252,6 +252,93 @@ public class DiagramNoteTests : IDisposable
         });
     }
 
+    // ── Plus / minus toggle button on collapsed notes ──
+
+    [Fact]
+    public void Collapsed_note_shows_plus_button_in_top_right()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NotePlusCollapsed.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // Click scenario-level "Collapsed" radio button
+        var collapseBtn = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .details-radio-btn[data-state='collapsed']"));
+        collapseBtn.Click();
+
+        // Wait for re-render — plus button should appear
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > 0);
+
+        var plusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='plus']"));
+        var minusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='minus']"));
+        Assert.True(plusBtns.Count > 0, "Plus button should appear when note is collapsed");
+        Assert.Equal(0, minusBtns.Count);
+    }
+
+    [Fact]
+    public void Truncated_note_shows_minus_button_not_plus()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NoteMinusTruncated.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // Default state is truncated — minus button should be present
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='minus']")).Count > 0);
+
+        var minusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='minus']"));
+        var plusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='plus']"));
+        Assert.True(minusBtns.Count > 0, "Minus button should appear when note is truncated");
+        Assert.Equal(0, plusBtns.Count);
+    }
+
+    [Fact]
+    public void Clicking_plus_button_expands_note_and_shows_minus()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NotePlusClick.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // First collapse notes
+        var collapseBtn = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .details-radio-btn[data-state='collapsed']"));
+        collapseBtn.Click();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > 0);
+
+        var plusCountBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+        var minusCountBefore = _driver.FindElements(By.CssSelector("[data-note-btn='minus']")).Count;
+
+        // Hover over note to make buttons visible, then click plus
+        var noteHover = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(noteHover).Perform();
+
+        // Wait for opacity to become visible
+        wait.Until(d =>
+        {
+            var plus = d.FindElement(By.CssSelector("[data-note-btn='plus']"));
+            var opacity = plus.GetCssValue("opacity");
+            return opacity != "0";
+        });
+
+        // Click the plus button's background rect
+        var plusBtn = _driver.FindElement(By.CssSelector("[data-note-btn='plus'] rect"));
+        plusBtn.Click();
+
+        // After expanding, minus count should increase and plus count should decrease
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='minus']")).Count > minusCountBefore);
+
+        var plusCountAfter = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+        var minusCountAfter = _driver.FindElements(By.CssSelector("[data-note-btn='minus']")).Count;
+        Assert.True(minusCountAfter > minusCountBefore, "Minus button count should increase after expanding");
+        Assert.True(plusCountAfter < plusCountBefore, "Plus button count should decrease after expanding");
+    }
+
     // ── Report-level truncation applies to all diagrams ──
 
     [Fact]

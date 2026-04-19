@@ -1715,6 +1715,7 @@ public static class DiagramContextMenu
                     var iy = bbox.y + pad;
                     var gc = document.createElementNS(SVGNS, 'g');
                     gc.setAttribute('class', 'note-toggle-icon');
+                    gc.setAttribute('data-note-btn', 'minus');
                     gc.style.cursor = 'pointer';
                     gc.style.opacity = '0';
                     var bgC = document.createElementNS(SVGNS, 'rect');
@@ -1732,6 +1733,39 @@ public static class DiagramContextMenu
                     gc.appendChild(symC);
                     bgC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
                     buttons.push(gc);
+                }
+
+                // + (plus) button — top-right, shown when collapsed
+                if (state === 'collapsed') {
+                    var px = bbox.x + bbox.width - topSize - pad;
+                    var py = bbox.y + pad;
+                    var gp = document.createElementNS(SVGNS, 'g');
+                    gp.setAttribute('class', 'note-toggle-icon');
+                    gp.setAttribute('data-note-btn', 'plus');
+                    gp.style.cursor = 'pointer';
+                    gp.style.opacity = '0';
+                    var bgP = document.createElementNS(SVGNS, 'rect');
+                    bgP.setAttribute('x', px); bgP.setAttribute('y', py);
+                    bgP.setAttribute('width', topSize); bgP.setAttribute('height', topSize);
+                    bgP.setAttribute('rx', '2'); bgP.setAttribute('fill', '#ffffff');
+                    bgP.setAttribute('stroke', '#999'); bgP.setAttribute('stroke-width', '0.5');
+                    gp.appendChild(bgP);
+                    var symPH = document.createElementNS(SVGNS, 'line');
+                    symPH.setAttribute('x1', px + 3); symPH.setAttribute('y1', py + topSize / 2);
+                    symPH.setAttribute('x2', px + topSize - 3); symPH.setAttribute('y2', py + topSize / 2);
+                    symPH.setAttribute('stroke', '#666'); symPH.setAttribute('stroke-width', '2');
+                    symPH.setAttribute('stroke-linecap', 'round');
+                    symPH.style.pointerEvents = 'none';
+                    gp.appendChild(symPH);
+                    var symPV = document.createElementNS(SVGNS, 'line');
+                    symPV.setAttribute('x1', px + topSize / 2); symPV.setAttribute('y1', py + 3);
+                    symPV.setAttribute('x2', px + topSize / 2); symPV.setAttribute('y2', py + topSize - 3);
+                    symPV.setAttribute('stroke', '#666'); symPV.setAttribute('stroke-width', '2');
+                    symPV.setAttribute('stroke-linecap', 'round');
+                    symPV.style.pointerEvents = 'none';
+                    gp.appendChild(symPV);
+                    bgP.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
+                    buttons.push(gp);
                 }
 
                 // Bottom-center expand button (▾) — shown when collapsed or truncated
