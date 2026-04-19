@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.155-beta] - 2026-04-19
+
+### Fixed
+- ParameterParser now correctly extracts parameters from multiple separate bracket groups (e.g. `[version: "V1"] [claimName: "Sdes"]` as produced by LightBDD for unmatched inline data parameters)
+- ExtractBaseName now strips all trailing bracket groups, not just the last one — fixes parameterized group titles retaining leftover brackets
+- "All diagrams identical across test cases" badge no longer displays when there is only one test case in a parameterized group
+
 ## [2.0.154-beta] - 2026-04-18
 
 ### Fixed

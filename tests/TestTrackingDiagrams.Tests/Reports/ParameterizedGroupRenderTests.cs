@@ -227,6 +227,21 @@ public class ParameterizedGroupRenderTests
     }
 
     [Fact]
+    public void Single_test_case_does_not_show_identical_diagrams_badge()
+    {
+        var puml = "@startuml\nA -> B: hello\n@enduml";
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test", exampleValues: new() { ["a"] = "1" })
+        };
+        var diagrams = MakeDiagrams(("s1", puml));
+        var content = GenerateReport(MakeFeature(scenarios), diagrams);
+
+        Assert.DoesNotContain("class=\"param-diagram-identical-badge\"", content);
+        Assert.DoesNotContain("All diagrams identical across test cases", content);
+    }
+
+    [Fact]
     public void Different_diagrams_render_per_row_switching()
     {
         var scenarios = new[]

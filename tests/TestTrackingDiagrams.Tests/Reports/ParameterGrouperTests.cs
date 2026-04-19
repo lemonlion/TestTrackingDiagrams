@@ -192,6 +192,30 @@ public class ParameterGrouperTests
     }
 
     [Fact]
+    public void Multiple_separate_brackets_grouped_correctly()
+    {
+        var s1 = MakeScenario("s1", "Scenario name [version: \"V1\"] [claimName: \"LivePersonSdes\"]");
+        var s2 = MakeScenario("s2", "Scenario name [version: \"V2\"] [claimName: \"OtherClaim\"]");
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal("Scenario name", groups[0].GroupDisplayName);
+        Assert.Contains("version", groups[0].ParameterNames);
+        Assert.Contains("claimName", groups[0].ParameterNames);
+    }
+
+    [Fact]
+    public void Single_scenario_with_multiple_brackets_becomes_group()
+    {
+        var s1 = MakeScenario("s1", "Scenario name [version: \"V1\"] [claimName: \"LivePersonSdes\"]");
+        var (groups, ungrouped) = ParameterGrouper.Analyze([s1]);
+        Assert.Single(groups);
+        Assert.Empty(ungrouped);
+        Assert.Equal("Scenario name", groups[0].GroupDisplayName);
+        Assert.Contains("version", groups[0].ParameterNames);
+        Assert.Contains("claimName", groups[0].ParameterNames);
+    }
+
+    [Fact]
     public void Max_columns_exceeded_uses_fallback()
     {
         var vals = new Dictionary<string, string>();

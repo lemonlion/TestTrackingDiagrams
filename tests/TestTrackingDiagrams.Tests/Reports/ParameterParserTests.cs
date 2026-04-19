@@ -176,4 +176,40 @@ public class ParameterParserTests
         Assert.Single(result!);
         Assert.Equal("5", result["count"]);
     }
+
+    [Fact]
+    public void Parse_handles_multiple_separate_brackets()
+    {
+        // LightBDD appends each unmatched parameter in its own bracket: [param1: val] [param2: val]
+        var result = ParameterParser.Parse("Scenario name [version: \"V1\"] [claimName: \"LivePersonSdes\"]");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("V1", result["version"]);
+        Assert.Equal("LivePersonSdes", result["claimName"]);
+    }
+
+    [Fact]
+    public void Parse_handles_three_separate_brackets()
+    {
+        var result = ParameterParser.Parse("Name [a: 1] [b: 2] [c: 3]");
+        Assert.NotNull(result);
+        Assert.Equal(3, result!.Count);
+        Assert.Equal("1", result["a"]);
+        Assert.Equal("2", result["b"]);
+        Assert.Equal("3", result["c"]);
+    }
+
+    [Fact]
+    public void ExtractBaseName_strips_all_trailing_brackets()
+    {
+        var result = ParameterParser.ExtractBaseName("Scenario name [version: \"V1\"] [claimName: \"LivePersonSdes\"]");
+        Assert.Equal("Scenario name", result);
+    }
+
+    [Fact]
+    public void ExtractBaseName_strips_three_trailing_brackets()
+    {
+        var result = ParameterParser.ExtractBaseName("Name [a: 1] [b: 2] [c: 3]");
+        Assert.Equal("Name", result);
+    }
 }

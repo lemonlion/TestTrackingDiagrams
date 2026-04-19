@@ -13,16 +13,30 @@ public static class ParameterParser
         if (string.IsNullOrEmpty(displayName))
             return null;
 
-        // Try bracketed format first: "Name [key: val, key2: val2]"
+        // Try bracketed format first: "Name [key: val, key2: val2]" or "Name [k1: v1] [k2: v2]"
         var bracketStart = displayName.LastIndexOf('[');
         if (bracketStart >= 0 && displayName.EndsWith(']'))
         {
-            var inner = displayName.Substring(bracketStart + 1, displayName.Length - bracketStart - 2).Trim();
-            if (inner.Length > 0)
+            // Collect all trailing bracket groups: [p1: v1] [p2: v2] ...
+            var allParams = new Dictionary<string, string>();
+            var remaining = displayName.AsSpan();
+            while (true)
             {
-                var result = ParseParams(inner);
-                return result is { Count: > 0 } ? result : null;
+                var lastOpen = remaining.LastIndexOf('[');
+                if (lastOpen < 0 || remaining[^1] != ']')
+                    break;
+                var inner = remaining.Slice(lastOpen + 1, remaining.Length - lastOpen - 2).Trim();
+                if (inner.Length == 0)
+                    break;
+                var result = ParseParams(inner.ToString());
+                if (result is not { Count: > 0 })
+                    break;
+                foreach (var kv in result)
+                    allParams.TryAdd(kv.Key, kv.Value);
+                remaining = remaining[..lastOpen].TrimEnd();
             }
+            if (allParams.Count > 0)
+                return allParams;
         }
 
         // Try parens format: "Method(params...)"
@@ -47,10 +61,17 @@ public static class ParameterParser
         if (string.IsNullOrEmpty(displayName))
             return null;
 
-        // Try bracketed: "Name [params]"
-        var bracketStart = displayName.LastIndexOf(" [");
-        if (bracketStart >= 0 && displayName.EndsWith(']'))
-            return displayName[..bracketStart].TrimEnd();
+        // Strip all trailing " [params]" brackets
+        var current = displayName.AsSpan();
+        while (true)
+        {
+            var lastOpen = current.LastIndexOf(" [".AsSpan());
+            if (lastOpen < 0 || current[^1] != ']')
+                break;
+            current = current[..lastOpen].TrimEnd();
+        }
+        if (current.Length < displayName.Length)
+            return current.ToString();
 
         // Try parens: "Method(params)"
         var parenStart = FindOpenParen(displayName);

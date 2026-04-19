@@ -1523,6 +1523,7 @@ public static class ReportGenerator
             // Group parameterized scenarios using ParameterGrouper
             Func<Scenario[], bool> diagramComparer = groupScenarios =>
             {
+                if (groupScenarios.Length < 2) return false;
                 var firstDiags = diagramsByTestId[groupScenarios[0].Id].Select(d => d.CodeBehind).OrderBy(s => s).ToArray();
                 if (firstDiags.Length == 0) return false;
                 for (var gi = 1; gi < groupScenarios.Length; gi++)
