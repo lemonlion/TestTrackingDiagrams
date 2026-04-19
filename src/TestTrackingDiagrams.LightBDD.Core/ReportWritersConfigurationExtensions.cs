@@ -155,6 +155,17 @@ namespace TestTrackingDiagrams.LightBDD
                     formatter.DataFormat = options.TestRunReportDataFormat;
                     formatter.TrackedLogs = trackedLogs;
                 });
+
+            // Generate the static schema file eagerly (it doesn't depend on test results)
+            if (options.GenerateTestRunReportSchema)
+            {
+                var schemaExtension = options.TestRunReportDataFormat == DataFormat.Xml ? "xsd" : "json";
+                ReportGenerator.GenerateTestRunReportSchema(
+                    $"{reportsFilePath}/{options.HtmlTestRunReportFileName}.schema.{schemaExtension}",
+                    options.TestRunReportDataFormat);
+            }
+
+            return configuration;
         }
 
         private static string GetDataFormatExtension(DataFormat format) => format switch

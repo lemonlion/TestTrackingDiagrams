@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using LightBDD.Core.Results;
 using LightBDD.Core.Results.Parameters;
 using LightBDD.Core.Results.Parameters.Tabular;
@@ -10,6 +11,13 @@ namespace TestTrackingDiagrams.LightBDD;
 
 internal static class FeatureResultExtensions
 {
+    // Matches [paramName: "{N}"] — bracket-appended parameters
+    private static readonly Regex BracketParamPattern = new(@"\s*\[(\w+):\s*""\{(\d+)\}""\]", RegexOptions.Compiled);
+    // Matches Word "{N}" — inline parameters (case-insensitive match in method name)
+    private static readonly Regex InlineParamPattern = new(@"(\w+)\s+""\{(\d+)\}""", RegexOptions.Compiled);
+    // Matches standalone "{N}" — UPPER CASE replacement parameters
+    private static readonly Regex StandaloneParamPattern = new(@"\s*""\{(\d+)\}""", RegexOptions.Compiled);
+    private static readonly Regex MultipleSpacesPattern = new(@"\s+", RegexOptions.Compiled);
     public static Feature[] ToFeatures(this IEnumerable<IFeatureResult> featureResults)
     {
         return featureResults
@@ -39,8 +47,27 @@ internal static class FeatureResultExtensions
             ? FindFirstFailedException(result.GetSteps())
             : null;
 
-        var displayName = result.Info.Name.ToString();
-        var parsed = ParameterParser.Parse(displayName);
+        var nameInfo = result.Info.Name;
+        var nameParams = nameInfo.Parameters.ToArray();
+
+        string displayName;
+        Dictionary<string, string>? exampleValues;
+        string? outlineId;
+
+        if (nameParams.Length > 0)
+        {
+            // Use LightBDD's structured NameFormat to extract all parameters,
+            // including those substituted inline into the scenario name
+            displayName = nameInfo.ToString();
+            (outlineId, exampleValues) = ExtractScenarioParameters(nameInfo.NameFormat, nameParams);
+        }
+        else
+        {
+            displayName = nameInfo.ToString();
+            var parsed = ParameterParser.Parse(displayName);
+            outlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null;
+            exampleValues = parsed is { Count: > 0 } ? parsed : null;
+        }
 
         return new Scenario
         {
@@ -54,9 +81,58 @@ internal static class FeatureResultExtensions
             IsHappyPath = labels.Contains("Happy Path"),
             Labels = labels.Length > 0 ? labels : null,
             Categories = categories.Length > 0 ? categories : null,
-            OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
-            ExampleValues = parsed is { Count: > 0 } ? parsed : null,
+            OutlineId = outlineId,
+            ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
         };
+    }
+
+    /// <summary>
+    /// Extracts parameter names and values from LightBDD's NameFormat and INameParameterInfo[].
+    /// LightBDD generates three parameter patterns in the NameFormat:
+    /// 1. [paramName: "{N}"] — appended when the parameter name wasn't found in the method name
+    /// 2. MatchedWord "{N}" — inserted after the word when parameter matched case-insensitively
+    /// 3. "{N}" — replaces the word when parameter was UPPER CASE in the method name
+    /// </summary>
+    internal static (string BaseName, Dictionary<string, string> Parameters) ExtractScenarioParameters(
+        string nameFormat, INameParameterInfo[] parameters)
+    {
+        var result = new Dictionary<string, string>();
+        var cleanFormat = nameFormat;
+
+        // 1. Extract bracket-appended params: [paramName: "{N}"]
+        foreach (Match m in BracketParamPattern.Matches(nameFormat))
+        {
+            var paramName = m.Groups[1].Value;
+            if (int.TryParse(m.Groups[2].Value, out var index) && index < parameters.Length)
+                result[paramName] = parameters[index].FormattedValue ?? "";
+        }
+        cleanFormat = BracketParamPattern.Replace(cleanFormat, "");
+
+        // 2. Extract inline params: Word "{N}" (word before is the humanized parameter name)
+        foreach (Match m in InlineParamPattern.Matches(cleanFormat))
+        {
+            var precedingWord = m.Groups[1].Value;
+            if (int.TryParse(m.Groups[2].Value, out var index) && index < parameters.Length)
+                result.TryAdd(precedingWord, parameters[index].FormattedValue ?? "");
+        }
+        cleanFormat = InlineParamPattern.Replace(cleanFormat, "$1");
+
+        // 3. Handle remaining standalone "{N}" (from UPPER CASE replacement in method name)
+        var standaloneCount = 0;
+        foreach (Match m in StandaloneParamPattern.Matches(cleanFormat))
+        {
+            if (int.TryParse(m.Groups[1].Value, out var index) && index < parameters.Length)
+            {
+                result.TryAdd($"param{standaloneCount}", parameters[index].FormattedValue ?? "");
+                standaloneCount++;
+            }
+        }
+        cleanFormat = StandaloneParamPattern.Replace(cleanFormat, "");
+
+        // Clean up whitespace
+        cleanFormat = MultipleSpacesPattern.Replace(cleanFormat, " ").Trim();
+
+        return (cleanFormat, result);
     }
 
     private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps, bool scenarioSkipped = false)

@@ -18,7 +18,7 @@ public class UnifiedTestRunDataFormatter : IReportFormatter
         if (ExpectedTestCount != null)
         {
             var scenarioCount = features.SelectMany(f => f.GetScenarios()).Count();
-            if (scenarioCount != ExpectedTestCount())
+            if (scenarioCount > ExpectedTestCount())
                 return;
         }
 

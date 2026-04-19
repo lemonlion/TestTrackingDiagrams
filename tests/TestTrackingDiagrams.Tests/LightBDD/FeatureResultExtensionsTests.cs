@@ -282,6 +282,80 @@ public class FeatureResultExtensionsTests
         Assert.Equal(expected, features[0].DisplayName);
     }
 
+    // ─── Parameter extraction from NameFormat ─────────────────────
+
+    [Fact]
+    public void ToFeatures_extracts_inline_and_bracket_params_from_NameFormat()
+    {
+        // Simulates LightBDD NameFormat for:
+        //   Method: Caller_Uses_Endpoint_With_Invalid_NewPasscode(string newPasscode, string reasonForBeingInvalid)
+        //   newPasscode matched inline (case-insensitive), reasonForBeingInvalid appended as bracket
+        var scenario = new StubExecutionResult("s1",
+            nameFormat: "Caller Uses Endpoint With Invalid NewPasscode \"{0}\" [reasonForBeingInvalid: \"{1}\"]",
+            nameParams: [new StubNameParam("111111"), new StubNameParam("TooShort")]);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        // OutlineId should be the clean base name without parameter values
+        Assert.Equal("Caller Uses Endpoint With Invalid NewPasscode", s.OutlineId);
+
+        // ExampleValues should contain both parameters
+        Assert.NotNull(s.ExampleValues);
+        Assert.Equal(2, s.ExampleValues!.Count);
+        Assert.Equal("111111", s.ExampleValues["NewPasscode"]);
+        Assert.Equal("TooShort", s.ExampleValues["reasonForBeingInvalid"]);
+    }
+
+    [Fact]
+    public void ToFeatures_extracts_all_bracket_params_from_NameFormat()
+    {
+        // Both params unmatched in method name — both appended as brackets
+        var scenario = new StubExecutionResult("s1",
+            nameFormat: "Caller Uses Endpoint [version: \"{0}\"] [claimName: \"{1}\"]",
+            nameParams: [new StubNameParam("V1"), new StubNameParam("LivePersonSdes")]);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        Assert.Equal("Caller Uses Endpoint", s.OutlineId);
+        Assert.NotNull(s.ExampleValues);
+        Assert.Equal("V1", s.ExampleValues!["version"]);
+        Assert.Equal("LivePersonSdes", s.ExampleValues["claimName"]);
+    }
+
+    [Fact]
+    public void ToFeatures_handles_no_params_in_NameFormat()
+    {
+        var scenario = new StubExecutionResult("s1", "Simple scenario with no params");
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        Assert.Null(s.OutlineId);
+        Assert.Null(s.ExampleValues);
+    }
+
+    [Fact]
+    public void ToFeatures_groups_parameterized_LightBDD_scenarios_by_OutlineId()
+    {
+        var s1 = new StubExecutionResult("s1",
+            nameFormat: "Caller Uses Endpoint With Invalid NewPasscode \"{0}\" [reason: \"{1}\"]",
+            nameParams: [new StubNameParam("111111"), new StubNameParam("TooShort")]);
+        var s2 = new StubExecutionResult("s2",
+            nameFormat: "Caller Uses Endpoint With Invalid NewPasscode \"{0}\" [reason: \"{1}\"]",
+            nameParams: [new StubNameParam("1234"), new StubNameParam("TooLong")]);
+        var feature = new StubFeatureResult("F").WithScenario(s1).WithScenario(s2);
+
+        var features = new[] { feature }.ToFeatures();
+        // Both scenarios should have the same OutlineId
+        Assert.Equal(features[0].Scenarios[0].OutlineId, features[0].Scenarios[1].OutlineId);
+        Assert.Equal("Caller Uses Endpoint With Invalid NewPasscode", features[0].Scenarios[0].OutlineId);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult
@@ -315,6 +389,23 @@ public class FeatureResultExtensionsTests
             string[]? categories = null)
         {
             Info = new StubScenarioInfo(Guid.NewGuid(), name, labels, categories);
+            Status = status;
+            StatusDetails = statusDetails;
+            ExecutionTime = duration.HasValue
+                ? new ExecutionTime(DateTimeOffset.UtcNow, duration.Value)
+                : null;
+        }
+
+        public StubExecutionResult(string id,
+            string nameFormat,
+            INameParameterInfo[] nameParams,
+            ExecutionStatus status = ExecutionStatus.Passed,
+            string? statusDetails = null,
+            TimeSpan? duration = null,
+            string[]? labels = null,
+            string[]? categories = null)
+        {
+            Info = new StubScenarioInfo(Guid.NewGuid(), nameFormat, nameParams, labels, categories);
             Status = status;
             StatusDetails = statusDetails;
             ExecutionTime = duration.HasValue
@@ -400,6 +491,14 @@ public class FeatureResultExtensionsTests
             Categories = categories ?? [];
         }
 
+        public StubScenarioInfo(Guid id, string nameFormat, INameParameterInfo[] nameParams, string[]? labels, string[]? categories)
+        {
+            RuntimeId = id;
+            Name = new StubNameInfo(nameFormat, nameParams);
+            Labels = labels ?? [];
+            Categories = categories ?? [];
+        }
+
         public INameInfo Name { get; }
         public Guid RuntimeId { get; }
         public IFeatureInfo Parent => null!;
@@ -452,11 +551,39 @@ public class FeatureResultExtensionsTests
 
     private class StubNameInfo : INameInfo
     {
-        private readonly string _name;
-        public StubNameInfo(string name) { _name = name; }
-        public string NameFormat => _name;
-        public IEnumerable<INameParameterInfo> Parameters => [];
-        public override string ToString() => _name;
-        public string Format(INameDecorator decorator) => _name;
+        private readonly string _nameFormat;
+        private readonly INameParameterInfo[] _params;
+
+        public StubNameInfo(string name) : this(name, []) { }
+
+        public StubNameInfo(string nameFormat, INameParameterInfo[] nameParams)
+        {
+            _nameFormat = nameFormat;
+            _params = nameParams;
+        }
+
+        public string NameFormat => _nameFormat;
+        public IEnumerable<INameParameterInfo> Parameters => _params;
+
+        public override string ToString()
+        {
+            if (_params.Length == 0) return _nameFormat;
+            return string.Format(_nameFormat, _params.Select(p => (object)(p.FormattedValue ?? "")).ToArray());
+        }
+
+        public string Format(INameDecorator decorator)
+        {
+            if (_params.Length == 0) return decorator.DecorateNameFormat(_nameFormat);
+            return string.Format(decorator.DecorateNameFormat(_nameFormat),
+                _params.Select(p => (object)decorator.DecorateParameterValue(p)).ToArray());
+        }
+    }
+
+    private class StubNameParam : INameParameterInfo
+    {
+        public StubNameParam(string value) { FormattedValue = value; }
+        public bool IsEvaluated => true;
+        public ParameterVerificationStatus VerificationStatus => ParameterVerificationStatus.NotApplicable;
+        public string FormattedValue { get; }
     }
 }
