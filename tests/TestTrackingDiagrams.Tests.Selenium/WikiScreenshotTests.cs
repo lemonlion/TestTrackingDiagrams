@@ -80,7 +80,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 7: Component Diagram ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_component_diagram_report()
     {
         var file = Path.Combine(ReportsDir, "ComponentSpecificationsWithExamples.html");
@@ -118,7 +118,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 8: Internal Flow (OpenTelemetry) ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_internal_flow_visualization()
     {
         // Use the whole-test-flow test page that has Activity + Flame chart
@@ -152,7 +152,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 9: CI/CD Summary ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_ci_summary()
     {
         var file = Path.Combine(ReportsDir, "CiSummaryInteractive.html");
@@ -164,7 +164,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 10: Machine-Readable Formats ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_test_run_report()
     {
         // TestRunReport.html shows metadata and embedded diagrams
@@ -182,7 +182,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 12: DiagramFocus ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_diagram_focus()
     {
         // Look for a Focus report with bold emphasis
@@ -238,7 +238,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 19: Scenario Timeline ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_scenario_timeline()
     {
         // Use a timeline report that has the timeline section
@@ -267,7 +267,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 20: Export ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_export_buttons()
     {
         // Open the showcase report (if available) to show export buttons
@@ -301,7 +301,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 15: Violet Theme (use showcase report overview) ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_violet_theme_overview()
     {
         if (File.Exists(ShowcaseReportPath))
@@ -333,7 +333,7 @@ public class WikiScreenshotTests : IDisposable
     }
 
     // ── Feature 11: DispatchProxy / MediatR (diagram with tracked service calls) ──
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Capture_dispatch_proxy_tracking()
     {
         // Show a diagram with rich service interaction tracking

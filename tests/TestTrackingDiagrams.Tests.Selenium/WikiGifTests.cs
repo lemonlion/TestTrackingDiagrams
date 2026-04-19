@@ -725,7 +725,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 1: Interactive HTML Report GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature01_Interactive_Report_GIF()
     {
         BeginFrameCapture("feature01");
@@ -794,7 +794,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 2: Advanced Search GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature02_Search_GIF()
     {
         BeginFrameCapture("feature02");
@@ -852,7 +852,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 3: Parameterized Test Grouping GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature03_Parameterized_Tests_GIF()
     {
         BeginFrameCapture("feature03");
@@ -903,7 +903,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 5: Sequence Diagrams GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature05_Sequence_Diagrams_GIF()
     {
         BeginFrameCapture("feature05");
@@ -983,7 +983,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 6: Database Tracking (static screenshot with zoom + arrow)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature06_Database_Tracking_Screenshot()
     {
         NavigateToReport();
@@ -1058,7 +1058,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 7: Component Diagram Screenshot
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature07_Component_Diagram_Screenshot()
     {
         // Use the real ComponentDiagram.html from Example.Api build output
@@ -1097,7 +1097,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 8: Internal Flow GIF (10 spans, Activity → Flame)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature08_Internal_Flow_GIF()
     {
         // Generate a test page with ~10 spans
@@ -1246,7 +1246,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 9: CI Summary (screenshot of rendered markdown)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature09_CI_Summary_Screenshot()
     {
         // Generate a rich CI summary markdown
@@ -1370,7 +1370,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 10: TestRunReport.json GIF (browser JSON viewer)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature10_JSON_Report_GIF()
     {
         // Generate a rich JSON report
@@ -1472,7 +1472,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 11: MediatR Tracking Screenshot (with red arrow)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature11_MediatR_Screenshot()
     {
         // Generate a report with MediatR-showing diagram
@@ -1533,7 +1533,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 12: DiagramFocus Screenshot (full view with highlights)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature12_DiagramFocus_Screenshot()
     {
         // Generate a report with the Focus diagram
@@ -1586,7 +1586,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 13: Failure Diagnostics GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature13_Failure_Diagnostics_GIF()
     {
         BeginFrameCapture("feature13");
@@ -1637,7 +1637,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 14: Category Filtering GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature14_Category_Filter_GIF()
     {
         BeginFrameCapture("feature14");
@@ -1690,7 +1690,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 17: Framework Support (3 screenshots)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature17_Framework_xUnit_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1706,7 +1706,7 @@ public class WikiGifTests : IDisposable
         SaveScreenshot("whats-new-framework-xunit.png");
     }
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature17_Framework_ReqNRoll_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1726,7 +1726,7 @@ public class WikiGifTests : IDisposable
         SaveScreenshot("whats-new-framework-reqnroll.png");
     }
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature17_Framework_LightBDD_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1746,7 +1746,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 19: Scenario Timeline (20+ scenarios, top = Expand All)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature19_Scenario_Timeline_Screenshot()
     {
         // Generate report with 20+ rich data (already have 51 scenarios in our dataset)
@@ -1779,7 +1779,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 20: Export Filtered HTML & CSV GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
     public void Feature20_Export_GIF()
     {
         BeginFrameCapture("feature20");
