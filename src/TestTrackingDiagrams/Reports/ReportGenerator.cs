@@ -170,7 +170,7 @@ public static class ReportGenerator
         }
     }
 
-    internal static string GetTestRunReportTitle(ReportConfigurationOptions options)
+    public static string GetTestRunReportTitle(ReportConfigurationOptions options)
     {
         var prefix = options.ComponentDiagramOptions?.Title;
         if (string.IsNullOrEmpty(prefix))

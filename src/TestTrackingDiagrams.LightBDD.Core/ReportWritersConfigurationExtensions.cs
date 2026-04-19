@@ -94,9 +94,22 @@ namespace TestTrackingDiagrams.LightBDD
             var specsDataExtension = GetDataFormatExtension(options.SpecificationsDataFormat);
             var testRunDataExtension = GetDataFormatExtension(options.TestRunReportDataFormat);
 
-            return configuration
-                .Clear()
-                .AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlSpecificationsFileName}.html",
+            var testRunReportTitle = ReportGenerator.GetTestRunReportTitle(options);
+
+            // Generate the static schema file eagerly (it doesn't depend on test results)
+            if (options.GenerateTestRunReportSchema)
+            {
+                var schemaExtension = options.TestRunReportDataFormat == DataFormat.Xml ? "xsd" : "json";
+                ReportGenerator.GenerateTestRunReportSchema(
+                    $"{reportsFilePath}/{options.HtmlTestRunReportFileName}.schema.{schemaExtension}",
+                    options.TestRunReportDataFormat);
+            }
+
+            configuration.Clear();
+
+            if (options.GenerateSpecificationsReport)
+            {
+                configuration.AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlSpecificationsFileName}.html",
                 formatter =>
                 {
                     formatter.Title = options.SpecificationsTitle;
@@ -118,8 +131,15 @@ namespace TestTrackingDiagrams.LightBDD
                     formatter.CustomCss = options.CustomCss;
                     formatter.CustomFaviconBase64 = options.CustomFaviconBase64;
                     formatter.CustomLogoHtml = options.CustomLogoHtml;
-                })
-                .AddFileWriter<UnifiedSpecificationsDataFormatter>($"{reportsFilePath}/{options.YamlSpecificationsFileName}.{specsDataExtension}",
+                    formatter.GroupParameterizedTests = options.GroupParameterizedTests;
+                    formatter.MaxParameterColumns = options.MaxParameterColumns;
+                    formatter.TitleizeParameterNames = options.TitleizeParameterNames;
+                });
+            }
+
+            if (options.GenerateSpecificationsData)
+            {
+                configuration.AddFileWriter<UnifiedSpecificationsDataFormatter>($"{reportsFilePath}/{options.YamlSpecificationsFileName}.{specsDataExtension}",
                 formatter =>
                 {
                     formatter.Title = options.SpecificationsTitle;
@@ -127,10 +147,15 @@ namespace TestTrackingDiagrams.LightBDD
                     formatter.ExpectedTestCount = () => testCountResolver(testAssembly);
                     formatter.DiagramsFetcher = diagramsFetcher;
                     formatter.DataFormat = options.SpecificationsDataFormat;
-                })
-                .AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
+                });
+            }
+
+            if (options.GenerateTestRunReport)
+            {
+                configuration.AddFileWriter<UnifiedReportFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.html",
                 formatter =>
                 {
+                    formatter.Title = testRunReportTitle;
                     formatter.DiagramsFetcher = diagramsFetcher;
                     formatter.LazyLoadImages = options.LazyLoadDiagramImages;
                     formatter.DiagramFormat = options.DiagramFormat;
@@ -146,8 +171,15 @@ namespace TestTrackingDiagrams.LightBDD
                     formatter.CustomCss = options.CustomCss;
                     formatter.CustomFaviconBase64 = options.CustomFaviconBase64;
                     formatter.CustomLogoHtml = options.CustomLogoHtml;
-                })
-                .AddFileWriter<UnifiedTestRunDataFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.{testRunDataExtension}",
+                    formatter.GroupParameterizedTests = options.GroupParameterizedTests;
+                    formatter.MaxParameterColumns = options.MaxParameterColumns;
+                    formatter.TitleizeParameterNames = options.TitleizeParameterNames;
+                });
+            }
+
+            if (options.GenerateTestRunReportData)
+            {
+                configuration.AddFileWriter<UnifiedTestRunDataFormatter>($"{reportsFilePath}/{options.HtmlTestRunReportFileName}.{testRunDataExtension}",
                 formatter =>
                 {
                     formatter.ExpectedTestCount = () => testCountResolver(testAssembly);
@@ -155,14 +187,6 @@ namespace TestTrackingDiagrams.LightBDD
                     formatter.DataFormat = options.TestRunReportDataFormat;
                     formatter.TrackedLogs = trackedLogs;
                 });
-
-            // Generate the static schema file eagerly (it doesn't depend on test results)
-            if (options.GenerateTestRunReportSchema)
-            {
-                var schemaExtension = options.TestRunReportDataFormat == DataFormat.Xml ? "xsd" : "json";
-                ReportGenerator.GenerateTestRunReportSchema(
-                    $"{reportsFilePath}/{options.HtmlTestRunReportFileName}.schema.{schemaExtension}",
-                    options.TestRunReportDataFormat);
             }
 
             return configuration;

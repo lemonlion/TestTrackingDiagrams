@@ -33,6 +33,9 @@ public class UnifiedReportFormatter : IReportFormatter
     public string? CustomCss { get; set; }
     public string? CustomFaviconBase64 { get; set; }
     public string? CustomLogoHtml { get; set; }
+    public bool GroupParameterizedTests { get; set; } = true;
+    public int MaxParameterColumns { get; set; } = 10;
+    public bool TitleizeParameterNames { get; set; } = true;
 
     public void Format(Stream stream, params IFeatureResult[] features)
     {
@@ -69,7 +72,9 @@ public class UnifiedReportFormatter : IReportFormatter
             internalFlowDataScript: InternalFlowDataScript, wholeTestSegments: WholeTestSegments,
             trackedLogs: TrackedLogs, wholeTestVisualization: WholeTestVisualization,
             ciMetadata: CiMetadata, showStepNumbers: ShowStepNumbers,
-            customCss: CustomCss, customFaviconBase64: CustomFaviconBase64, customLogoHtml: CustomLogoHtml);
+            customCss: CustomCss, customFaviconBase64: CustomFaviconBase64, customLogoHtml: CustomLogoHtml,
+            groupParameterizedTests: GroupParameterizedTests, maxParameterColumns: MaxParameterColumns,
+            titleizeParameterNames: TitleizeParameterNames);
 
         try
         {
