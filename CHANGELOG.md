@@ -6,15 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.0.163-beta] - 2026-04-19
+## [2.0.164-beta] - 2026-04-20
 
-### Changed
-- Search data decompression now yields via `requestIdleCallback` (instead of `requestAnimationFrame` batches of 50) so that PlantUML browser diagram rendering always gets main-thread priority during page load. This prevents resource contention between the two on large reports.
-
-## [2.0.162-beta] - 2026-04-19
-
-### Changed
-- Search data attributes (`data-search`, `data-row-search`) are now gzip-compressed and base64-encoded in the HTML report, dramatically reducing file size for large projects (~80% reduction). Search text is decompressed on page load with a progress overlay showing percentage complete. Search functionality is unchanged — the decompressed data is identical to what was previously stored inline.
+### Reverted
+- Removed search data compression (data-search-z / data-row-search-z) introduced in v2.0.162-beta. The gzip+base64 approach only achieved ~22% reduction on real-world reports (not the projected 80%) and added a 30-second decompression delay on page load for large reports. Search attributes are back to plain text (data-search / data-row-search).
 
 ## [2.0.161-beta] - 2026-04-19
 

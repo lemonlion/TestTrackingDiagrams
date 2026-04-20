@@ -1,6 +1,3 @@
-using System.IO.Compression;
-using System.Text;
-using System.Text.RegularExpressions;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Reports;
@@ -15,21 +12,6 @@ public class ExamplesTableReportTests
             null, "ExamplesTable.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         return File.ReadAllText(path);
-    }
-
-    private static string DecompressBase64(string base64)
-    {
-        var bytes = Convert.FromBase64String(base64);
-        using var input = new MemoryStream(bytes);
-        using var gzip = new GZipStream(input, CompressionMode.Decompress);
-        using var reader = new StreamReader(gzip, Encoding.UTF8);
-        return reader.ReadToEnd();
-    }
-
-    private static bool CompressedContentContains(string html, string attrName, string searchText)
-    {
-        return Regex.Matches(html, $@"{attrName}=""([^""]+)""")
-            .Any(m => DecompressBase64(m.Groups[1].Value).Contains(searchText));
     }
 
     [Fact]
@@ -240,11 +222,9 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        // Display names appear in compressed search attributes
-        Assert.True(CompressedContentContains(content, "data-search-z", "withdraw $200") ||
-                    CompressedContentContains(content, "data-row-search-z", "withdraw $200"));
-        Assert.True(CompressedContentContains(content, "data-search-z", "withdraw $500") ||
-                    CompressedContentContains(content, "data-row-search-z", "withdraw $500"));
+        // Display names still appear in the search attribute (lowercased)
+        Assert.Contains("withdraw $200", content);
+        Assert.Contains("withdraw $500", content);
     }
 
     [Fact]
@@ -380,11 +360,9 @@ public class ExamplesTableReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("data-search-z=", content);
-        Assert.True(CompressedContentContains(content, "data-search-z", "withdraw $200 from $1000") ||
-                    CompressedContentContains(content, "data-row-search-z", "withdraw $200 from $1000"));
-        Assert.True(CompressedContentContains(content, "data-search-z", "withdraw $500 from $1000") ||
-                    CompressedContentContains(content, "data-row-search-z", "withdraw $500 from $1000"));
+        Assert.Contains("data-search=", content);
+        Assert.Contains("withdraw $200 from $1000", content.ToLower());
+        Assert.Contains("withdraw $500 from $1000", content.ToLower());
     }
 
     [Fact]
