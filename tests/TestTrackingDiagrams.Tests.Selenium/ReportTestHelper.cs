@@ -174,4 +174,69 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// A wide PlantUML diagram that also contains notes (for testing zoom + note interaction).
+    /// </summary>
+    private const string WideWithNotesPlantUmlSource = """
+        @startuml
+        participant "AuthenticationService" as a1
+        participant "AuthorizationEngine" as a2
+        participant "UserProfileManager" as a3
+        participant "OrderProcessingUnit" as a4
+        participant "InventoryTracker" as a5
+        participant "PaymentGateway" as a6
+        participant "NotificationHub" as a7
+        participant "AuditLogService" as a8
+        participant "CacheManager" as a9
+        participant "ExternalApiClient" as a10
+        participant "ReportingEngine" as a11
+        participant "DataWarehouse" as a12
+        participant "EventStreamProcessor" as a13
+        participant "ConfigurationStore" as a14
+
+        a1 -> a2 : validatePermissions
+        note left
+        Authorization request
+        {"user":"admin","action":"create"}
+        end note
+        a2 -> a3 : getUserProfile
+        a3 -> a4 : processOrder
+        note left
+        Order payload
+        {"item":"Widget","qty":2}
+        end note
+        a4 -> a5 : checkInventory
+        a5 -> a6 : processPayment
+        a6 -> a7 : sendNotification
+        a7 -> a8 : logActivity
+        a8 -> a9 : updateCache
+        a9 -> a10 : callExternalApi
+        a10 -> a11 : generateReport
+        a11 -> a12 : storeResults
+        a12 -> a13 : processEventStream
+        a13 -> a14 : getConfiguration
+        a14 --> a1 : complete
+        @enduml
+        """;
+
+    public static string GenerateReportWithWideNoteDiagram(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", WideWithNotesPlantUmlSource),
+            new DiagramAsCode("t2", "", WideWithNotesPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

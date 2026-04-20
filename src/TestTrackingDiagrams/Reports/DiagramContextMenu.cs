@@ -90,10 +90,10 @@ public static class DiagramContextMenu
         .plantuml-browser:not([data-rendered])::before {
             animation: pulse-loading 2s ease-in-out infinite;
         }
-        .plantuml-browser:not([data-queued])::before {
+        .plantuml-browser:not([data-rendered])::before {
             content: 'Waiting for page load to complete\2026';
         }
-        .plantuml-browser[data-queued]:not([data-rendered])::before {
+        body.plantuml-ready .plantuml-browser:not([data-rendered])::before {
             content: 'Rendering diagram\2026';
         }
         .diagram-zoom-toggle {
@@ -312,6 +312,7 @@ public static class DiagramContextMenu
         <script defer src="{{PlantUmlJsCdnBase}}/plantuml.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                document.body.classList.add('plantuml-ready');
                 plantumlLoad();
                 var renderQueue = [];
                 var rendering = false;
@@ -2070,6 +2071,7 @@ public static class DiagramContextMenu
                     container.innerHTML = _svgCache[newSource];
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
+                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                     return;
                 }
 
@@ -2083,6 +2085,7 @@ public static class DiagramContextMenu
                     container._noteRendering = false;
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
+                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                 }
 
                 var mo = new MutationObserver(function(mutations) {
@@ -2164,6 +2167,7 @@ public static class DiagramContextMenu
                         container.innerHTML = _svgCache[newSource];
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
+                        requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                         processNext();
                         return;
                     }
@@ -2176,6 +2180,7 @@ public static class DiagramContextMenu
                         container._noteRendering = false;
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
+                        requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                         processNext();
                     }
                     var mo = new MutationObserver(function() {

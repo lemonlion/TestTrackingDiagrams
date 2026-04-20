@@ -34,6 +34,9 @@ public class DiagramZoomTests : IDisposable
     private string GenerateReportWithWideDiagram(string fileName) =>
         ReportTestHelper.GenerateReportWithWideDiagram(_tempDir, OutputDir, fileName);
 
+    private string GenerateReportWithWideNoteDiagram(string fileName) =>
+        ReportTestHelper.GenerateReportWithWideNoteDiagram(_tempDir, OutputDir, fileName);
+
     private IWebElement WaitFor(By by, int timeoutSeconds = 5)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
@@ -336,5 +339,81 @@ public class DiagramZoomTests : IDisposable
         var selectedText = (string)((IJavaScriptExecutor)_driver).ExecuteScript(
             "return window.getSelection().toString();")!;
         Assert.NotEqual("", selectedText.Trim());
+    }
+
+    // ── Zoom button persists after note collapse ──
+
+    [Fact]
+    public void Zoom_button_persists_after_note_collapse()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithWideNoteDiagram("ZoomAfterNoteCollapse.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        // Verify zoom button exists initially
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".diagram-zoom-toggle")).Count > 0);
+
+        var container = GetDiagramContainer();
+        var zoomBtnsBefore = container.FindElements(By.CssSelector(".diagram-zoom-toggle"));
+        Assert.Single(zoomBtnsBefore);
+
+        // Collapse notes via the scenario-level radio button
+        var collapseBtn = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .details-radio-btn[data-state='collapsed']"));
+        collapseBtn.Click();
+
+        // Wait for re-render to complete (the SVG content changes)
+        wait.Until(d =>
+        {
+            try
+            {
+                var svg = container.FindElement(By.TagName("svg"));
+                return svg.Displayed;
+            }
+            catch (StaleElementReferenceException) { return false; }
+            catch (NoSuchElementException) { return false; }
+        });
+
+        // Zoom button should still exist after note collapse re-render
+        wait.Until(d => container.FindElements(By.CssSelector(".diagram-zoom-toggle")).Count > 0);
+        var zoomBtnsAfter = container.FindElements(By.CssSelector(".diagram-zoom-toggle"));
+        Assert.Single(zoomBtnsAfter);
+    }
+
+    [Fact]
+    public void Zoom_button_works_after_note_collapse()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithWideNoteDiagram("ZoomWorksAfterNoteCollapse.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".diagram-zoom-toggle")).Count > 0);
+
+        // Collapse notes
+        var collapseBtn = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .details-radio-btn[data-state='collapsed']"));
+        collapseBtn.Click();
+
+        // Wait for re-render
+        var container = GetDiagramContainer();
+        wait.Until(d =>
+        {
+            try
+            {
+                return container.FindElement(By.TagName("svg")).Displayed
+                    && container.FindElements(By.CssSelector(".diagram-zoom-toggle")).Count > 0;
+            }
+            catch { return false; }
+        });
+
+        // Click the zoom button — should toggle natural size
+        var zoomBtn = container.FindElement(By.CssSelector(".diagram-zoom-toggle"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", zoomBtn);
+
+        Assert.Contains("diagram-natural-size", container.GetAttribute("class")!);
     }
 }

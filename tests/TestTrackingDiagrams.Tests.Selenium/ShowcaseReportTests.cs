@@ -573,7 +573,7 @@ public class ShowcaseReportTests : IDisposable
     //  capturing numbered PNGs that stitch into a 60-second GIF.
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact]
+    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating showcase assets, then re-skip afterwards")]
     public void Showcase_drives_through_report_features_capturing_frames()
     {
         // Clean previous run

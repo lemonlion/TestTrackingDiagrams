@@ -831,10 +831,12 @@ public class DiagramContextMenuTests
     [Fact]
     public void Plantuml_browser_shows_loading_placeholder_before_render()
     {
-        // CSS pseudo-element on unrendered containers shows two states
-        Assert.Contains(".plantuml-browser:not([data-queued])::before", _inlineSvgStyles);
+        // CSS pseudo-element on unrendered containers shows two states:
+        // 1. Before page load: "Waiting for page load to complete..."
+        // 2. After page load (body.plantuml-ready): "Rendering diagram..."
+        Assert.Contains(".plantuml-browser:not([data-rendered])::before", _inlineSvgStyles);
         Assert.Contains("Waiting for page", _inlineSvgStyles);
-        Assert.Contains(".plantuml-browser[data-queued]:not([data-rendered])::before", _inlineSvgStyles);
+        Assert.Contains("body.plantuml-ready .plantuml-browser:not([data-rendered])::before", _inlineSvgStyles);
         Assert.Contains("Rendering diagram", _inlineSvgStyles);
     }
 

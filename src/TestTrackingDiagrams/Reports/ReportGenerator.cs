@@ -801,7 +801,8 @@ public static class ReportGenerator
                                         var feature = el.closest('details.feature');
                                         if (feature) feature.setAttribute('open', '');
                                         el.setAttribute('open', '');
-                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        var target = el.querySelector(':scope > summary') || el;
+                                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         var counter = document.getElementById('failure-counter');
                                         if (counter) counter.textContent = '(' + (_failureIndex + 1) + '/' + failures.length + ')';
                                     }
