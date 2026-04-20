@@ -1121,6 +1121,9 @@ public static class ReportGenerator
                     var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
                     return new Response(stream).text();
                 }
+                var _idleYield = window.requestIdleCallback
+                    ? function() { return new Promise(function(r) { requestIdleCallback(r); }); }
+                    : function() { return new Promise(function(r) { setTimeout(r, 0); }); };
                 document.addEventListener('DOMContentLoaded', async function() {
                     var overlay = document.getElementById('search-loading-overlay');
                     var bar = document.getElementById('search-loading-bar');
@@ -1139,7 +1142,8 @@ public static class ReportGenerator
                         if (bar) bar.style.width = p + '%';
                         if (pct) pct.textContent = p + '%';
                     }
-                    // Process in batches to keep UI responsive
+                    // Yield after each decompression via requestIdleCallback so diagram
+                    // rendering (which uses requestAnimationFrame) always gets priority.
                     async function processBatch(items, attr, targetAttr) {
                         for (var i = 0; i < items.length; i++) {
                             var el = items[i];
@@ -1154,10 +1158,10 @@ public static class ReportGenerator
                                 el.removeAttribute(attr);
                             }
                             done++;
-                            if (done % 50 === 0 || done === total) {
+                            if (done % 20 === 0 || done === total) {
                                 updateProgress();
-                                await new Promise(function(r) { requestAnimationFrame(r); });
                             }
+                            await _idleYield();
                         }
                     }
                     await processBatch(els, 'data-search-z', 'data-search');

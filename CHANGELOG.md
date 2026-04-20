@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.163-beta] - 2026-04-19
+
+### Changed
+- Search data decompression now yields via `requestIdleCallback` (instead of `requestAnimationFrame` batches of 50) so that PlantUML browser diagram rendering always gets main-thread priority during page load. This prevents resource contention between the two on large reports.
+
 ## [2.0.162-beta] - 2026-04-19
 
 ### Changed
