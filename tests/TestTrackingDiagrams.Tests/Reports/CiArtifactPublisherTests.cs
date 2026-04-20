@@ -10,7 +10,7 @@ public class CiArtifactPublisherTests
         var lines = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html", "/reports/Specs.yml"],
+            ["/reports/TestRunReport.html", "/reports/Specs.yml"],
             CiEnvironment.AzureDevOps,
             artifactName: "TestReports",
             retentionDays: 1,
@@ -20,7 +20,7 @@ public class CiArtifactPublisherTests
             fileExists: _ => true);
 
         Assert.Equal(2, lines.Count);
-        Assert.Contains("##vso[artifact.upload containerfolder=TestReports;artifactname=TestReports]/reports/FeaturesReport.html", lines[0]);
+        Assert.Contains("##vso[artifact.upload containerfolder=TestReports;artifactname=TestReports]/reports/TestRunReport.html", lines[0]);
         Assert.Contains("##vso[artifact.upload containerfolder=TestReports;artifactname=TestReports]/reports/Specs.yml", lines[1]);
     }
 
@@ -30,7 +30,7 @@ public class CiArtifactPublisherTests
         var lines = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.AzureDevOps,
             artifactName: "MyReports",
             retentionDays: 1,
@@ -51,7 +51,7 @@ public class CiArtifactPublisherTests
         var writtenContents = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.GitHubActions,
             artifactName: "TestReports",
             retentionDays: 1,
@@ -70,7 +70,7 @@ public class CiArtifactPublisherTests
         var called = false;
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.GitHubActions,
             artifactName: "TestReports",
             retentionDays: 1,
@@ -88,7 +88,7 @@ public class CiArtifactPublisherTests
         var called = false;
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.None,
             artifactName: "TestReports",
             retentionDays: 1,
@@ -106,17 +106,17 @@ public class CiArtifactPublisherTests
         var lines = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html", "/reports/Missing.html"],
+            ["/reports/TestRunReport.html", "/reports/Missing.html"],
             CiEnvironment.AzureDevOps,
             artifactName: "TestReports",
             retentionDays: 1,
             getEnvVar: _ => null,
             appendFile: (_, _) => { },
             writeLine: line => lines.Add(line),
-            fileExists: path => path == "/reports/FeaturesReport.html");
+            fileExists: path => path == "/reports/TestRunReport.html");
 
         Assert.Single(lines);
-        Assert.Contains("FeaturesReport.html", lines[0]);
+        Assert.Contains("TestRunReport.html", lines[0]);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class CiArtifactPublisherTests
         var writtenContents = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.GitHubActions,
             artifactName: "TestReports",
             retentionDays: 1,
@@ -143,7 +143,7 @@ public class CiArtifactPublisherTests
         var writtenContents = new List<string>();
 
         CiArtifactPublisher.Publish(
-            ["/reports/FeaturesReport.html"],
+            ["/reports/TestRunReport.html"],
             CiEnvironment.GitHubActions,
             artifactName: "TestReports",
             retentionDays: 7,

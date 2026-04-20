@@ -594,7 +594,7 @@ public class IflowPopupTests : IDisposable
         new OpenQA.Selenium.Interactions.Actions(_driver).ContextClick(element).Perform();
     }
 
-    // ── FeaturesReport-like PNG no-transparency tests ──
+    // ── TestRunReport-like PNG no-transparency tests ──
 
     /// <summary>
     /// JS snippet that finds the first SVG in the page, calls getBackgroundColor + canvas fillRect,

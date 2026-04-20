@@ -104,7 +104,7 @@ public class DiagramEnhancingBatchProcessor : IBatchProcessor
         catch
         {
             // If report generation fails, continue without the HTML report.
-            // The FeaturesReport is the primary output.
+            // The TestRunReport is the primary output.
         }
     }
 

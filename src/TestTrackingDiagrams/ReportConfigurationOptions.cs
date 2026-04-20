@@ -158,8 +158,8 @@ public record ReportConfigurationOptions
     /// <summary>When <c>true</c>, step numbers are shown in the specifications report. Default: <c>true</c>.</summary>
     public bool SpecificationsShowStepNumbers { get; set; } = true;
 
-    /// <summary>When <c>true</c>, step numbers are shown in the features report.</summary>
-    public bool FeaturesReportShowStepNumbers { get; set; }
+    /// <summary>When <c>true</c>, step numbers are shown in the test run report.</summary>
+    public bool TestRunReportShowStepNumbers { get; set; }
 
     /// <summary>Additional CSS injected into all generated HTML reports.</summary>
     public string? CustomCss { get; set; }

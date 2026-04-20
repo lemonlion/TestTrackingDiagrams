@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace TestTrackingDiagrams.Tests.Reports;
 
 /// <summary>
-/// C# port of the JavaScript dependency filter logic used in the FeaturesReport.
+/// C# port of the JavaScript dependency filter logic used in the TestRunReport.
 /// Uses 'dep-hidden' class (analogous to 'search-hidden') so dependency filtering
 /// and search filtering operate independently and compose via CSS.
 /// </summary>

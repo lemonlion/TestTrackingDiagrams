@@ -10,8 +10,8 @@ public record ComponentDiagramOptions
     /// <summary>File name (without extension) for the component diagram output. Default: <c>"ComponentDiagram"</c>.</summary>
     public string FileName { get; set; } = "ComponentDiagram";
 
-    /// <summary>When <c>true</c>, the component diagram is embedded in the features report. Default: <c>true</c>.</summary>
-    public bool EmbedInFeaturesReport { get; set; } = true;
+    /// <summary>When <c>true</c>, the component diagram is embedded in the test run report. Default: <c>true</c>.</summary>
+    public bool EmbedInTestRunReport { get; set; } = true;
 
     /// <summary>Title displayed above the component diagram. Default: <c>"Component Diagram"</c>.</summary>
     public string Title { get; set; } = "Component Diagram";

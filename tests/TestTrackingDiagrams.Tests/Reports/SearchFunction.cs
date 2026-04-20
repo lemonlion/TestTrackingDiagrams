@@ -4,7 +4,7 @@ using AngleSharp.Dom;
 namespace TestTrackingDiagrams.Tests.Reports;
 
 /// <summary>
-/// C# port of the JavaScript search logic used in both the standard FeaturesReport
+/// C# port of the JavaScript search logic used in both the standard TestRunReport
 /// and the LightBDD report. This class exists so the search behaviour can be
 /// thoroughly tested via unit tests. The actual JS in the reports must implement
 /// identical logic.

@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace TestTrackingDiagrams.Tests.Reports;
 
 /// <summary>
-/// C# port of the JavaScript status filter logic used in the FeaturesReport.
+/// C# port of the JavaScript status filter logic used in the TestRunReport.
 /// Uses 'status-hidden' class so it composes independently with search-hidden and dep-hidden.
 /// </summary>
 public static class StatusFilter

@@ -144,7 +144,7 @@ public class UrlHashFilterHighlightTests : IDisposable
     [Fact]
     public void User_report_status_filter_highlighted_after_url_hash_restore()
     {
-        var reportPath = @"C:\dev\Stratus.Migration.MigrationService\tests\Stratus.Migration.MigrationService.Tests.Component\bin\Debug\net8.0\Reports\FeaturesReport - Copy.html";
+        var reportPath = @"C:\dev\Stratus.Migration.MigrationService\tests\Stratus.Migration.MigrationService.Tests.Component\bin\Debug\net8.0\Reports\TestRunReport - Copy.html";
         if (!File.Exists(reportPath))
             return; // Skip if the user's report doesn't exist on this machine
 

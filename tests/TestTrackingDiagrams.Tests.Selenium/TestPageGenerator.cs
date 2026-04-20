@@ -282,7 +282,7 @@ public static class TestPageGenerator
     }
 
     /// <summary>
-    /// Creates a test page that mimics FeaturesReport with a BrowserJs-rendered sequence diagram
+    /// Creates a test page that mimics TestRunReport with a BrowserJs-rendered sequence diagram
     /// inside a plantuml-browser container, including InlineSvgStyles and context menu.
     /// </summary>
     public static string GenerateBrowserJsSequenceDiagramPage()
@@ -324,7 +324,7 @@ public static class TestPageGenerator
     }
 
     /// <summary>
-    /// Creates a test page that mimics FeaturesReport with an inline SVG sequence diagram
+    /// Creates a test page that mimics TestRunReport with an inline SVG sequence diagram
     /// inside a plantuml-inline-svg container, including InlineSvgStyles and context menu.
     /// </summary>
     public static string GenerateInlineSvgSequenceDiagramPage()

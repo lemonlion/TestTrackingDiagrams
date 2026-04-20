@@ -188,9 +188,9 @@ public class WikiScreenshotTests : IDisposable
         // Look for a Focus report with bold emphasis
         var candidates = new[]
         {
-            Path.Combine(ReportsDir, "FeaturesReport.FocusBoldEmphasis_HighlightsRequestFields.html"),
-            Path.Combine(ReportsDir, "FeaturesReport.FocusBoldAndColoredEmphasis_CombinesMarkup.html"),
-            Path.Combine(ReportsDir, "FeaturesReport.FocusColoredEmphasis_HighlightsRequestFields.html"),
+            Path.Combine(ReportsDir, "TestRunReport.FocusBoldEmphasis_HighlightsRequestFields.html"),
+            Path.Combine(ReportsDir, "TestRunReport.FocusBoldAndColoredEmphasis_CombinesMarkup.html"),
+            Path.Combine(ReportsDir, "TestRunReport.FocusColoredEmphasis_HighlightsRequestFields.html"),
         };
         var file = candidates.FirstOrDefault(File.Exists);
 
@@ -202,8 +202,8 @@ public class WikiScreenshotTests : IDisposable
                 "..", "..", "..", "..", "Example.Api", "TestResults", "ArchivedReports", "BDDfy.xUnit3"));
             candidates = new[]
             {
-                Path.Combine(archiveBase, "FeaturesReport.FocusBoldEmphasis_HighlightsRequestFields.html"),
-                Path.Combine(archiveBase, "FeaturesReport.FocusBoldAndColoredEmphasis_CombinesMarkup.html"),
+                Path.Combine(archiveBase, "TestRunReport.FocusBoldEmphasis_HighlightsRequestFields.html"),
+                Path.Combine(archiveBase, "TestRunReport.FocusBoldAndColoredEmphasis_CombinesMarkup.html"),
             };
             file = candidates.FirstOrDefault(File.Exists);
         }

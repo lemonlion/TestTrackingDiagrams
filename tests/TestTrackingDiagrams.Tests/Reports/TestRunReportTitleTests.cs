@@ -3,7 +3,7 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Reports;
 
-public class FeaturesReportTitleTests
+public class TestRunReportTitleTests
 {
     [Fact]
     public void GetTestRunReportTitle_WithComponentDiagramTitle_UsesTitleAsPrefix()

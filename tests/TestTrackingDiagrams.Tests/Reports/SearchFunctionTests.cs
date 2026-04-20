@@ -4,7 +4,7 @@ using AngleSharp.Dom;
 namespace TestTrackingDiagrams.Tests.Reports;
 
 /// <summary>
-/// Tests for the JavaScript search_scenarios behaviour in the standard FeaturesReport.
+/// Tests for the JavaScript search_scenarios behaviour in the standard TestRunReport.
 /// We use AngleSharp to create a DOM that mirrors the report HTML, then invoke
 /// the C#-ported search logic (which must behave identically to the JS) to verify
 /// visibility, expand/retract, and filter-compatibility rules.
