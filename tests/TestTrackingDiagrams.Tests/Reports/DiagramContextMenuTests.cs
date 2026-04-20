@@ -774,16 +774,12 @@ public class DiagramContextMenuTests
     [Fact]
     public void ZoomObserver_setup_deferred_to_DOMContentLoaded()
     {
-        // The MutationObserver for zoom buttons must be set up inside the
-        // DOMContentLoaded callback (or when readyState is not 'loading').
-        // When the script runs in <head>, document.body is null and
-        // observe(null, ...) silently fails, so lazily-rendered BrowserJs
-        // diagrams never get their zoom buttons added.
-        //
-        // The fix wraps the observer setup inside the same DOMContentLoaded
-        // handler that calls addZoomButtons(), using a named function.
-        Assert.Contains("function initZoom()", _script);
-        Assert.Contains("addEventListener('DOMContentLoaded', initZoom)", _script);
+        // Zoom buttons are lazily added via IntersectionObserver so we avoid
+        // forced reflows on page load. A per-container MutationObserver waits
+        // for the SVG to render before checking isDiagramZoomable.
+        Assert.Contains("new IntersectionObserver(", _script);
+        Assert.Contains("addZoomButton(container)", _script);
+        Assert.Contains("addEventListener('DOMContentLoaded', observeAll)", _script);
     }
 
     [Fact]
@@ -800,6 +796,44 @@ public class DiagramContextMenuTests
         // Double-click handler should check isDiagramZoomable (allowing unzoom if already zoomed)
         Assert.Contains("!isDiagramZoomable(container)", _script);
         Assert.Contains("diagram-natural-size", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PlantUML CDN — deferred loading
+    // ═══════════════════════════════════════════════════════════
+
+    private readonly string _plantUmlScript = DiagramContextMenu.GetPlantUmlBrowserRenderScript();
+
+    [Fact]
+    public void PlantUml_CDN_scripts_use_defer_attribute()
+    {
+        Assert.Contains("defer src=", _plantUmlScript);
+        Assert.DoesNotMatch("(?<!defer )src=\"[^\"]*viz-global\\.js\"", _plantUmlScript);
+    }
+
+    [Fact]
+    public void PlantumlLoad_called_inside_DOMContentLoaded_not_before()
+    {
+        // plantumlLoad must be called after deferred scripts have executed,
+        // which means inside the DOMContentLoaded handler
+        var dclIndex = _plantUmlScript.IndexOf("DOMContentLoaded");
+        var loadIndex = _plantUmlScript.IndexOf("plantumlLoad()");
+        Assert.True(dclIndex >= 0 && loadIndex >= 0);
+        Assert.True(loadIndex > dclIndex, "plantumlLoad() should appear after DOMContentLoaded registration");
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PlantUML browser — loading placeholder
+    // ═══════════════════════════════════════════════════════════
+
+    private readonly string _inlineSvgStyles = DiagramContextMenu.GetInlineSvgStyles();
+
+    [Fact]
+    public void Plantuml_browser_shows_loading_placeholder_before_render()
+    {
+        // CSS pseudo-element on unrendered containers shows "Loading diagram…"
+        Assert.Contains(".plantuml-browser:not([data-rendered])", _inlineSvgStyles);
+        Assert.Contains("Loading diagram", _inlineSvgStyles);
     }
 
     // ═══════════════════════════════════════════════════════════

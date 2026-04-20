@@ -80,6 +80,16 @@ public static class DiagramContextMenu
             overflow-x: auto;
             padding-left: 1em;
         }
+        .plantuml-browser:not([data-rendered]) {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            color: #999;
+            font-style: italic;
+        }
+        .plantuml-browser:not([data-rendered])::before {
+            content: 'Loading diagram\2026';
+        }
         .diagram-zoom-toggle {
             position: absolute;
             top: 6px;
@@ -292,11 +302,11 @@ public static class DiagramContextMenu
     private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_16384@v1.2026.3beta6-patched";
 
     public static string GetPlantUmlBrowserRenderScript() => $$"""
-        <script src="{{PlantUmlJsCdnBase}}/viz-global.js"></script>
-        <script src="{{PlantUmlJsCdnBase}}/plantuml.js"></script>
+        <script defer src="{{PlantUmlJsCdnBase}}/viz-global.js"></script>
+        <script defer src="{{PlantUmlJsCdnBase}}/plantuml.js"></script>
         <script>
-            plantumlLoad();
             document.addEventListener('DOMContentLoaded', function() {
+                plantumlLoad();
                 var renderQueue = [];
                 var rendering = false;
                 function extractIflowMap(source) {
@@ -1119,24 +1129,22 @@ public static class DiagramContextMenu
                 if (window.getSelection) window.getSelection().removeAllRanges();
             });
 
-            // Add floating zoom toggle button to each diagram container
-            function addZoomButtons() {
-                document.querySelectorAll('[data-diagram-type]').forEach(function(container) {
-                    if (container.querySelector('.diagram-zoom-toggle')) return;
-                    var svg = getSvg(container);
-                    if (!svg) return;
-                    if (!isDiagramZoomable(container)) return;
-                    container.style.position = 'relative';
-                    var btn = document.createElement('button');
-                    btn.className = 'diagram-zoom-toggle';
-                    btn.textContent = '\u2922';
-                    btn.title = 'Toggle zoom (or double-click diagram)';
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        toggleDiagramZoom(container);
-                    });
-                    container.prepend(btn);
+            // Add zoom button to a single diagram container once its SVG is ready
+            function addZoomButton(container) {
+                if (container.querySelector('.diagram-zoom-toggle')) return;
+                var svg = getSvg(container);
+                if (!svg) return;
+                if (!isDiagramZoomable(container)) return;
+                container.style.position = 'relative';
+                var btn = document.createElement('button');
+                btn.className = 'diagram-zoom-toggle';
+                btn.textContent = '\u2922';
+                btn.title = 'Toggle zoom (or double-click diagram)';
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleDiagramZoom(container);
                 });
+                container.prepend(btn);
             }
 
             // Drag-to-pan when zoomed
@@ -1169,17 +1177,37 @@ public static class DiagramContextMenu
                 });
             })();
 
-            // Run on load and observe for lazily-rendered diagrams
-            function initZoom() {
-                addZoomButtons();
-                var zoomObserver = new MutationObserver(function() { addZoomButtons(); });
-                zoomObserver.observe(document.body, { childList: true, subtree: true });
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initZoom);
-            } else {
-                initZoom();
-            }
+            // Lazily add zoom buttons when diagram containers scroll into view.
+            // A per-container MutationObserver waits for the SVG to render before
+            // checking whether the diagram is wide enough to need a zoom toggle.
+            (function() {
+                var zoomIO = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (!entry.isIntersecting) return;
+                        var container = entry.target;
+                        zoomIO.unobserve(container);
+                        // SVG may already be present (server-rendered / inline)
+                        if (getSvg(container)) { addZoomButton(container); return; }
+                        // Otherwise wait for the PlantUML WASM render to insert the SVG
+                        var mo = new MutationObserver(function() {
+                            if (!getSvg(container)) return;
+                            mo.disconnect();
+                            addZoomButton(container);
+                        });
+                        mo.observe(container, { childList: true, subtree: true });
+                    });
+                }, { rootMargin: '200px' });
+                function observeAll() {
+                    document.querySelectorAll('[data-diagram-type]').forEach(function(c) {
+                        zoomIO.observe(c);
+                    });
+                }
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', observeAll);
+                } else {
+                    observeAll();
+                }
+            })();
         })();
         </script>
         """;
