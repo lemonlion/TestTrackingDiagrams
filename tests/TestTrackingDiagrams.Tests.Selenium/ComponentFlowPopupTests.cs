@@ -132,4 +132,26 @@ public class ComponentFlowPopupTests : IDisposable
             catch (NoSuchElementException) { return true; }
         }));
     }
+
+    [Fact]
+    public void Activity_diagram_popup_does_not_show_loading_text_after_render()
+    {
+        var html = TestPageGenerator.GenerateComponentFlowPage();
+        _driver.Navigate().GoToUrl(ServePage(html));
+
+        _driver.FindElement(By.Id("rel-api-db")).Click();
+
+        var popup = WaitFor(By.CssSelector(".iflow-popup"));
+        WaitForActivityDiagramSvg(popup);
+
+        // After the diagram SVG has rendered, data-queued and data-rendered must be set
+        // so the CSS ::before pseudo-element with loading text is suppressed.
+        var attrs = (string)((IJavaScriptExecutor)_driver).ExecuteScript("""
+            var el = document.querySelector('.iflow-popup .plantuml-browser');
+            if (!el) return 'element-not-found';
+            return (el.dataset.queued || 'missing') + '|' + (el.dataset.rendered || 'missing');
+            """);
+
+        Assert.Equal("1|1", attrs);
+    }
 }

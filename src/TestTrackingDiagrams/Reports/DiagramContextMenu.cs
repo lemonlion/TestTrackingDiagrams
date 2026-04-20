@@ -335,6 +335,7 @@ public static class DiagramContextMenu
                         item.el.dataset.rendered = '1';
                         bindIflowLinks(item.el, item.source);
                         if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
+                        requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
                         rendering = false;
                         processQueue();
                     });
@@ -1185,6 +1186,8 @@ public static class DiagramContextMenu
                 });
             })();
 
+            window._addZoomButton = addZoomButton;
+
             // Lazily add zoom buttons when diagram containers scroll into view.
             // A per-container MutationObserver waits for the SVG to render before
             // checking whether the diagram is wide enough to need a zoom toggle.
@@ -1195,12 +1198,12 @@ public static class DiagramContextMenu
                         var container = entry.target;
                         zoomIO.unobserve(container);
                         // SVG may already be present (server-rendered / inline)
-                        if (getSvg(container)) { addZoomButton(container); return; }
+                        if (getSvg(container)) { requestAnimationFrame(function() { addZoomButton(container); }); return; }
                         // Otherwise wait for the PlantUML WASM render to insert the SVG
                         var mo = new MutationObserver(function() {
                             if (!getSvg(container)) return;
                             mo.disconnect();
-                            addZoomButton(container);
+                            requestAnimationFrame(function() { addZoomButton(container); });
                         });
                         mo.observe(container, { childList: true, subtree: true });
                     });
@@ -1259,25 +1262,35 @@ public static class DiagramContextMenu
 
                     if (window.plantuml && diagramDiv.querySelector('.plantuml-browser')) {
                         diagramDiv.querySelectorAll('.plantuml-browser').forEach(function(el) {
+                            el.dataset.queued = '1';
                             function renderEl(source) {
                                 try {
                                     var lines = source.split('\n');
                                     if (lines.length > 3000) {
+                                        el.dataset.rendered = '1';
                                         el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
                                             '<strong>Activity diagram too large for browser rendering (' + lines.length + ' lines).</strong><br>' +
                                             'Use <code>CallTree</code> style for large relationship flows.</div>';
                                         return;
                                     }
+                                    var mo = new MutationObserver(function() {
+                                        mo.disconnect();
+                                        el.dataset.rendered = '1';
+                                    });
+                                    mo.observe(el, { childList: true, subtree: true });
                                     window.plantuml.render(lines, el.id);
                                     setTimeout(function() {
                                         var text = el.textContent || '';
                                         if (text.indexOf('RuntimeException') >= 0 || text.indexOf('RangeError') >= 0) {
+                                            mo.disconnect();
+                                            el.dataset.rendered = '1';
                                             el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px">' +
                                                 '<strong>Activity diagram too large for browser rendering.</strong><br>' +
                                                 'Use <code>CallTree</code> style for large relationship flows.</div>';
                                         }
                                     }, 100);
                                 } catch(e) {
+                                    el.dataset.rendered = '1';
                                     el.textContent = 'Activity diagram too large for browser rendering. Use CallTree style instead.';
                                     el.style.color = '#c00';
                                 }
@@ -1289,7 +1302,7 @@ public static class DiagramContextMenu
                                 decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
                                     el.setAttribute('data-plantuml', decoded);
                                     renderEl(decoded);
-                                }).catch(function() { el.textContent = 'Decompression error'; });
+                                }).catch(function() { el.dataset.rendered = '1'; el.textContent = 'Decompression error'; });
                             }
                         });
                     }
