@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.170-beta] - 2026-04-20
+
+### Added
+- Integration tests verifying specifications reports are blanked when any test fails, are not blanked for skipped/bypassed-only runs, and that the test run report is unaffected by failures.
+
 ## [2.0.169-beta] - 2026-04-20
 
 ### Changed

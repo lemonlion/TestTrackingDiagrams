@@ -174,4 +174,90 @@ public class ReportToggleTests : IDisposable
 
         Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.schema.json")));
     }
+
+    // --- Specifications blank on failed tests ---
+
+    private static Feature[] FailingFeatures =>
+    [
+        new()
+        {
+            DisplayName = "Failing Feature",
+            Scenarios =
+            [
+                new Scenario
+                {
+                    Id = "f1",
+                    DisplayName = "Failing scenario",
+                    Result = ExecutionResult.Failed,
+                    ErrorMessage = "assertion failed",
+                    Duration = TimeSpan.FromMilliseconds(50)
+                }
+            ]
+        }
+    ];
+
+    [Fact]
+    public void SpecificationsReport_blank_when_tests_fail()
+    {
+        var options = MakeOptions();
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            FailingFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        var path = Path.Combine(_reportsDir, $"Specifications_{_suffix}.html");
+        Assert.True(File.Exists(path));
+        Assert.Equal(string.Empty, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void SpecificationsData_blank_when_tests_fail()
+    {
+        var options = MakeOptions();
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            FailingFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        var path = Path.Combine(_reportsDir, $"Specifications_{_suffix}.yml");
+        Assert.True(File.Exists(path));
+        Assert.Equal(string.Empty, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void TestRunReport_not_blank_when_tests_fail()
+    {
+        var options = MakeOptions();
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            FailingFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        var path = Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html");
+        Assert.True(File.Exists(path));
+        Assert.NotEqual(string.Empty, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void SpecificationsReport_not_blank_when_only_skipped_and_bypassed()
+    {
+        var features = new Feature[]
+        {
+            new()
+            {
+                DisplayName = "Non-failure Feature",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Skipped", Result = ExecutionResult.Skipped, Duration = TimeSpan.FromMilliseconds(10) },
+                    new Scenario { Id = "b1", DisplayName = "Bypassed", Result = ExecutionResult.Bypassed, Duration = TimeSpan.FromMilliseconds(10) },
+                    new Scenario { Id = "p1", DisplayName = "Passed", Result = ExecutionResult.Passed, Duration = TimeSpan.FromMilliseconds(10) }
+                ]
+            }
+        };
+        var options = MakeOptions();
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        var path = Path.Combine(_reportsDir, $"Specifications_{_suffix}.html");
+        Assert.True(File.Exists(path));
+        Assert.NotEqual(string.Empty, File.ReadAllText(path));
+    }
 }
