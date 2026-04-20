@@ -80,11 +80,15 @@ public static class DiagramContextMenu
             overflow-x: auto;
             padding-left: 1em;
         }
+        @keyframes pulse-loading { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
         .plantuml-browser:not([data-rendered]) {
             min-height: 48px;
             display: flex;
             align-items: center;
             color: #999;
+        }
+        .plantuml-browser:not([data-rendered])::before {
+            animation: pulse-loading 2s ease-in-out infinite;
         }
         .plantuml-browser:not([data-queued])::before {
             content: 'Waiting for page load to complete\2026';
