@@ -25,6 +25,13 @@ public static class ReportGenerator
 
     public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
     {
+        if (options.ExpectedTestCount != null)
+        {
+            var scenarioCount = features.SelectMany(f => f.Scenarios).Count();
+            if (scenarioCount < options.ExpectedTestCount())
+                return;
+        }
+
         if (options.InternalFlowTracking && options.DiagramFormat == DiagramFormat.PlantUml)
         {
             if (options.PlantUmlRendering is PlantUmlRendering.Server or PlantUmlRendering.Local or PlantUmlRendering.NodeJs)

@@ -13,18 +13,10 @@ namespace TestTrackingDiagrams.LightBDD;
 /// </summary>
 public class StandardPipelineFormatter : IReportFormatter
 {
-    public Func<int>? ExpectedTestCount { get; set; }
     public ReportConfigurationOptions Options { get; set; } = new();
 
     public void Format(Stream stream, params IFeatureResult[] features)
     {
-        if (ExpectedTestCount != null)
-        {
-            var scenarioCount = features.SelectMany(f => f.GetScenarios()).Count();
-            if (scenarioCount < ExpectedTestCount())
-                return;
-        }
-
         var ttdFeatures = features.ToFeatures();
 
         var startTime = features

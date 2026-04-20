@@ -260,4 +260,68 @@ public class ReportToggleTests : IDisposable
         Assert.True(File.Exists(path));
         Assert.NotEqual(string.Empty, File.ReadAllText(path));
     }
+
+    // --- ExpectedTestCount (partial-run guard) ---
+
+    [Fact]
+    public void Reports_skipped_when_scenario_count_below_expected()
+    {
+        var options = MakeOptions(o => o.ExpectedTestCount = () => 5);
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.yml")));
+        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.json")));
+    }
+
+    [Fact]
+    public void Reports_generated_when_scenario_count_equals_expected()
+    {
+        var options = MakeOptions(o => o.ExpectedTestCount = () => 1);
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
+    }
+
+    [Fact]
+    public void Reports_generated_when_scenario_count_exceeds_expected()
+    {
+        var features = new Feature[]
+        {
+            new()
+            {
+                DisplayName = "Multi Feature",
+                Scenarios =
+                [
+                    new Scenario { Id = "1", DisplayName = "S1", Result = ExecutionResult.Passed, Duration = TimeSpan.FromMilliseconds(50) },
+                    new Scenario { Id = "2", DisplayName = "S2", Result = ExecutionResult.Passed, Duration = TimeSpan.FromMilliseconds(50) }
+                ]
+            }
+        };
+        var options = MakeOptions(o => o.ExpectedTestCount = () => 1);
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
+    }
+
+    [Fact]
+    public void Reports_generated_when_expected_count_is_null()
+    {
+        var options = MakeOptions(o => o.ExpectedTestCount = null);
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
+    }
 }

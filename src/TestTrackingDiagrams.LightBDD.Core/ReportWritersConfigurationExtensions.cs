@@ -31,7 +31,7 @@ namespace TestTrackingDiagrams.LightBDD
                 .AddFileWriter<StandardPipelineFormatter>($"{reportsFilePath}/.generation-complete",
                 formatter =>
                 {
-                    formatter.ExpectedTestCount = () => testCountResolver(testAssembly);
+                    options.ExpectedTestCount = () => testCountResolver(testAssembly);
                     formatter.Options = options;
                 });
         }

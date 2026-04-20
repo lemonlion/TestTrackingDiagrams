@@ -190,4 +190,12 @@ public record ReportConfigurationOptions
 
     /// <summary>When <c>true</c>, parameter names are converted to title case in report tables. Default: <c>true</c>.</summary>
     public bool TitleizeParameterNames { get; set; } = true;
+
+    /// <summary>
+    /// Optional delegate returning the total number of test scenarios expected in this assembly.
+    /// When set, report generation is skipped if the actual scenario count is less than the expected
+    /// count — preventing partial test runs (e.g. single-test filtering) from overwriting the
+    /// full Specifications report.
+    /// </summary>
+    public Func<int>? ExpectedTestCount { get; set; }
 }

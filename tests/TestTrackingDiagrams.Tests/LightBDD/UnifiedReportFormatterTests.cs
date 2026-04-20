@@ -36,10 +36,10 @@ public class StandardPipelineFormatterTests : IDisposable
     }
 
     [Fact]
-    public void Default_ExpectedTestCount_is_null()
+    public void Default_ExpectedTestCount_on_options_is_null()
     {
         var formatter = new StandardPipelineFormatter();
-        Assert.Null(formatter.ExpectedTestCount);
+        Assert.Null(formatter.Options.ExpectedTestCount);
     }
 
     [Fact]
@@ -47,9 +47,9 @@ public class StandardPipelineFormatterTests : IDisposable
     {
         var formatter = new StandardPipelineFormatter
         {
-            ExpectedTestCount = () => 5,
             Options = new ReportConfigurationOptions
             {
+                ExpectedTestCount = () => 5,
                 HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
                 HtmlSpecificationsFileName = $"Specifications_{_suffix}",
                 YamlSpecificationsFileName = $"Specifications_{_suffix}"
@@ -71,9 +71,9 @@ public class StandardPipelineFormatterTests : IDisposable
     {
         var formatter = new StandardPipelineFormatter
         {
-            ExpectedTestCount = () => 2,
             Options = new ReportConfigurationOptions
             {
+                ExpectedTestCount = () => 2,
                 HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
                 HtmlSpecificationsFileName = $"Specifications_{_suffix}",
                 YamlSpecificationsFileName = $"Specifications_{_suffix}"
@@ -94,9 +94,9 @@ public class StandardPipelineFormatterTests : IDisposable
     {
         var formatter = new StandardPipelineFormatter
         {
-            ExpectedTestCount = () => 1,
             Options = new ReportConfigurationOptions
             {
+                ExpectedTestCount = () => 1,
                 HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
                 HtmlSpecificationsFileName = $"Specifications_{_suffix}",
                 YamlSpecificationsFileName = $"Specifications_{_suffix}"
@@ -117,9 +117,9 @@ public class StandardPipelineFormatterTests : IDisposable
     {
         var formatter = new StandardPipelineFormatter
         {
-            ExpectedTestCount = null,
             Options = new ReportConfigurationOptions
             {
+                ExpectedTestCount = null,
                 HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
                 HtmlSpecificationsFileName = $"Specifications_{_suffix}",
                 YamlSpecificationsFileName = $"Specifications_{_suffix}"
