@@ -87,7 +87,7 @@ public static class DiagramContextMenu
             color: #999;
         }
         .plantuml-browser:not([data-queued])::before {
-            content: 'Waiting for page\2026';
+            content: 'Waiting for page load to complete\2026';
         }
         .plantuml-browser[data-queued]:not([data-rendered])::before {
             content: 'Rendering diagram\2026';
