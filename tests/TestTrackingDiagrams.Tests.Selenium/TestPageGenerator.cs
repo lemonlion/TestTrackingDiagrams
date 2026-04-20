@@ -317,7 +317,7 @@ public static class TestPageGenerator
             </head>
             <body>
                 <h1>BrowserJs Sequence Diagram</h1>
-                <div class="plantuml-browser" id="puml-1" data-plantuml="{{encoded}}" data-diagram-type="plantuml">Loading diagram...</div>
+                <div class="plantuml-browser" id="puml-1" data-plantuml="{{encoded}}" data-diagram-type="plantuml"></div>
             </body>
             </html>
             """;

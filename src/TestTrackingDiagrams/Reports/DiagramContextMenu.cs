@@ -85,10 +85,12 @@ public static class DiagramContextMenu
             display: flex;
             align-items: center;
             color: #999;
-            font-style: italic;
         }
-        .plantuml-browser:not([data-rendered])::before {
-            content: 'Loading diagram\2026';
+        .plantuml-browser:not([data-queued])::before {
+            content: 'Waiting for page\2026';
+        }
+        .plantuml-browser[data-queued]:not([data-rendered])::before {
+            content: 'Rendering diagram\2026';
         }
         .diagram-zoom-toggle {
             position: absolute;
@@ -326,6 +328,7 @@ public static class DiagramContextMenu
                     var lines = item.source.split('\n');
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
+                        item.el.dataset.rendered = '1';
                         bindIflowLinks(item.el, item.source);
                         if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
                         rendering = false;
@@ -336,6 +339,7 @@ public static class DiagramContextMenu
                         window.plantuml.render(lines, item.el.id);
                     } catch(e) {
                         mo.disconnect();
+                        item.el.dataset.rendered = '1';
                         rendering = false;
                         var msg = (e && e.message) ? e.message : String(e);
                         if (msg.indexOf('too large') >= 0) {
@@ -443,8 +447,8 @@ public static class DiagramContextMenu
                     entries.forEach(function(entry) {
                         if (!entry.isIntersecting) return;
                         var el = entry.target;
-                        if (el.dataset.rendered) return;
-                        el.dataset.rendered = '1';
+                        if (el.dataset.queued) return;
+                        el.dataset.queued = '1';
                         observer.unobserve(el);
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
@@ -473,8 +477,8 @@ public static class DiagramContextMenu
                 window._renderDiagramsInContainer = function(container) {
                     if (!container) return;
                     container.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                        if (el.dataset.rendered) return;
-                        el.dataset.rendered = '1';
+                        if (el.dataset.queued) return;
+                        el.dataset.queued = '1';
                         observer.unobserve(el);
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
@@ -499,8 +503,8 @@ public static class DiagramContextMenu
                 var firstScenario = document.querySelector('.scenario');
                 if (firstScenario) {
                     firstScenario.querySelectorAll('.plantuml-browser').forEach(function(el) {
-                        if (el.dataset.rendered) return;
-                        el.dataset.rendered = '1';
+                        if (el.dataset.queued) return;
+                        el.dataset.queued = '1';
                         observer.unobserve(el);
                         var source = el.getAttribute('data-plantuml');
                         if (source) {

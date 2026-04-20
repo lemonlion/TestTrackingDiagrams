@@ -165,7 +165,10 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("Loading diagram...", content);
+        Assert.Contains("class=\"plantuml-browser\"", content);
+        var styles = DiagramContextMenu.GetInlineSvgStyles();
+        Assert.Contains("Waiting for page", styles);
+        Assert.Contains("Rendering diagram", styles);
     }
 
     [Fact]
@@ -230,6 +233,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
+        Assert.Contains("dataset.queued", content);
         Assert.Contains("dataset.rendered", content);
         Assert.Contains("observer.unobserve(el)", content);
     }

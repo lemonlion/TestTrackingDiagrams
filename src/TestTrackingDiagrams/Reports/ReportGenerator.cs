@@ -1776,7 +1776,7 @@ public static class ReportGenerator
                                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
                                 var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
                                 body.Append($"""
-                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml-z="{compressed}" data-diagram-type="plantuml">Loading diagram...</div>
+                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml-z="{compressed}" data-diagram-type="plantuml"></div>
                                          """);
                             }
                             else if (isInlineSvg)
@@ -2418,7 +2418,7 @@ public static class ReportGenerator
             {
                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
                 var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
-                body.Append($"<div class=\"plantuml-browser\" id=\"{diagramId}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading diagram...</div>");
+                body.Append($"<div class=\"plantuml-browser\" id=\"{diagramId}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>");
             }
             else if (isInlineSvg)
             {
