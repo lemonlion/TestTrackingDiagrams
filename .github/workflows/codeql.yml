@@ -30,6 +30,9 @@ jobs:
         with:
           languages: csharp
 
+      - name: Restore
+        run: dotnet restore TestTrackingDiagrams.sln
+
       - name: Build
         run: dotnet build TestTrackingDiagrams.sln --no-restore
 

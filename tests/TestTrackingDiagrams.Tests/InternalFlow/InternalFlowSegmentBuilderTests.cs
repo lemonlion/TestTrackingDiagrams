@@ -584,4 +584,119 @@ public class InternalFlowSegmentBuilderTests : IDisposable
         Assert.Single(result[$"iflow-{reqId2}"].Spans);
         Assert.Equal("late", result[$"iflow-{reqId2}"].Spans[0].OperationName);
     }
+
+    // ── Per-call TraceId isolation (Bug: spans bleed between calls) ──
+
+    [Fact]
+    public void BuildSegments_two_calls_with_different_trace_ids_isolates_spans_by_trace()
+    {
+        // Simulates: test makes 2 HTTP calls sequentially, each with a different W3C trace.
+        // Call 1 has many spans (identity validation, token generation, etc.)
+        // Call 2 has few spans (just client secret validation).
+        // BUG: Without per-call TraceId filtering, both calls' popups show the same spans
+        // because the timestamp windows overlap or misalign.
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var traceId1 = "0af7651916cd43dd8448eb211c80319c";
+        var traceId2 = "aaaabbbbccccddddeeee111122223333";
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+
+        // Call 1 spans (T+5ms to T+15ms) — many internal spans
+        var span1A = CreateSpan("TokenRequestValidator.Validate", baseTime.UtcDateTime.AddMilliseconds(5),
+            TimeSpan.FromMilliseconds(2), traceId: traceId1);
+        var span1B = CreateSpan("CachingResourceStore.Find", baseTime.UtcDateTime.AddMilliseconds(8),
+            TimeSpan.FromMilliseconds(1), traceId: traceId1);
+        var span1C = CreateSpan("TokenResponseGenerator.Process", baseTime.UtcDateTime.AddMilliseconds(12),
+            TimeSpan.FromMilliseconds(3), traceId: traceId1);
+
+        // Call 2 spans (T+25ms to T+35ms) — fewer spans
+        var span2A = CreateSpan("ClientSecretValidator.Validate", baseTime.UtcDateTime.AddMilliseconds(25),
+            TimeSpan.FromMilliseconds(5), traceId: traceId2);
+        var span2B = CreateSpan("ClientStore.FindClientById", baseTime.UtcDateTime.AddMilliseconds(28),
+            TimeSpan.FromMilliseconds(3), traceId: traceId2);
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId1, activityTraceId: traceId1),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(20), requestResponseId: reqId1, activityTraceId: traceId1),
+            MakeRequest(timestamp: baseTime.AddMilliseconds(22), requestResponseId: reqId2, activityTraceId: traceId2),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(40), requestResponseId: reqId2, activityTraceId: traceId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs,
+            [span1A, span1B, span1C, span2A, span2B]);
+
+        // Call 1 should only have its own 3 spans
+        var seg1 = result[$"iflow-{reqId1}"];
+        Assert.Equal(3, seg1.Spans.Length);
+        Assert.Equal("TokenRequestValidator.Validate", seg1.Spans[0].OperationName);
+        Assert.Equal("CachingResourceStore.Find", seg1.Spans[1].OperationName);
+        Assert.Equal("TokenResponseGenerator.Process", seg1.Spans[2].OperationName);
+
+        // Call 2 should only have its own 2 spans
+        var seg2 = result[$"iflow-{reqId2}"];
+        Assert.Equal(2, seg2.Spans.Length);
+        Assert.Equal("ClientSecretValidator.Validate", seg2.Spans[0].OperationName);
+        Assert.Equal("ClientStore.FindClientById", seg2.Spans[1].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_overlapping_timestamps_different_traces_correctly_separates()
+    {
+        // Edge case: two calls with overlapping time windows but different trace IDs.
+        // e.g. parallel calls or clock coarseness causing identical timestamps.
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var traceId1 = "0af7651916cd43dd8448eb211c80319c";
+        var traceId2 = "aaaabbbbccccddddeeee111122223333";
+        var reqId1 = Guid.NewGuid();
+        var reqId2 = Guid.NewGuid();
+
+        // Both spans start at exactly the same time
+        var span1 = CreateSpan("call1-op", baseTime.UtcDateTime.AddMilliseconds(10),
+            TimeSpan.FromMilliseconds(5), traceId: traceId1);
+        var span2 = CreateSpan("call2-op", baseTime.UtcDateTime.AddMilliseconds(10),
+            TimeSpan.FromMilliseconds(5), traceId: traceId2);
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId1, activityTraceId: traceId1),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(50), requestResponseId: reqId1, activityTraceId: traceId1),
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId2, activityTraceId: traceId2),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(50), requestResponseId: reqId2, activityTraceId: traceId2)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [span1, span2]);
+
+        Assert.Single(result[$"iflow-{reqId1}"].Spans);
+        Assert.Equal("call1-op", result[$"iflow-{reqId1}"].Spans[0].OperationName);
+        Assert.Single(result[$"iflow-{reqId2}"].Spans);
+        Assert.Equal("call2-op", result[$"iflow-{reqId2}"].Spans[0].OperationName);
+    }
+
+    [Fact]
+    public void BuildSegments_span_starting_slightly_before_segment_start_is_included_with_tolerance()
+    {
+        // Root span (TestTrackingDiagrams.Request) starts BEFORE the log timestamp
+        // because Activity.Start() happens before Timestamp = DateTimeOffset.UtcNow
+        var baseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var traceId = "0af7651916cd43dd8448eb211c80319c";
+        var reqId = Guid.NewGuid();
+
+        // Root span starts 5ms before the request log timestamp
+        var rootSpan = CreateSpan("TestTrackingDiagrams.Request",
+            baseTime.UtcDateTime.AddMilliseconds(-5), TimeSpan.FromMilliseconds(20), traceId: traceId);
+        var childSpan = CreateSpan("HttpRequestIn",
+            baseTime.UtcDateTime.AddMilliseconds(1), TimeSpan.FromMilliseconds(15), traceId: traceId);
+
+        var logs = new[]
+        {
+            MakeRequest(timestamp: baseTime, requestResponseId: reqId, activityTraceId: traceId),
+            MakeResponse(timestamp: baseTime.AddMilliseconds(25), requestResponseId: reqId, activityTraceId: traceId)
+        };
+
+        var result = InternalFlowSegmentBuilder.BuildSegments(logs, [rootSpan, childSpan]);
+
+        // Both spans should be included — root span is the parent of this call's trace
+        Assert.Equal(2, result[$"iflow-{reqId}"].Spans.Length);
+    }
 }

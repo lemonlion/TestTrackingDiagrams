@@ -64,8 +64,21 @@ public static class InternalFlowSegmentBuilder
                 else
                     segmentEnd = segmentStart.AddSeconds(5);
 
-                var segmentSpans = testSpans
-                    .Where(s => s.StartTimeUtc >= segmentStart.UtcDateTime &&
+                // When the request log has an ActivityTraceId, filter to only
+                // spans belonging to this specific call's trace. This prevents
+                // spans from different HTTP calls bleeding into each other's
+                // segments when their timestamp windows happen to overlap.
+                var candidateSpans = log.ActivityTraceId is not null
+                    ? testSpans.Where(s => s.TraceId.ToString() == log.ActivityTraceId)
+                    : testSpans.AsEnumerable();
+
+                // Allow a small tolerance before segmentStart to capture root
+                // spans (e.g. TestTrackingDiagrams.Request) whose Activity
+                // starts before the log timestamp is recorded.
+                var toleranceStart = segmentStart.UtcDateTime.AddMilliseconds(-50);
+
+                var segmentSpans = candidateSpans
+                    .Where(s => s.StartTimeUtc >= toleranceStart &&
                                 s.StartTimeUtc < segmentEnd.UtcDateTime)
                     .OrderBy(s => s.StartTimeUtc)
                     .ToArray();
