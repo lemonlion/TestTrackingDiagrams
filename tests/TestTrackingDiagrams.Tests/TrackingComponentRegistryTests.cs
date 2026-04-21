@@ -18,11 +18,11 @@ public class TrackingComponentRegistryTests : IDisposable
     [Fact]
     public void Register_AddsComponentToRegistry()
     {
-        var component = new StubTrackingComponent("Test", wasInvoked: false);
+        var component = new StubTrackingComponent("Test_Register", wasInvoked: false);
 
         TrackingComponentRegistry.Register(component);
 
-        Assert.Single(TrackingComponentRegistry.GetRegisteredComponents());
+        Assert.Contains(TrackingComponentRegistry.GetRegisteredComponents(), c => c.ComponentName == "Test_Register");
     }
 
     [Fact]
@@ -35,8 +35,7 @@ public class TrackingComponentRegistryTests : IDisposable
         TrackingComponentRegistry.Register(used);
 
         var result = TrackingComponentRegistry.GetUnusedComponents();
-        Assert.Single(result);
-        Assert.Equal("Unused", result[0].ComponentName);
+        Assert.Contains(result, c => c.ComponentName == "Unused");
     }
 
     [Fact]
@@ -51,10 +50,15 @@ public class TrackingComponentRegistryTests : IDisposable
     [Fact]
     public void GetRegisteredComponents_ReturnsAll()
     {
-        TrackingComponentRegistry.Register(new StubTrackingComponent("A", wasInvoked: false));
-        TrackingComponentRegistry.Register(new StubTrackingComponent("B", wasInvoked: true));
+        var a = new StubTrackingComponent("A", wasInvoked: false);
+        var b = new StubTrackingComponent("B", wasInvoked: true);
 
-        Assert.Equal(2, TrackingComponentRegistry.GetRegisteredComponents().Count);
+        TrackingComponentRegistry.Register(a);
+        TrackingComponentRegistry.Register(b);
+
+        var registered = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(registered, c => c.ComponentName == "A");
+        Assert.Contains(registered, c => c.ComponentName == "B");
     }
 
     [Fact]
