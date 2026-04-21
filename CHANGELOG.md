@@ -6,14 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-04-21
+
+### Changed
+- **TrackingComponentRegistry no longer throws**: Removed `ValidateAllComponentsWereInvoked()` and `ValidateComponentsWereInvoked<T>()` methods. Unused component detection is now fully passive — warnings appear in console output automatically and in the HTML diagnostic report when `DiagnosticMode=true`. TTD should never cause test failures in its default configuration.
+
 ## [2.3.0] - 2026-04-21
 
 ### Added
 - **`ITrackingComponent` interface**: All tracking handlers and interceptors now implement `ITrackingComponent`, providing `ComponentName`, `WasInvoked`, and `InvocationCount` properties.
 - **`TrackingComponentRegistry`**: Central static registry that auto-registers all tracking components on construction.
-  - `ValidateAllComponentsWereInvoked()` — Throws a descriptive `InvalidOperationException` if any registered component was never invoked, catching silent misconfiguration (e.g. EF Core `DbContextOptions<T>` type mismatch).
   - `GetUnusedComponents()` / `GetRegisteredComponents()` — Programmatic inspection of component state.
   - `Clear()` — Reset alongside `RequestResponseLogger.Clear()` in test setup.
+- **Unused component warnings in diagnostic report**: `ReportDiagnostics.Analyse()` now warns when registered tracking components were never invoked — a strong indicator of misconfiguration (e.g. EF Core `DbContextOptions<T>` type mismatch). Warnings appear in console output automatically and in the HTML diagnostic report when `DiagnosticMode=true`. This never throws or fails tests.
+- **Diagnostic report "Tracking Components" section**: When `DiagnosticMode=true`, the HTML diagnostic report now includes a table of all registered tracking components with their invocation counts and active/unused status, plus troubleshooting hints for common causes.
 - **Invocation tracking on all extensions**: `SqlTrackingInterceptor`, `CosmosTrackingMessageHandler`, `BlobTrackingMessageHandler`, `BigQueryTrackingMessageHandler`, `RedisTracker`, and core `TestTrackingMessageHandler` all track invocation counts and auto-register with the registry.
 
 ### Documentation

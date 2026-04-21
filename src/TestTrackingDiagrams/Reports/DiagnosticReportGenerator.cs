@@ -129,6 +129,34 @@ public static class DiagnosticReportGenerator
             sb.AppendLine("</table>");
         }
 
+        // Unused tracking components
+        var allComponents = TrackingComponentRegistry.GetRegisteredComponents();
+        if (allComponents.Count > 0)
+        {
+            var unused = TrackingComponentRegistry.GetUnusedComponents();
+            sb.AppendLine("<h2>Tracking Components</h2>");
+            sb.AppendLine("<table><tr><th>Component</th><th>Invocations</th><th>Status</th></tr>");
+            foreach (var c in allComponents)
+            {
+                var status = c.WasInvoked
+                    ? "<span class=\"info\">✓ active</span>"
+                    : "<span class=\"warn\">⚠ never invoked</span>";
+                sb.AppendLine($"<tr><td>{Escape(c.ComponentName)}</td><td>{c.InvocationCount}</td><td>{status}</td></tr>");
+            }
+            sb.AppendLine("</table>");
+
+            if (unused.Count > 0)
+            {
+                sb.AppendLine($"<h3 class=\"warn\">⚠ {unused.Count} Tracking Component(s) Never Invoked</h3>");
+                sb.AppendLine("<p>These components were registered but never processed any traffic. This usually means the component was added to the wrong pipeline or options.</p>");
+                sb.AppendLine("<p><b>Common causes:</b></p><ul>");
+                sb.AppendLine("<li><b>EF Core:</b> The interceptor was added to <code>DbContextOptions&lt;TDerived&gt;</code> but the DbContext constructor accepts <code>DbContextOptions&lt;TBase&gt;</code> (e.g. Duende IdentityServer's ConfigurationDbContext). Fix: use <code>PostConfigure</code> on the framework's store options.</li>");
+                sb.AppendLine("<li><b>HTTP:</b> The handler was added to an HttpClient that isn't being used by the target service.</li>");
+                sb.AppendLine("<li><b>Redis:</b> An untracked IDatabase instance is being used instead of the tracked one.</li>");
+                sb.AppendLine("</ul>");
+            }
+        }
+
         sb.AppendLine("</body></html>");
         return sb.ToString();
     }

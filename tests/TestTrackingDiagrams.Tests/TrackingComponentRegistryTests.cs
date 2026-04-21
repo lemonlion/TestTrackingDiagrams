@@ -48,53 +48,12 @@ public class TrackingComponentRegistryTests : IDisposable
     }
 
     [Fact]
-    public void ValidateAllComponentsWereInvoked_Passes_WhenAllInvoked()
+    public void GetRegisteredComponents_ReturnsAll()
     {
-        TrackingComponentRegistry.Register(new StubTrackingComponent("A", wasInvoked: true));
+        TrackingComponentRegistry.Register(new StubTrackingComponent("A", wasInvoked: false));
+        TrackingComponentRegistry.Register(new StubTrackingComponent("B", wasInvoked: true));
 
-        var ex = Record.Exception(() => TrackingComponentRegistry.ValidateAllComponentsWereInvoked());
-        Assert.Null(ex);
-    }
-
-    [Fact]
-    public void ValidateAllComponentsWereInvoked_Passes_WhenEmpty()
-    {
-        var ex = Record.Exception(() => TrackingComponentRegistry.ValidateAllComponentsWereInvoked());
-        Assert.Null(ex);
-    }
-
-    [Fact]
-    public void ValidateAllComponentsWereInvoked_Throws_WhenComponentUnused()
-    {
-        TrackingComponentRegistry.Register(new StubTrackingComponent("SqlTrackingInterceptor", wasInvoked: false));
-
-        var ex = Assert.Throws<InvalidOperationException>(TrackingComponentRegistry.ValidateAllComponentsWereInvoked);
-        Assert.Contains("SqlTrackingInterceptor", ex.Message);
-        Assert.Contains("never invoked", ex.Message);
-    }
-
-    [Fact]
-    public void ValidateAllComponentsWereInvoked_ListsAllUnusedComponents()
-    {
-        TrackingComponentRegistry.Register(new StubTrackingComponent("ComponentA", wasInvoked: false));
-        TrackingComponentRegistry.Register(new StubTrackingComponent("ComponentB", wasInvoked: false));
-        TrackingComponentRegistry.Register(new StubTrackingComponent("ComponentC", wasInvoked: true));
-
-        var ex = Assert.Throws<InvalidOperationException>(TrackingComponentRegistry.ValidateAllComponentsWereInvoked);
-        Assert.Contains("ComponentA", ex.Message);
-        Assert.Contains("ComponentB", ex.Message);
-        Assert.DoesNotContain("ComponentC", ex.Message);
-    }
-
-    [Fact]
-    public void ValidateAllComponentsWereInvoked_IncludesTroubleshootingHints()
-    {
-        TrackingComponentRegistry.Register(new StubTrackingComponent("Test", wasInvoked: false));
-
-        var ex = Assert.Throws<InvalidOperationException>(TrackingComponentRegistry.ValidateAllComponentsWereInvoked);
-        Assert.Contains("EF Core", ex.Message);
-        Assert.Contains("HTTP", ex.Message);
-        Assert.Contains("Redis", ex.Message);
+        Assert.Equal(2, TrackingComponentRegistry.GetRegisteredComponents().Count);
     }
 
     [Fact]

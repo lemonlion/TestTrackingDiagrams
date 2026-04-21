@@ -52,6 +52,15 @@ public static class ReportDiagnostics
             }
         }
 
+        var unused = TrackingComponentRegistry.GetUnusedComponents();
+        if (unused.Count > 0)
+        {
+            var names = string.Join(", ", unused.Select(c => c.ComponentName));
+            warnings.Add($"Warning: {unused.Count} tracking component(s) were registered but never invoked: {names}. " +
+                "This usually means the component was added to the wrong pipeline or options. " +
+                "Enable DiagnosticMode for details.");
+        }
+
         return warnings.ToArray();
     }
 
