@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Azure Event Hubs Extension</Title>
+    <Description>Azure Event Hubs tracking for test diagrams. Intercepts and classifies Event Hubs operations (Send, SendBatch, Receive, Process) with configurable verbosity.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>
