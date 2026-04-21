@@ -361,3 +361,6 @@ local-feed/
 
 # Orphaned pre-restructure directory (active copy is under examples/)
 /Example.Api/
+test-output.txt
+build-output.txt
+rerun-output.txt
