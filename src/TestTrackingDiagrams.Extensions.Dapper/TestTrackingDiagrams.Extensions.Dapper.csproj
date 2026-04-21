@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Dapper Extension</Title>
+    <Description>Dapper/ADO.NET tracking for test diagrams. Wraps DbConnection to intercept and classify SQL queries (Select, Insert, Update, Delete, StoredProcedure) with configurable verbosity. Works with any ADO.NET provider.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.Dapper" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>

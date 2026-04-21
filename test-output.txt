@@ -1,235 +1,176 @@
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests\bin\Debug\net10.0\TestTrackingDiagrams.Tests.dll (.NETCoreApp,Version=v10.0)
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.xUnit3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.xUnit3.dll (.NETCoreApp,Version=v10.0)
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.LightBDD.xUnit3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.LightBDD.xUnit3.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.xUnit2\bin\Debug\net10.0\TestTrackingDiagrams.Tests.xUnit2.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.MSTest\bin\Debug\net10.0\TestTrackingDiagrams.Tests.MSTest.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests\bin\Debug\net10.0\TestTrackingDiagrams.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.CosmosDB\bin\Debug\net10.0\TestTrackingDiagrams.Tests.CosmosDB.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.LightBDD.xUnit3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.LightBDD.xUnit3.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.xUnit3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.xUnit3.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.EfCore.Relational\bin\Debug\net10.0\TestTrackingDiagrams.Tests.EfCore.Relational.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Selenium.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Redis\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Redis.dll (.NETCoreApp,Version=v10.0)
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.MSTest\bin\Debug\net10.0\TestTrackingDiagrams.Tests.MSTest.dll (.NETCoreApp,Version=v10.0)
-A total of 1 test files matched the specified pattern.
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.TUnit\bin\Debug\net10.0\TestTrackingDiagrams.Tests.TUnit.dll (.NETCoreApp,Version=v10.0)
-A total of 1 test files matched the specified pattern.
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.CosmosDB\bin\Debug\net10.0\TestTrackingDiagrams.Tests.CosmosDB.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.LightBDD.TUnit\bin\Debug\net10.0\TestTrackingDiagrams.Tests.LightBDD.TUnit.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.PlantUml.Ikvm\bin\Debug\net10.0\TestTrackingDiagrams.Tests.PlantUml.Ikvm.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.BlobStorage\bin\Debug\net10.0\TestTrackingDiagrams.Tests.BlobStorage.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.SearchEngine\bin\Debug\net10.0\TestTrackingDiagrams.Tests.SearchEngine.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.BigQuery\bin\Debug\net10.0\TestTrackingDiagrams.Tests.BigQuery.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.ServiceBus\bin\Debug\net10.0\TestTrackingDiagrams.Tests.ServiceBus.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.S3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.S3.dll (.NETCoreApp,Version=v10.0)
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.SearchEngine\bin\Debug\net10.0\TestTrackingDiagrams.Tests.SearchEngine.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.DynamoDB\bin\Debug\net10.0\TestTrackingDiagrams.Tests.DynamoDB.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.PlantUml.Ikvm\bin\Debug\net10.0\TestTrackingDiagrams.Tests.PlantUml.Ikvm.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.MongoDB\bin\Debug\net10.0\TestTrackingDiagrams.Tests.MongoDB.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Grpc\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Grpc.dll (.NETCoreApp,Version=v10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.SQS\bin\Debug\net10.0\TestTrackingDiagrams.Tests.SQS.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Grpc\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Grpc.dll (.NETCoreApp,Version=v10.0)
 
-Passed!  - Failed:     0, Passed:    41, Skipped:     0, Total:    41, Duration: 1 s - TestTrackingDiagrams.Tests.MSTest.dll (net10.0)
-A total of 1 test files matched the specified pattern.
+Passed!  - Failed:     0, Passed:    41, Skipped:     0, Total:    41, Duration: 518 ms - TestTrackingDiagrams.Tests.MSTest.dll (net10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.PubSub\bin\Debug\net10.0\TestTrackingDiagrams.Tests.PubSub.dll (.NETCoreApp,Version=v10.0)
-A total of 1 test files matched the specified pattern.
 
-Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 138 ms - TestTrackingDiagrams.Tests.xUnit2.dll (net10.0)
-
-Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 436 ms
-Passed!  - Failed:     0, Passed:    67, Skipped:     0, Total:    67, Duration: 435 ms - TestTrackingDiagrams.Tests.BigQuery.dll (net10.0)
- - TestTrackingDiagrams.Tests.LightBDD.xUnit3.dll (net10.0)
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 142 ms - TestTrackingDiagrams.Tests.xUnit2.dll (net10.0)
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.SNS\bin\Debug\net10.0\TestTrackingDiagrams.Tests.SNS.dll (.NETCoreApp,Version=v10.0)
-
-Passed!  - Failed:     0, Passed:   153, Skipped:     0, Total:   153, Duration: 957 ms - TestTrackingDiagrams.Tests.EfCore.Relational.dll (net10.0)
-[xUnit.net 00:00:23.93]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [SKIP]
-[xUnit.net 00:00:23.94]     TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [SKIP]
-[xUnit.net 00:00:23.99]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [SKIP]
-[xUnit.net 00:00:24.00]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [SKIP]
-
-[xUnit.net 00:00:24.00]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [SKIP]
-Passed!  - Failed:     0, Passed:   114, Skipped:     0, Total:   114, Duration: 762 ms[xUnit.net 00:00:24.00]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [SKIP]
- - TestTrackingDiagrams.Tests.S3.dll (net10.0)
-[xUnit.net 00:00:24.00]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [SKIP]
-[xUnit.net 00:00:24.01]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_xUnit_Screenshot [SKIP]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [1 ms]
-
 No test is available in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.xUnit3\bin\Debug\net10.0\TestTrackingDiagrams.Tests.xUnit3.dll. Make sure that test discoverer & executors are registered and platform & framework version settings are appropriate and try again.
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.CloudStorage\bin\Debug\net10.0\TestTrackingDiagrams.Tests.CloudStorage.dll (.NETCoreApp,Version=v10.0)
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [1 ms]
-Passed!  - Failed:     0, Passed:   106, Skipped:     0, Total:   106, Duration: 1 s  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [1 ms]
- - TestTrackingDiagrams.Tests.ServiceBus.dll (net10.0)
+
 A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.CloudStorage\bin\Debug\net10.0\TestTrackingDiagrams.Tests.CloudStorage.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.EventHubs\bin\Debug\net10.0\TestTrackingDiagrams.Tests.EventHubs.dll (.NETCoreApp,Version=v10.0)
+
+Passed!  - Failed:     0, Passed:    73, Skipped:     0, Total:    73, Duration: 360 ms - TestTrackingDiagrams.Tests.CosmosDB.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    71, Skipped:     0, Total:    71, Duration: 176 ms - TestTrackingDiagrams.Tests.BlobStorage.dll (net10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.StorageQueues\bin\Debug\net10.0\TestTrackingDiagrams.Tests.StorageQueues.dll (.NETCoreApp,Version=v10.0)
+
+Passed!  - Failed:     0, Passed:   165, Skipped:     0, Total:   165, Duration: 560 msA total of 1 test files matched the specified pattern.
+ - TestTrackingDiagrams.Tests.SearchEngine.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 314 ms - TestTrackingDiagrams.Tests.LightBDD.TUnit.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:     9, Skipped:     0, Total:     9, Duration: 201 ms - TestTrackingDiagrams.Tests.TUnit.dll (net10.0)
+[xUnit.net 00:00:06.62]     TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [SKIP]
+[xUnit.net 00:00:06.63]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [SKIP]
+[xUnit.net 00:00:06.63]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [1 ms]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [SKIP]
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.MassTransit\bin\Debug\net10.0\TestTrackingDiagrams.Tests.MassTransit.dll (.NETCoreApp,Version=v10.0)
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [SKIP]
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Kafka\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Kafka.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   147, Skipped:     0, Total:   147, Duration: 496 ms[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [SKIP]
+ - TestTrackingDiagrams.Tests.Redis.dll (net10.0)
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [1 ms]
+  Skipped Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Elasticsearch\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Elasticsearch.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Dapper\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Dapper.dll (.NETCoreApp,Version=v10.0)
+TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [1 ms]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_xUnit_Screenshot [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature08_Internal_Flow_GIF [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_xUnit_Screenshot [1 ms]
-[xUnit.net 00:00:24.05]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [SKIP]
-[xUnit.net 00:00:24.06]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [SKIP]
-[xUnit.net 00:00:24.06]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [SKIP]
-[xUnit.net 00:00:24.06]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature08_Internal_Flow_GIF [SKIP]
-[xUnit.net 00:00:24.07]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature01_Interactive_Report_GIF [SKIP]
-
-[xUnit.net 00:00:24.07]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature03_Parameterized_Tests_GIF [SKIP]
-[xUnit.net 00:00:24.07]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature07_Component_Diagram_Screenshot [SKIP]
-[xUnit.net 00:00:24.08]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature11_MediatR_Screenshot [SKIP]
-[xUnit.net 00:00:24.08]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [SKIP]
-
-Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 1 s  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [1 ms]
-  Skipped Passed!  - Failed:     0, Passed:    73, Skipped:     0, Total:    73, Duration: 697 msTestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [1 ms]
-  Skipped 
-TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [1 ms]
- - TestTrackingDiagrams.Tests.CosmosDB.dll (net10.0)
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature08_Internal_Flow_GIF [1 ms]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature01_Interactive_Report_GIF [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature03_Parameterized_Tests_GIF [SKIP]
+[xUnit.net 00:00:06.66]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature07_Component_Diagram_Screenshot [SKIP]
+[xUnit.net 00:00:06.67]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature11_MediatR_Screenshot [SKIP]
+[xUnit.net 00:00:06.67]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [SKIP]
+[xUnit.net 00:00:06.67]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature13_Failure_Diagnostics_GIF [SKIP]
+[xUnit.net 00:00:06.67]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature09_CI_Summary_Screenshot [SKIP]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature01_Interactive_Report_GIF [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature03_Parameterized_Tests_GIF [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature07_Component_Diagram_Screenshot [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature11_MediatR_Screenshot [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [1 ms]
- - TestTrackingDiagrams.Tests.LightBDD.TUnit.dll (net10.0)
-[xUnit.net 00:00:24.10]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature13_Failure_Diagnostics_GIF [SKIP]
-[xUnit.net 00:00:24.11]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature09_CI_Summary_Screenshot [SKIP]
-[xUnit.net 00:00:24.11]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [SKIP]
-[xUnit.net 00:00:24.12]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [SKIP]
-[xUnit.net 00:00:24.12]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [SKIP]
-[xUnit.net 00:00:24.12]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [SKIP]
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.EventHubs\bin\Debug\net10.0\TestTrackingDiagrams.Tests.EventHubs.dll (.NETCoreApp,Version=v10.0)
-A total of 1 test files matched the specified pattern.
-[xUnit.net 00:00:24.12]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [SKIP]
-[xUnit.net 00:00:24.12]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [SKIP]
-
+  Skipped 
+TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature13_Failure_Diagnostics_GIF [1 ms]
   Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature09_CI_Summary_Screenshot [1 ms]
-Passed!  - Failed:     0, Passed:   165, Skipped:     0, Total:   165, Duration: 2 s  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [1 ms]
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.StorageQueues\bin\Debug\net10.0\TestTrackingDiagrams.Tests.StorageQueues.dll (.NETCoreApp,Version=v10.0)
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [1 ms]
- - TestTrackingDiagrams.Tests.SearchEngine.dll (net10.0)
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [1 ms]
-  Skipped Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Kafka\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Kafka.dll (.NETCoreApp,Version=v10.0)
-TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [1 ms]
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.MassTransit\bin\Debug\net10.0\TestTrackingDiagrams.Tests.MassTransit.dll (.NETCoreApp,Version=v10.0)
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [1 ms]
-[xUnit.net 00:00:24.14]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [SKIP]
-[xUnit.net 00:00:24.14]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [SKIP]
 A total of 1 test files matched the specified pattern.
-[xUnit.net 00:00:24.14]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [SKIP]
-A total of 1 test files matched the specified pattern.
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [1 ms]
-  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [1 ms]
-A total of 1 test files matched the specified pattern.
-A total of 1 test files matched the specified pattern.
-Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Elasticsearch\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Elasticsearch.dll (.NETCoreApp,Version=v10.0)
+Passed!  - Failed:     0, Passed:   114, Skipped:     0, Total:   114, Duration: 317 msA total of 1 test files matched the specified pattern.
+ - TestTrackingDiagrams.Tests.S3.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    90, Skipped:     0, Total:    90, Duration: 598 ms
-Passed!  - Failed:     0, Passed:   147, Skipped:     0, Total:   147, Duration: 1 s - TestTrackingDiagrams.Tests.Redis.dll (net10.0)
- - TestTrackingDiagrams.Tests.DynamoDB.dll (net10.0)
+Passed!  - Failed:     0, Passed:   153, Skipped:     0, Total:   153, Duration: 718 ms
+Passed!  - Failed:     0, Passed:    67, Skipped:     0, Total:    67, Duration: 979 msA total of 1 test files matched the specified pattern.
 A total of 1 test files matched the specified pattern.
 
-Passed!  - Failed:     0, Passed:    48, Skipped:     0, Total:    48, Duration: 6 s - TestTrackingDiagrams.Tests.Grpc.dll (net10.0)
+Passed!  - Failed:     0, Passed:    22, Skipped:     0, Total:    22, Duration: 582 ms - TestTrackingDiagrams.Tests.LightBDD.xUnit3.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    71, Skipped:     0, Total:    71, Duration: 8 s - TestTrackingDiagrams.Tests.BlobStorage.dll (net10.0)
+Passed!  - Failed:     0, Passed:    59, Skipped:     0, Total:    59, Duration: 482 ms - TestTrackingDiagrams.Tests.SQS.dll (net10.0)
+ - TestTrackingDiagrams.Tests.EfCore.Relational.dll (net10.0)
+ - TestTrackingDiagrams.Tests.BigQuery.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:     9, Skipped:     0, Total:     9, Duration: 5 s - TestTrackingDiagrams.Tests.TUnit.dll (net10.0)
-[xUnit.net 00:01:18.88]     TestTrackingDiagrams.Tests.PlantUml.NodeJsPlantUmlRendererTests.Renders_class_diagram_svg [SKIP]
-  Skipped TestTrackingDiagrams.Tests.PlantUml.NodeJsPlantUmlRendererTests.Renders_class_diagram_svg [1 ms]
+Passed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 422 ms - TestTrackingDiagrams.Tests.MongoDB.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    59, Skipped:     0, Total:    59, Duration: 4 s - TestTrackingDiagrams.Tests.SQS.dll (net10.0)
+Passed!  - Failed:     0, Passed:    48, Skipped:     0, Total:    48, Duration: 1 s - TestTrackingDiagrams.Tests.Grpc.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    35, Skipped:     0, Total:    35, Duration: 1 s - TestTrackingDiagrams.Tests.PubSub.dll (net10.0)
+Passed!  - Failed:     0, Passed:   106, Skipped:     0, Total:   106, Duration: 934 ms - TestTrackingDiagrams.Tests.ServiceBus.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 1 s - TestTrackingDiagrams.Tests.MongoDB.dll (net10.0)
+Passed!  - Failed:     0, Passed:    90, Skipped:     0, Total:    90, Duration: 226 ms - TestTrackingDiagrams.Tests.DynamoDB.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    54, Skipped:     0, Total:    54, Duration: 257 ms - TestTrackingDiagrams.Tests.Elasticsearch.dll (net10.0)
+Passed!  - Failed:     0, Passed:    35, Skipped:     0, Total:    35, Duration: 162 ms - TestTrackingDiagrams.Tests.PubSub.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:  1431, Skipped:     1, Total:  1432, Duration: 1 m 1 s - TestTrackingDiagrams.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    44, Skipped:     0, Total:    44, Duration: 200 ms - TestTrackingDiagrams.Tests.CloudStorage.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 1 m 21 s - TestTrackingDiagrams.Tests.PlantUml.Ikvm.dll (net10.0)
+Passed!  - Failed:     0, Passed:    57, Skipped:     0, Total:    57, Duration: 212 ms - TestTrackingDiagrams.Tests.SNS.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    34, Skipped:     0, Total:    34, Duration: 699 ms - TestTrackingDiagrams.Tests.Kafka.dll (net10.0)
+Passed!  - Failed:     0, Passed:    39, Skipped:     0, Total:    39, Duration: 181 ms - TestTrackingDiagrams.Tests.EventHubs.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    46, Skipped:     0, Total:    46, Duration: 229 ms - TestTrackingDiagrams.Tests.StorageQueues.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    41, Skipped:     0, Total:    41, Duration: 190 ms - TestTrackingDiagrams.Tests.MassTransit.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    34, Skipped:     0, Total:    34, Duration: 111 ms - TestTrackingDiagrams.Tests.Kafka.dll (net10.0)
 
 
-Passed!  - Failed:     0, Passed:    44, Skipped:     0, Total:    44, Duration: 362 ms - TestTrackingDiagrams.Tests.CloudStorage.dll (net10.0)
-Passed!  - Failed:     0, Passed:    57, Skipped:     0, Total:    57, Duration: 795 ms - TestTrackingDiagrams.Tests.SNS.dll (net10.0)
+Passed!  - Failed:     0, Passed:    98, Skipped:     0, Total:    98, Duration: 292 ms - TestTrackingDiagrams.Tests.Dapper.dll (net10.0)
+Passed!  - Failed:     0, Passed:    54, Skipped:     0, Total:    54, Duration: 124 ms - TestTrackingDiagrams.Tests.Elasticsearch.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    39, Skipped:     0, Total:    39, Duration: 602 ms - TestTrackingDiagrams.Tests.EventHubs.dll (net10.0)
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 9 s - TestTrackingDiagrams.Tests.PlantUml.Ikvm.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    41, Skipped:     0, Total:    41, Duration: 691 ms - TestTrackingDiagrams.Tests.MassTransit.dll (net10.0)
+Passed!  - Failed:     0, Passed:  1432, Skipped:     0, Total:  1432, Duration: 8 s - TestTrackingDiagrams.Tests.dll (net10.0)
 
-Passed!  - Failed:     0, Passed:    46, Skipped:     0, Total:    46, Duration: 623 ms - TestTrackingDiagrams.Tests.StorageQueues.dll (net10.0)
-[xUnit.net 00:03:00.70]     TestTrackingDiagrams.Tests.Selenium.ScenarioInteractionTests.Happy_path_scenarios_have_class [FAIL]
-  Failed TestTrackingDiagrams.Tests.Selenium.ScenarioInteractionTests.Happy_path_scenarios_have_class [2 m 36 s]
-  Error Message:
-   OpenQA.Selenium.WebDriverTimeoutException : Timed out after 5 seconds
----- OpenQA.Selenium.NoSuchElementException : no such element: Unable to locate element: {"method":"css selector","selector":"details.feature"}
-  (Session info: chrome=147.0.7727.102); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
-  Stack Trace:
-     at OpenQA.Selenium.Support.UI.DefaultWait`1.ThrowTimeoutException(String exceptionMessage, Exception lastException)
-   at OpenQA.Selenium.Support.UI.DefaultWait`1.Until[TResult](Func`2 condition, CancellationToken token)
-   at OpenQA.Selenium.Support.UI.DefaultWait`1.Until[TResult](Func`2 condition)
-   at TestTrackingDiagrams.Tests.Selenium.ScenarioInteractionTests.WaitFor(By by, Int32 timeoutSeconds) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ScenarioInteractionTests.cs:line 37
-   at TestTrackingDiagrams.Tests.Selenium.ScenarioInteractionTests.Happy_path_scenarios_have_class() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ScenarioInteractionTests.cs:line 234
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
------ Inner Stack Trace -----
-   at OpenQA.Selenium.WebDriver.UnpackAndThrowOnError(Response errorResponse, String commandToExecute)
-   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
-   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
-   at OpenQA.Selenium.WebDriver.FindElement(String mechanism, String value)
-   at OpenQA.Selenium.By.<.ctor>b__6_0(ISearchContext context)
-   at OpenQA.Selenium.By.FindElement(ISearchContext context)
-   at OpenQA.Selenium.WebDriver.FindElement(By by)
-   at TestTrackingDiagrams.Tests.Selenium.ScenarioInteractionTests.<>c__DisplayClass6_0.<WaitFor>b__0(IWebDriver d) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ScenarioInteractionTests.cs:line 37
-   at OpenQA.Selenium.Support.UI.DefaultWait`1.Until[TResult](Func`2 condition, CancellationToken token)
-[xUnit.net 00:03:44.43]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_flame_has_boundary_markers [FAIL]
-  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_flame_has_boundary_markers [3 m 20 s]
-  Error Message:
-   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:54330/session/d595b48bf2fe838bc6d297abebd1fe57/url timed out after 60 seconds.
----- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
--------- System.TimeoutException : The operation was canceled.
------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
----------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
--------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
-  Stack Trace:
-     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
-   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
-   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
-   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
-   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
---- End of stack trace from previous location ---
-   at OpenQA.Selenium.Navigator.GoToUrl(String url)
-   at TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_flame_has_boundary_markers() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\WholeTestFlowTests.cs:line 144
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
------ Inner Stack Trace -----
-   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
-   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
-   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
------ Inner Stack Trace -----
-
------ Inner Stack Trace -----
-   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
-   at System.Net.Http.DiagnosticsHandler.SendAsyncCore(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
------ Inner Stack Trace -----
-   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
-   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
-   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
------ Inner Stack Trace -----
-
+Passed!  - Failed:     0, Passed:   179, Skipped:    28, Total:   207, Duration: 2 m 37 s - TestTrackingDiagrams.Tests.Selenium.dll (net10.0)
