@@ -1,0 +1,153 @@
+using TestTrackingDiagrams.Extensions.Kafka;
+
+namespace TestTrackingDiagrams.Tests.Kafka;
+
+public class KafkaOperationClassifierTests
+{
+    // ──────────────────────────────────────────────────────────
+    //  Diagram labels — Detailed
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Produce_IncludesTopic()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Produce, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Produce → orders-topic", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_ProduceAsync_IncludesTopic()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Produce → orders-topic", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Consume_IncludesTopic()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Consume, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Consume ← orders-topic", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Subscribe_IncludesTopic()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Subscribe, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Subscribe orders-topic", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Flush_ReturnsOperationName()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Flush);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Flush", label);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Diagram labels — Summarised
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetDiagramLabel_Summarised_Produce()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Produce, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal("Produce", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Summarised_Consume()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Consume, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal("Consume", label);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Diagram labels — Raw
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetDiagramLabel_Raw_IncludesPartitionAndOffset()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic", 2, 42);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Raw);
+
+        Assert.Equal("ProduceAsync orders-topic[2]@42", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Raw_OmitsPartitionWhenNull()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic");
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Raw);
+
+        Assert.Equal("ProduceAsync orders-topic", label);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  URI building
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void BuildUri_Raw_IncludesPartition()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic", 2, 42);
+
+        var uri = KafkaOperationClassifier.BuildUri(op, KafkaTrackingVerbosity.Raw);
+
+        Assert.Contains("orders-topic", uri.ToString());
+        Assert.Contains("2", uri.ToString());
+    }
+
+    [Fact]
+    public void BuildUri_Detailed_UsesTopicOnly()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic", 2, 42);
+
+        var uri = KafkaOperationClassifier.BuildUri(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("kafka:///orders-topic", uri.ToString());
+    }
+
+    [Fact]
+    public void BuildUri_Summarised_ReturnsBase()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, "orders-topic");
+
+        var uri = KafkaOperationClassifier.BuildUri(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal("kafka:///", uri.ToString());
+    }
+
+    [Fact]
+    public void BuildUri_Detailed_NoTopic_ReturnsBase()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Flush);
+
+        var uri = KafkaOperationClassifier.BuildUri(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("kafka:///", uri.ToString());
+    }
+}

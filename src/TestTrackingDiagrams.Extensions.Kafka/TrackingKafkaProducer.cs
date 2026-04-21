@@ -1,0 +1,112 @@
+using Confluent.Kafka;
+
+namespace TestTrackingDiagrams.Extensions.Kafka;
+
+public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
+{
+    private readonly IProducer<TKey, TValue> _inner;
+    private readonly KafkaTracker _tracker;
+    private readonly KafkaTrackingOptions _options;
+
+    public TrackingKafkaProducer(IProducer<TKey, TValue> inner, KafkaTracker tracker, KafkaTrackingOptions options)
+    {
+        _inner = inner;
+        _tracker = tracker;
+        _options = options;
+    }
+
+    public async Task<DeliveryResult<TKey, TValue>> ProduceAsync(
+        string topic,
+        Message<TKey, TValue> message,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _inner.ProduceAsync(topic, message, cancellationToken);
+
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, topic,
+            result.Partition.Value, result.Offset.Value);
+        _tracker.LogProduce(op, BuildContent(message));
+
+        return result;
+    }
+
+    public async Task<DeliveryResult<TKey, TValue>> ProduceAsync(
+        TopicPartition topicPartition,
+        Message<TKey, TValue> message,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _inner.ProduceAsync(topicPartition, message, cancellationToken);
+
+        var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, topicPartition.Topic,
+            result.Partition.Value, result.Offset.Value);
+        _tracker.LogProduce(op, BuildContent(message));
+
+        return result;
+    }
+
+    public void Produce(
+        string topic,
+        Message<TKey, TValue> message,
+        Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
+    {
+        var content = BuildContent(message);
+
+        Action<DeliveryReport<TKey, TValue>>? wrappedHandler = report =>
+        {
+            var op = new KafkaOperationInfo(KafkaOperation.Produce, topic,
+                report.Partition.Value, report.Offset.Value);
+            _tracker.LogProduce(op, content);
+            deliveryHandler?.Invoke(report);
+        };
+
+        _inner.Produce(topic, message, wrappedHandler);
+    }
+
+    public void Produce(
+        TopicPartition topicPartition,
+        Message<TKey, TValue> message,
+        Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
+    {
+        var content = BuildContent(message);
+
+        Action<DeliveryReport<TKey, TValue>>? wrappedHandler = report =>
+        {
+            var op = new KafkaOperationInfo(KafkaOperation.Produce, topicPartition.Topic,
+                report.Partition.Value, report.Offset.Value);
+            _tracker.LogProduce(op, content);
+            deliveryHandler?.Invoke(report);
+        };
+
+        _inner.Produce(topicPartition, message, wrappedHandler);
+    }
+
+    private string? BuildContent(Message<TKey, TValue> message)
+    {
+        if (_options.Verbosity == KafkaTrackingVerbosity.Summarised) return null;
+
+        var parts = new List<string>();
+        if (_options.LogMessageKey && message.Key is not null)
+            parts.Add($"Key: {message.Key}");
+        if (_options.LogMessageValue && message.Value is not null)
+            parts.Add($"Value: {message.Value}");
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
+    // ─── IProducer<TKey, TValue> delegation ───────────────────
+
+    public Handle Handle => _inner.Handle;
+    public string Name => _inner.Name;
+    public int AddBrokers(string brokers) => _inner.AddBrokers(brokers);
+    public void SetSaslCredentials(string username, string password) => _inner.SetSaslCredentials(username, password);
+    public int Poll(TimeSpan timeout) => _inner.Poll(timeout);
+    public int Flush(TimeSpan timeout) => _inner.Flush(timeout);
+    public void Flush(CancellationToken cancellationToken = default) => _inner.Flush(cancellationToken);
+    public void InitTransactions(TimeSpan timeout) => _inner.InitTransactions(timeout);
+    public void BeginTransaction() => _inner.BeginTransaction();
+    public void CommitTransaction(TimeSpan timeout) => _inner.CommitTransaction(timeout);
+    public void CommitTransaction() => _inner.CommitTransaction();
+    public void AbortTransaction(TimeSpan timeout) => _inner.AbortTransaction(timeout);
+    public void AbortTransaction() => _inner.AbortTransaction();
+    public void SendOffsetsToTransaction(IEnumerable<TopicPartitionOffset> offsets, IConsumerGroupMetadata groupMetadata, TimeSpan timeout)
+        => _inner.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
+    public void Dispose() => _inner.Dispose();
+}
