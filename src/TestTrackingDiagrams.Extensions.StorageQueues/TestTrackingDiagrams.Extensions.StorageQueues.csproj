@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Azure Storage Queues Extension</Title>
+    <Description>Azure Storage Queue tracking for test diagrams. Intercepts and classifies queue operations (Send, Receive, Peek, Delete, Update, Clear) with configurable verbosity.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Azure.Storage.Queues" Version="12.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>
