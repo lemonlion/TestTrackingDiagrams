@@ -6,7 +6,7 @@ namespace TestTrackingDiagrams.PlantUml;
 
 public static class NodeJsPlantUmlRenderer
 {
-    private const string CdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_16384@v1.2026.3beta6-patched";
+    private const string CdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched";
     private const string VizFileName = "viz-global.js";
     private const string PlantUmlFileName = "plantuml.js";
     private const string RenderScriptName = "plantuml-render.js";

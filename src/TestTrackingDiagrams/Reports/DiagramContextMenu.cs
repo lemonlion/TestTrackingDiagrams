@@ -305,7 +305,7 @@ public static class DiagramContextMenu
     public static string GetInternalFlowConfigScript(InternalFlowHasDataBehavior hasDataBehavior) =>
         $"<script>window.__iflowConfig = {{ hasDataBehavior: '{(hasDataBehavior == InternalFlowHasDataBehavior.ShowLinkOnHover ? "showLinkOnHover" : "showLink")}' }};</script>";
 
-    private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_16384@v1.2026.3beta6-patched";
+    private const string PlantUmlJsCdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched";
 
     public static string GetPlantUmlBrowserRenderScript() => $$"""
         <script defer src="{{PlantUmlJsCdnBase}}/viz-global.js"></script>
