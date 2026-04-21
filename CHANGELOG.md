@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-21
+
+### Release
+- **Official 2.0.0 release** — all beta features stabilized.
+
 ## [2.0.175-beta] - 2026-04-21
 
 ### Fixed
