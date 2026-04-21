@@ -22,4 +22,4 @@
 
 ## Documentation
 
-After any changes are made that might effect the public API or functionality, documentation must be updated to reflect those changes.  The documentation should be clear and comprehensive, covering all new features, changes to existing features, and any deprecations or removals.  This includes updating README file (if relevant), but mainly the wiki which can be found in a sister foloder ../TestTrackingDiagrams.wiki.
+After any changes are made that might effect the public API or functionality, documentation must be updated to reflect those changes.  The documentation should be clear and comprehensive, covering all new features, changes to existing features, and any deprecations or removals.  This includes updating README file (if relevant), but mainly the wiki which can be found in a sister folder to the main repository - ../TestTrackingDiagrams.wiki.
