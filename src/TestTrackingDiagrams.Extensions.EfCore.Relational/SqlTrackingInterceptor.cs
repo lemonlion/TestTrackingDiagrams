@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using TestTrackingDiagrams.Tracking;
@@ -7,6 +8,10 @@ namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 public class SqlTrackingInterceptor : DbCommandInterceptor
 {
     private readonly SqlTrackingInterceptorOptions _options;
+
+    // Maps each DbCommand instance to its correlated IDs so that
+    // LogCommandExecuted can pair with the LogCommandExecuting entry.
+    private readonly ConcurrentDictionary<DbCommand, (Guid TraceId, Guid RequestResponseId)> _pendingIds = new();
 
     public SqlTrackingInterceptor(SqlTrackingInterceptorOptions options)
     {
@@ -28,6 +33,9 @@ public class SqlTrackingInterceptor : DbCommandInterceptor
 
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
+
+        // Store the IDs so LogCommandExecuted can retrieve them
+        _pendingIds[command] = (traceId, requestResponseId);
 
         var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, _options.Verbosity);
 
@@ -65,8 +73,9 @@ public class SqlTrackingInterceptor : DbCommandInterceptor
         if (testInfo is null)
             return;
 
-        var requestResponseId = Guid.NewGuid();
-        var traceId = Guid.NewGuid();
+        // Retrieve the IDs from the executing phase, or create new ones as fallback
+        if (!_pendingIds.TryRemove(command, out var ids))
+            ids = (Guid.NewGuid(), Guid.NewGuid());
 
         var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, _options.Verbosity);
 
@@ -89,8 +98,8 @@ public class SqlTrackingInterceptor : DbCommandInterceptor
             _options.ServiceName,
             _options.CallingServiceName,
             RequestResponseType.Response,
-            traceId,
-            requestResponseId,
+            ids.TraceId,
+            ids.RequestResponseId,
             false,
             (OneOf<System.Net.HttpStatusCode, string>)"OK"
         ));

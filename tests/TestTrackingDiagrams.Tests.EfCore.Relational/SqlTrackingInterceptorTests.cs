@@ -338,6 +338,63 @@ public class SqlTrackingInterceptorTests : IDisposable
         Assert.Contains("TestDatabase", log.Uri.ToString());
     }
 
+    // ─── Request/Response pairing ──────────────────────────────
+
+    [Fact]
+    public void Request_and_response_share_same_traceId()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 5);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(logs[0].TraceId, logs[1].TraceId);
+    }
+
+    [Fact]
+    public void Request_and_response_share_same_requestResponseId()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 5);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
+    }
+
+    [Fact]
+    public void Concurrent_commands_get_distinct_paired_ids()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        var command1 = MakeSelectCommand();
+        var command2 = MakeInsertCommand();
+
+        interceptor.LogCommandExecuting(command1);
+        interceptor.LogCommandExecuting(command2);
+        interceptor.LogCommandExecuted(command2, rowsAffected: 1);
+        interceptor.LogCommandExecuted(command1, rowsAffected: 10);
+
+        var logs = GetLogsFromThisTest();
+        var req1 = logs.First(l => l.Type == RequestResponseType.Request && l.Content?.Contains("SELECT") == true);
+        var res1 = logs.First(l => l.Type == RequestResponseType.Response && l.Content?.Contains("10") == true);
+        var req2 = logs.First(l => l.Type == RequestResponseType.Request && l.Content?.Contains("INSERT") == true);
+        var res2 = logs.First(l => l.Type == RequestResponseType.Response && l.Content?.Contains("1 rows") == true);
+
+        // Each pair shares IDs
+        Assert.Equal(req1.TraceId, res1.TraceId);
+        Assert.Equal(req1.RequestResponseId, res1.RequestResponseId);
+        Assert.Equal(req2.TraceId, res2.TraceId);
+        Assert.Equal(req2.RequestResponseId, res2.RequestResponseId);
+
+        // Different pairs have different IDs
+        Assert.NotEqual(req1.TraceId, req2.TraceId);
+        Assert.NotEqual(req1.RequestResponseId, req2.RequestResponseId);
+    }
+
     [Fact]
     public void Request_CapturesDataSourceFromConnection()
     {
