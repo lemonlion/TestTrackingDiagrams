@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Google Cloud Pub/Sub Extension</Title>
+    <Description>Google Cloud Pub/Sub tracking for test diagrams. Wraps PublisherClient and SubscriberClient to capture publish/receive operations with topic/subscription names and configurable verbosity.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>
