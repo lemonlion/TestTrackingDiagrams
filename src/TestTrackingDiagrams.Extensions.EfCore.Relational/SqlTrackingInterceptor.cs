@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
@@ -8,15 +10,17 @@ namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 {
     private readonly SqlTrackingInterceptorOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
     // Maps each DbCommand instance to its correlated IDs so that
     // LogCommandExecuted can pair with the LogCommandExecuting entry.
     private readonly ConcurrentDictionary<DbCommand, (Guid TraceId, Guid RequestResponseId)> _pendingIds = new();
 
-    public SqlTrackingInterceptor(SqlTrackingInterceptorOptions options)
+    public SqlTrackingInterceptor(SqlTrackingInterceptorOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -35,7 +39,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         if (_options.Verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
             return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = GetTestInfo();
         if (testInfo is null)
             return;
 
@@ -77,7 +81,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         if (_options.Verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
             return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = GetTestInfo();
         if (testInfo is null)
             return;
 
@@ -185,6 +189,40 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
     {
         LogCommandExecuted(command);
         return base.ScalarExecutedAsync(command, eventData, result, cancellationToken);
+    }
+
+    // ─── Test identity resolution ────────────────────────────────
+
+    private (string Name, string Id)? GetTestInfo()
+    {
+        // 1. Try HttpContext request headers first (works inside server-side HTTP pipeline)
+        try
+        {
+            var httpContext = _httpContextAccessor?.HttpContext;
+            if (httpContext is not null &&
+                httpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CurrentTestNameHeader, out var testName) &&
+                httpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CurrentTestIdHeader, out var testId) &&
+                testName.Count > 0 && testId.Count > 0)
+            {
+                return (testName[0]!, testId[0]!);
+            }
+        }
+        catch
+        {
+            // HttpContext access can fail in edge cases — fall through to delegate
+        }
+
+        // 2. Fall back to delegate (works on the test thread's async context)
+        try
+        {
+            return _options.CurrentTestInfoFetcher?.Invoke();
+        }
+        catch
+        {
+            // Delegate may throw (e.g. ScenarioExecutionContext outside LightBDD context).
+            // A diagnostic/tracking fetcher should never crash the EF Core pipeline.
+            return null;
+        }
     }
 
     // ─── URI construction ──────────────────────────────────────

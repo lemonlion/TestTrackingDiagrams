@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,5 +83,32 @@ public class ServiceCollectionExtensionsTests
         var builder = new DbContextOptionsBuilder();
 
         Assert.Throws<InvalidOperationException>(() => builder.WithSqlTestTracking(provider));
+    }
+
+    [Fact]
+    public void AddSqlTestTracking_AutoResolvesHttpContextAccessor_WhenRegistered()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        var options = new SqlTrackingInterceptorOptions { ServiceName = "AutoResolveDB" };
+
+        services.AddSqlTestTracking(options);
+
+        var provider = services.BuildServiceProvider();
+        var interceptor = provider.GetService<SqlTrackingInterceptor>();
+        Assert.NotNull(interceptor);
+    }
+
+    [Fact]
+    public void AddSqlTestTracking_WorksWithout_HttpContextAccessor()
+    {
+        var services = new ServiceCollection();
+        var options = new SqlTrackingInterceptorOptions { ServiceName = "NoAccessorDB" };
+
+        services.AddSqlTestTracking(options);
+
+        var provider = services.BuildServiceProvider();
+        var interceptor = provider.GetService<SqlTrackingInterceptor>();
+        Assert.NotNull(interceptor);
     }
 }
