@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Reports;
@@ -102,5 +103,51 @@ public class FailureClusterReportTests
         var content = GenerateReport(features, "ClusterAcrossFeatures.html");
         Assert.Contains("failure-clusters", content);
         Assert.Contains("2 scenarios", content);
+    }
+
+    [Fact]
+    public void Report_cluster_link_href_matches_scenario_element_id()
+    {
+        var features = MakeFeatures(
+            ("t1", "Caller Uses Authorise Client Endpoint", ExecutionResult.Failed, "Connection refused"),
+            ("t2", "Caller Submits Payment Request", ExecutionResult.Failed, "Connection refused"));
+        var content = GenerateReport(features, "ClusterLinkHref.html");
+
+        // Extract all cluster link hrefs
+        var hrefMatches = Regex.Matches(content, @"class=""failure-cluster-scenario-link""\s+href=""#([^""]+)""");
+        Assert.True(hrefMatches.Count >= 2, $"Expected at least 2 cluster links, found {hrefMatches.Count}");
+
+        // Extract all scenario element ids
+        var idMatches = Regex.Matches(content, @"<details\s+class=""scenario[^""]*""[^>]*\bid=""([^""]+)""");
+        var elementIds = idMatches.Select(m => m.Groups[1].Value).ToHashSet();
+
+        // Every cluster link href must target an existing element id
+        foreach (Match href in hrefMatches)
+        {
+            var targetId = href.Groups[1].Value;
+            Assert.True(elementIds.Contains(targetId),
+                $"Cluster link targets '#{targetId}' but no scenario element has id='{targetId}'. Available ids: {string.Join(", ", elementIds)}");
+        }
+    }
+
+    [Fact]
+    public void Report_cluster_link_onclick_uses_correct_anchor_id()
+    {
+        var features = MakeFeatures(
+            ("t1", "Caller Uses Authorise Client Endpoint", ExecutionResult.Failed, "Connection refused"),
+            ("t2", "Caller Submits Payment Request", ExecutionResult.Failed, "Connection refused"));
+        var content = GenerateReport(features, "ClusterLinkOnclick.html");
+
+        // Extract the getElementById argument from the onclick handler
+        var onclickMatch = Regex.Match(content, @"onclick=""var el=document\.getElementById\('([^']+)'\)");
+        Assert.True(onclickMatch.Success, "Could not find onclick getElementById in cluster link");
+        var onclickId = onclickMatch.Groups[1].Value;
+
+        // Extract all scenario element ids
+        var idMatches = Regex.Matches(content, @"<details\s+class=""scenario[^""]*""[^>]*\bid=""([^""]+)""");
+        var elementIds = idMatches.Select(m => m.Groups[1].Value).ToHashSet();
+
+        Assert.True(elementIds.Contains(onclickId),
+            $"onclick targets '{onclickId}' but no scenario element has that id. Available ids: {string.Join(", ", elementIds)}");
     }
 }

@@ -1468,7 +1468,7 @@ public static class ReportGenerator
             {
                 var anchorLinks = string.Join("", cluster.Scenarios.Select(s =>
                 {
-                    var anchorId = "scenario-" + s.Id.Replace(" ", "-");
+                    var anchorId = GenerateScenarioAnchorId(s.DisplayName);
                     var featureName = scenarioFeatureLookup.GetValueOrDefault(s.Id, "");
                     var prefix = featureName.Length > 0 ? $"<span style=\"color:rgb(100,100,100);font-size:0.85em\">{System.Net.WebUtility.HtmlEncode(featureName)} &rsaquo;</span> " : "";
                     return $"<li>{prefix}<a class=\"failure-cluster-scenario-link\" href=\"#{anchorId}\" onclick=\"var el=document.getElementById('{anchorId}');if(el){{var f=el.closest('details.feature');if(f)f.setAttribute('open','');el.setAttribute('open','');}}\">{System.Net.WebUtility.HtmlEncode(s.DisplayName)}</a></li>";
