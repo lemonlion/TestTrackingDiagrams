@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Reports;
 
+[Collection("TrackingComponentRegistry")]
 public class ReportDiagnosticsTests : IDisposable
 {
     public ReportDiagnosticsTests()

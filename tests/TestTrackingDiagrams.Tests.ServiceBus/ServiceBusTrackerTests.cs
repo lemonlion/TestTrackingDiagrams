@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.ServiceBus;
 
+[Collection("TrackingComponentRegistry")]
 public class ServiceBusTrackerTests : IDisposable
 {
     private readonly string _testId = Guid.NewGuid().ToString();

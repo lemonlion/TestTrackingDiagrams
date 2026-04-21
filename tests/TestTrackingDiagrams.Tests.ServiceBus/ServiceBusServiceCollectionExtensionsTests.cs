@@ -5,6 +5,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.ServiceBus;
 
+[Collection("TrackingComponentRegistry")]
 public class ServiceBusServiceCollectionExtensionsTests : IDisposable
 {
     public ServiceBusServiceCollectionExtensionsTests()

@@ -150,7 +150,7 @@ public static class DiagnosticReportGenerator
                 sb.AppendLine($"<h3 class=\"warn\">⚠ {unused.Count} Tracking Component(s) Never Invoked</h3>");
                 sb.AppendLine("<p>These components were registered but never processed any traffic. This usually means the component was added to the wrong pipeline or options.</p>");
                 sb.AppendLine("<p><b>Common causes:</b></p><ul>");
-                sb.AppendLine("<li><b>EF Core:</b> The interceptor was added to <code>DbContextOptions&lt;TDerived&gt;</code> but the DbContext constructor accepts <code>DbContextOptions&lt;TBase&gt;</code> (e.g. Duende IdentityServer's ConfigurationDbContext). Fix: use <code>PostConfigure</code> on the framework's store options.</li>");
+                sb.AppendLine("<li><b>EF Core:</b> The interceptor was added to <code>DbContextOptions&lt;TDerived&gt;</code> but the DbContext constructor accepts <code>DbContextOptions&lt;TBase&gt;</code> (e.g. Duende IdentityServer's ConfigurationDbContext). Fix: add <code>WithSqlTestTracking(sp)</code> inside the <code>ResolveDbContextOptions</code> implementation that runs at resolution time. <b>Note:</b> <code>PostConfigure</code> does not work with Duende IdentityServer because it registers store options as a direct singleton, not via <code>IOptions&lt;T&gt;</code>.</li>");
                 sb.AppendLine("<li><b>HTTP:</b> The handler was added to an HttpClient that isn't being used by the target service.</li>");
                 sb.AppendLine("<li><b>Redis:</b> An untracked IDatabase instance is being used instead of the tracked one.</li>");
                 sb.AppendLine("</ul>");

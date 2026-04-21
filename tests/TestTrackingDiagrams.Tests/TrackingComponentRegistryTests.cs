@@ -2,6 +2,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests;
 
+[Collection("TrackingComponentRegistry")]
 public class TrackingComponentRegistryTests : IDisposable
 {
     public TrackingComponentRegistryTests()

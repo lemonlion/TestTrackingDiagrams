@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.ServiceBus;
 
+[Collection("TrackingComponentRegistry")]
 public class TrackingServiceBusClientTests : IDisposable
 {
     private const string FakeConnectionString =
