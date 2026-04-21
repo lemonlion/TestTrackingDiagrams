@@ -29,7 +29,10 @@ public static class ReportGenerator
         {
             var scenarioCount = features.SelectMany(f => f.Scenarios).Count();
             if (scenarioCount < options.ExpectedTestCount())
-                return;
+            {
+                options.GenerateSpecificationsReport = false;
+                options.GenerateSpecificationsData = false;
+            }
         }
 
         if (options.InternalFlowTracking && options.DiagramFormat == DiagramFormat.PlantUml)

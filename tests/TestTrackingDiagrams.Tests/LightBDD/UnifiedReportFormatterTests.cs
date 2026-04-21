@@ -43,7 +43,7 @@ public class StandardPipelineFormatterTests : IDisposable
     }
 
     [Fact]
-    public void Format_skips_when_scenario_count_below_expected()
+    public void Format_skips_specifications_when_scenario_count_below_expected()
     {
         var formatter = new StandardPipelineFormatter
         {
@@ -57,13 +57,13 @@ public class StandardPipelineFormatterTests : IDisposable
         };
 
         var feature = new StubFeatureResult("F1")
-            .WithScenario(new StubScenarioResult("s1", "Scenario 1"))
-            .WithScenario(new StubScenarioResult("s2", "Scenario 2"));
+            .WithScenario(new StubScenarioResult("s1", "Scenario 1", duration: TimeSpan.FromMilliseconds(100)))
+            .WithScenario(new StubScenarioResult("s2", "Scenario 2", duration: TimeSpan.FromMilliseconds(100)));
 
         formatter.Format(Stream.Null, feature);
 
-        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
         Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
     }
 
     [Fact]

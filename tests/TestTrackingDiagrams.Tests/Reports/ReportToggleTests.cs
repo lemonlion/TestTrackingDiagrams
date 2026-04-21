@@ -264,7 +264,7 @@ public class ReportToggleTests : IDisposable
     // --- ExpectedTestCount (partial-run guard) ---
 
     [Fact]
-    public void Reports_skipped_when_scenario_count_below_expected()
+    public void Specifications_skipped_when_scenario_count_below_expected()
     {
         var options = MakeOptions(o => o.ExpectedTestCount = () => 5);
 
@@ -272,9 +272,19 @@ public class ReportToggleTests : IDisposable
             SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
 
         Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
-        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
         Assert.False(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.yml")));
-        Assert.False(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.json")));
+    }
+
+    [Fact]
+    public void TestRunReport_still_generated_when_scenario_count_below_expected()
+    {
+        var options = MakeOptions(o => o.ExpectedTestCount = () => 5);
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
+        Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.json")));
     }
 
     [Fact]
