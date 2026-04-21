@@ -2,15 +2,21 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.BlobStorage;
 
-public class BlobTrackingMessageHandler : DelegatingHandler
+public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly BlobTrackingMessageHandlerOptions _options;
+    private int _invocationCount;
 
     public BlobTrackingMessageHandler(BlobTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
     {
         _options = options;
         InnerHandler = innerHandler ?? new HttpClientHandler();
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"BlobTrackingMessageHandler ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -19,6 +25,8 @@ public class BlobTrackingMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var blobOp = BlobOperationClassifier.Classify(request);
 
         // Skip internal/metadata operations when in Summarised mode

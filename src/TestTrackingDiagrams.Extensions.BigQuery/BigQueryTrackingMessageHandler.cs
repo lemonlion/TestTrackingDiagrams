@@ -2,15 +2,21 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
-public class BigQueryTrackingMessageHandler : DelegatingHandler
+public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly BigQueryTrackingMessageHandlerOptions _options;
+    private int _invocationCount;
 
     public BigQueryTrackingMessageHandler(BigQueryTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
     {
         _options = options;
         InnerHandler = innerHandler ?? new HttpClientHandler();
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"BigQueryTrackingMessageHandler ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -19,6 +25,8 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var bqOp = BigQueryOperationClassifier.Classify(request);
 
         // Skip unrecognised operations when in Summarised mode

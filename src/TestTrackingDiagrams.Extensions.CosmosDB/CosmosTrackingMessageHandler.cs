@@ -2,15 +2,21 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
-public class CosmosTrackingMessageHandler : DelegatingHandler
+public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly CosmosTrackingMessageHandlerOptions _options;
+    private int _invocationCount;
 
     public CosmosTrackingMessageHandler(CosmosTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
     {
         _options = options;
         InnerHandler = innerHandler ?? new HttpClientHandler();
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"CosmosTrackingMessageHandler ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -19,6 +25,8 @@ public class CosmosTrackingMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var cosmosOp = CosmosOperationClassifier.Classify(request);
 
         // Skip internal/metadata operations when in Summarised mode

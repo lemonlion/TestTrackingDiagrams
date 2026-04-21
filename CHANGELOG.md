@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-04-21
+
+### Added
+- **`ITrackingComponent` interface**: All tracking handlers and interceptors now implement `ITrackingComponent`, providing `ComponentName`, `WasInvoked`, and `InvocationCount` properties.
+- **`TrackingComponentRegistry`**: Central static registry that auto-registers all tracking components on construction.
+  - `ValidateAllComponentsWereInvoked()` — Throws a descriptive `InvalidOperationException` if any registered component was never invoked, catching silent misconfiguration (e.g. EF Core `DbContextOptions<T>` type mismatch).
+  - `GetUnusedComponents()` / `GetRegisteredComponents()` — Programmatic inspection of component state.
+  - `Clear()` — Reset alongside `RequestResponseLogger.Clear()` in test setup.
+- **Invocation tracking on all extensions**: `SqlTrackingInterceptor`, `CosmosTrackingMessageHandler`, `BlobTrackingMessageHandler`, `BigQueryTrackingMessageHandler`, `RedisTracker`, and core `TestTrackingMessageHandler` all track invocation counts and auto-register with the registry.
+
+### Documentation
+- Added troubleshooting guide to EF Core Relational wiki page covering the `DbContextOptions<TBase>` vs `DbContextOptions<TDerived>` pitfall (Duende IdentityServer, ASP.NET Identity, ABP Framework).
+- Added `TrackingComponentRegistry` documentation to Diagnostics and Debugging wiki page.
+- Added Invocation Validation sections to all extension wiki pages (CosmosDB, BlobStorage, BigQuery, Redis, EF Core Relational).
+
 ## [2.2.1] - 2026-04-21
 
 ### Fixed

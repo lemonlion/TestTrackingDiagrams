@@ -5,9 +5,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
-public class SqlTrackingInterceptor : DbCommandInterceptor
+public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 {
     private readonly SqlTrackingInterceptorOptions _options;
+    private int _invocationCount;
 
     // Maps each DbCommand instance to its correlated IDs so that
     // LogCommandExecuted can pair with the LogCommandExecuting entry.
@@ -16,12 +17,19 @@ public class SqlTrackingInterceptor : DbCommandInterceptor
     public SqlTrackingInterceptor(SqlTrackingInterceptorOptions options)
     {
         _options = options;
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"SqlTrackingInterceptor ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     // ─── Public methods for direct testing ──────────────────────
 
     public void LogCommandExecuting(DbCommand command)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
 
         if (_options.Verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)

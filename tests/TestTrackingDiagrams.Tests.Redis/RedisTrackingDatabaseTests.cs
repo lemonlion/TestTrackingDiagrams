@@ -381,4 +381,61 @@ public class RedisTrackingDatabaseTests : IDisposable
         var log = GetLogsFromThisTest().First();
         Assert.Equal("redis://db0/", log.Uri.ToString());
     }
+
+    // ─── ITrackingComponent ────────────────────────────────────
+
+    [Fact]
+    public void Implements_ITrackingComponent()
+    {
+        var tracker = new RedisTracker(MakeOptions());
+        Assert.IsAssignableFrom<ITrackingComponent>(tracker);
+    }
+
+    [Fact]
+    public void WasInvoked_IsFalse_BeforeAnyCommands()
+    {
+        var tracker = new RedisTracker(MakeOptions());
+        Assert.False(tracker.WasInvoked);
+    }
+
+    [Fact]
+    public void WasInvoked_IsTrue_AfterCommand()
+    {
+        var tracker = new RedisTracker(MakeOptions());
+        tracker.LogRedisRequest("GET", "key:1", 0, null);
+        Assert.True(tracker.WasInvoked);
+    }
+
+    [Fact]
+    public void InvocationCount_StartsAtZero()
+    {
+        var tracker = new RedisTracker(MakeOptions());
+        Assert.Equal(0, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void InvocationCount_IncreasesWithEachCommand()
+    {
+        var tracker = new RedisTracker(MakeOptions());
+        tracker.LogRedisRequest("GET", "key:1", 0, null);
+        tracker.LogRedisRequest("SET", "key:2", 0, "val");
+        Assert.Equal(2, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void ComponentName_MatchesServiceName()
+    {
+        var tracker = new RedisTracker(MakeOptions(serviceName: "MyRedis"));
+        Assert.Equal("RedisTracker (MyRedis)", tracker.ComponentName);
+    }
+
+    [Fact]
+    public void Constructor_AutoRegistersWithTrackingComponentRegistry()
+    {
+        TrackingComponentRegistry.Clear();
+        var tracker = new RedisTracker(MakeOptions());
+
+        var components = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(components, c => ReferenceEquals(c, tracker));
+    }
 }

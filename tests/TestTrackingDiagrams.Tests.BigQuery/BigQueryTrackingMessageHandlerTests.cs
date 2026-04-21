@@ -346,4 +346,55 @@ public class BigQueryTrackingMessageHandlerTests : IDisposable
         Assert.NotNull(log.StatusCode);
         Assert.Equal(HttpStatusCode.OK, log.StatusCode!.Value);
     }
+
+    // ─── ITrackingComponent ────────────────────────────────────
+
+    [Fact]
+    public void Implements_ITrackingComponent()
+    {
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions());
+        Assert.IsAssignableFrom<ITrackingComponent>(handler);
+    }
+
+    [Fact]
+    public void WasInvoked_IsFalse_BeforeAnyRequests()
+    {
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions());
+        Assert.False(handler.WasInvoked);
+    }
+
+    [Fact]
+    public async Task WasInvoked_IsTrue_AfterRequest()
+    {
+        var inner = new StubInnerHandler();
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions(), inner);
+        using var invoker = new HttpMessageInvoker(handler);
+        await invoker.SendAsync(MakeQueryRequest(), CancellationToken.None);
+
+        Assert.True(handler.WasInvoked);
+    }
+
+    [Fact]
+    public void InvocationCount_StartsAtZero()
+    {
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions());
+        Assert.Equal(0, handler.InvocationCount);
+    }
+
+    [Fact]
+    public void ComponentName_MatchesServiceName()
+    {
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions(serviceName: "MyBQ"));
+        Assert.Equal("BigQueryTrackingMessageHandler (MyBQ)", handler.ComponentName);
+    }
+
+    [Fact]
+    public void Constructor_AutoRegistersWithTrackingComponentRegistry()
+    {
+        TrackingComponentRegistry.Clear();
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions());
+
+        var components = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(components, c => ReferenceEquals(c, handler));
+    }
 }

@@ -360,4 +360,55 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Contains("/docs", log.Uri.AbsolutePath);
     }
-}
+
+        // ─── ITrackingComponent ────────────────────────────────────
+
+        [Fact]
+        public void Implements_ITrackingComponent()
+        {
+            var handler = new CosmosTrackingMessageHandler(MakeOptions());
+            Assert.IsAssignableFrom<ITrackingComponent>(handler);
+        }
+
+        [Fact]
+        public void WasInvoked_IsFalse_BeforeAnyRequests()
+        {
+            var handler = new CosmosTrackingMessageHandler(MakeOptions());
+            Assert.False(handler.WasInvoked);
+        }
+
+        [Fact]
+        public async Task WasInvoked_IsTrue_AfterRequest()
+        {
+            var inner = new StubInnerHandler();
+            var handler = new CosmosTrackingMessageHandler(MakeOptions(), inner);
+            using var invoker = new HttpMessageInvoker(handler);
+            await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+            Assert.True(handler.WasInvoked);
+        }
+
+        [Fact]
+        public void InvocationCount_StartsAtZero()
+        {
+            var handler = new CosmosTrackingMessageHandler(MakeOptions());
+            Assert.Equal(0, handler.InvocationCount);
+        }
+
+        [Fact]
+        public void ComponentName_MatchesServiceName()
+        {
+            var handler = new CosmosTrackingMessageHandler(MakeOptions(serviceName: "MyCosmosDB"));
+            Assert.Equal("CosmosTrackingMessageHandler (MyCosmosDB)", handler.ComponentName);
+        }
+
+        [Fact]
+        public void Constructor_AutoRegistersWithTrackingComponentRegistry()
+        {
+            TrackingComponentRegistry.Clear();
+            var handler = new CosmosTrackingMessageHandler(MakeOptions());
+
+            var components = TrackingComponentRegistry.GetRegisteredComponents();
+            Assert.Contains(components, c => ReferenceEquals(c, handler));
+        }
+    }

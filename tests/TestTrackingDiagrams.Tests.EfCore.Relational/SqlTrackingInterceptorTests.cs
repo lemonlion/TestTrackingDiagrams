@@ -406,4 +406,61 @@ public class SqlTrackingInterceptorTests : IDisposable
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Contains("test-server", log.Uri.ToString());
     }
+
+    // ─── ITrackingComponent ────────────────────────────────────
+
+    [Fact]
+    public void Implements_ITrackingComponent()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        Assert.IsAssignableFrom<ITrackingComponent>(interceptor);
+    }
+
+    [Fact]
+    public void WasInvoked_IsFalse_BeforeAnyCommands()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        Assert.False(interceptor.WasInvoked);
+    }
+
+    [Fact]
+    public void WasInvoked_IsTrue_AfterCommand()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        interceptor.LogCommandExecuting(MakeSelectCommand());
+        Assert.True(interceptor.WasInvoked);
+    }
+
+    [Fact]
+    public void InvocationCount_StartsAtZero()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        Assert.Equal(0, interceptor.InvocationCount);
+    }
+
+    [Fact]
+    public void InvocationCount_IncreasesWithEachCommand()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        interceptor.LogCommandExecuting(MakeSelectCommand());
+        interceptor.LogCommandExecuting(MakeInsertCommand());
+        Assert.Equal(2, interceptor.InvocationCount);
+    }
+
+    [Fact]
+    public void ComponentName_MatchesServiceName()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions(serviceName: "IdentityDB"));
+        Assert.Equal("SqlTrackingInterceptor (IdentityDB)", interceptor.ComponentName);
+    }
+
+    [Fact]
+    public void Constructor_AutoRegistersWithTrackingComponentRegistry()
+    {
+        TrackingComponentRegistry.Clear();
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+
+        var components = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(components, c => ReferenceEquals(c, interceptor));
+    }
 }

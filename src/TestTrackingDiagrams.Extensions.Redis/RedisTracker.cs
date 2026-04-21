@@ -3,19 +3,27 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Redis;
 
-public class RedisTracker
+public class RedisTracker : ITrackingComponent
 {
     private readonly RedisTrackingDatabaseOptions _options;
     private readonly string _endpoint;
+    private int _invocationCount;
 
     public RedisTracker(RedisTrackingDatabaseOptions options, string endpoint = "localhost")
     {
         _options = options;
         _endpoint = endpoint;
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"RedisTracker ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     public (Guid RequestResponseId, Guid TraceId) LogRedisRequest(string command, string? key, int db, string? content)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var op = RedisOperationClassifier.Classify(command, hasResult: false, key, db);
 
         if (_options.Verbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)

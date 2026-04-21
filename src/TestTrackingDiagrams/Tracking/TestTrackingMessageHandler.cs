@@ -5,7 +5,7 @@ using TestTrackingDiagrams.Constants;
 
 namespace TestTrackingDiagrams.Tracking;
 
-public class TestTrackingMessageHandler : DelegatingHandler
+public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly string? _callingServiceName;
@@ -16,6 +16,7 @@ public class TestTrackingMessageHandler : DelegatingHandler
     private string? _lastStepType;
     private bool _wasInGivenSection;
     private bool _actionStartInjected;
+    private int _invocationCount;
 
     public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
@@ -28,7 +29,12 @@ public class TestTrackingMessageHandler : DelegatingHandler
         InnerHandler ??= new HttpClientHandler();
 
         InternalFlow.InternalFlowActivityListener.EnsureStarted(options.InternalFlowActivitySources);
+        TrackingComponentRegistry.Register(this);
     }
+
+    public string ComponentName => $"TestTrackingMessageHandler ({_callingServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     private static Func<int, string> GetPortTranslator(Dictionary<int, string> serviceNamesForEachPort)
     {
@@ -42,6 +48,8 @@ public class TestTrackingMessageHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         ForwardHeaders(request);
 
         var requestResponseId = Guid.NewGuid();
