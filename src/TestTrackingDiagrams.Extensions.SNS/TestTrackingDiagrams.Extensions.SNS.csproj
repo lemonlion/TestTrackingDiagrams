@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Amazon SNS Extension</Title>
+    <Description>Amazon SNS tracking for test diagrams. Intercepts and classifies SNS operations (Publish, Subscribe, CreateTopic) with configurable verbosity.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>
