@@ -18,7 +18,6 @@ Effortlessly autogenerate **PlantUML sequence diagrams** from your component and
 - [Use Cases](#use-cases)
 - [Deterministic vs AI-Generated Diagrams](#deterministic-vs-ai)
 - [Supported Frameworks & NuGet Packages](#supported-frameworks)
-- [Recommended BDD Framework](#recommended-bdd)
 - [Documentation](#documentation)
 
 ---
