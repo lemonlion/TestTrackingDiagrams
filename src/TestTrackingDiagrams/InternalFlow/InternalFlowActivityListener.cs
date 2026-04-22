@@ -5,13 +5,17 @@ namespace TestTrackingDiagrams.InternalFlow;
 /// <summary>
 /// A non-invasive <see cref="ActivityListener"/> that captures completed
 /// <see cref="Activity"/> spans into <see cref="InternalFlowSpanStore"/>
-/// without interfering with the SUT's existing OpenTelemetry configuration.
+/// without interfering with the SUT's existing diagnostic pipelines.
 /// <para>
-/// Subscribes to all <see cref="ActivitySource"/>s <b>except</b> well-known
-/// auto-instrumentation sources (see <see cref="InternalFlowSpanCollector.WellKnownAutoInstrumentationSources"/>)
-/// to avoid changing framework diagnostic pipelines (e.g. <c>System.Net.Http.DiagnosticsHandler</c>)
-/// that gate on <see cref="ActivitySource.HasListeners"/>.
-/// Well-known source spans reach the store via the OTel exporter path instead.
+/// Subscribes to <b>all</b> <see cref="ActivitySource"/>s <b>except</b>
+/// <c>System.Net.Http</c>, whose <c>DiagnosticsHandler</c> uses a mutually
+/// exclusive code path when <see cref="ActivitySource.HasListeners"/> is true —
+/// the new path bypasses the legacy <c>DiagnosticListener</c> events that
+/// Application Insights' <c>DependencyTrackingTelemetryModule</c> depends on.
+/// Other well-known sources (e.g. <c>Microsoft.AspNetCore</c>,
+/// <c>Microsoft.EntityFrameworkCore</c>) are safe to listen to because they
+/// either fire <c>DiagnosticListener</c> events regardless, or are not
+/// subscribed to by the Application Insights SDK.
 /// </para>
 /// <para>
 /// Uses <see cref="ActivitySamplingResult.AllData"/> (not <c>AllDataAndRecorded</c>)
@@ -21,6 +25,16 @@ namespace TestTrackingDiagrams.InternalFlow;
 /// </summary>
 public sealed class InternalFlowActivityListener : IDisposable
 {
+    /// <summary>
+    /// Sources excluded from the listener because subscribing to them causes
+    /// a mutually exclusive code path that breaks Application Insights
+    /// dependency tracking via <c>DiagnosticListener</c>.
+    /// </summary>
+    internal static readonly HashSet<string> AppInsightsConflictSources =
+    [
+        "System.Net.Http"
+    ];
+
     private static readonly object Lock = new();
     private static InternalFlowActivityListener? _autoStarted;
 
@@ -30,8 +44,7 @@ public sealed class InternalFlowActivityListener : IDisposable
     {
         _listener = new ActivityListener
         {
-            ShouldListenTo = source =>
-                !InternalFlowSpanCollector.WellKnownAutoInstrumentationSources.Contains(source.Name),
+            ShouldListenTo = source => !AppInsightsConflictSources.Contains(source.Name),
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
             SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllData,
             ActivityStopped = InternalFlowSpanStore.Add

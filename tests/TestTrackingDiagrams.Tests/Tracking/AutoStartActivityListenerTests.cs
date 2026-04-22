@@ -54,7 +54,7 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public async Task First_SendAsync_does_not_listen_to_well_known_sources()
+    public async Task First_SendAsync_does_not_listen_to_System_Net_Http()
     {
         using var invoker = CreateInvoker(DefaultOptions());
         await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
@@ -66,6 +66,26 @@ public class AutoStartActivityListenerTests
 
         Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
             s => s.DisplayName == opName && s.Source.Name == "System.Net.Http");
+    }
+
+    [Theory]
+    [InlineData("Microsoft.AspNetCore")]
+    [InlineData("Microsoft.EntityFrameworkCore")]
+    [InlineData("Npgsql")]
+    [InlineData("StackExchange.Redis")]
+    [InlineData("Azure.Cosmos")]
+    public async Task First_SendAsync_does_listen_to_well_known_sources_other_than_System_Net_Http(string sourceName)
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
+
+        var opName = $"wk-{Guid.NewGuid():N}";
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity(opName);
+        activity?.Stop();
+
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == opName && s.Source.Name == sourceName);
     }
 
     [Fact]

@@ -19,20 +19,41 @@ public class InternalFlowActivityListenerTests : IDisposable
     }
 
     [Fact]
-    public void Does_not_listen_to_well_known_auto_instrumentation_sources()
+    public void Does_not_listen_to_System_Net_Http()
     {
         _listener = new InternalFlowActivityListener();
 
-        foreach (var wellKnownName in InternalFlowSpanCollector.WellKnownAutoInstrumentationSources)
+        foreach (var conflictName in InternalFlowActivityListener.AppInsightsConflictSources)
         {
-            var opName = $"{wellKnownName}-{Guid.NewGuid():N}";
-            using var source = new ActivitySource(wellKnownName);
+            var opName = $"{conflictName}-{Guid.NewGuid():N}";
+            using var source = new ActivitySource(conflictName);
             using var activity = source.StartActivity(opName);
             activity?.Stop();
 
             Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
-                s => s.DisplayName == opName && s.Source.Name == wellKnownName);
+                s => s.DisplayName == opName && s.Source.Name == conflictName);
         }
+    }
+
+    [Theory]
+    [InlineData("Microsoft.AspNetCore")]
+    [InlineData("Microsoft.EntityFrameworkCore")]
+    [InlineData("Npgsql")]
+    [InlineData("StackExchange.Redis")]
+    [InlineData("Azure.Cosmos")]
+    [InlineData("Azure.Storage")]
+    [InlineData("Microsoft.Azure.Cosmos")]
+    public void Does_listen_to_well_known_sources_other_than_AppInsights_conflicts(string sourceName)
+    {
+        _listener = new InternalFlowActivityListener();
+
+        var opName = $"wk-{Guid.NewGuid():N}";
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity(opName);
+        activity?.Stop();
+
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == opName && s.Source.Name == sourceName);
     }
 
     [Fact]
