@@ -1400,4 +1400,47 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
         Assert.Equal(traceparentTraceId, requestLog.ActivityTraceId);
     }
+
+    [Fact]
+    public async Task Does_not_modify_activity_current_when_no_ambient_activity()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        Activity.Current = null;
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        // SendAsync must not leave a new Activity on Activity.Current — doing so
+        // interferes with Application Insights' DependencyTelemetry correlation.
+        Assert.Null(Activity.Current);
+    }
+
+    [Fact]
+    public async Task Does_not_modify_activity_current_when_ambient_activity_exists()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        using var existingActivity = new Activity("ExistingTest");
+        existingActivity.SetIdFormat(ActivityIdFormat.W3C);
+        existingActivity.Start();
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        // SendAsync must preserve the ambient Activity.
+        Assert.Same(existingActivity, Activity.Current);
+
+        existingActivity.Stop();
+    }
+
+    [Fact]
+    public async Task ActivitySpanId_is_recorded_in_request_log()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        Activity.Current = null;
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.ActivitySpanId);
+        Assert.Matches(@"^[0-9a-f]{16}$", requestLog.ActivitySpanId);
+    }
 }

@@ -57,19 +57,29 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         // Ensure trace context propagation for in-process (TestServer) scenarios.
         // Without this, the server generates a new TraceId for each request,
         // and InternalFlowSegmentBuilder cannot correlate spans.
-        Activity? requestActivity = null;
-        if (Activity.Current == null)
+        //
+        // We deliberately avoid creating/starting an Activity here — doing so
+        // would set Activity.Current, which changes how framework diagnostic
+        // pipelines (e.g. System.Net.Http.DiagnosticsHandler) and Application
+        // Insights SDK correlate telemetry. Instead we inject the traceparent
+        // header and record the IDs directly.
+        string? activityTraceId;
+        string? activitySpanId;
+        if (Activity.Current != null)
         {
-            requestActivity = new Activity("TestTrackingDiagrams.Request");
-            requestActivity.SetIdFormat(ActivityIdFormat.W3C);
-            requestActivity.Start();
+            activityTraceId = Activity.Current.TraceId.ToString();
+            activitySpanId = Activity.Current.SpanId.ToString();
         }
-        if (Activity.Current != null && !request.Headers.Contains("traceparent"))
+        else
         {
-            var current = Activity.Current;
-            var flags = current.Recorded ? "01" : "00";
+            activityTraceId = ActivityTraceId.CreateRandom().ToString();
+            activitySpanId = ActivitySpanId.CreateRandom().ToString();
+        }
+        if (!request.Headers.Contains("traceparent"))
+        {
+            var flags = Activity.Current?.Recorded == true ? "01" : "00";
             request.Headers.TryAddWithoutValidation("traceparent",
-                $"00-{current.TraceId}-{current.SpanId}-{flags}");
+                $"00-{activityTraceId}-{activitySpanId}-{flags}");
         }
 
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
@@ -138,8 +148,8 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         {
             FocusFields = requestFocusFields,
             Timestamp = DateTimeOffset.UtcNow,
-            ActivitySpanId = Activity.Current?.SpanId.ToString(),
-            ActivityTraceId = Activity.Current?.TraceId.ToString()
+            ActivitySpanId = activitySpanId,
+            ActivityTraceId = activityTraceId
         });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -165,12 +175,9 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         {
             FocusFields = responseFocusFields,
             Timestamp = DateTimeOffset.UtcNow,
-            ActivitySpanId = Activity.Current?.SpanId.ToString(),
-            ActivityTraceId = Activity.Current?.TraceId.ToString()
+            ActivitySpanId = activitySpanId,
+            ActivityTraceId = activityTraceId
         });
-
-        requestActivity?.Stop();
-        requestActivity?.Dispose();
 
         return response;
     }
