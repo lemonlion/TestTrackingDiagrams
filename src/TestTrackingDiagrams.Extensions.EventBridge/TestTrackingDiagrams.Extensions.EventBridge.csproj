@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Amazon EventBridge Extension</Title>
+    <Description>Amazon EventBridge tracking for test diagrams. Intercepts and classifies PutEvents, Rule management, and EventBus operations via the AWS SDK HTTP pipeline with configurable verbosity.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.EventBridge" Version="3.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+  </ItemGroup>
+</Project>
