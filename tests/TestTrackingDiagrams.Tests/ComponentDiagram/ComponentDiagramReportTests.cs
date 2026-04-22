@@ -469,4 +469,12 @@ public class ComponentDiagramReportTests : IDisposable
         Assert.True(componentIdx > 0 && componentIdx < reportContentIdx,
             "Component diagram section must appear before report-content div");
     }
+
+    [Fact]
+    public void Null_ComponentDiagramOptions_Defaults_To_EmbedInTestRunReport_True()
+    {
+        var options = new ReportConfigurationOptions { ComponentDiagramOptions = null };
+        var resolved = options.ComponentDiagramOptions ?? new ComponentDiagramOptions();
+        Assert.True(resolved.EmbedInTestRunReport);
+    }
 }
