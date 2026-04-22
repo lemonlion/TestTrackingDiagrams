@@ -136,6 +136,54 @@ public class DependencyColoringTests : IDisposable
     }
 
     [Fact]
+    public void Toggling_component_diagram_deactivates_timeline()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentRadioTimeline.html"));
+
+        var tlButton = WaitFor(By.CssSelector("button[onclick*='toggle_timeline']"));
+        var cdButton = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+        var timeline = _driver.FindElement(By.Id("scenario-timeline"));
+        var componentDiagram = _driver.FindElement(By.Id("component-diagram"));
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+
+        // Show timeline first
+        tlButton.Click();
+        wait.Until(_ => timeline.GetCssValue("display") != "none");
+        Assert.Contains("timeline-toggle-active", tlButton.GetAttribute("class"));
+
+        // Now show component diagram — timeline should hide
+        cdButton.Click();
+        wait.Until(_ => componentDiagram.GetCssValue("display") != "none");
+        wait.Until(_ => timeline.GetCssValue("display") == "none");
+        Assert.DoesNotContain("timeline-toggle-active", tlButton.GetAttribute("class"));
+        Assert.Contains("timeline-toggle-active", cdButton.GetAttribute("class"));
+    }
+
+    [Fact]
+    public void Toggling_timeline_deactivates_component_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("TimelineRadioComponent.html"));
+
+        var tlButton = WaitFor(By.CssSelector("button[onclick*='toggle_timeline']"));
+        var cdButton = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+        var timeline = _driver.FindElement(By.Id("scenario-timeline"));
+        var componentDiagram = _driver.FindElement(By.Id("component-diagram"));
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+
+        // Show component diagram first
+        cdButton.Click();
+        wait.Until(_ => componentDiagram.GetCssValue("display") != "none");
+        Assert.Contains("timeline-toggle-active", cdButton.GetAttribute("class"));
+
+        // Now show timeline — component diagram should hide
+        tlButton.Click();
+        wait.Until(_ => timeline.GetCssValue("display") != "none");
+        wait.Until(_ => componentDiagram.GetCssValue("display") == "none");
+        Assert.DoesNotContain("timeline-toggle-active", cdButton.GetAttribute("class"));
+        Assert.Contains("timeline-toggle-active", tlButton.GetAttribute("class"));
+    }
+
+    [Fact]
     public void Component_diagram_toggle_button_has_active_class_when_shown()
     {
         _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentToggleActive.html"));

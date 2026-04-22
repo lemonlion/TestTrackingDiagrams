@@ -805,13 +805,25 @@ public static class ReportGenerator
                                 """;
 
         // Toggle timeline
-        var toggleTimelineFunction = """
+        var deactivateComponentDiagramJs = !string.IsNullOrEmpty(componentDiagramPlantUml)
+            ? """
+                                             if (hidden) {
+                                                 var cd = document.getElementById('component-diagram');
+                                                 if (cd && cd.style.display !== 'none') {
+                                                     cd.style.display = 'none';
+                                                     var cdBtn = document.querySelector('button.timeline-toggle-active[onclick*="toggle_component_diagram"]');
+                                                     if (cdBtn) cdBtn.classList.remove('timeline-toggle-active');
+                                                 }
+                                             }
+              """
+            : "";
+        var toggleTimelineFunction = $$"""
                                      function toggle_timeline(btn) {
                                          var tl = document.getElementById('scenario-timeline');
                                          if (!tl) return;
                                          var hidden = tl.style.display === 'none';
                                          tl.style.display = hidden ? '' : 'none';
-                                         btn.classList.toggle('timeline-toggle-active', hidden);
+                                         btn.classList.toggle('timeline-toggle-active', hidden);{{deactivateComponentDiagramJs}}
                                      }
                                      """;
 
@@ -824,8 +836,14 @@ public static class ReportGenerator
                   var hidden = cd.style.display === 'none';
                   cd.style.display = hidden ? '' : 'none';
                   btn.classList.toggle('timeline-toggle-active', hidden);
-                  if (hidden && window._renderDiagramsInContainer) {
-                      window._renderDiagramsInContainer(cd);
+                  if (hidden) {
+                      if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(cd);
+                      var tl = document.getElementById('scenario-timeline');
+                      if (tl && tl.style.display !== 'none') {
+                          tl.style.display = 'none';
+                          var tlBtn = document.querySelector('button.timeline-toggle-active[onclick*="toggle_timeline"]');
+                          if (tlBtn) tlBtn.classList.remove('timeline-toggle-active');
+                      }
                   }
               }
               """
@@ -1555,7 +1573,7 @@ public static class ReportGenerator
         {
             var compDiagramId = $"puml-{plantUmlBrowserCounter++}";
             var compDiagramCompressed = InternalFlowHtmlGenerator.CompressToBase64(componentDiagramPlantUml);
-            body.Append($"""<div id="component-diagram" class="component-diagram-section" style="display:none"><div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml">Loading component diagram...</div></div>""");
+            body.Append($"""<div id="component-diagram" class="component-diagram-section" style="display:none"><div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml"></div></div>""");
         }
 
         body.Append("<div id=\"report-content\">");

@@ -477,4 +477,62 @@ public class ComponentDiagramReportTests : IDisposable
         var resolved = options.ComponentDiagramOptions ?? new ComponentDiagramOptions();
         Assert.True(resolved.EmbedInTestRunReport);
     }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Does_Not_Contain_Loading_Text()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "NoLoadingText.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("Loading component diagram", content);
+    }
+
+    [Fact]
+    public void Toggle_Component_Diagram_Function_Deactivates_Timeline()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "RadioToggleCD.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("toggle_component_diagram", content);
+        Assert.Contains("scenario-timeline", content);
+        // The component diagram toggle function should reference the timeline to hide it
+        var fnStart = content.IndexOf("function toggle_component_diagram");
+        var fnEnd = content.IndexOf("}", content.IndexOf("}", fnStart) + 1) + 1;
+        var fnBody = content[fnStart..fnEnd];
+        Assert.Contains("scenario-timeline", fnBody);
+    }
+
+    [Fact]
+    public void Toggle_Timeline_Function_Deactivates_Component_Diagram()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "RadioToggleTL.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        // The timeline toggle function should reference the component diagram to hide it
+        var fnStart = content.IndexOf("function toggle_timeline");
+        var fnEnd = content.IndexOf("}", content.IndexOf("}", fnStart) + 1) + 1;
+        var fnBody = content[fnStart..fnEnd];
+        Assert.Contains("component-diagram", fnBody);
+    }
 }
