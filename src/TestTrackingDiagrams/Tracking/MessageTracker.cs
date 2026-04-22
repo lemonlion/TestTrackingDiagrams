@@ -13,13 +13,38 @@ namespace TestTrackingDiagrams.Tracking;
 /// Register an instance in DI (typically as a singleton) and inject it
 /// into any fake or stub that simulates publishing/sending messages.
 /// </summary>
-public class MessageTracker
+public class MessageTracker : ITrackingComponent
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly string _callingServiceName;
+    private readonly string _serviceName;
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly Func<(string Name, string Id)>? _testInfoFallback;
+    private readonly MessageTrackerVerbosity _verbosity;
+    private int _invocationCount;
 
+    /// <summary>
+    /// Creates a <see cref="MessageTracker"/> using an options record.
+    /// This is the recommended constructor — it follows the same pattern
+    /// as all other TTD extensions.
+    /// </summary>
+    public MessageTracker(MessageTrackerOptions options)
+    {
+        _httpContextAccessor = null;
+        _callingServiceName = options.CallingServiceName;
+        _serviceName = options.ServiceName;
+        _serializerOptions = options.SerializerOptions ?? new JsonSerializerOptions();
+        _testInfoFallback = options.CurrentTestInfoFetcher;
+        _verbosity = options.Verbosity;
+        TrackingComponentRegistry.Register(this);
+    }
+
+    /// <summary>
+    /// Legacy constructor that reads test info from <see cref="IHttpContextAccessor"/>
+    /// request headers, with an optional fallback delegate.
+    /// Kept for backward compatibility — prefer the <see cref="MessageTrackerOptions"/>
+    /// overload for new code.
+    /// </summary>
     public MessageTracker(
         IHttpContextAccessor httpContextAccessor,
         string callingServiceName,
@@ -28,9 +53,18 @@ public class MessageTracker
     {
         _httpContextAccessor = httpContextAccessor;
         _callingServiceName = callingServiceName;
+        _serviceName = "MessageBus";
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions();
         _testInfoFallback = testInfoFallback;
+        _verbosity = MessageTrackerVerbosity.Detailed;
+        TrackingComponentRegistry.Register(this);
     }
+
+    // ─── ITrackingComponent ─────────────────────────────────────
+
+    public string ComponentName => $"MessageTracker ({_serviceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
 
     /// <summary>
     /// Logs a request entry for a message being sent to a named destination.
@@ -43,12 +77,16 @@ public class MessageTracker
     /// <returns>A correlation ID that must be passed to <see cref="TrackMessageResponse"/> to pair the request and response.</returns>
     public Guid TrackMessageRequest(string protocol, string destinationName, Uri destinationUri, object payload)
     {
+        Interlocked.Increment(ref _invocationCount);
+
         var testInfo = GetTestInfo();
         if (testInfo is null)
             return Guid.Empty;
 
         var requestResponseId = Guid.NewGuid();
-        var content = JsonSerializer.Serialize(payload, _serializerOptions);
+        var content = _verbosity == MessageTrackerVerbosity.Summarised
+            ? null
+            : JsonSerializer.Serialize(payload, _serializerOptions);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.TestName,
@@ -88,9 +126,11 @@ public class MessageTracker
         if (testInfo is null)
             return;
 
-        var content = responsePayload is not null
-            ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
-            : string.Empty;
+        var content = _verbosity == MessageTrackerVerbosity.Summarised
+            ? null
+            : responsePayload is not null
+                ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
+                : string.Empty;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.TestName,
@@ -115,9 +155,25 @@ public class MessageTracker
         });
     }
 
+    /// <summary>
+    /// Logs a complete send event as a fire-and-forget pair (request + response)
+    /// in a single call. Ideal for event-driven patterns where there is no
+    /// meaningful response to track separately.
+    /// </summary>
+    /// <param name="protocol">The protocol or transport label shown in the diagram.</param>
+    /// <param name="destinationName">The name of the destination service or topic shown in the diagram.</param>
+    /// <param name="destinationUri">A URI representing the destination.</param>
+    /// <param name="payload">Optional message payload. Will be JSON-serialised when verbosity allows.</param>
+    public void TrackSendEvent(string protocol, string destinationName, Uri destinationUri, object? payload = null)
+    {
+        var id = TrackMessageRequest(protocol, destinationName, destinationUri, payload ?? new { });
+        if (id != Guid.Empty)
+            TrackMessageResponse(protocol, destinationName, destinationUri, id);
+    }
+
     private (string TestName, string TestId, Guid TraceId)? GetTestInfo()
     {
-        var context = _httpContextAccessor.HttpContext;
+        var context = _httpContextAccessor?.HttpContext;
         if (context is not null)
         {
             var headers = context.Request.Headers;

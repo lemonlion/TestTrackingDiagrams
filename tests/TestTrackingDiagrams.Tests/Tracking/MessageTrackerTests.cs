@@ -255,4 +255,380 @@ public class MessageTrackerTests
 
         Assert.Equal(Guid.Empty, id);
     }
+
+    // ─── Options-based constructor ──────────────────────────────
+
+    private static MessageTracker CreateOptionsTracker(
+        MessageTrackerOptions? options = null)
+    {
+        return new MessageTracker(options ?? new MessageTrackerOptions
+        {
+            CallingServiceName = "TestCaller",
+            CurrentTestInfoFetcher = () => ("Options Test", "opts-id-1")
+        });
+    }
+
+    [Fact]
+    public void Options_constructor_creates_functional_tracker()
+    {
+        var tracker = CreateOptionsTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "OrderService", new Uri("kafka://orders"), new { Id = 1 });
+
+        Assert.NotEqual(Guid.Empty, id);
+    }
+
+    [Fact]
+    public void Options_constructor_uses_CurrentTestInfoFetcher()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "MySvc",
+            CurrentTestInfoFetcher = () => ("OptionTest", testId)
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id);
+        Assert.Equal("OptionTest", log.TestName);
+        Assert.Equal(testId, log.TestId);
+    }
+
+    [Fact]
+    public void Options_constructor_returns_empty_guid_when_no_fetcher()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "MySvc",
+            CurrentTestInfoFetcher = null
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(Guid.Empty, id);
+    }
+
+    [Fact]
+    public void Options_constructor_uses_CallingServiceName()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "BillingService",
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("SB", "Queue", new Uri("sb://q"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id);
+        Assert.Equal("BillingService", log.CallerName);
+    }
+
+    // ─── ITrackingComponent ─────────────────────────────────────
+
+    [Fact]
+    public void Implements_ITrackingComponent()
+    {
+        var tracker = CreateOptionsTracker();
+        Assert.IsAssignableFrom<ITrackingComponent>(tracker);
+    }
+
+    [Fact]
+    public void WasInvoked_IsFalse_BeforeAnyTracking()
+    {
+        var tracker = CreateOptionsTracker();
+        Assert.False(tracker.WasInvoked);
+    }
+
+    [Fact]
+    public void WasInvoked_IsTrue_AfterTrackMessageRequest()
+    {
+        var tracker = CreateOptionsTracker();
+
+        tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.True(tracker.WasInvoked);
+    }
+
+    [Fact]
+    public void InvocationCount_StartsAtZero()
+    {
+        var tracker = CreateOptionsTracker();
+        Assert.Equal(0, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void InvocationCount_IncreasesWithEachTrack()
+    {
+        var tracker = CreateOptionsTracker();
+
+        tracker.TrackMessageRequest("Kafka", "A", new Uri("kafka://a"), new { });
+        tracker.TrackMessageRequest("Kafka", "B", new Uri("kafka://b"), new { });
+        tracker.TrackMessageRequest("Kafka", "C", new Uri("kafka://c"), new { });
+
+        Assert.Equal(3, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void ComponentName_UsesDefaultServiceName()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+        Assert.Equal("MessageTracker (MessageBus)", tracker.ComponentName);
+    }
+
+    [Fact]
+    public void ComponentName_UsesCustomServiceName()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            ServiceName = "Custom Bus",
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+        Assert.Equal("MessageTracker (Custom Bus)", tracker.ComponentName);
+    }
+
+    [Fact]
+    public void Constructor_AutoRegistersWithTrackingComponentRegistry()
+    {
+        TrackingComponentRegistry.Clear();
+        var tracker = CreateOptionsTracker();
+
+        var components = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(components, c => ReferenceEquals(c, tracker));
+    }
+
+    // ─── Legacy constructor still works as ITrackingComponent ───
+
+    [Fact]
+    public void Legacy_constructor_also_implements_ITrackingComponent()
+    {
+        var tracker = CreateTracker();
+        Assert.IsAssignableFrom<ITrackingComponent>(tracker);
+    }
+
+    [Fact]
+    public void Legacy_constructor_ComponentName_uses_default()
+    {
+        var tracker = CreateTracker();
+        Assert.Equal("MessageTracker (MessageBus)", tracker.ComponentName);
+    }
+
+    [Fact]
+    public void Legacy_constructor_registers_with_TrackingComponentRegistry()
+    {
+        TrackingComponentRegistry.Clear();
+        var tracker = CreateTracker();
+
+        var components = TrackingComponentRegistry.GetRegisteredComponents();
+        Assert.Contains(components, c => ReferenceEquals(c, tracker));
+    }
+
+    // ─── Verbosity ──────────────────────────────────────────────
+
+    [Fact]
+    public void Summarised_omits_request_content()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            Verbosity = MessageTrackerVerbosity.Summarised,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Dest", new Uri("kafka://t"), new { Secret = "data" });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id && l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Summarised_omits_response_content()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            Verbosity = MessageTrackerVerbosity.Summarised,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Dest", new Uri("kafka://t"), new { });
+        tracker.TrackMessageResponse("Kafka", "Dest", new Uri("kafka://t"), id, new { Ack = true });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id && l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Detailed_includes_request_content()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            Verbosity = MessageTrackerVerbosity.Detailed,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Dest", new Uri("kafka://t"), new { Data = "visible" });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id && l.Type == RequestResponseType.Request);
+        Assert.Contains("visible", log.Content!);
+    }
+
+    [Fact]
+    public void Raw_includes_request_content()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            Verbosity = MessageTrackerVerbosity.Raw,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Dest", new Uri("kafka://t"), new { Data = "raw-data" });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id && l.Type == RequestResponseType.Request);
+        Assert.Contains("raw-data", log.Content!);
+    }
+
+    [Fact]
+    public void Legacy_constructor_always_includes_content()
+    {
+        var tracker = CreateTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Dest", new Uri("kafka://t"), new { Data = "legacy-data" });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.RequestResponseId == id && l.Type == RequestResponseType.Request);
+        Assert.Contains("legacy-data", log.Content!);
+    }
+
+    // ─── TrackSendEvent (fire-and-forget one-shot) ──────────────
+
+    [Fact]
+    public void TrackSendEvent_logs_request_and_response_pair()
+    {
+        var tracker = CreateOptionsTracker();
+        var testId = "opts-id-1";
+
+        tracker.TrackSendEvent("Kafka", "OrderService", new Uri("kafka://orders"), new { Id = 1 });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        var pair = logs.Where(l => l.Method.Value?.ToString() == "Kafka").ToArray();
+        Assert.True(pair.Length >= 2);
+        Assert.Contains(pair, l => l.Type == RequestResponseType.Request);
+        Assert.Contains(pair, l => l.Type == RequestResponseType.Response);
+    }
+
+    [Fact]
+    public void TrackSendEvent_shares_same_requestResponseId()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("SB", "Queue", new Uri("sb://q"), new { Msg = "hi" });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
+    }
+
+    [Fact]
+    public void TrackSendEvent_sets_meta_type_to_event()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("SB", "Queue", new Uri("sb://q"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Equal(RequestResponseMetaType.Event, l.MetaType));
+    }
+
+    [Fact]
+    public void TrackSendEvent_increments_invocation_count()
+    {
+        var tracker = CreateOptionsTracker();
+        var before = tracker.InvocationCount;
+
+        tracker.TrackSendEvent("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(before + 1, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void TrackSendEvent_respects_summarised_verbosity()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            Verbosity = MessageTrackerVerbosity.Summarised,
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("Kafka", "Dest", new Uri("kafka://t"), new { Secret = "hidden" });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Null(l.Content));
+    }
+
+    [Fact]
+    public void TrackSendEvent_does_nothing_when_no_test_info()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = null
+        });
+        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+
+        tracker.TrackSendEvent("Kafka", "Dest", new Uri("kafka://t"), new { });
+
+        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+    }
+
+    // ─── ServiceName in options ─────────────────────────────────
+
+    [Fact]
+    public void Options_ServiceName_used_as_destination_in_logs()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            ServiceName = "My Custom Bus",
+            CallingServiceName = "OrderService",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("Send", "My Custom Bus", new Uri("bus://q"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.Equal("My Custom Bus", log.ServiceName);
+    }
 }

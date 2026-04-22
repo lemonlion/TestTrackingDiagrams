@@ -30,4 +30,13 @@ public static class ServiceCollectionHelper
 
         return services;
     }
+
+    public static IServiceCollection TrackMessagesForDiagrams(
+        this IServiceCollection services,
+        MessageTrackerOptions options)
+    {
+        services.AddSingleton(new MessageTracker(options));
+
+        return services;
+    }
 }

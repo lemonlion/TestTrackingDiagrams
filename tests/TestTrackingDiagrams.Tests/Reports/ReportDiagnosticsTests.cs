@@ -138,6 +138,7 @@ public class ReportDiagnosticsTests : IDisposable
     [Fact]
     public void Unused_component_warning_lists_count()
     {
+        TrackingComponentRegistry.Clear();
         TrackingComponentRegistry.Register(new StubComponent("A", wasInvoked: false));
         TrackingComponentRegistry.Register(new StubComponent("B", wasInvoked: false));
         TrackingComponentRegistry.Register(new StubComponent("C", wasInvoked: true));
