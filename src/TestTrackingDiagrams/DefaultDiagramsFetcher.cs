@@ -103,7 +103,11 @@ public static class DefaultDiagramsFetcher
             internalFlowTracking: options.InternalFlowTracking,
             maxEncodedDiagramLength: maxEncodedDiagramLength,
             truncateNotesAfterLines: truncateNotesAfterLines,
-            excludeAllHeaders: excludeAllHeaders).ToArray();
+            excludeAllHeaders: excludeAllHeaders,
+            sequenceDiagramArrowColors: options.SequenceDiagramArrowColors,
+            sequenceDiagramParticipantColors: options.SequenceDiagramParticipantColors,
+            dependencyColors: options.DependencyColors,
+            serviceTypeOverrides: options.ServiceTypeOverrides).ToArray();
     }
 
     public static (DiagramAsCode[] TruncatedDiagrams, DiagramAsCode[] FullDiagrams) GetCiSummaryDiagrams(DiagramsFetcherOptions options, int truncateNotesAfterLines = 10)

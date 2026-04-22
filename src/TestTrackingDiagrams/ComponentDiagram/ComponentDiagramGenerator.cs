@@ -32,7 +32,8 @@ public static partial class ComponentDiagramGenerator
             var methods = new HashSet<string>(g.Select(log => GetMethodName(log)));
             var callCount = g.Count();
             var testCount = g.Select(log => log.TestId).Distinct().Count();
-            return new ComponentRelationship(g.Key.CallerName, g.Key.ServiceName, g.Key.Protocol, methods, callCount, testCount);
+            var dependencyCategory = g.Select(log => log.DependencyCategory).FirstOrDefault(c => c is not null);
+            return new ComponentRelationship(g.Key.CallerName, g.Key.ServiceName, g.Key.Protocol, methods, callCount, testCount, dependencyCategory);
         }).ToArray();
     }
 
@@ -44,6 +45,17 @@ public static partial class ComponentDiagramGenerator
     {
         options ??= new ComponentDiagramOptions();
         var sb = new StringBuilder();
+
+        // Build service → DependencyType map from relationships
+        var serviceTypes = new Dictionary<string, DependencyType>();
+        foreach (var rel in relationships)
+        {
+            if (!serviceTypes.ContainsKey(rel.Service))
+            {
+                var type = DependencyPalette.Resolve(rel.DependencyCategory);
+                serviceTypes[rel.Service] = type;
+            }
+        }
 
         sb.AppendLine("@startuml");
         sb.AppendLine("left to right direction");
@@ -73,6 +85,21 @@ public static partial class ComponentDiagramGenerator
             sb.AppendLine("  StereotypeFontColor #438DD5");
             sb.AppendLine("  StereotypeFontSize 0");
             sb.AppendLine("}");
+            sb.AppendLine("skinparam database {");
+            sb.AppendLine("  BackgroundColor #E74C3C");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #C0392B");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam collections {");
+            sb.AppendLine("  BackgroundColor #F39C12");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #D68910");
+            sb.AppendLine("}");
+            sb.AppendLine("skinparam queue {");
+            sb.AppendLine("  BackgroundColor #9B59B6");
+            sb.AppendLine("  FontColor #FFFFFF");
+            sb.AppendLine("  BorderColor #7D3C98");
+            sb.AppendLine("}");
             sb.AppendLine("skinparam arrow {");
             sb.AppendLine("  Color #666666");
             sb.AppendLine("  FontColor #666666");
@@ -97,18 +124,30 @@ public static partial class ComponentDiagramGenerator
         foreach (var participant in allParticipants)
         {
             var alias = SanitizeAlias(participant);
+            var isPureCaller = pureCallers.Contains(participant);
+            var depType = serviceTypes.GetValueOrDefault(participant, DependencyType.HttpApi);
+
             if (useC4)
             {
-                if (pureCallers.Contains(participant))
+                if (isPureCaller)
                     sb.AppendLine($"Person({alias}, \"{participant}\")");
                 else
-                    sb.AppendLine($"System({alias}, \"{participant}\")");
+                    sb.AppendLine(GetC4SystemDeclaration(depType, alias, participant));
             }
             else
             {
-                var stereotype = pureCallers.Contains(participant) ? "person" : "system";
-                var typeLabel = pureCallers.Contains(participant) ? "Person" : "Software System";
-                sb.AppendLine($"rectangle \"**{participant}**\\n<size:10>[{typeLabel}]</size>\" as {alias} <<{stereotype}>>");
+                if (isPureCaller)
+                {
+                    sb.AppendLine($"rectangle \"**{participant}**\\n<size:10>[Person]</size>\" as {alias} <<person>>");
+                }
+                else
+                {
+                    var shape = GetComponentShape(depType);
+                    if (shape == "rectangle")
+                        sb.AppendLine($"rectangle \"**{participant}**\\n<size:10>[Software System]</size>\" as {alias} <<system>>");
+                    else
+                        sb.AppendLine($"{shape} \"{participant}\" as {alias}");
+                }
             }
         }
 
@@ -147,9 +186,13 @@ public static partial class ComponentDiagramGenerator
                 label = $"{methodsPart} - {rel.CallCount} calls across {rel.TestCount} tests";
             }
 
-            // Determine arrow style based on stats
+            // Determine arrow style
             var color = "";
-            if (stats != null && stats.TryGetValue(relKey, out var arrowStats))
+            if (options.ArrowColorMode == ArrowColorMode.DependencyType)
+            {
+                color = DependencyPalette.GetColor(rel.DependencyCategory, options.DependencyColors);
+            }
+            else if (stats != null && stats.TryGetValue(relKey, out var arrowStats))
             {
                 // Hotspot coloring by P95
                 color = arrowStats.P95Ms switch
@@ -189,10 +232,31 @@ public static partial class ComponentDiagramGenerator
         return sb.ToString();
     }
 
-    private static string GetProtocol(RequestResponseLog log) =>
-        log.MetaType == RequestResponseMetaType.Event
+    private static string GetComponentShape(DependencyType type) => type switch
+    {
+        DependencyType.Database => "database",
+        DependencyType.Storage => "database",
+        DependencyType.Cache => "collections",
+        DependencyType.MessageQueue => "queue",
+        _ => "rectangle"
+    };
+
+    private static string GetC4SystemDeclaration(DependencyType type, string alias, string name) => type switch
+    {
+        DependencyType.Database or DependencyType.Storage => $"SystemDb({alias}, \"{name}\")",
+        DependencyType.MessageQueue => $"SystemQueue({alias}, \"{name}\")",
+        _ => $"System({alias}, \"{name}\")"
+    };
+
+    private static string GetProtocol(RequestResponseLog log)
+    {
+        if (log.DependencyCategory is not null)
+            return log.DependencyCategory;
+
+        return log.MetaType == RequestResponseMetaType.Event
             ? log.Method.Value?.ToString() ?? "Event"
             : "HTTP";
+    }
 
     private static string GetMethodName(RequestResponseLog log) =>
         log.Method.Value?.ToString() ?? "Unknown";

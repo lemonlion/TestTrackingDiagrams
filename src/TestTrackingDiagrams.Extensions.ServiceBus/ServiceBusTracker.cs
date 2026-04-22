@@ -54,7 +54,8 @@ public class ServiceBusTracker : ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            MetaType: metaType
+            MetaType: metaType,
+            DependencyCategory: "ServiceBus"
         ));
 
         return (requestResponseId, traceId);
@@ -96,7 +97,8 @@ public class ServiceBusTracker : ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            MetaType: metaType
+            MetaType: metaType,
+            DependencyCategory: "ServiceBus"
         ));
     }
 

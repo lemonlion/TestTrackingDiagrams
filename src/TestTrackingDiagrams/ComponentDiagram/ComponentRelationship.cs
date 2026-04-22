@@ -6,4 +6,5 @@ public record ComponentRelationship(
     string Protocol,
     HashSet<string> Methods,
     int CallCount,
-    int TestCount);
+    int TestCount,
+    string? DependencyCategory = null);

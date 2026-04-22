@@ -16,7 +16,8 @@ public record RequestResponseLog(
     Guid RequestResponseId,
     bool TrackingIgnore,
     OneOf<HttpStatusCode, string>? StatusCode = null,
-    RequestResponseMetaType MetaType = default)
+    RequestResponseMetaType MetaType = default,
+    string? DependencyCategory = null)
 {
     public bool IsOverrideStart { get; set; }
     public bool IsOverrideEnd { get; set; }

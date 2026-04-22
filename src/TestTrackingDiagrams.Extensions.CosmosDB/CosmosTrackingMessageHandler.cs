@@ -66,7 +66,8 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "CosmosDB"
         ));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -87,7 +88,8 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "CosmosDB"
         ));
 
         return response;

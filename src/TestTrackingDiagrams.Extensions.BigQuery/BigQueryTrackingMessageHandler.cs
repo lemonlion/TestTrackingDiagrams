@@ -65,7 +65,8 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "BigQuery"
         ));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -86,7 +87,8 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "BigQuery"
         ));
 
         return response;

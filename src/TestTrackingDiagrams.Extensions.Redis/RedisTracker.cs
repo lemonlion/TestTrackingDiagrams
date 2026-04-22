@@ -59,7 +59,8 @@ public class RedisTracker : ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "Redis"
         ));
 
         return (requestResponseId, traceId);
@@ -98,7 +99,8 @@ public class RedisTracker : ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            (OneOf<HttpStatusCode, string>)"OK"
+            (OneOf<HttpStatusCode, string>)"OK",
+            DependencyCategory: "Redis"
         ));
     }
 

@@ -64,7 +64,11 @@ public static class ReportGenerator
             DiagramFormat = options.DiagramFormat,
             PlantUmlRendering = options.PlantUmlRendering,
             InlineSvgRendering = options.InlineSvgRendering,
-            InternalFlowTracking = options.InternalFlowTracking
+            InternalFlowTracking = options.InternalFlowTracking,
+            SequenceDiagramArrowColors = options.SequenceDiagramArrowColors,
+            SequenceDiagramParticipantColors = options.SequenceDiagramParticipantColors,
+            DependencyColors = options.DependencyColors,
+            ServiceTypeOverrides = options.ServiceTypeOverrides
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 
@@ -105,6 +109,18 @@ public static class ReportGenerator
         var specsDataExtension = GetDataFormatExtension(options.SpecificationsDataFormat);
         var testRunDataExtension = GetDataFormatExtension(options.TestRunReportDataFormat);
 
+        // Pre-compute component diagram PlantUML for embedding
+        string? componentDiagramPlantUml = null;
+        if (options.GenerateComponentDiagram)
+        {
+            var componentOptions = options.ComponentDiagramOptions ?? new ComponentDiagramOptions();
+            componentOptions.DependencyColors ??= options.DependencyColors;
+            var componentLogs = RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true));
+            var componentRelationships = ComponentDiagramGenerator.ExtractRelationships(componentLogs, componentOptions.ParticipantFilter);
+            var useBrowserJs = options.PlantUmlRendering == PlantUmlRendering.BrowserJs;
+            componentDiagramPlantUml = ComponentDiagramGenerator.GeneratePlantUml(componentRelationships, componentOptions, useC4: !useBrowserJs);
+        }
+
         var actions = new List<Action>();
 
         if (options.GenerateSpecificationsReport)
@@ -114,7 +130,7 @@ public static class ReportGenerator
 
         if (options.GenerateTestRunReport)
         {
-            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames));
+            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, componentDiagramPlantUml: options.ComponentDiagramOptions?.EmbedInTestRunReport == true ? componentDiagramPlantUml : null));
         }
 
         if (options.GenerateSpecificationsData)
@@ -213,7 +229,8 @@ public static class ReportGenerator
         string? customLogoHtml = null,
         bool groupParameterizedTests = true,
         int maxParameterColumns = 10,
-        bool titleizeParameterNames = true)
+        bool titleizeParameterNames = true,
+        string? componentDiagramPlantUml = null)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -1512,6 +1529,17 @@ public static class ReportGenerator
                 }
                 body.Append("</div>");
             }
+        }
+
+        // Embedded component diagram
+        if (!string.IsNullOrEmpty(componentDiagramPlantUml))
+        {
+            var compDiagramId = $"puml-{plantUmlBrowserCounter++}";
+            var compDiagramCompressed = InternalFlowHtmlGenerator.CompressToBase64(componentDiagramPlantUml);
+            body.Append("""<details class="component-diagram-section" open>""");
+            body.Append("""<summary class="h2">Component Diagram</summary>""");
+            body.Append($"""<div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml">Loading component diagram...</div>""");
+            body.Append("</details>");
         }
 
         body.Append("<div id=\"report-content\">");

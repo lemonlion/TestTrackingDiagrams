@@ -23,4 +23,8 @@ public record DiagramsFetcherOptions
     public PlantUmlRendering PlantUmlRendering { get; set; } = PlantUmlRendering.BrowserJs;
     public bool InlineSvgRendering { get; set; }
     public bool InternalFlowTracking { get; set; }
+    public bool SequenceDiagramArrowColors { get; set; } = true;
+    public bool SequenceDiagramParticipantColors { get; set; }
+    public Dictionary<string, string>? DependencyColors { get; set; }
+    public Dictionary<string, string>? ServiceTypeOverrides { get; set; }
 }

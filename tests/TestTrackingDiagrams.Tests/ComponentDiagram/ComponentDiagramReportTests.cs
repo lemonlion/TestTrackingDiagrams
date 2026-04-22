@@ -92,7 +92,7 @@ public class ComponentDiagramReportTests : IDisposable
         Assert.Contains("WebApp", result.PlantUml);
         Assert.Contains("OrderService", result.PlantUml);
         Assert.Contains("PaymentService", result.PlantUml);
-        Assert.Contains("-->", result.PlantUml);
+        Assert.Contains("-[#438DD5]->", result.PlantUml);
     }
 
     [Fact]
@@ -321,5 +321,85 @@ public class ComponentDiagramReportTests : IDisposable
     {
         var options = new ComponentDiagramOptions();
         Assert.True(options.ShowSystemFlameChart);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Embed Component Diagram in TestRunReport
+    // ═══════════════════════════════════════════════════════════
+
+    private static Feature[] MakeFeatures(string scenarioId = "test-1") =>
+    [
+        new Feature
+        {
+            DisplayName = "Order Feature",
+            Scenarios =
+            [
+                new Scenario
+                {
+                    Id = scenarioId,
+                    DisplayName = "Creates an order",
+                    IsHappyPath = true,
+                    Result = ExecutionResult.Passed
+                }
+            ]
+        }
+    ];
+
+    private static DefaultDiagramsFetcher.DiagramAsCode[] MakeDiagrams(string testId = "test-1") =>
+    [
+        new DefaultDiagramsFetcher.DiagramAsCode(testId, "",
+            "@startuml\nAlice -> Bob: Hello\n@enduml\n")
+    ];
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Appears_In_TestRunReport_When_Enabled()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "EmbedComponentTest.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("component-diagram-section", content);
+        Assert.Contains("Component Diagram", content);
+        Assert.Contains("data-plantuml-z=", content);
+        Assert.Contains("plantuml-browser", content);
+    }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Not_Present_When_Null()
+    {
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "NoComponentTest.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: null);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("component-diagram-section", content);
+    }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Section_Appears_Before_ReportContent()
+    {
+        var plantUml = "@startuml\nA -> B\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "ComponentOrderTest.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        var componentIdx = content.IndexOf("component-diagram-section");
+        var reportContentIdx = content.IndexOf("id=\"report-content\"");
+        Assert.True(componentIdx > 0 && componentIdx < reportContentIdx,
+            "Component diagram section must appear before report-content div");
     }
 }

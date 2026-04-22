@@ -16,7 +16,8 @@ public class ComponentDiagramGeneratorTests
         string method = "GET",
         string uri = "http://example.com/api/orders",
         bool trackingIgnore = false,
-        RequestResponseMetaType metaType = RequestResponseMetaType.Default)
+        RequestResponseMetaType metaType = RequestResponseMetaType.Default,
+        string? dependencyCategory = null)
     {
         OneOf<HttpMethod, string> parsedMethod = metaType == RequestResponseMetaType.Event
             ? method
@@ -35,7 +36,8 @@ public class ComponentDiagramGeneratorTests
             TraceId: Guid.NewGuid(),
             RequestResponseId: Guid.NewGuid(),
             TrackingIgnore: trackingIgnore,
-            MetaType: metaType);
+            MetaType: metaType,
+            DependencyCategory: dependencyCategory);
     }
 
     private static RequestResponseLog MakeResponse(
@@ -684,8 +686,9 @@ public class ComponentDiagramGeneratorTests
             ["iflow-rel-A-MediumService"] = new(10, 5, 100.0, 90.0, 150.0, 180.0, 50.0, 200.0,
                 0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
+        var options = new ComponentDiagramOptions { ArrowColorMode = ArrowColorMode.Performance };
 
-        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats);
 
         // Should contain skinparam or styling for different latency levels
         Assert.Contains("#Green", result);    // Fast (<50ms P95)
@@ -705,8 +708,9 @@ public class ComponentDiagramGeneratorTests
             ["iflow-rel-Caller-RareService"] = new(1, 1, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0,
                 0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, true, 0, new Dictionary<string, int>(), null, 0)
         };
+        var options = new ComponentDiagramOptions { ArrowColorMode = ArrowColorMode.Performance };
 
-        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats);
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats);
 
         // Low coverage should use dashed line or warning indicator
         Assert.Contains("..>", result); // dashed arrow in PlantUML
@@ -791,8 +795,9 @@ public class ComponentDiagramGeneratorTests
             ["iflow-rel-Caller-OrderService"] = new(1, 1, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
                 0.0, new Dictionary<HttpStatusCode, int>(), [], null, null, false, 0, new Dictionary<string, int>(), null, 0)
         };
+        var options = new ComponentDiagramOptions { ArrowColorMode = ArrowColorMode.Performance };
 
-        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, stats: stats, useC4: false);
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, options, stats, useC4: false);
 
         Assert.Contains("-[#Green]->", result);
         Assert.DoesNotContain("Rel(", result);
@@ -808,7 +813,8 @@ public class ComponentDiagramGeneratorTests
 
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
 
-        Assert.Contains("-->", result);
+        // Default ArrowColorMode.DependencyType colors arrows by target type
+        Assert.Contains("-[#438DD5]->", result);
         Assert.DoesNotContain("Rel(", result);
     }
 
@@ -855,5 +861,249 @@ public class ComponentDiagramGeneratorTests
         var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
 
         Assert.Contains("left to right direction", result);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Dependency-Type Shaped Participants
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GeneratePlantUml_Database_DependencyCategory_Uses_SystemDb_In_C4()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "CosmosStore", "CosmosDB", ["Upsert"], 5, 3, DependencyCategory: "CosmosDB")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("SystemDb(cosmosStore, \"CosmosStore\")", result);
+        Assert.DoesNotContain("System(cosmosStore", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_MessageQueue_DependencyCategory_Uses_SystemQueue_In_C4()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "ServiceBus", "ServiceBus", ["Send"], 2, 1, DependencyCategory: "ServiceBus")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("SystemQueue(serviceBus, \"ServiceBus\")", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_Http_DependencyCategory_Uses_System_In_C4()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "PaymentApi", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("System(paymentApi, \"PaymentApi\")", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_Null_DependencyCategory_Defaults_To_HttpApi_System()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "SomeService", "HTTP", ["GET"], 1, 1, DependencyCategory: null)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("System(someService, \"SomeService\")", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_Database_Uses_Database_Shape()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "SqlDb", "SQL", ["Query"], 3, 2, DependencyCategory: "SQL")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("database \"SqlDb\" as sqlDb", result);
+        Assert.DoesNotContain("as sqlDb <<system>>", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_Cache_Uses_Collections_Shape()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "RedisCache", "Redis", ["GET"], 5, 3, DependencyCategory: "Redis")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("collections \"RedisCache\" as redisCache", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_MessageQueue_Uses_Queue_Shape()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "EventBus", "ServiceBus", ["Send"], 2, 1, DependencyCategory: "ServiceBus")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("queue \"EventBus\" as eventBus", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_Http_Uses_Rectangle_System_Shape()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "OrderService", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("<<system>>", result);
+        Assert.Contains("rectangle", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_UseC4False_Includes_Skinparam_For_Database_Collections_Queue()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "Db", "SQL", ["Query"], 1, 1, DependencyCategory: "SQL")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        Assert.Contains("skinparam database {", result);
+        Assert.Contains("skinparam collections {", result);
+        Assert.Contains("skinparam queue {", result);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Dependency-Type Arrow Coloring
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void GeneratePlantUml_DependencyType_Mode_Colors_Arrow_By_Target_Type()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "CosmosDb", "CosmosDB", ["Read"], 1, 1, DependencyCategory: "CosmosDB")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        // Database color = #E74C3C
+        Assert.Contains("$tags=\"#E74C3C\"", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_DependencyType_Mode_UseC4False_Colors_Arrow()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "Redis", "Redis", ["GET"], 1, 1, DependencyCategory: "Redis")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, useC4: false);
+
+        // Cache color = #F39C12
+        Assert.Contains("-[#F39C12]->", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_DependencyType_Default_HttpApi_Gets_Blue_Arrow()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "Api", "HTTP", ["GET"], 1, 1)
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        // HttpApi color = #438DD5
+        Assert.Contains("$tags=\"#438DD5\"", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_DependencyColors_Override_Applied()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "CosmosDb", "CosmosDB", ["Read"], 1, 1, DependencyCategory: "CosmosDB")
+        };
+        var options = new ComponentDiagramOptions
+        {
+            DependencyColors = new Dictionary<string, string> { ["CosmosDB"] = "#FF00FF" }
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships, options);
+
+        Assert.Contains("$tags=\"#FF00FF\"", result);
+        Assert.DoesNotContain("#E74C3C", result);
+    }
+
+    [Fact]
+    public void GeneratePlantUml_Mixed_Types_Each_Gets_Correct_Arrow_Color()
+    {
+        var relationships = new[]
+        {
+            new ComponentRelationship("App", "Api", "HTTP", ["GET"], 1, 1),
+            new ComponentRelationship("App", "Db", "CosmosDB", ["Query"], 1, 1, DependencyCategory: "CosmosDB"),
+            new ComponentRelationship("App", "Cache", "Redis", ["GET"], 1, 1, DependencyCategory: "Redis"),
+            new ComponentRelationship("App", "Queue", "ServiceBus", ["Send"], 1, 1, DependencyCategory: "ServiceBus")
+        };
+
+        var result = ComponentDiagramGenerator.GeneratePlantUml(relationships);
+
+        Assert.Contains("#438DD5", result); // HttpApi
+        Assert.Contains("#E74C3C", result); // Database
+        Assert.Contains("#F39C12", result); // Cache
+        Assert.Contains("#9B59B6", result); // MessageQueue
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GetProtocol — DependencyCategory preference
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ExtractRelationships_DependencyCategory_Used_As_Protocol()
+    {
+        var logs = new[]
+        {
+            MakeRequest(serviceName: "CosmosDb", callerName: "App", method: "POST",
+                uri: "http://example.com/cosmos/items", dependencyCategory: "CosmosDB")
+        };
+
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logs);
+
+        Assert.Single(rels);
+        Assert.Equal("CosmosDB", rels[0].Protocol);
+        Assert.Equal("CosmosDB", rels[0].DependencyCategory);
+    }
+
+    [Fact]
+    public void ExtractRelationships_Null_DependencyCategory_Falls_Back_To_HTTP()
+    {
+        var logs = new[]
+        {
+            MakeRequest(serviceName: "Service", callerName: "App")
+        };
+
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logs);
+
+        Assert.Single(rels);
+        Assert.Equal("HTTP", rels[0].Protocol);
+        Assert.Null(rels[0].DependencyCategory);
     }
 }

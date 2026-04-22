@@ -37,6 +37,12 @@ public record ComponentDiagramOptions
     /// <summary>Components with fewer than this many test interactions are flagged as low coverage. Default: <c>3</c>.</summary>
     public int LowCoverageThreshold { get; set; } = 3;
 
+    /// <summary>Controls whether component diagram arrows are colored by dependency type or performance. Default: <see cref="ArrowColorMode.DependencyType"/>.</summary>
+    public ArrowColorMode ArrowColorMode { get; set; } = ArrowColorMode.DependencyType;
+
+    /// <summary>Optional user overrides for dependency type colors (key = category string, value = hex color).</summary>
+    public Dictionary<string, string>? DependencyColors { get; set; }
+
     /// <summary>Maximum number of tests to display in the flame chart. Default: <c>50</c>.</summary>
     public int MaxFlameChartTests { get; set; } = 50;
 }

@@ -70,7 +70,8 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "SQL"
         ));
     }
 
@@ -113,7 +114,8 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             ids.TraceId,
             ids.RequestResponseId,
             false,
-            (OneOf<System.Net.HttpStatusCode, string>)"OK"
+            (OneOf<System.Net.HttpStatusCode, string>)"OK",
+            DependencyCategory: "SQL"
         ));
     }
 

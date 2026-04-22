@@ -16,6 +16,7 @@ public static class ComponentDiagramReportGenerator
         Dictionary<string, InternalFlowSegment>? wholeTestSegments = null)
     {
         var options = reportOptions.ComponentDiagramOptions ?? new ComponentDiagramOptions();
+        options.DependencyColors ??= reportOptions.DependencyColors;
         var plantUmlServerBaseUrl = reportOptions.PlantUmlServerBaseUrl;
         var imageFormat = reportOptions.PlantUmlImageFormat;
         var localDiagramRenderer = reportOptions.PlantUmlRendering switch

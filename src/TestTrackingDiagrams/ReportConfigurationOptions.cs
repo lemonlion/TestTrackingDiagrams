@@ -185,6 +185,18 @@ public record ReportConfigurationOptions
     /// <summary>When <c>true</c>, parameterized tests are grouped into a single collapsible table. Default: <c>true</c>.</summary>
     public bool GroupParameterizedTests { get; set; } = true;
 
+    /// <summary>When <c>true</c>, sequence diagram arrows are colored by dependency type. Default: <c>true</c>.</summary>
+    public bool SequenceDiagramArrowColors { get; set; } = true;
+
+    /// <summary>When <c>true</c>, sequence diagram participant headers get colored backgrounds matching their dependency type. Default: <c>false</c>.</summary>
+    public bool SequenceDiagramParticipantColors { get; set; }
+
+    /// <summary>User overrides for dependency-type colors. Keys are <see cref="Tracking.RequestResponseLog.DependencyCategory"/> strings (e.g. <c>"CosmosDB"</c>), values are hex colors (e.g. <c>"#E74C3C"</c>).</summary>
+    public Dictionary<string, string>? DependencyColors { get; set; }
+
+    /// <summary>User overrides mapping service names to dependency categories. Keys are service names, values are category strings (e.g. <c>"CosmosDB"</c>, <c>"Redis"</c>).</summary>
+    public Dictionary<string, string>? ServiceTypeOverrides { get; set; }
+
     /// <summary>Maximum number of parameter columns shown per parameterized test group. Default: <c>10</c>.</summary>
     public int MaxParameterColumns { get; set; } = 10;
 

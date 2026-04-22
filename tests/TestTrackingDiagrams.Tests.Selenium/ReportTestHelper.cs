@@ -239,4 +239,72 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with an embedded component diagram for testing
+    /// the dependency-type coloring and embedded component diagram section.
+    /// </summary>
+    public static string GenerateReportWithEmbeddedComponentDiagram(string tempDir, string outputDir, string fileName)
+    {
+        var (features, diagrams) = CreateTestData();
+
+        // PlantUML for a component diagram with typed shapes
+        const string componentPlantUml = """
+            @startuml
+            left to right direction
+            skinparam defaultTextAlignment center
+            skinparam wrapWidth 200
+            skinparam shadowing false
+            skinparam rectangle<<person>> {
+              BackgroundColor #08427B
+              FontColor #FFFFFF
+              BorderColor #073B6F
+              RoundCorner 25
+            }
+            skinparam rectangle<<system>> {
+              BackgroundColor #438DD5
+              FontColor #FFFFFF
+              BorderColor #3C7FC0
+              RoundCorner 25
+            }
+            skinparam database {
+              BackgroundColor #E74C3C
+              FontColor #FFFFFF
+              BorderColor #C0392B
+            }
+            skinparam queue {
+              BackgroundColor #9B59B6
+              FontColor #FFFFFF
+              BorderColor #7D3C98
+            }
+            skinparam arrow {
+              Color #666666
+              FontColor #666666
+              FontSize 11
+            }
+
+            title Component Diagram
+
+            rectangle "**Client**\n<size:10>[Person]</size>" as client <<person>>
+            rectangle "**API**\n<size:10>[Software System]</size>" as api <<system>>
+            database "CosmosDB" as cosmosDB
+            queue "ServiceBus" as serviceBus
+
+            client -[#438DD5]-> api : "HTTP: GET - 10 calls across 5 tests"
+            api -[#E74C3C]-> cosmosDB : "CosmosDB: Query - 8 calls across 4 tests"
+            api -[#9B59B6]-> serviceBus : "ServiceBus: Send - 3 calls across 2 tests"
+            @enduml
+            """;
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: componentPlantUml);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

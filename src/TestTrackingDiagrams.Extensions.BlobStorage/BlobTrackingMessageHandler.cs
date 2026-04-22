@@ -65,7 +65,8 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "BlobStorage"
         ));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -86,7 +87,8 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "BlobStorage"
         ));
 
         return response;

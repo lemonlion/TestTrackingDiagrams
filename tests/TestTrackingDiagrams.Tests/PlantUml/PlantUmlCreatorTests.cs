@@ -181,7 +181,7 @@ public class PlantUmlCreatorTests
         var logs = new[] { MakeRequest(uri: "http://example.com/api/orders?id=1") };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains($"webApp -> orderService: GET: /api/orders?id=1{Nl}", plantUml);
+        Assert.Contains($"webApp -[#438DD5]> orderService: GET: /api/orders?id=1{Nl}", plantUml);
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains($"orderService --> webApp: OK{Nl}", plantUml);
+        Assert.Contains($"orderService -[#438DD5]-> webApp: OK{Nl}", plantUml);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("orderService --> webApp: Found (Redirect)", plantUml);
+        Assert.Contains("orderService -[#438DD5]-> webApp: Found (Redirect)", plantUml);
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("orderService --> webApp: Not Found", plantUml);
+        Assert.Contains("orderService -[#438DD5]-> webApp: Not Found", plantUml);
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("orderService --> webApp: Internal Server Error", plantUml);
+        Assert.Contains("orderService -[#438DD5]-> webApp: Internal Server Error", plantUml);
     }
 
     // ─── PlantUML structure ─────────────────────────────────────
@@ -545,11 +545,11 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs);
 
         // The arrows for the overridden traces should not appear
-        Assert.DoesNotContain("user -> hiddenService:", plantUml);
-        Assert.DoesNotContain("hiddenService --> user:", plantUml);
+        Assert.DoesNotContain("user -[#438DD5]> hiddenService:", plantUml);
+        Assert.DoesNotContain("hiddenService -[#438DD5]-> user:", plantUml);
         // But visible service interactions should exist
-        Assert.Contains("user -> visibleService:", plantUml);
-        Assert.Contains("visibleService --> user:", plantUml);
+        Assert.Contains("user -[#438DD5]> visibleService:", plantUml);
+        Assert.Contains("visibleService -[#438DD5]-> user:", plantUml);
     }
 
     [Fact]
@@ -1050,7 +1050,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("webApp -> orderService", plantUml);
+        Assert.Contains("webApp -[#438DD5]> orderService", plantUml);
     }
 
     [Fact]
@@ -1078,8 +1078,8 @@ public class PlantUmlCreatorTests
 
         Assert.Contains("\"localhost:80\" as localhost_80", plantUml);
         Assert.Contains("\"localhost:5001\" as localhost_5001", plantUml);
-        Assert.Contains("localhost_80 -> localhost_5001", plantUml);
-        Assert.Contains("localhost_5001 --> localhost_80", plantUml);
+        Assert.Contains("localhost_80 -[#438DD5]> localhost_5001", plantUml);
+        Assert.Contains("localhost_5001 -[#438DD5]-> localhost_80", plantUml);
         Assert.DoesNotContain("as localhost:80", plantUml);
         Assert.DoesNotContain("as localhost:5001", plantUml);
     }
@@ -1110,10 +1110,10 @@ public class PlantUmlCreatorTests
         Assert.Contains("@startuml", plantUml);
         Assert.Contains("actor \"Browser\" as browser", plantUml);
         Assert.Contains("entity \"Api\" as api", plantUml);
-        Assert.Contains("browser -> api: POST: /users", plantUml);
+        Assert.Contains("browser -[#438DD5]> api: POST: /users", plantUml);
         Assert.Contains("note left", plantUml);
         Assert.Contains("\"name\": \"Alice\"", plantUml);
-        Assert.Contains("api --> browser: Created", plantUml);
+        Assert.Contains("api -[#438DD5]-> browser: Created", plantUml);
         Assert.Contains("note right", plantUml);
         Assert.Contains("\"id\": 1", plantUml);
         Assert.Contains("@enduml", plantUml);
@@ -1133,10 +1133,10 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("client -> gateway", plantUml);
-        Assert.Contains("gateway -> backend", plantUml);
-        Assert.Contains("backend --> gateway", plantUml);
-        Assert.Contains("gateway --> client", plantUml);
+        Assert.Contains("client -[#438DD5]> gateway", plantUml);
+        Assert.Contains("gateway -[#438DD5]> backend", plantUml);
+        Assert.Contains("backend -[#438DD5]-> gateway", plantUml);
+        Assert.Contains("gateway -[#438DD5]-> client", plantUml);
     }
 
     // ─── Color function ─────────────────────────────────────────
@@ -1231,7 +1231,7 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs);
 
         // Should produce an arrow even though status is null
-        Assert.Contains("orderService --> webApp:", plantUml);
+        Assert.Contains("orderService -[#438DD5]-> webApp:", plantUml);
     }
 
     // ─── String status code via OneOf ───────────────────────────
@@ -1257,7 +1257,7 @@ public class PlantUmlCreatorTests
         var logs = new[] { MakeRequest(), response };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("orderService --> webApp: Custom Status", plantUml);
+        Assert.Contains("orderService -[#438DD5]-> webApp: Custom Status", plantUml);
     }
 
     // ─── Override with null PlantUml ────────────────────────────
@@ -1274,7 +1274,7 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs);
 
         // Should produce a valid diagram with just the final request
-        Assert.Contains("user -> api:", plantUml);
+        Assert.Contains("user -[#438DD5]> api:", plantUml);
         Assert.Contains("@startuml", plantUml);
         Assert.Contains("@enduml", plantUml);
     }
@@ -1991,7 +1991,7 @@ public class PlantUmlCreatorTests
         var logs = new[] { MakeStringMethodRequest(protocol: "Send (Event Protocol)", uri: "event://event-broker/cake_events") };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("myApi -> eventBroker: Send (Event Protocol): /cake_events", plantUml);
+        Assert.Contains("myApi -[#438DD5]> eventBroker: Send (Event Protocol): /cake_events", plantUml);
     }
 
     [Fact]
@@ -2004,7 +2004,7 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        Assert.Contains("eventBroker --> myApi: Responded", plantUml);
+        Assert.Contains("eventBroker -[#438DD5]-> myApi: Responded", plantUml);
     }
 
     // ─── Complete event round-trip (MessageTracker shape) ────────
@@ -2033,8 +2033,8 @@ public class PlantUmlCreatorTests
         Assert.Contains("@startuml", plantUml);
         Assert.Contains("\"Cake Api\" as cakeApi", plantUml);
         Assert.Contains("\"Event broker\" as eventBroker", plantUml);
-        Assert.Contains("cakeApi -> eventBroker: Send (Event Protocol): /cake_events", plantUml);
-        Assert.Contains("eventBroker --> cakeApi: Responded", plantUml);
+        Assert.Contains("cakeApi -[#438DD5]> eventBroker: Send (Event Protocol): /cake_events", plantUml);
+        Assert.Contains("eventBroker -[#438DD5]-> cakeApi: Responded", plantUml);
         Assert.Contains("<<eventNote>>", plantUml);
         Assert.Contains(".eventNote", plantUml);
         Assert.Contains("\"batchId\": \"abc-123\"", plantUml);
@@ -2381,5 +2381,297 @@ public class PlantUmlCreatorTests
 
         Assert.Contains("\\\\u0022", plantUml);
         Assert.DoesNotContain("\\u0022", plantUml.Replace("\\\\u0022", ""));
+    }
+
+    // ─── Dependency coloring ────────────────────────────────────
+
+    private static RequestResponseLog MakeRequestWithCategory(
+        string dependencyCategory,
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "OrderService",
+        string callerName = "WebApp",
+        string method = "GET",
+        string uri = "http://example.com/api/orders")
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: HttpMethod.Parse(method),
+            Content: null,
+            Uri: new Uri(uri),
+            Headers: [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Request,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            DependencyCategory: dependencyCategory);
+    }
+
+    private static RequestResponseLog MakeResponseWithCategory(
+        string dependencyCategory,
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "OrderService",
+        string callerName = "WebApp",
+        HttpStatusCode statusCode = HttpStatusCode.OK)
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: HttpMethod.Get,
+            Content: null,
+            Uri: new Uri("http://example.com/api/orders"),
+            Headers: [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Response,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            StatusCode: statusCode,
+            DependencyCategory: dependencyCategory);
+    }
+
+    private static string GetPlantUmlWithOptions(
+        IEnumerable<RequestResponseLog> logs,
+        bool sequenceDiagramArrowColors = true,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
+    {
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs,
+            sequenceDiagramArrowColors: sequenceDiagramArrowColors,
+            sequenceDiagramParticipantColors: sequenceDiagramParticipantColors,
+            dependencyColors: dependencyColors,
+            serviceTypeOverrides: serviceTypeOverrides).ToList();
+        return results.Single().PlantUmls.First().PlainText;
+    }
+
+    [Fact]
+    public void CosmosDB_service_uses_database_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("database \"Cosmos DB\" as cosmosDB", plantUml);
+    }
+
+    [Fact]
+    public void Redis_service_uses_collections_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("Redis", serviceName: "Redis Cache") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("collections \"Redis Cache\" as redisCache", plantUml);
+    }
+
+    [Fact]
+    public void ServiceBus_service_uses_queue_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("ServiceBus", serviceName: "Service Bus") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("queue \"Service Bus\" as serviceBus", plantUml);
+    }
+
+    [Fact]
+    public void BlobStorage_service_uses_database_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("BlobStorage", serviceName: "Blob Storage") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("database \"Blob Storage\" as blobStorage", plantUml);
+    }
+
+    [Fact]
+    public void HTTP_service_uses_entity_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("HTTP", serviceName: "Payment API") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("entity \"Payment API\" as paymentAPI", plantUml);
+    }
+
+    [Fact]
+    public void Null_category_defaults_to_entity_shape()
+    {
+        var logs = new[] { MakeRequest(serviceName: "Unknown Service") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("entity \"Unknown Service\" as unknownService", plantUml);
+    }
+
+    [Fact]
+    public void Database_arrows_use_red_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+            MakeResponseWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("webApp -[#E74C3C]> cosmosDB:", plantUml);
+        Assert.Contains("cosmosDB -[#E74C3C]-> webApp:", plantUml);
+    }
+
+    [Fact]
+    public void Cache_arrows_use_orange_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("Redis", serviceName: "Redis Cache"),
+            MakeResponseWithCategory("Redis", serviceName: "Redis Cache"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("-[#F39C12]>", plantUml);
+        Assert.Contains("-[#F39C12]->", plantUml);
+    }
+
+    [Fact]
+    public void Queue_arrows_use_purple_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("ServiceBus", serviceName: "Service Bus"),
+            MakeResponseWithCategory("ServiceBus", serviceName: "Service Bus"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("-[#9B59B6]>", plantUml);
+        Assert.Contains("-[#9B59B6]->", plantUml);
+    }
+
+    [Fact]
+    public void Storage_arrows_use_green_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("BlobStorage", serviceName: "Blob Storage"),
+            MakeResponseWithCategory("BlobStorage", serviceName: "Blob Storage"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("-[#2ECC71]>", plantUml);
+        Assert.Contains("-[#2ECC71]->", plantUml);
+    }
+
+    [Fact]
+    public void Arrow_colors_disabled_produces_plain_arrows()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+            MakeResponseWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs, sequenceDiagramArrowColors: false);
+
+        Assert.Contains("webApp -> cosmosDB:", plantUml);
+        Assert.Contains("cosmosDB --> webApp:", plantUml);
+        Assert.DoesNotContain("[#", plantUml);
+    }
+
+    [Fact]
+    public void Participant_colors_enabled_adds_color_to_entity_declaration()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs, sequenceDiagramParticipantColors: true);
+
+        Assert.Contains("database \"Cosmos DB\" as cosmosDB #E74C3C", plantUml);
+    }
+
+    [Fact]
+    public void Participant_colors_disabled_by_default_no_color_on_entity()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("database \"Cosmos DB\" as cosmosDB", plantUml);
+        Assert.DoesNotContain("cosmosDB #", plantUml);
+    }
+
+    [Fact]
+    public void Both_options_off_produces_original_behavior()
+    {
+        var logs = new[]
+        {
+            MakeRequest(serviceName: "OrderService"),
+            MakeResponse(serviceName: "OrderService"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs,
+            sequenceDiagramArrowColors: false,
+            sequenceDiagramParticipantColors: false);
+
+        Assert.Contains("entity \"OrderService\" as orderService", plantUml);
+        Assert.Contains("webApp -> orderService:", plantUml);
+        Assert.Contains("orderService --> webApp:", plantUml);
+        Assert.DoesNotContain("[#", plantUml);
+    }
+
+    [Fact]
+    public void Custom_dependency_color_override_is_used()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs,
+            dependencyColors: new Dictionary<string, string> { ["CosmosDB"] = "#FF0000" });
+
+        Assert.Contains("-[#FF0000]>", plantUml);
+        Assert.DoesNotContain("#E74C3C", plantUml);
+    }
+
+    [Fact]
+    public void Service_type_override_changes_shape_and_color()
+    {
+        var logs = new[]
+        {
+            MakeRequest(serviceName: "My Gateway"),
+            MakeResponse(serviceName: "My Gateway"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs,
+            serviceTypeOverrides: new Dictionary<string, string> { ["My Gateway"] = "Redis" });
+
+        Assert.Contains("collections \"My Gateway\" as myGateway", plantUml);
+        Assert.Contains("-[#F39C12]>", plantUml);
+    }
+
+    [Fact]
+    public void Mixed_dependency_types_use_correct_shapes_and_colors()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+            MakeResponseWithCategory("CosmosDB", serviceName: "Cosmos DB"),
+            MakeRequestWithCategory("Redis", serviceName: "Redis Cache"),
+            MakeResponseWithCategory("Redis", serviceName: "Redis Cache"),
+            MakeRequestWithCategory("ServiceBus", serviceName: "Service Bus"),
+            MakeResponseWithCategory("ServiceBus", serviceName: "Service Bus"),
+            MakeRequest(serviceName: "Payment API"),
+            MakeResponse(serviceName: "Payment API"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("actor \"WebApp\" as webApp", plantUml);
+        Assert.Contains("database \"Cosmos DB\" as cosmosDB", plantUml);
+        Assert.Contains("collections \"Redis Cache\" as redisCache", plantUml);
+        Assert.Contains("queue \"Service Bus\" as serviceBus", plantUml);
+        Assert.Contains("entity \"Payment API\" as paymentAPI", plantUml);
+
+        Assert.Contains("-[#E74C3C]>", plantUml); // Cosmos
+        Assert.Contains("-[#F39C12]>", plantUml); // Redis
+        Assert.Contains("-[#9B59B6]>", plantUml); // ServiceBus
+        Assert.Contains("-[#438DD5]>", plantUml); // HTTP
     }
 }

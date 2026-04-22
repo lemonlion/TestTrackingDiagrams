@@ -43,7 +43,11 @@ public static partial class PlantUmlCreator
         bool internalFlowTracking = false,
         int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength,
         int truncateNotesAfterLines = 0,
-        bool excludeAllHeaders = false)
+        bool excludeAllHeaders = false,
+        bool sequenceDiagramArrowColors = true,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -74,7 +78,11 @@ public static partial class PlantUmlCreator
                 internalFlowTracking,
                 maxEncodedDiagramLength,
                 truncateNotesAfterLines,
-                excludeAllHeaders);
+                excludeAllHeaders,
+                sequenceDiagramArrowColors,
+                sequenceDiagramParticipantColors,
+                dependencyColors,
+                serviceTypeOverrides);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -100,9 +108,14 @@ public static partial class PlantUmlCreator
         bool internalFlowTracking,
         int maxEncodedDiagramLength,
         int truncateNotesAfterLines = 0,
-        bool excludeAllHeaders = false)
+        bool excludeAllHeaders = false,
+        bool sequenceDiagramArrowColors = true,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
     {
-        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength);
+        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength,
+            sequenceDiagramArrowColors, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides);
         var lastTrace = tracesForTest[^1];
 
         var currentlyOverriding = false;
@@ -178,7 +191,8 @@ public static partial class PlantUmlCreator
                     if (internalFlowTracking)
                         requestLabel = $"[[#iflow-{trace.RequestResponseId} {requestLabel}]]";
 
-                    builder.AppendLine($"{callerShortName} -> {serviceShortName}: {requestLabel}");
+                    var arrowColor = builder.GetArrowColor(trace.ServiceName, trace.DependencyCategory);
+                    builder.AppendLine($"{callerShortName} -{arrowColor}> {serviceShortName}: {requestLabel}");
                     builder.AddArrowHeight();
 
                     if (!string.IsNullOrEmpty(noteContent))
@@ -270,7 +284,8 @@ public static partial class PlantUmlCreator
 
             var responseLabel = status ?? "";
 
-            builder.AppendLine($"{serviceShortName} --> {callerShortName}: {responseLabel}");
+            var arrowColor = builder.GetArrowColor(trace!.ServiceName, trace.DependencyCategory);
+            builder.AppendLine($"{serviceShortName} -{arrowColor}-> {callerShortName}: {responseLabel}");
             builder.AddArrowHeight();
 
             if (!string.IsNullOrEmpty(noteContent))
@@ -284,9 +299,16 @@ public static partial class PlantUmlCreator
         }
     }
 
-    private static string CreatePlantUmlPrefix(List<RequestResponseLog> tracesForTest, int stepNumber, string? plantUmlTheme = null)
+    private static string CreatePlantUmlPrefix(
+        List<RequestResponseLog> tracesForTest,
+        int stepNumber,
+        string? plantUmlTheme = null,
+        bool sequenceDiagramArrowColors = true,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
     {
-        var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest);
+        var entitiesPlantUml = CreateEntitiesPlantUml(tracesForTest, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides);
         var themeDirective = !string.IsNullOrWhiteSpace(plantUmlTheme) ? $"!theme {plantUmlTheme}\n" : "";
         return $"""
 
@@ -315,7 +337,11 @@ public static partial class PlantUmlCreator
                 """.TrimStart()
             : "";
 
-    private static string CreateEntitiesPlantUml(List<RequestResponseLog> tracesForTest)
+    private static string CreateEntitiesPlantUml(
+        List<RequestResponseLog> tracesForTest,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
     {
         var sb = new StringBuilder();
         var actorDefined = false;
@@ -342,6 +368,22 @@ public static partial class PlantUmlCreator
             actorDefined = true;
         }
 
+        // Build a lookup: serviceName → category (user overrides then auto-detect)
+        var serviceCategories = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var trace in relevantTraces)
+        {
+            if (serviceCategories.ContainsKey(trace.ServiceName)) continue;
+            if (serviceTypeOverrides?.TryGetValue(trace.ServiceName, out var ov) == true)
+            {
+                serviceCategories[trace.ServiceName] = ov;
+                continue;
+            }
+            serviceCategories[trace.ServiceName] = relevantTraces
+                .Where(t => t.ServiceName == trace.ServiceName && t.DependencyCategory is not null)
+                .Select(t => t.DependencyCategory)
+                .FirstOrDefault();
+        }
+
         foreach (var trace in relevantTraces)
         {
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
@@ -349,6 +391,7 @@ public static partial class PlantUmlCreator
 
             if (currentPlayers.Add(callerShortName))
             {
+                // Callers that aren't the first actor: use entity (they're HTTP services being tested)
                 sb.Append(actorDefined ? "entity" : "actor")
                     .Append(" \"")
                     .Append(trace.CallerName)
@@ -358,10 +401,19 @@ public static partial class PlantUmlCreator
 
             if (currentPlayers.Add(serviceShortName))
             {
-                sb.Append("entity \"")
+                var category = serviceCategories.TryGetValue(trace.ServiceName, out var cat) ? cat : null;
+                var depType = DependencyPalette.Resolve(category);
+                var shape = DependencyPalette.GetSequenceShape(depType);
+                var colorSuffix = "";
+                if (sequenceDiagramParticipantColors && category is not null)
+                    colorSuffix = " " + DependencyPalette.GetColor(category, dependencyColors);
+
+                sb.Append(shape)
+                    .Append(" \"")
                     .Append(trace.ServiceName)
                     .Append("\" as ")
-                    .AppendLine(serviceShortName);
+                    .Append(serviceShortName)
+                    .AppendLine(colorSuffix);
             }
         }
 
@@ -450,15 +502,63 @@ public static partial class PlantUmlCreator
         return value.ChunksUpTo(100).Select(x => "<color:gray>" + x);
     }
 
-    private sealed class DiagramBuilder(List<RequestResponseLog> tracesForTest, string? plantUmlTheme = null, int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength)
+    private sealed class DiagramBuilder(
+        List<RequestResponseLog> tracesForTest,
+        string? plantUmlTheme = null,
+        int maxEncodedDiagramLength = DefaultMaxEncodedDiagramLength,
+        bool sequenceDiagramArrowColors = true,
+        bool sequenceDiagramParticipantColors = false,
+        Dictionary<string, string>? dependencyColors = null,
+        Dictionary<string, string>? serviceTypeOverrides = null)
     {
         private readonly List<PlantUmlResult> _results = [];
-        private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1, plantUmlTheme));
+        private StringBuilder _currentDiagram = new(CreatePlantUmlPrefix(tracesForTest, 1, plantUmlTheme,
+            sequenceDiagramArrowColors, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides));
         private int _stepNumber = 1;
         private string? _openPartitionLine;
         private string? _cachedEncoded;
         private int _lengthAtLastEncode;
         private int _estimatedHeight;
+
+        // Build a lookup from ServiceName → resolved DependencyCategory
+        private readonly Dictionary<string, string?> _serviceCategoryCache = BuildServiceCategoryCache(tracesForTest, serviceTypeOverrides);
+
+        private static Dictionary<string, string?> BuildServiceCategoryCache(
+            List<RequestResponseLog> traces,
+            Dictionary<string, string>? overrides)
+        {
+            var cache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var trace in traces)
+            {
+                if (cache.ContainsKey(trace.ServiceName)) continue;
+
+                // User override takes priority
+                if (overrides?.TryGetValue(trace.ServiceName, out var overrideCategory) == true)
+                {
+                    cache[trace.ServiceName] = overrideCategory;
+                    continue;
+                }
+
+                // Auto-detect from DependencyCategory on first request targeting this service
+                var category = traces
+                    .Where(t => t.ServiceName == trace.ServiceName && t.DependencyCategory is not null)
+                    .Select(t => t.DependencyCategory)
+                    .FirstOrDefault();
+                cache[trace.ServiceName] = category;
+            }
+            return cache;
+        }
+
+        /// <summary>Returns the arrow color syntax (e.g. <c>[#E74C3C]</c>) for a given service, or empty if coloring is off.</summary>
+        public string GetArrowColor(string serviceName, string? dependencyCategory)
+        {
+            if (!sequenceDiagramArrowColors) return "";
+
+            // Use cached category for the service (accounts for overrides and auto-detection)
+            var category = _serviceCategoryCache.TryGetValue(serviceName, out var cached) ? cached : dependencyCategory;
+            var color = DependencyPalette.GetColor(category, dependencyColors);
+            return $"[{color}]";
+        }
 
         public void Append(string text) => _currentDiagram.Append(text);
         public void AppendLine(string text) => _currentDiagram.AppendLine(text);
@@ -521,7 +621,8 @@ public static partial class PlantUmlCreator
             _lengthAtLastEncode = 0;
             _estimatedHeight = 0;
             _results.Add(new PlantUmlResult(plainText, encodedPlantUml));
-            _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber, plantUmlTheme));
+            _currentDiagram = new StringBuilder(CreatePlantUmlPrefix(tracesForTest, _stepNumber, plantUmlTheme,
+                sequenceDiagramArrowColors, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides));
 
             if (partitionToReopen != null)
             {
