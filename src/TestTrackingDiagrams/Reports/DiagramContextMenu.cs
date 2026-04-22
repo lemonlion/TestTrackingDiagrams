@@ -1726,12 +1726,12 @@ public static class DiagramContextMenu
                 return 'truncated';
             }
 
-            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines, grp) {
+            function createNoteButtons(svg, bbox, noteStep, onExpand, onContract, onTruncate, onCycle, contentLines, grp, container) {
                 var size = 12;
                 var topSize = 14;
                 var pad = 3;
                 var state = noteStepState(noteStep);
-                var longNote = isLongNote(contentLines);
+                var longNote = isLongNote(contentLines, container._truncateLines);
                 var buttons = [];
 
                 // Top-right area: contract buttons — shown when expanded or truncated
@@ -1914,8 +1914,9 @@ public static class DiagramContextMenu
                     var tipText = tipLines.join('\n').trim();
                     if (tipText) {
                         var displayLines = tipText.split('\n');
-                        if (displayLines.length > window._truncateLines) {
-                            tipText = displayLines.slice(0, window._truncateLines).join('\n') + '\n...';
+                        var tipLimit = (container && container._truncateLines) || window._truncateLines;
+                        if (displayLines.length > tipLimit) {
+                            tipText = displayLines.slice(0, tipLimit).join('\n') + '\n...';
                         }
                         var titleEl = document.createElementNS(SVGNS, 'title');
                         titleEl.textContent = tipText;
@@ -1973,21 +1974,25 @@ public static class DiagramContextMenu
                         var bbox = getNoteBBox(grp);
                         var step = container._noteSteps[idx] || 0;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
-                        if (!isLongNote(noteBlocks[idx].contentLines) && step === 1) step = 2;
+                        if (!isLongNote(noteBlocks[idx].contentLines, container._truncateLines) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
-                            function() { setNoteState(container, idx, 2); },
+                            function() {
+                                var long = isLongNote(noteBlocks[idx].contentLines, container._truncateLines);
+                                var curStep = container._noteSteps[idx] || 0;
+                                setNoteState(container, idx, (long && curStep === 0) ? 1 : 2);
+                            },
                             function() { setNoteState(container, idx, 0); },
                             function() { setNoteState(container, idx, 1); },
                             function() {
                                 var curStep = container._noteSteps[idx] || 0;
-                                var long = isLongNote(noteBlocks[idx].contentLines);
+                                var long = isLongNote(noteBlocks[idx].contentLines, container._truncateLines);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
-                                else nextStep = 2;
+                                else nextStep = long ? 1 : 2;
                                 setNoteState(container, idx, nextStep);
                             },
-                            noteBlocks[idx].contentLines, grp);
+                            noteBlocks[idx].contentLines, grp, container);
                     })(ni);
                 }
             }

@@ -364,4 +364,473 @@ public class DiagramNoteTests : IDisposable
                    scenarioExpandedBtns.All(b => b.GetAttribute("class")!.Contains("details-active"));
         });
     }
+
+    // ══════════════════════════════════════════════════════════
+    // Long note 3-state cycle tests
+    // ══════════════════════════════════════════════════════════
+
+    private string GenerateLongNoteReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithLongNotes(_tempDir, OutputDir, fileName);
+
+    private void ExpandAndRenderLongNoteDiagram(string fileName)
+    {
+        _driver.Navigate().GoToUrl(GenerateLongNoteReport(fileName));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+        WaitForDiagramSvg();
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+    }
+
+    private IWebElement WaitForReRender(string previousSvgHtml, int timeoutSeconds = 15)
+    {
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
+        return wait.Until(d =>
+        {
+            try
+            {
+                var svg = d.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"));
+                return svg.GetAttribute("outerHTML") != previousSvgHtml ? svg : null;
+            }
+            catch { return null; }
+        }) ?? throw new TimeoutException("SVG did not re-render");
+    }
+
+    private string GetSvgHtml() =>
+        _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"))
+               .GetAttribute("outerHTML");
+
+    private void SetScenarioState(string state)
+    {
+        var btn = _driver.FindElement(By.CssSelector(
+            $".diagram-toggle .details-radio-btn[data-state='{state}']"));
+        btn.Click();
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+    }
+
+    private void DoubleClickFirstNoteAndWait()
+    {
+        var htmlBefore = GetSvgHtml();
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        // Use JS to dispatch dblclick directly on hover rect — Selenium's Actions.DoubleClick
+        // can miss the hover rect when SVG text elements rendered on top intercept the event.
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));",
+            hoverRect);
+        WaitForReRender(htmlBefore);
+    }
+
+    private void ClickNoteButton(string cssSelector)
+    {
+        var htmlBefore = GetSvgHtml();
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            var btn = d.FindElement(By.CssSelector(cssSelector));
+            return btn.GetCssValue("opacity") != "0";
+        });
+
+        var btn = _driver.FindElement(By.CssSelector(cssSelector + " rect"));
+        btn.Click();
+        WaitForReRender(htmlBefore);
+    }
+
+    private void ClickDownArrowAndWait()
+    {
+        var htmlBefore = GetSvgHtml();
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+            {
+                var texts = i.FindElements(By.TagName("text"));
+                return texts.Any(t => t.Text.Contains("\u25BC")) && i.GetCssValue("opacity") != "0";
+            });
+        });
+
+        var downArrowGroup = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25BC")));
+        downArrowGroup.FindElement(By.TagName("rect")).Click();
+        WaitForReRender(htmlBefore);
+    }
+
+    // ── Long note double-click cycle ──
+
+    [Fact]
+    public void Long_note_dblclick_from_expanded_goes_to_truncated()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteDblClickExpToTrunc.html");
+        SetScenarioState("expanded");
+
+        // Both notes expanded → both have minus. SVG should change on double-click.
+        DoubleClickFirstNoteAndWait();
+
+        // First note went expanded → truncated: still shows minus (truncated has minus)
+        var minusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='minus']"));
+        Assert.True(minusBtns.Count > 0, "Minus button should be present in truncated state");
+    }
+
+    [Fact]
+    public void Long_note_dblclick_from_truncated_goes_to_collapsed()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteDblClickTruncToColl.html");
+        SetScenarioState("truncated");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        // Double-click first note: truncated → collapsed
+        DoubleClickFirstNoteAndWait();
+
+        // Plus count should increase (new plus for collapsed first note)
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > plusBefore);
+    }
+
+    [Fact]
+    public void Long_note_dblclick_from_collapsed_goes_to_truncated_not_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteDblClickCollToTrunc.html");
+        SetScenarioState("collapsed");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+        Assert.True(plusBefore >= 2, "Both notes collapsed should have plus buttons");
+
+        // Double-click first note: collapsed → truncated (NOT expanded, because note is long)
+        DoubleClickFirstNoteAndWait();
+
+        // Plus should decrease — first note went from plus (collapsed) to minus (truncated)
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count < plusBefore);
+
+        // Verify no ▲ buttons (would only appear if note went to expanded, not truncated)
+        var upArrows = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(upArrows);
+    }
+
+    [Fact]
+    public void Long_note_full_3_state_cycle_via_dblclick()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNote3StateCycle.html");
+        SetScenarioState("expanded");
+
+        // expanded → truncated
+        DoubleClickFirstNoteAndWait();
+
+        // truncated → collapsed
+        DoubleClickFirstNoteAndWait();
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > 0);
+
+        // collapsed → truncated (NOT expanded)
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+        DoubleClickFirstNoteAndWait();
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count < plusBefore);
+    }
+
+    // ── ▼ button from collapsed / truncated ──
+
+    [Fact]
+    public void Long_note_down_arrow_from_collapsed_goes_to_truncated_not_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteDownArrowCollToTrunc.html");
+        SetScenarioState("collapsed");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        // Click ▼ on first note: collapsed → truncated (long note)
+        ClickDownArrowAndWait();
+
+        // Plus should decrease
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count < plusBefore);
+
+        // No ▲ should appear (would indicate expanded state, not truncated)
+        var upArrows = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(upArrows);
+    }
+
+    [Fact]
+    public void Long_note_down_arrow_from_truncated_goes_to_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteDownArrowTruncToExp.html");
+        SetScenarioState("truncated");
+
+        ClickDownArrowAndWait();
+
+        // ▲ should now appear (expanded long note has ▲)
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")));
+        });
+    }
+
+    [Fact]
+    public void Long_note_plus_button_from_collapsed_goes_to_truncated()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNotePlusCollToTrunc.html");
+        SetScenarioState("collapsed");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        ClickNoteButton("[data-note-btn='plus']");
+
+        // Plus should decrease (collapsed→truncated for long note)
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count < plusBefore);
+
+        // No ▲ — would mean expanded, not truncated
+        var upArrows = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(upArrows);
+    }
+
+    // ── ▲ button tests ──
+
+    [Fact]
+    public void Long_note_up_arrow_visible_when_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteUpArrowVisible.html");
+        SetScenarioState("expanded");
+
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
+                && i.GetCssValue("opacity") != "0");
+        });
+    }
+
+    [Fact]
+    public void Long_note_up_arrow_not_visible_when_truncated()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteUpArrowNotTrunc.html");
+        SetScenarioState("truncated");
+
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i => i.GetCssValue("opacity") != "0");
+        });
+
+        var upArrows = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(upArrows);
+    }
+
+    [Fact]
+    public void Long_note_up_arrow_click_goes_to_truncated()
+    {
+        ExpandAndRenderLongNoteDiagram("LongNoteUpArrowToTrunc.html");
+        SetScenarioState("expanded");
+
+        var htmlBefore = GetSvgHtml();
+        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
+                && i.GetCssValue("opacity") != "0");
+        });
+
+        var upArrowGroup = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")));
+        upArrowGroup.FindElement(By.TagName("rect")).Click();
+        WaitForReRender(htmlBefore);
+
+        // After clicking ▲, note went to truncated — ▲ should disappear
+        var upArrowsAfter = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(upArrowsAfter);
+    }
+
+    // ── Short note 2-state cycle ──
+
+    [Fact]
+    public void Short_note_dblclick_from_expanded_goes_to_collapsed()
+    {
+        ExpandAndRenderLongNoteDiagram("ShortNoteDblClickExpToColl.html");
+        SetScenarioState("expanded");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
+        Assert.True(hoverRects.Count >= 2, "Should have at least 2 notes");
+
+        var htmlBefore = GetSvgHtml();
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));",
+            hoverRects[1]);
+        WaitForReRender(htmlBefore);
+
+        // Second (short) note: expanded → collapsed = plus count increases
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > plusBefore);
+    }
+
+    [Fact]
+    public void Short_note_dblclick_from_collapsed_goes_to_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("ShortNoteDblClickCollToExp.html");
+        SetScenarioState("collapsed");
+
+        var minusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='minus']")).Count;
+
+        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
+        Assert.True(hoverRects.Count >= 2);
+
+        var htmlBefore = GetSvgHtml();
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));",
+            hoverRects[1]);
+        WaitForReRender(htmlBefore);
+
+        // Second (short) note: collapsed → expanded = minus count increases
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='minus']")).Count > minusBefore);
+    }
+
+    [Fact]
+    public void Short_note_no_up_arrow_when_expanded()
+    {
+        ExpandAndRenderLongNoteDiagram("ShortNoteNoUpArrow.html");
+        SetScenarioState("expanded");
+
+        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
+        Assert.True(hoverRects.Count >= 2);
+
+        // Hover second note (short)
+        new Actions(_driver).MoveToElement(hoverRects[1]).Perform();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i => i.GetCssValue("opacity") != "0");
+        });
+
+        var visibleUpArrows = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
+            .Where(i => i.GetCssValue("opacity") != "0")
+            .Where(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")))
+            .ToList();
+        Assert.Empty(visibleUpArrows);
+    }
+
+    // ── Truncation level change tests ──
+
+    [Fact]
+    public void Reducing_truncation_makes_short_note_become_long()
+    {
+        // Second note has 4 lines. At default=40, it's short. At truncation=3, 4>3 = long.
+        ExpandAndRenderLongNoteDiagram("NoteTruncReduceBecomesLong.html");
+
+        var select = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("3");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+
+        // Both notes now "long" at truncation=3. Set expanded to verify ▲ on second note.
+        SetScenarioState("expanded");
+
+        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
+        Assert.True(hoverRects.Count >= 2);
+        new Actions(_driver).MoveToElement(hoverRects[1]).Perform();
+
+        // ▲ should now appear for second note (it's "long" at truncation=3)
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
+                && i.GetCssValue("opacity") != "0");
+        });
+    }
+
+    [Fact]
+    public void Scenario_truncation_change_respected_by_note_buttons()
+    {
+        ExpandAndRenderLongNoteDiagram("ScenarioTruncChangeButtons.html");
+
+        var select = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("3");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+
+        SetScenarioState("expanded");
+
+        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
+        new Actions(_driver).MoveToElement(hoverRects[0]).Perform();
+
+        wait.Until(d =>
+        {
+            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i =>
+                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
+                && i.GetCssValue("opacity") != "0");
+        });
+    }
+
+    // ── Minus button tests ──
+
+    [Fact]
+    public void Minus_button_from_expanded_goes_to_collapsed()
+    {
+        ExpandAndRenderLongNoteDiagram("MinusExpToColl.html");
+        SetScenarioState("expanded");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        ClickNoteButton("[data-note-btn='minus']");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > plusBefore);
+    }
+
+    [Fact]
+    public void Minus_button_from_truncated_goes_to_collapsed()
+    {
+        ExpandAndRenderLongNoteDiagram("MinusTruncToColl.html");
+        SetScenarioState("truncated");
+
+        var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
+
+        ClickNoteButton("[data-note-btn='minus']");
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > plusBefore);
+    }
 }

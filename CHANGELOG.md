@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.22.2] - 2026-04-22
+
+### Fixed
+- **Note collapse/expand 3-state cycle for long notes**: Fixed three bugs in the note truncation/collapse/expand system:
+  1. The ▼ (expand) button and + button from collapsed state now correctly go to **truncated** (step 1) for long notes, instead of skipping directly to fully expanded (step 2).
+  2. The double-click cycle from collapsed state now correctly goes to **truncated** for long notes, instead of fully expanded.
+  3. `isLongNote()` checks now use the container's per-scenario `_truncateLines` value instead of falling back to the global `window._truncateLines`. This fixes the ▲ button not appearing after scenario-level truncation changes.
+- **Tooltip truncation for collapsed notes**: Collapsed note tooltips now respect the container's per-scenario truncation level instead of always using the global default.
+
+### Added
+- **Comprehensive Selenium tests for note state transitions**: Added 16 new Selenium tests covering all note collapse/expand/truncate state transitions including:
+  - Long note 3-state double-click cycle (expanded → truncated → collapsed → truncated)
+  - ▼ button from collapsed → truncated (not expanded) for long notes
+  - ▼ button from truncated → expanded
+  - ▲ button visibility and click behavior
+  - Short note 2-state cycle (expanded ↔ collapsed)
+  - Truncation level changes affecting note "long" classification
+  - Minus button state transitions
+
 ## [2.22.1] - 2026-04-22
 
 ### Fixed

@@ -307,4 +307,95 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// PlantUML source with one long note (more lines than the default truncation of 40)
+    /// and one short note (2 lines). Used by tests that verify the 3-state note cycle
+    /// for long notes vs the 2-state cycle for short notes.
+    /// </summary>
+    private const string LongNotePlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        caller -> svc : POST /api/orders
+        note left
+        Line 1
+        Line 2
+        Line 3
+        Line 4
+        Line 5
+        Line 6
+        Line 7
+        Line 8
+        Line 9
+        Line 10
+        Line 11
+        Line 12
+        Line 13
+        Line 14
+        Line 15
+        Line 16
+        Line 17
+        Line 18
+        Line 19
+        Line 20
+        Line 21
+        Line 22
+        Line 23
+        Line 24
+        Line 25
+        Line 26
+        Line 27
+        Line 28
+        Line 29
+        Line 30
+        Line 31
+        Line 32
+        Line 33
+        Line 34
+        Line 35
+        Line 36
+        Line 37
+        Line 38
+        Line 39
+        Line 40
+        Line 41
+        Line 42
+        Line 43
+        Line 44
+        Line 45
+        end note
+        svc -> db : INSERT INTO Orders
+        note left
+        Short note line 1
+        Short note line 2
+        Short note line 3
+        Short note line 4
+        end note
+        db --> svc : OK
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    public static string GenerateReportWithLongNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        // Only one diagram to avoid ambiguity in Selenium selectors
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", LongNotePlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }
