@@ -385,15 +385,22 @@ public class DiagramNoteTests : IDisposable
     private IWebElement WaitForReRender(string previousSvgHtml, int timeoutSeconds = 15)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
+        // Wait for the SVG to change AND for makeNotesCollapsible() to finish adding
+        // toggle icons. Under CPU load, there can be a gap between plantuml.js rendering
+        // the new SVG and the JS callback that creates toggle icons on it.
         return wait.Until(d =>
         {
             try
             {
                 var svg = d.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"));
-                return svg.GetAttribute("outerHTML") != previousSvgHtml ? svg : null;
+                if (svg.GetAttribute("outerHTML") == previousSvgHtml) return null;
+                // Ensure makeNotesCollapsible has run — it always creates at least one
+                // .note-toggle-icon per visible note (plus, minus, or arrow buttons).
+                var icons = svg.FindElements(By.CssSelector(".note-toggle-icon"));
+                return icons.Count > 0 ? svg : null;
             }
             catch { return null; }
-        }) ?? throw new TimeoutException("SVG did not re-render");
+        }) ?? throw new TimeoutException("SVG did not re-render with note toggle icons");
     }
 
     private string GetSvgHtml() =>
@@ -406,7 +413,11 @@ public class DiagramNoteTests : IDisposable
             $".diagram-toggle .details-radio-btn[data-state='{state}']"));
         btn.Click();
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+        // Wait for both hover rects (note backgrounds) and toggle icons
+        // (created by makeNotesCollapsible after re-render) to be present.
+        wait.Until(d =>
+            d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0 &&
+            d.FindElements(By.CssSelector(".note-toggle-icon")).Count > 0);
     }
 
     private void DoubleClickFirstNoteAndWait()
