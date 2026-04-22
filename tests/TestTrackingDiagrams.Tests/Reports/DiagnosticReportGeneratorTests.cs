@@ -65,6 +65,8 @@ public class DiagnosticReportGeneratorTests : IDisposable
     [Fact]
     public void No_tracking_component_section_when_none_registered()
     {
+        TrackingComponentRegistry.Clear();
+
         var html = DiagnosticReportGenerator.BuildHtml(
             [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
             [],

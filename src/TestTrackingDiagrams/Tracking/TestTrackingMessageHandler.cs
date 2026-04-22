@@ -13,10 +13,12 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private readonly Func<string?>? _currentStepTypeFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly IEnumerable<string> _headersToForward;
+    private readonly string[]? _internalFlowActivitySources;
     private string? _lastStepType;
     private bool _wasInGivenSection;
     private bool _actionStartInjected;
     private int _invocationCount;
+    private bool _listenerStarted;
 
     public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
@@ -26,9 +28,9 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _callingServiceName = options.CallingServiceName;
         _httpContextAccessor = httpContextAccessor;
         _headersToForward = options.HeadersToForward;
+        _internalFlowActivitySources = options.InternalFlowActivitySources;
         InnerHandler ??= new HttpClientHandler();
 
-        InternalFlow.InternalFlowActivityListener.EnsureStarted(options.InternalFlowActivitySources);
         TrackingComponentRegistry.Register(this);
     }
 
@@ -50,19 +52,28 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        // Deferred start — registering an ActivityListener during DI resolution
+        // can alter ActivitySource.HasListeners() state before the host and
+        // Application Insights' DependencyTrackingTelemetryModule have fully
+        // initialised, breaking HTTP dependency telemetry. Starting on first
+        // use guarantees all other services are ready.
+        if (!_listenerStarted)
+        {
+            InternalFlow.InternalFlowActivityListener.EnsureStarted(_internalFlowActivitySources);
+            _listenerStarted = true;
+        }
+
         ForwardHeaders(request);
 
         var requestResponseId = Guid.NewGuid();
 
-        // Ensure trace context propagation for in-process (TestServer) scenarios.
-        // Without this, the server generates a new TraceId for each request,
-        // and InternalFlowSegmentBuilder cannot correlate spans.
-        //
-        // We deliberately avoid creating/starting an Activity here — doing so
-        // would set Activity.Current, which changes how framework diagnostic
-        // pipelines (e.g. System.Net.Http.DiagnosticsHandler) and Application
-        // Insights SDK correlate telemetry. Instead we inject the traceparent
-        // header and record the IDs directly.
+        // Ensure trace context propagation for in-process (TestServer) scenarios
+        // where no framework DiagnosticsHandler exists in the pipeline.
+        // When Activity.Current IS present, a framework handler (e.g.
+        // DiagnosticsHandler inside SocketsHttpHandler) will create a proper
+        // child Activity and inject traceparent itself — pre-empting it here
+        // would inject the PARENT's span ID, breaking AI SDK dependency
+        // correlation. We therefore only inject when no ambient Activity exists.
         string? activityTraceId;
         string? activitySpanId;
         if (Activity.Current != null)
@@ -74,12 +85,11 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         {
             activityTraceId = ActivityTraceId.CreateRandom().ToString();
             activitySpanId = ActivitySpanId.CreateRandom().ToString();
-        }
-        if (!request.Headers.Contains("traceparent"))
-        {
-            var flags = Activity.Current?.Recorded == true ? "01" : "00";
-            request.Headers.TryAddWithoutValidation("traceparent",
-                $"00-{activityTraceId}-{activitySpanId}-{flags}");
+            if (!request.Headers.Contains("traceparent"))
+            {
+                request.Headers.TryAddWithoutValidation("traceparent",
+                    $"00-{activityTraceId}-{activitySpanId}-00");
+            }
         }
 
         var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);

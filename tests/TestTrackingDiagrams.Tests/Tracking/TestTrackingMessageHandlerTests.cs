@@ -1352,8 +1352,9 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
 
-        var traceparent = _innerHandler.CapturedRequest!.Headers.GetValues("traceparent").Single();
-        Assert.Contains(existingActivity.TraceId.ToString(), traceparent);
+        // When an ambient Activity exists, TTD should NOT inject traceparent —
+        // the framework's own DiagnosticsHandler handles trace propagation.
+        Assert.False(_innerHandler.CapturedRequest!.Headers.Contains("traceparent"));
 
         existingActivity.Stop();
     }

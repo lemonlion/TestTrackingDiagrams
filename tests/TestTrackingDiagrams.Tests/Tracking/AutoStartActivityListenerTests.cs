@@ -6,17 +6,43 @@ namespace TestTrackingDiagrams.Tests.Tracking;
 
 /// <summary>
 /// Tests for auto-starting <see cref="InternalFlowActivityListener"/>
-/// from the <see cref="TestTrackingMessageHandler"/> constructor.
-/// All tests use well-known sources + unique operation names for parallel safety.
+/// from the <see cref="TestTrackingMessageHandler"/>.
+/// The listener is started lazily on the first <c>SendAsync</c> call,
+/// not in the constructor, to avoid interfering with diagnostic pipelines
+/// that initialise during host startup.
+/// All tests use custom sources + unique operation names for parallel safety.
 /// No <c>ResetForTesting</c> — the static singleton is process-wide and shared.
 /// </summary>
 [Collection("InternalFlowSpanStore")]
 public class AutoStartActivityListenerTests
 {
-    [Fact]
-    public void Handler_construction_auto_starts_listener_for_custom_sources()
+    private static HttpMessageInvoker CreateInvoker(TestTrackingMessageHandlerOptions options)
     {
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
+        var handler = new TestTrackingMessageHandler(options)
+        {
+            InnerHandler = new StubHandler()
+        };
+        return new HttpMessageInvoker(handler);
+    }
+
+    private class StubHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("ok") });
+    }
+
+    private static TestTrackingMessageHandlerOptions DefaultOptions() => new()
+    {
+        CallingServiceName = "TestCaller",
+        FixedNameForReceivingService = "Target",
+        CurrentTestInfoFetcher = () => ("AutoStartTest", Guid.NewGuid().ToString()),
+    };
+
+    [Fact]
+    public async Task First_SendAsync_starts_listener_for_custom_sources()
+    {
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
 
         var sourceName = $"CustomApp.{Guid.NewGuid():N}";
         using var source = new ActivitySource(sourceName);
@@ -28,9 +54,10 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public void Handler_construction_does_not_listen_to_well_known_sources()
+    public async Task First_SendAsync_does_not_listen_to_well_known_sources()
     {
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
 
         var opName = $"http-{Guid.NewGuid():N}";
         using var source = new ActivitySource("System.Net.Http");
@@ -42,11 +69,12 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public void Multiple_handler_constructions_do_not_duplicate_spans()
+    public async Task Multiple_SendAsync_calls_do_not_duplicate_spans()
     {
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/a"), CancellationToken.None);
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/b"), CancellationToken.None);
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/c"), CancellationToken.None);
 
         var sourceName = $"MultiHandler.{Guid.NewGuid():N}";
         using var source = new ActivitySource(sourceName);
@@ -58,10 +86,11 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public void Auto_started_listener_captures_any_source()
+    public async Task Listener_captures_any_source()
     {
         var unknownSource = $"Unknown.{Guid.NewGuid():N}";
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
 
         using var source = new ActivitySource(unknownSource);
         using var activity = source.StartActivity("unknown-op");
@@ -72,9 +101,10 @@ public class AutoStartActivityListenerTests
     }
 
     [Fact]
-    public void Auto_started_listener_captures_spans_on_activity_stop()
+    public async Task Listener_captures_spans_on_activity_stop()
     {
-        _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
+        using var invoker = CreateInvoker(DefaultOptions());
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://target:80/api"), CancellationToken.None);
 
         var sourceName = $"StopTest.{Guid.NewGuid():N}";
         using var source = new ActivitySource(sourceName);
