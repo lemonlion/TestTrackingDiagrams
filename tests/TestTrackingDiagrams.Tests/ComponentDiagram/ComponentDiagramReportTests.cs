@@ -371,6 +371,73 @@ public class ComponentDiagramReportTests : IDisposable
     }
 
     [Fact]
+    public void EmbeddedComponentDiagram_Is_Hidden_By_Default()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "EmbedComponentHidden.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("""id="component-diagram""", content);
+        Assert.Contains("""style="display:none""", content);
+        Assert.DoesNotContain("<details", content.Substring(content.IndexOf("component-diagram-section"),
+            content.IndexOf("report-content") - content.IndexOf("component-diagram-section")));
+    }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Has_Toggle_Button_In_Toolbar()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "EmbedComponentToggleBtn.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("toggle_component_diagram(this)", content);
+        Assert.Contains(">Component Diagram</button>", content);
+    }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_No_Toggle_Button_When_Null()
+    {
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "NoComponentToggle.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: null);
+
+        var content = File.ReadAllText(html);
+        Assert.DoesNotContain("toggle_component_diagram", content);
+    }
+
+    [Fact]
+    public void EmbeddedComponentDiagram_Toggle_Function_Exists_In_Script()
+    {
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "EmbedComponentToggleJs.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("function toggle_component_diagram(btn)", content);
+        Assert.Contains("_renderDiagramsInContainer", content);
+    }
+
+    [Fact]
     public void EmbeddedComponentDiagram_Not_Present_When_Null()
     {
         var html = ReportGenerator.GenerateHtmlReport(

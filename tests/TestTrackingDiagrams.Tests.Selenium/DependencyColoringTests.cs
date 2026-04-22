@@ -84,24 +84,88 @@ public class DependencyColoringTests : IDisposable
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void Embedded_component_diagram_section_is_visible()
+    public void Component_diagram_is_hidden_by_default()
     {
-        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentEmbed.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentHiddenDefault.html"));
 
-        var section = WaitFor(By.CssSelector("details.component-diagram-section"));
-        Assert.True(section.Displayed, "Component diagram section should be visible");
+        WaitFor(By.CssSelector("details.feature"));
 
-        var summary = section.FindElement(By.CssSelector("summary"));
-        Assert.Contains("Component Diagram", summary.Text);
+        var section = _driver.FindElement(By.Id("component-diagram"));
+        var display = section.GetCssValue("display");
+        Assert.Equal("none", display);
     }
 
     [Fact]
-    public void Embedded_component_diagram_renders_SVG()
+    public void Component_diagram_toggle_button_exists()
     {
-        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentSvg.html"));
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentToggleBtn.html"));
 
-        var section = WaitFor(By.CssSelector("details.component-diagram-section"));
-        Assert.True(section.Displayed);
+        var button = WaitFor(By.CssSelector("button.timeline-toggle[onclick*='toggle_component_diagram']"));
+        Assert.Contains("Component Diagram", button.Text);
+    }
+
+    [Fact]
+    public void Component_diagram_toggle_button_not_present_without_diagram()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("NoComponentToggle.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        var buttons = _driver.FindElements(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+        Assert.Empty(buttons);
+    }
+
+    [Fact]
+    public void Component_diagram_toggle_shows_and_hides()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentToggleShowHide.html"));
+
+        var button = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+        var section = _driver.FindElement(By.Id("component-diagram"));
+
+        // Initially hidden
+        Assert.Equal("none", section.GetCssValue("display"));
+
+        // Click to show
+        button.Click();
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        wait.Until(_ => section.GetCssValue("display") != "none");
+
+        // Click to hide
+        button.Click();
+        wait.Until(_ => section.GetCssValue("display") == "none");
+    }
+
+    [Fact]
+    public void Component_diagram_toggle_button_has_active_class_when_shown()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentToggleActive.html"));
+
+        var button = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+
+        // Initially no active class
+        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class"));
+
+        // Click to show
+        button.Click();
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        wait.Until(_ => button.GetAttribute("class").Contains("timeline-toggle-active"));
+        Assert.Contains("timeline-toggle-active", button.GetAttribute("class"));
+
+        // Click to hide
+        button.Click();
+        wait.Until(_ => !button.GetAttribute("class").Contains("timeline-toggle-active"));
+        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class"));
+    }
+
+    [Fact]
+    public void Component_diagram_renders_SVG_after_toggle()
+    {
+        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentSvgToggle.html"));
+
+        var button = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
+
+        // Click to show — triggers _renderDiagramsInContainer
+        button.Click();
 
         // Wait for the PlantUML browser renderer to produce an SVG inside the component diagram section
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
@@ -109,7 +173,7 @@ public class DependencyColoringTests : IDisposable
         {
             try
             {
-                var el = d.FindElement(By.CssSelector(".component-diagram-section [data-diagram-type='plantuml'] svg"));
+                var el = d.FindElement(By.CssSelector("#component-diagram [data-diagram-type='plantuml'] svg"));
                 return el.Displayed ? el : null;
             }
             catch (NoSuchElementException) { return null; }
@@ -118,40 +182,6 @@ public class DependencyColoringTests : IDisposable
         Assert.NotNull(svg);
         var svgHtml = svg!.GetAttribute("outerHTML");
         Assert.Contains("svg", svgHtml);
-    }
-
-    [Fact]
-    public void Embedded_component_diagram_is_open_by_default()
-    {
-        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentOpen.html"));
-
-        var section = WaitFor(By.CssSelector("details.component-diagram-section"));
-
-        // The <details> element should be open by default
-        var isOpen = section.GetAttribute("open");
-        Assert.NotNull(isOpen);
-    }
-
-    [Fact]
-    public void Embedded_component_diagram_can_be_collapsed()
-    {
-        _driver.Navigate().GoToUrl(GenerateReportWithComponentDiagram("ComponentCollapse.html"));
-
-        var section = WaitFor(By.CssSelector("details.component-diagram-section"));
-        var summary = section.FindElement(By.CssSelector("summary"));
-
-        // Click to collapse
-        summary.Click();
-
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
-        wait.Until(d =>
-        {
-            var el = d.FindElement(By.CssSelector("details.component-diagram-section"));
-            return el.GetAttribute("open") == null;
-        });
-
-        var isOpen = section.GetAttribute("open");
-        Assert.Null(isOpen);
     }
 
     [Fact]

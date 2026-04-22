@@ -815,6 +815,22 @@ public static class ReportGenerator
                                      }
                                      """;
 
+        // Toggle component diagram
+        var toggleComponentDiagramFunction = !string.IsNullOrEmpty(componentDiagramPlantUml)
+            ? """
+              function toggle_component_diagram(btn) {
+                  var cd = document.getElementById('component-diagram');
+                  if (!cd) return;
+                  var hidden = cd.style.display === 'none';
+                  cd.style.display = hidden ? '' : 'none';
+                  btn.classList.toggle('timeline-toggle-active', hidden);
+                  if (hidden && window._renderDiagramsInContainer) {
+                      window._renderDiagramsInContainer(cd);
+                  }
+              }
+              """
+            : "";
+
         // Jump to failure
         var hasFailures = features.SelectMany(f => f.Scenarios).Any(s => s.Result == ExecutionResult.Failed);
         var failureCount = features.SelectMany(f => f.Scenarios).Count(s => s.Result == ExecutionResult.Failed);
@@ -1184,6 +1200,7 @@ public static class ReportGenerator
                                 {{toggleExamplesDetailFunction}}
                                 {{selectRowFunction}}
                                 {{toggleTimelineFunction}}
+                                {{toggleComponentDiagramFunction}}
                                 {{jumpToFailureFunction}}
                                 {{durationFilterFunction}}
                                 {{exportFunction}}
@@ -1443,6 +1460,8 @@ public static class ReportGenerator
         body.Append("""<div class="toolbar-left"><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.feature', 'Expand All Features', 'Collapse All Features')">Expand All Features</button><button class="collapse-expand-all" onclick="toggle_expand_collapse(this, 'details.scenario', 'Expand All Scenarios', 'Collapse All Scenarios')">Expand All Scenarios</button>""");
         if (hasDurations)
             body.Append("""<button class="timeline-toggle" onclick="toggle_timeline(this)">Scenario Timeline</button>""");
+        if (!string.IsNullOrEmpty(componentDiagramPlantUml))
+            body.Append("""<button class="timeline-toggle" onclick="toggle_component_diagram(this)">Component Diagram</button>""");
         body.Append("</div>");
         body.Append("""<div class="toolbar-right">""");
         if (isPlantUmlBrowser)
@@ -1536,10 +1555,7 @@ public static class ReportGenerator
         {
             var compDiagramId = $"puml-{plantUmlBrowserCounter++}";
             var compDiagramCompressed = InternalFlowHtmlGenerator.CompressToBase64(componentDiagramPlantUml);
-            body.Append("""<details class="component-diagram-section" open>""");
-            body.Append("""<summary class="h2">Component Diagram</summary>""");
-            body.Append($"""<div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml">Loading component diagram...</div>""");
-            body.Append("</details>");
+            body.Append($"""<div id="component-diagram" class="component-diagram-section" style="display:none"><div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml">Loading component diagram...</div></div>""");
         }
 
         body.Append("<div id=\"report-content\">");
