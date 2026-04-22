@@ -19,17 +19,41 @@ public class InternalFlowActivityListenerTests : IDisposable
     }
 
     [Fact]
-    public void Captures_spans_from_well_known_auto_instrumentation_source()
+    public void Does_not_listen_to_well_known_auto_instrumentation_sources()
     {
         _listener = new InternalFlowActivityListener();
 
-        // Use a unique-ish operation name to avoid collision
-        var opName = $"GET-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("System.Net.Http");
-        using var activity = source.StartActivity(opName);
+        foreach (var wellKnownName in InternalFlowSpanCollector.WellKnownAutoInstrumentationSources)
+        {
+            var opName = $"{wellKnownName}-{Guid.NewGuid():N}";
+            using var source = new ActivitySource(wellKnownName);
+            using var activity = source.StartActivity(opName);
+            activity?.Stop();
+
+            Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
+                s => s.DisplayName == opName && s.Source.Name == wellKnownName);
+        }
+    }
+
+    [Fact]
+    public void Does_not_cause_HasListeners_for_well_known_framework_sources()
+    {
+        // This is the exact gate that DiagnosticsHandler.CreateActivity() checks.
+        // TTD must NOT cause it to return true for System.Net.Http.
+        using var httpSource = new ActivitySource("System.Net.Http.Test." + Guid.NewGuid().ToString("N"));
+        // Use a fresh unique name to avoid interference from other listeners in the process.
+        // The real test: creating our listener should NOT subscribe to well-known sources.
+        _listener = new InternalFlowActivityListener();
+
+        using var wellKnownSource = new ActivitySource("System.Net.Http");
+        // StartActivity returns null when no listener is subscribed
+        var activity = wellKnownSource.StartActivity("should-be-null");
+        // Note: In a test process other listeners may exist, so we can't assert null.
+        // Instead verify our listener didn't capture it.
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "should-be-null" && s.Source.Name == "System.Net.Http");
     }
 
     [Fact]
@@ -115,14 +139,15 @@ public class InternalFlowActivityListenerTests : IDisposable
     [Fact]
     public void Works_with_no_additional_sources()
     {
+        var sourceName = $"NoExtra.{Guid.NewGuid():N}";
         _listener = new InternalFlowActivityListener();
 
-        var opName = $"aspnet-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("Microsoft.AspNetCore");
-        using var activity = source.StartActivity(opName);
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity("no-extra-op");
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "no-extra-op" && s.Source.Name == sourceName);
     }
 
     [Fact]

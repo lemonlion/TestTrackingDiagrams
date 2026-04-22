@@ -14,20 +14,21 @@ namespace TestTrackingDiagrams.Tests.Tracking;
 public class AutoStartActivityListenerTests
 {
     [Fact]
-    public void Handler_construction_auto_starts_listener_for_well_known_sources()
+    public void Handler_construction_auto_starts_listener_for_custom_sources()
     {
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
 
-        var opName = $"aspnet-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("Microsoft.AspNetCore");
-        using var activity = source.StartActivity(opName);
+        var sourceName = $"CustomApp.{Guid.NewGuid():N}";
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity("custom-op");
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "custom-op" && s.Source.Name == sourceName);
     }
 
     [Fact]
-    public void Handler_construction_auto_starts_for_http_client_source()
+    public void Handler_construction_does_not_listen_to_well_known_sources()
     {
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
 
@@ -36,7 +37,8 @@ public class AutoStartActivityListenerTests
         using var activity = source.StartActivity(opName);
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == opName && s.Source.Name == "System.Net.Http");
     }
 
     [Fact]
@@ -46,12 +48,13 @@ public class AutoStartActivityListenerTests
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
 
-        var opName = $"once-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("System.Net.Http");
-        using var activity = source.StartActivity(opName);
+        var sourceName = $"MultiHandler.{Guid.NewGuid():N}";
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity("once-op");
         activity?.Stop();
 
-        Assert.Single(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.Single(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "once-op" && s.Source.Name == sourceName);
     }
 
     [Fact]
@@ -73,12 +76,13 @@ public class AutoStartActivityListenerTests
     {
         _ = new TestTrackingMessageHandler(new TestTrackingMessageHandlerOptions());
 
-        var opName = $"ef-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("Microsoft.EntityFrameworkCore");
-        using var activity = source.StartActivity(opName);
+        var sourceName = $"StopTest.{Guid.NewGuid():N}";
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity("stop-op");
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "stop-op" && s.Source.Name == sourceName);
     }
 
     [Fact]

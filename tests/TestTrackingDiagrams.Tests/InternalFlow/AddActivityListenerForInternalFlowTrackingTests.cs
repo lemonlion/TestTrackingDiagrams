@@ -28,7 +28,7 @@ public class AddActivityListenerForInternalFlowTrackingTests : IDisposable
     }
 
     [Fact]
-    public void Captures_spans_from_well_known_source()
+    public void Does_not_capture_spans_from_well_known_source()
     {
         BuildProvider(s => s.AddActivityListenerForInternalFlowTracking());
 
@@ -37,7 +37,8 @@ public class AddActivityListenerForInternalFlowTrackingTests : IDisposable
         using var activity = source.StartActivity(opName);
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.DoesNotContain(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == opName && s.Source.Name == "System.Net.Http");
     }
 
     [Fact]
@@ -116,14 +117,15 @@ public class AddActivityListenerForInternalFlowTrackingTests : IDisposable
     [Fact]
     public void Works_without_any_otel_sdk_configuration()
     {
+        var sourceName = $"NoOtel.{Guid.NewGuid():N}";
         BuildProvider(s => s.AddActivityListenerForInternalFlowTracking());
 
-        var opName = $"EF-{Guid.NewGuid():N}";
-        using var source = new ActivitySource("Microsoft.EntityFrameworkCore");
-        using var activity = source.StartActivity(opName);
+        using var source = new ActivitySource(sourceName);
+        using var activity = source.StartActivity("no-otel-op");
         activity?.Stop();
 
-        Assert.Contains(InternalFlowSpanStore.GetSpans(), s => s.DisplayName == opName);
+        Assert.Contains(InternalFlowSpanStore.GetSpans(),
+            s => s.DisplayName == "no-otel-op" && s.Source.Name == sourceName);
     }
 
     [Fact]
