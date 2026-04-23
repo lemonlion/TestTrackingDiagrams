@@ -9,24 +9,24 @@ namespace TestTrackingDiagrams.Tracking;
 /// </summary>
 public static class TrackingComponentRegistry
 {
-    private static readonly ConcurrentBag<ITrackingComponent> Components = [];
+    private static ConcurrentBag<ITrackingComponent> _components = [];
 
     /// <summary>
     /// Called by tracking component constructors to register themselves.
     /// </summary>
-    public static void Register(ITrackingComponent component) => Components.Add(component);
+    public static void Register(ITrackingComponent component) => _components.Add(component);
 
     /// <summary>
     /// Returns all components that were registered but have not processed any traffic.
     /// </summary>
     public static IReadOnlyList<ITrackingComponent> GetUnusedComponents()
-        => Components.Where(c => !c.WasInvoked).ToList();
+        => _components.Where(c => !c.WasInvoked).ToList();
 
     /// <summary>
     /// Returns all registered tracking components.
     /// </summary>
     public static IReadOnlyList<ITrackingComponent> GetRegisteredComponents()
-        => [.. Components];
+        => [.. _components];
 
     /// <summary>
     /// Removes all registered components. Call in test setup alongside
@@ -34,6 +34,6 @@ public static class TrackingComponentRegistry
     /// </summary>
     public static void Clear()
     {
-        while (Components.TryTake(out _)) { }
+        Interlocked.Exchange(ref _components, []);
     }
 }

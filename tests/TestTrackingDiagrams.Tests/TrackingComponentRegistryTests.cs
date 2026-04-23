@@ -2,6 +2,15 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests;
 
+[CollectionDefinition("TrackingComponentRegistry")]
+public class TrackingComponentRegistryCollection : ICollectionFixture<TrackingComponentRegistryFixture>;
+
+public class TrackingComponentRegistryFixture : IDisposable
+{
+    public TrackingComponentRegistryFixture() => TrackingComponentRegistry.Clear();
+    public void Dispose() => TrackingComponentRegistry.Clear();
+}
+
 [Collection("TrackingComponentRegistry")]
 public class TrackingComponentRegistryTests : IDisposable
 {
