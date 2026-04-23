@@ -1743,13 +1743,14 @@ public static class ReportGenerator
 
                 if (scenario.Steps is { Length: > 0 })
                 {
-                    body.Append("<div class=\"scenario-steps\">");
+                    body.Append("""<details class="scenario-steps" open>""");
+                    body.Append("""<summary class="h4">Steps</summary>""");
                     for (var si = 0; si < scenario.Steps.Length; si++)
                     {
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
                         RenderStep(body, scenario.Steps[si], numberPrefix);
                     }
-                    body.Append("</div>");
+                    body.Append("</details>");
 
                     RenderCombinedTabularParameters(body, scenario.Steps);
                 }

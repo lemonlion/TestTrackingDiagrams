@@ -585,7 +585,11 @@ public class Stylesheets
                 .scenario-steps {
                     margin: 0.5em 0 1em 0;
                     padding: 0.5em 1em;
-                    border-left: 3px solid rgb(200, 200, 200);
+                }
+
+                .scenario-steps > summary {
+                    cursor: pointer;
+                    padding: 0.3em 0;
                 }
 
                 .step {
@@ -1223,7 +1227,6 @@ public class Stylesheets
                 .search-help-table code { background: #2E2048; }
                 .search-help-note { color: #A78BFA; }
                 .search-help-note kbd { background: #2E2048; border-color: #5B21B6; }
-                .scenario-steps { border-left-color: #C4B5FD; }
                 .sub-steps { border-left-color: #DDD6FE; }
                 .feature-summary-table th { background: #F5F3FF; }
                 .param-success { background: #EDE9FE; }

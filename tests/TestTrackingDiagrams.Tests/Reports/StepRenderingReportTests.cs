@@ -48,7 +48,56 @@ public class StepRenderingReportTests
     {
         var scenario = new Scenario { Id = "s1", DisplayName = "No steps" };
         var content = GenerateReport(MakeFeatures(scenario), "NoSteps.html");
-        Assert.DoesNotContain("<div class=\"scenario-steps\">", content);
+        Assert.DoesNotContain("<details class=\"scenario-steps\"", content);
+    }
+
+    [Fact]
+    public void Report_wraps_steps_in_collapsible_details_element()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test scenario",
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Given", Text = "a valid request" },
+                new ScenarioStep { Keyword = "Then", Text = "the response is successful" }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "CollapsibleSteps.html");
+        Assert.Contains("<details class=\"scenario-steps\"", content);
+        Assert.Contains("<summary class=\"h4\">Steps</summary>", content);
+    }
+
+    [Fact]
+    public void Report_steps_details_element_is_open_by_default()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test scenario",
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Given", Text = "something" }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "StepsOpen.html");
+        Assert.Contains("<details class=\"scenario-steps\" open>", content);
+    }
+
+    [Fact]
+    public void Report_scenario_steps_css_has_no_border_left()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps = [new ScenarioStep { Keyword = "Given", Text = "something" }]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "StepNoBorder.html");
+        // The .scenario-steps CSS should not include a border-left
+        var cssStart = content.IndexOf(".scenario-steps {");
+        Assert.True(cssStart >= 0, ".scenario-steps CSS class should exist");
+        var cssEnd = content.IndexOf("}", cssStart);
+        var cssBlock = content[cssStart..cssEnd];
+        Assert.DoesNotContain("border-left", cssBlock);
     }
 
     [Fact]

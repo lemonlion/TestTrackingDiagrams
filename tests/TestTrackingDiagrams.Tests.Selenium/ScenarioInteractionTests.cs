@@ -250,6 +250,54 @@ public class ScenarioInteractionTests : IDisposable
         Assert.True(steps.Count >= 3, "First scenario should have at least 3 steps");
     }
 
+    [Fact]
+    public void Steps_section_is_collapsible_details_element()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("StepsCollapsible.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        var stepsDetails = _driver.FindElement(By.CssSelector("details.scenario-steps"));
+        Assert.NotNull(stepsDetails.GetAttribute("open"));
+
+        var summary = stepsDetails.FindElement(By.CssSelector("summary"));
+        Assert.Contains("Steps", summary.Text);
+    }
+
+    [Fact]
+    public void Steps_section_can_be_collapsed_by_clicking_summary()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("StepsCollapse.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        var stepsDetails = _driver.FindElement(By.CssSelector("details.scenario-steps"));
+        Assert.NotNull(stepsDetails.GetAttribute("open"));
+
+        stepsDetails.FindElement(By.CssSelector("summary")).Click();
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+        wait.Until(d =>
+        {
+            var el = d.FindElement(By.CssSelector("details.scenario-steps"));
+            return el.GetAttribute("open") == null;
+        });
+
+        Assert.Null(stepsDetails.GetAttribute("open"));
+    }
+
+    [Fact]
+    public void Steps_section_has_no_left_border()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("StepsNoBorder.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        var stepsDetails = _driver.FindElement(By.CssSelector("details.scenario-steps"));
+        var borderLeft = stepsDetails.GetCssValue("border-left-width");
+        Assert.Equal("0px", borderLeft);
+    }
+
     // ── Diagram container renders ──
 
     [Fact]
