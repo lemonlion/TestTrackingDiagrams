@@ -584,7 +584,6 @@ public class Stylesheets
 
                 .scenario-steps {
                     margin: 0.5em 0 1em 0;
-                    padding: 0.5em 1em;
                     border-radius: 1em;
                     border: 1px solid;
                     border-color: rgb(224, 224, 224);
@@ -592,9 +591,20 @@ public class Stylesheets
 
                 .scenario-steps > summary {
                     cursor: pointer;
-                    padding: 0.3em 0;
+                    padding: 1em;
                     background-color: white;
                     border-radius: 1em;
+                }
+
+                .scenario-steps > .step,
+                .scenario-steps > .step-collapsible {
+                    margin-left: 1em;
+                    margin-right: 1em;
+                }
+
+                .scenario-steps > .step:last-child,
+                .scenario-steps > .step-collapsible:last-child {
+                    margin-bottom: 1em;
                 }
 
                 .step {
