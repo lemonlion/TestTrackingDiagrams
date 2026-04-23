@@ -22,4 +22,8 @@ public record BlobTrackingMessageHandlerOptions
         "User-Agent",
         "Cache-Control"
     ];
+    public BlobTrackingVerbosity? SetupVerbosity { get; set; }
+    public BlobTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

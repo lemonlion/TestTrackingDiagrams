@@ -21,6 +21,10 @@ public class MessageTracker : ITrackingComponent
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly Func<(string Name, string Id)>? _testInfoFallback;
     private readonly MessageTrackerVerbosity _verbosity;
+    private readonly MessageTrackerVerbosity? _setupVerbosity;
+    private readonly MessageTrackerVerbosity? _actionVerbosity;
+    private readonly bool _trackDuringSetup;
+    private readonly bool _trackDuringAction;
     private int _invocationCount;
 
     /// <summary>
@@ -36,6 +40,10 @@ public class MessageTracker : ITrackingComponent
         _serializerOptions = options.SerializerOptions ?? new JsonSerializerOptions();
         _testInfoFallback = options.CurrentTestInfoFetcher;
         _verbosity = options.Verbosity;
+        _setupVerbosity = options.SetupVerbosity;
+        _actionVerbosity = options.ActionVerbosity;
+        _trackDuringSetup = options.TrackDuringSetup;
+        _trackDuringAction = options.TrackDuringAction;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -57,6 +65,8 @@ public class MessageTracker : ITrackingComponent
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions();
         _testInfoFallback = testInfoFallback;
         _verbosity = MessageTrackerVerbosity.Detailed;
+        _trackDuringSetup = true;
+        _trackDuringAction = true;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -79,12 +89,16 @@ public class MessageTracker : ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_trackDuringSetup, _trackDuringAction))
+            return Guid.Empty;
+
         var testInfo = GetTestInfo();
         if (testInfo is null)
             return Guid.Empty;
 
         var requestResponseId = Guid.NewGuid();
-        var content = _verbosity == MessageTrackerVerbosity.Summarised
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_verbosity, _setupVerbosity, _actionVerbosity);
+        var content = effectiveVerbosity == MessageTrackerVerbosity.Summarised
             ? null
             : JsonSerializer.Serialize(payload, _serializerOptions);
 
@@ -106,7 +120,8 @@ public class MessageTracker : ITrackingComponent
         {
             Timestamp = DateTimeOffset.UtcNow,
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
-            ActivityTraceId = Activity.Current?.TraceId.ToString()
+            ActivityTraceId = Activity.Current?.TraceId.ToString(),
+            Phase = TestPhaseContext.Current
         });
 
         return requestResponseId;
@@ -122,11 +137,15 @@ public class MessageTracker : ITrackingComponent
     /// <param name="responsePayload">Optional response payload (e.g. an acknowledgement). Will be JSON-serialised if provided.</param>
     public void TrackMessageResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null)
     {
+        if (!PhaseConfiguration.ShouldTrack(_trackDuringSetup, _trackDuringAction))
+            return;
+
         var testInfo = GetTestInfo();
         if (testInfo is null)
             return;
 
-        var content = _verbosity == MessageTrackerVerbosity.Summarised
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_verbosity, _setupVerbosity, _actionVerbosity);
+        var content = effectiveVerbosity == MessageTrackerVerbosity.Summarised
             ? null
             : responsePayload is not null
                 ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
@@ -151,7 +170,8 @@ public class MessageTracker : ITrackingComponent
         {
             Timestamp = DateTimeOffset.UtcNow,
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
-            ActivityTraceId = Activity.Current?.TraceId.ToString()
+            ActivityTraceId = Activity.Current?.TraceId.ToString(),
+            Phase = TestPhaseContext.Current
         });
     }
 

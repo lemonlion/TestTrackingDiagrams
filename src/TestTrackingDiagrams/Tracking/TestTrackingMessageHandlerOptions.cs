@@ -25,4 +25,10 @@ public record TestTrackingMessageHandlerOptions
 
     /// <summary>OpenTelemetry activity source names to capture for internal flow diagrams.</summary>
     public string[]? InternalFlowActivitySources { get; set; }
+
+    /// <summary>When <c>false</c>, HTTP requests made during the Setup phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringSetup { get; set; } = true;
+
+    /// <summary>When <c>false</c>, HTTP requests made during the Action phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringAction { get; set; } = true;
 }

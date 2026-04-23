@@ -38,6 +38,10 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
@@ -46,18 +50,18 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
 
         if (_options.ExcludedOperations.Contains(op.Operation)) return;
 
-        var label = ElasticsearchOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = ElasticsearchOperationClassifier.BuildUri(op, _options.Verbosity, requestUri);
+        var label = ElasticsearchOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = ElasticsearchOperationClassifier.BuildUri(op, effectiveVerbosity, requestUri);
 
         string? requestBody = null;
-        if (_options.Verbosity != ElasticsearchTrackingVerbosity.Summarised
+        if (effectiveVerbosity != ElasticsearchTrackingVerbosity.Summarised
             && requestBodyBytes is not null)
         {
             requestBody = Encoding.UTF8.GetString(requestBodyBytes);
         }
 
         string? responseBody = null;
-        if (_options.Verbosity == ElasticsearchTrackingVerbosity.Raw
+        if (effectiveVerbosity == ElasticsearchTrackingVerbosity.Raw
             && responseBodyBytes is not null)
         {
             responseBody = Encoding.UTF8.GetString(responseBodyBytes);
@@ -76,7 +80,10 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             RequestResponseType.Request, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
-                : null));
+                : null)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -88,6 +95,9 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             RequestResponseType.Response, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
-                : null));
+                : null)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 }

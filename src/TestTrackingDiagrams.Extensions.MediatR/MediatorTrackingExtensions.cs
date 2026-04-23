@@ -22,7 +22,9 @@ public static class MediatorTrackingExtensions
             LogMode = options.LogMode,
             CurrentTestInfoFetcher = options.CurrentTestInfoFetcher,
             UriScheme = "mock",
-            SerializerOptions = options.SerializerOptions
+            SerializerOptions = options.SerializerOptions,
+            TrackDuringSetup = options.TrackDuringSetup,
+            TrackDuringAction = options.TrackDuringAction
         };
 
         // Store the options so we can resolve the real mediator later and wrap it

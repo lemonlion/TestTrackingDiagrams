@@ -13,4 +13,8 @@ public record KafkaTrackingOptions
     public bool LogMessageKey { get; set; } = true;
     public bool TrackSubscribe { get; set; } = false;
     public bool TrackCommit { get; set; } = false;
+    public KafkaTrackingVerbosity? SetupVerbosity { get; set; }
+    public KafkaTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

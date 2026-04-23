@@ -7,4 +7,8 @@ public record PubSubTrackingOptions
     public PubSubTrackingVerbosity Verbosity { get; set; } = PubSubTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
+    public PubSubTrackingVerbosity? SetupVerbosity { get; set; }
+    public PubSubTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

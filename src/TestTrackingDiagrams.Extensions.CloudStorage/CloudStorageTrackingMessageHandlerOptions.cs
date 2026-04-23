@@ -11,4 +11,8 @@ public record CloudStorageTrackingMessageHandlerOptions
     [
         "Authorization", "x-goog-api-client", "User-Agent"
     ];
+    public CloudStorageTrackingVerbosity? SetupVerbosity { get; set; }
+    public CloudStorageTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

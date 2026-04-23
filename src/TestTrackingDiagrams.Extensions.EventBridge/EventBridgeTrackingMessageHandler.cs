@@ -34,7 +34,15 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
 
         var ebOp = EventBridgeOperationClassifier.Classify(request, requestBody);
 
-        if (_options.Verbosity == EventBridgeTrackingVerbosity.Summarised && ebOp.Operation == EventBridgeOperation.Other)
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+        {
+            ReconstructContent(request, requestBody);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        if (effectiveVerbosity == EventBridgeTrackingVerbosity.Summarised && ebOp.Operation == EventBridgeOperation.Other)
         {
             ReconstructContent(request, requestBody);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -56,19 +64,19 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = EventBridgeOperationClassifier.GetDiagramLabel(ebOp, _options.Verbosity);
+        var label = EventBridgeOperationClassifier.GetDiagramLabel(ebOp, effectiveVerbosity);
 
-        var logRequestContent = _options.Verbosity == EventBridgeTrackingVerbosity.Summarised
+        var logRequestContent = effectiveVerbosity == EventBridgeTrackingVerbosity.Summarised
             ? null
             : requestBody;
 
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == EventBridgeTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == EventBridgeTrackingVerbosity.Raw
             ? request.Method
             : label;
 
-        var requestUri = _options.Verbosity == EventBridgeTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == EventBridgeTrackingVerbosity.Raw
             ? request.RequestUri!
             : BuildCleanUri(ebOp);
 
@@ -85,17 +93,20 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             traceId,
             requestResponseId,
             false
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         ReconstructContent(request, requestBody);
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = _options.Verbosity == EventBridgeTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == EventBridgeTrackingVerbosity.Summarised
             ? null
             : await response.Content.ReadAsStringAsync(cancellationToken);
 
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -111,7 +122,10 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             requestResponseId,
             false,
             response.StatusCode
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
@@ -123,9 +137,9 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
         request.Content = new StringContent(body, Encoding.UTF8, mediaType);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, EventBridgeTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == EventBridgeTrackingVerbosity.Summarised)
+        if (verbosity == EventBridgeTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -134,9 +148,9 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, EventBridgeTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == EventBridgeTrackingVerbosity.Summarised)
+        if (verbosity == EventBridgeTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

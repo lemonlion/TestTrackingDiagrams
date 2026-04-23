@@ -36,4 +36,16 @@ public record MessageTrackerOptions
     /// JSON serialiser options used when serialising message payloads.
     /// </summary>
     public JsonSerializerOptions? SerializerOptions { get; set; }
+
+    /// <summary>Verbosity override for the Setup phase. <c>null</c> = use <see cref="Verbosity"/>.</summary>
+    public MessageTrackerVerbosity? SetupVerbosity { get; set; }
+
+    /// <summary>Verbosity override for the Action phase. <c>null</c> = use <see cref="Verbosity"/>.</summary>
+    public MessageTrackerVerbosity? ActionVerbosity { get; set; }
+
+    /// <summary>When <c>false</c>, messages during the Setup phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringSetup { get; set; } = true;
+
+    /// <summary>When <c>false</c>, messages during the Action phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringAction { get; set; } = true;
 }

@@ -34,9 +34,13 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
         var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
 
-        if (_options.Verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
+        if (effectiveVerbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
             return;
 
         var testInfo = GetTestInfo();
@@ -49,14 +53,14 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         // Store the IDs so LogCommandExecuted can retrieve them
         _pendingIds[command] = (traceId, requestResponseId);
 
-        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, _options.Verbosity);
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == SqlTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SqlTrackingVerbosity.Raw
             ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
             : label!;
 
-        var requestUri = BuildUri(command, sqlOp, _options.Verbosity);
-        var content = _options.Verbosity == SqlTrackingVerbosity.Summarised ? null : command.CommandText;
+        var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
+        var content = effectiveVerbosity == SqlTrackingVerbosity.Summarised ? null : command.CommandText;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -72,14 +76,21 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             requestResponseId,
             false,
             DependencyCategory: "SQL"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     public void LogCommandExecuted(DbCommand command, int? rowsAffected = null)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
         var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
 
-        if (_options.Verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
+        if (effectiveVerbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
             return;
 
         var testInfo = GetTestInfo();
@@ -90,14 +101,14 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         if (!_pendingIds.TryRemove(command, out var ids))
             ids = (Guid.NewGuid(), Guid.NewGuid());
 
-        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, _options.Verbosity);
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == SqlTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SqlTrackingVerbosity.Raw
             ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
             : label!;
 
-        var requestUri = BuildUri(command, sqlOp, _options.Verbosity);
-        var content = _options.Verbosity == SqlTrackingVerbosity.Summarised
+        var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
+        var content = effectiveVerbosity == SqlTrackingVerbosity.Summarised
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
@@ -116,7 +127,10 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             false,
             (OneOf<System.Net.HttpStatusCode, string>)"OK",
             DependencyCategory: "SQL"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     // ─── EF Core DbCommandInterceptor overrides ────────────────

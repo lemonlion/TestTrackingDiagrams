@@ -34,7 +34,15 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var snsOp = SnsOperationClassifier.Classify(request, requestBody);
 
-        if (_options.Verbosity == SnsTrackingVerbosity.Summarised && snsOp.Operation == SnsOperation.Other)
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+        {
+            ReconstructContent(request, requestBody);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        if (effectiveVerbosity == SnsTrackingVerbosity.Summarised && snsOp.Operation == SnsOperation.Other)
         {
             ReconstructContent(request, requestBody);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -50,19 +58,19 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = SnsOperationClassifier.GetDiagramLabel(snsOp, _options.Verbosity);
+        var label = SnsOperationClassifier.GetDiagramLabel(snsOp, effectiveVerbosity);
 
-        var logRequestContent = _options.Verbosity == SnsTrackingVerbosity.Summarised
+        var logRequestContent = effectiveVerbosity == SnsTrackingVerbosity.Summarised
             ? null
             : requestBody;
 
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == SnsTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SnsTrackingVerbosity.Raw
             ? request.Method
             : label!;
 
-        var requestUri = _options.Verbosity == SnsTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == SnsTrackingVerbosity.Raw
             ? request.RequestUri!
             : BuildCleanUri(snsOp);
 
@@ -79,17 +87,20 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         ReconstructContent(request, requestBody);
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = _options.Verbosity == SnsTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == SnsTrackingVerbosity.Summarised
             ? null
             : await response.Content.ReadAsStringAsync(cancellationToken);
 
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -105,7 +116,10 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             requestResponseId,
             false,
             response.StatusCode
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
@@ -117,9 +131,9 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         request.Content = new StringContent(body, Encoding.UTF8, mediaType);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, SnsTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == SnsTrackingVerbosity.Summarised)
+        if (verbosity == SnsTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -128,9 +142,9 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, SnsTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == SnsTrackingVerbosity.Summarised)
+        if (verbosity == SnsTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

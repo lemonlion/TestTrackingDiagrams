@@ -34,7 +34,15 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var sqsOp = SqsOperationClassifier.Classify(request, requestBody);
 
-        if (_options.Verbosity == SqsTrackingVerbosity.Summarised && sqsOp.Operation == SqsOperation.Other)
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+        {
+            ReconstructContent(request, requestBody);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        if (effectiveVerbosity == SqsTrackingVerbosity.Summarised && sqsOp.Operation == SqsOperation.Other)
         {
             ReconstructContent(request, requestBody);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -50,19 +58,19 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = SqsOperationClassifier.GetDiagramLabel(sqsOp, _options.Verbosity);
+        var label = SqsOperationClassifier.GetDiagramLabel(sqsOp, effectiveVerbosity);
 
-        var logRequestContent = _options.Verbosity == SqsTrackingVerbosity.Summarised
+        var logRequestContent = effectiveVerbosity == SqsTrackingVerbosity.Summarised
             ? null
             : requestBody;
 
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == SqsTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SqsTrackingVerbosity.Raw
             ? request.Method
             : label!;
 
-        var requestUri = _options.Verbosity == SqsTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == SqsTrackingVerbosity.Raw
             ? request.RequestUri!
             : BuildCleanUri(sqsOp);
 
@@ -79,17 +87,20 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         ReconstructContent(request, requestBody);
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = _options.Verbosity == SqsTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == SqsTrackingVerbosity.Summarised
             ? null
             : await response.Content.ReadAsStringAsync(cancellationToken);
 
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -105,7 +116,10 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             requestResponseId,
             false,
             response.StatusCode
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
@@ -117,9 +131,9 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         request.Content = new StringContent(body, Encoding.UTF8, mediaType);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, SqsTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == SqsTrackingVerbosity.Summarised)
+        if (verbosity == SqsTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -128,9 +142,9 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, SqsTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == SqsTrackingVerbosity.Summarised)
+        if (verbosity == SqsTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

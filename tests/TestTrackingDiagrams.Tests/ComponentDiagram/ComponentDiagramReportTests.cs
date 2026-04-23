@@ -471,12 +471,29 @@ public class ComponentDiagramReportTests : IDisposable
     }
 
     [Fact]
-    public void Null_ComponentDiagramOptions_Does_Not_Embed_Component_Diagram()
+    public void Null_ComponentDiagramOptions_Embeds_Component_Diagram_By_Default()
     {
-        // When ComponentDiagramOptions is null (user hasn't opted in), the component
-        // diagram should NOT be embedded — preserving backward compatibility.
-        var options = new ReportConfigurationOptions { ComponentDiagramOptions = null };
-        Assert.Null(options.ComponentDiagramOptions);
+        // When ComponentDiagramOptions is null (default), the component diagram should
+        // still be embedded because EmbedInTestRunReport defaults to true.
+        var plantUml = "@startuml\nleft to right direction\nrectangle A\n@enduml";
+
+        var html = ReportGenerator.GenerateHtmlReport(
+            MakeDiagrams(), MakeFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "NullOptionsEmbed.html", "Test", true,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: plantUml);
+
+        var content = File.ReadAllText(html);
+        Assert.Contains("component-diagram-section", content);
+    }
+
+    [Fact]
+    public void Explicit_EmbedInTestRunReport_False_Does_Not_Embed()
+    {
+        // When explicitly set to false, component diagram should NOT be embedded.
+        var options = new ComponentDiagramOptions { EmbedInTestRunReport = false };
+        Assert.False(options.EmbedInTestRunReport);
     }
 
     [Fact]

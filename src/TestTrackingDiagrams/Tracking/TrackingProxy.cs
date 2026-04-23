@@ -15,6 +15,12 @@ public record TrackingProxyOptions
     public TrackingSerializerOptions? SerializerOptions { get; init; }
     public TrackingLogMode LogMode { get; init; } = TrackingLogMode.Immediate;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; init; }
+
+    /// <summary>When <c>false</c>, calls during the Setup phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringSetup { get; init; } = true;
+
+    /// <summary>When <c>false</c>, calls during the Action phase are not tracked. Default: <c>true</c>.</summary>
+    public bool TrackDuringAction { get; init; } = true;
 }
 
 public enum TrackingLogMode
@@ -156,6 +162,9 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
     private void LogInteraction(string methodName, Uri uri, string? requestContent,
         string? responseContent, HttpStatusCode statusCode, Activity? activity)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+
         if (_options.LogMode == TrackingLogMode.Deferred)
         {
             PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
@@ -178,7 +187,8 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
                 _options.CallingServiceName,
                 requestContent,
                 responseContent,
-                statusCode);
+                statusCode,
+                TestPhaseContext.Current);
         }
         catch
         {

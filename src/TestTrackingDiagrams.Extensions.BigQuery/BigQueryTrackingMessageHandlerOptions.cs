@@ -21,4 +21,8 @@ public record BigQueryTrackingMessageHandlerOptions
         "google-cloud-resource-prefix",
         "Cache-Control"
     ];
+    public BigQueryTrackingVerbosity? SetupVerbosity { get; set; }
+    public BigQueryTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

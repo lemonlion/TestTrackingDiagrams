@@ -7,4 +7,8 @@ public record ServiceBusTrackingOptions
     public ServiceBusTrackingVerbosity Verbosity { get; set; } = ServiceBusTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
+    public ServiceBusTrackingVerbosity? SetupVerbosity { get; set; }
+    public ServiceBusTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

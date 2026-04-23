@@ -13,4 +13,8 @@ public record SnsTrackingMessageHandlerOptions
         "x-amz-content-sha256", "User-Agent", "amz-sdk-invocation-id",
         "amz-sdk-request"
     ];
+    public SnsTrackingVerbosity? SetupVerbosity { get; set; }
+    public SnsTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

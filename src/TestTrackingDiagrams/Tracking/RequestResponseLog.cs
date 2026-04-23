@@ -27,6 +27,7 @@ public record RequestResponseLog(
     public DateTimeOffset? Timestamp { get; set; }
     public string? ActivitySpanId { get; set; }
     public string? ActivityTraceId { get; set; }
+    public TestPhase Phase { get; set; }
 };
 
 public enum RequestResponseType

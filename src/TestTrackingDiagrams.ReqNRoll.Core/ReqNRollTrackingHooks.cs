@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Reqnroll;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
@@ -29,7 +30,9 @@ public class ReqNRollTrackingHooks
     [BeforeStep(Order = int.MinValue)]
     public void BeforeStep()
     {
-        ReqNRollTestContext.CurrentStepType = _scenarioContext.StepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString();
+        var stepType = _scenarioContext.StepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString();
+        ReqNRollTestContext.CurrentStepType = stepType;
+        TestPhaseContext.Current = PhaseConfiguration.ResolvePhaseFromStepType(stepType);
         _scenarioContext[ReqNRollConstants.StepStopwatchKey] = Stopwatch.StartNew();
     }
 

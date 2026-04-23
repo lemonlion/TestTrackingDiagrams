@@ -35,7 +35,15 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
 
         var dynamoOp = DynamoDbOperationClassifier.Classify(request, requestBody);
 
-        if (_options.Verbosity == DynamoDbTrackingVerbosity.Summarised && dynamoOp.Operation == DynamoDbOperation.Other)
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+        {
+            ReconstructContent(request, requestBody);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        if (effectiveVerbosity == DynamoDbTrackingVerbosity.Summarised && dynamoOp.Operation == DynamoDbOperation.Other)
         {
             ReconstructContent(request, requestBody);
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -51,21 +59,21 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = DynamoDbOperationClassifier.GetDiagramLabel(dynamoOp, _options.Verbosity);
+        var label = DynamoDbOperationClassifier.GetDiagramLabel(dynamoOp, effectiveVerbosity);
 
-        var logRequestContent = _options.Verbosity == DynamoDbTrackingVerbosity.Summarised
+        var logRequestContent = effectiveVerbosity == DynamoDbTrackingVerbosity.Summarised
             ? null
             : requestBody;
 
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == DynamoDbTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == DynamoDbTrackingVerbosity.Raw
             ? request.Method
             : label!;
 
-        var requestUri = _options.Verbosity == DynamoDbTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == DynamoDbTrackingVerbosity.Raw
             ? request.RequestUri!
-            : BuildCleanUri(dynamoOp, _options.Verbosity);
+            : BuildCleanUri(dynamoOp, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -80,18 +88,21 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             traceId,
             requestResponseId,
             false
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         // Reconstruct content before forwarding since ReadAsStringAsync consumed the stream
         ReconstructContent(request, requestBody);
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = _options.Verbosity == DynamoDbTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == DynamoDbTrackingVerbosity.Summarised
             ? null
             : await response.Content.ReadAsStringAsync(cancellationToken);
 
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -107,7 +118,10 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             requestResponseId,
             false,
             response.StatusCode
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
@@ -119,9 +133,9 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         request.Content = new StringContent(body, Encoding.UTF8, mediaType);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, DynamoDbTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == DynamoDbTrackingVerbosity.Summarised)
+        if (verbosity == DynamoDbTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -130,9 +144,9 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, DynamoDbTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == DynamoDbTrackingVerbosity.Summarised)
+        if (verbosity == DynamoDbTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

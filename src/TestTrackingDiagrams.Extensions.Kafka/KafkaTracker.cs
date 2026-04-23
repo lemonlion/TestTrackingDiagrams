@@ -22,6 +22,8 @@ public class KafkaTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackProduce) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogOutgoing(op, content);
     }
 
@@ -30,6 +32,8 @@ public class KafkaTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackConsume) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogIncoming(op, content);
     }
 
@@ -38,6 +42,8 @@ public class KafkaTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackSubscribe) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogOutgoing(op, null);
     }
 
@@ -46,6 +52,8 @@ public class KafkaTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackCommit) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogOutgoing(op, null);
     }
 
@@ -54,10 +62,11 @@ public class KafkaTracker : ITrackingComponent
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = KafkaOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = KafkaOperationClassifier.BuildUri(op, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = KafkaOperationClassifier.BuildUri(op, effectiveVerbosity);
 
-        var body = _options.Verbosity == KafkaTrackingVerbosity.Summarised ? null : content;
+        var body = effectiveVerbosity == KafkaTrackingVerbosity.Summarised ? null : content;
 
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
@@ -67,14 +76,20 @@ public class KafkaTracker : ITrackingComponent
             label, body, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private void LogIncoming(KafkaOperationInfo op, string? content)
@@ -82,10 +97,11 @@ public class KafkaTracker : ITrackingComponent
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = KafkaOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = KafkaOperationClassifier.BuildUri(op, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = KafkaOperationClassifier.BuildUri(op, effectiveVerbosity);
 
-        var body = _options.Verbosity == KafkaTrackingVerbosity.Summarised ? null : content;
+        var body = effectiveVerbosity == KafkaTrackingVerbosity.Summarised ? null : content;
 
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
@@ -96,13 +112,19 @@ public class KafkaTracker : ITrackingComponent
             label, body, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 }

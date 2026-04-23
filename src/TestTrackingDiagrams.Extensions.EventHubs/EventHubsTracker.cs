@@ -20,24 +20,31 @@ public class EventHubsTracker : ITrackingComponent
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
         EventHubsOperationInfo operation, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return (Guid.Empty, Guid.Empty);
+
         Interlocked.Increment(ref _invocationCount);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return (Guid.Empty, Guid.Empty);
 
-        var uri = BuildUri(operation);
-        var label = EventHubsOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var uri = BuildUri(operation, effectiveVerbosity);
+        var label = EventHubsOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        var logContent = _options.Verbosity == EventHubsTrackingVerbosity.Summarised ? null : content;
+        var logContent = effectiveVerbosity == EventHubsTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return (requestResponseId, traceId);
     }
@@ -46,26 +53,33 @@ public class EventHubsTracker : ITrackingComponent
         EventHubsOperationInfo operation,
         Guid requestResponseId, Guid traceId, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var uri = BuildUri(operation);
-        var label = EventHubsOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var logContent = _options.Verbosity == EventHubsTrackingVerbosity.Summarised ? null : content;
+        var uri = BuildUri(operation, effectiveVerbosity);
+        var label = EventHubsOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+
+        var logContent = effectiveVerbosity == EventHubsTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
-            RequestResponseType.Response, traceId, requestResponseId, false));
+            RequestResponseType.Response, traceId, requestResponseId, false)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
-    private Uri BuildUri(EventHubsOperationInfo op)
+    private Uri BuildUri(EventHubsOperationInfo op, EventHubsTrackingVerbosity effectiveVerbosity)
     {
         var hub = op.EventHubName ?? "unknown";
 
-        return _options.Verbosity switch
+        return effectiveVerbosity switch
         {
             EventHubsTrackingVerbosity.Raw when op.PartitionId is not null =>
                 new Uri($"eventhubs:///{hub}/{op.PartitionId}"),

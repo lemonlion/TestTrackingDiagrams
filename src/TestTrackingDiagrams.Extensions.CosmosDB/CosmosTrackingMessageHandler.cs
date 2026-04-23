@@ -27,10 +27,14 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var cosmosOp = CosmosOperationClassifier.Classify(request);
 
         // Skip internal/metadata operations when in Summarised mode
-        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)
+        if (effectiveVerbosity == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
@@ -40,19 +44,19 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = CosmosOperationClassifier.GetDiagramLabel(cosmosOp, _options.Verbosity);
+        var label = CosmosOperationClassifier.GetDiagramLabel(cosmosOp, effectiveVerbosity);
 
-        var requestContent = await GetRequestContent(request, cosmosOp, cancellationToken);
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestContent = await GetRequestContent(request, cosmosOp, effectiveVerbosity, cancellationToken);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
         // Use the label as the "method" for Detailed/Summarised, or the real HTTP method for Raw
-        OneOf<HttpMethod, string> method = _options.Verbosity == CosmosTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == CosmosTrackingVerbosity.Raw
             ? request.Method
             : label;
 
-        var requestUri = _options.Verbosity == CosmosTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == CosmosTrackingVerbosity.Raw
             ? request.RequestUri!
-            : BuildCleanUri(request.RequestUri!, cosmosOp, _options.Verbosity);
+            : BuildCleanUri(request.RequestUri!, cosmosOp, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -68,12 +72,15 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             requestResponseId,
             false,
             DependencyCategory: "CosmosDB"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = await GetResponseContent(response, cancellationToken);
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseContent = await GetResponseContent(response, effectiveVerbosity, cancellationToken);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -90,38 +97,41 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             false,
             response.StatusCode,
             DependencyCategory: "CosmosDB"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
 
-    private async Task<string?> GetRequestContent(HttpRequestMessage request, CosmosOperationInfo op, CancellationToken ct)
+    private async Task<string?> GetRequestContent(HttpRequestMessage request, CosmosOperationInfo op, CosmosTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (request.Content is null)
             return null;
 
-        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+        if (verbosity == CosmosTrackingVerbosity.Summarised)
             return op.QueryText;
 
         var content = await request.Content.ReadAsStringAsync(ct);
 
-        if (_options.Verbosity == CosmosTrackingVerbosity.Detailed && op.Operation == CosmosOperation.Query)
+        if (verbosity == CosmosTrackingVerbosity.Detailed && op.Operation == CosmosOperation.Query)
             return op.QueryText;
 
         return content;
     }
 
-    private async Task<string?> GetResponseContent(HttpResponseMessage response, CancellationToken ct)
+    private async Task<string?> GetResponseContent(HttpResponseMessage response, CosmosTrackingVerbosity verbosity, CancellationToken ct)
     {
-        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+        if (verbosity == CosmosTrackingVerbosity.Summarised)
             return null;
 
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, CosmosTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+        if (verbosity == CosmosTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -130,9 +140,9 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, CosmosTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == CosmosTrackingVerbosity.Summarised)
+        if (verbosity == CosmosTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

@@ -18,4 +18,8 @@ public record S3TrackingMessageHandlerOptions
         "amz-sdk-invocation-id",
         "amz-sdk-request"
     ];
+    public S3TrackingVerbosity? SetupVerbosity { get; set; }
+    public S3TrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

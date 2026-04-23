@@ -22,6 +22,8 @@ public record LightBddTestTrackingMessageHandlerOptions : TestTrackingMessageHan
         while (info.Parent is IStepInfo parentStep)
             info = parentStep;
 
-        return info.Name?.StepTypeName?.Name;
+        var stepType = info.Name?.StepTypeName?.Name;
+        TestPhaseContext.Current = PhaseConfiguration.ResolvePhaseFromStepType(stepType);
+        return stepType;
     }
 }

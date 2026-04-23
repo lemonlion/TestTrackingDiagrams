@@ -7,4 +7,8 @@ public record EventHubsTrackingOptions
     public EventHubsTrackingVerbosity Verbosity { get; set; } = EventHubsTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
+    public EventHubsTrackingVerbosity? SetupVerbosity { get; set; }
+    public EventHubsTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

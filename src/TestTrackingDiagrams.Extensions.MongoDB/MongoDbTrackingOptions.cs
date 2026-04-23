@@ -23,4 +23,8 @@ public record MongoDbTrackingOptions
     /// Disabled by default as they add noise.
     /// </summary>
     public bool TrackGetMore { get; set; } = false;
+    public MongoDbTrackingVerbosity? SetupVerbosity { get; set; }
+    public MongoDbTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

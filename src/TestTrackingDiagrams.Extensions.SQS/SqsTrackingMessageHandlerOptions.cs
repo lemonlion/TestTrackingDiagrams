@@ -13,4 +13,8 @@ public record SqsTrackingMessageHandlerOptions
         "x-amz-content-sha256", "User-Agent", "amz-sdk-invocation-id",
         "amz-sdk-request"
     ];
+    public SqsTrackingVerbosity? SetupVerbosity { get; set; }
+    public SqsTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

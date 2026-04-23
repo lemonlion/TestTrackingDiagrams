@@ -25,7 +25,8 @@ public static class RequestResponseLogger
         string callerName,
         string? requestContent = null,
         string? responseContent = null,
-        HttpStatusCode? statusCode = null)
+        HttpStatusCode? statusCode = null,
+        TestPhase phase = TestPhase.Unknown)
     {
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
@@ -34,14 +35,16 @@ public static class RequestResponseLogger
         Log(new RequestResponseLog(testName, testId, method, requestContent, uri,
             [], serviceName, callerName, RequestResponseType.Request, traceId, requestResponseId, false)
         {
-            Timestamp = now
+            Timestamp = now,
+            Phase = phase
         });
 
         Log(new RequestResponseLog(testName, testId, method, responseContent, uri,
             [], serviceName, callerName, RequestResponseType.Response, traceId, requestResponseId, false,
             statusCode is not null ? (OneOf<HttpStatusCode, string>)statusCode.Value : null)
         {
-            Timestamp = now
+            Timestamp = now,
+            Phase = phase
         });
     }
 }

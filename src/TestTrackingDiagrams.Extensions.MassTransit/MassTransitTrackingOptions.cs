@@ -12,4 +12,8 @@ public record MassTransitTrackingOptions
     public bool TrackConsume { get; set; } = true;
     public bool LogMessageBody { get; set; } = true;
     public bool LogFaults { get; set; } = true;
+    public MassTransitTrackingVerbosity? SetupVerbosity { get; set; }
+    public MassTransitTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

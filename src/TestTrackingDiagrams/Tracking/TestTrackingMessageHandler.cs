@@ -14,6 +14,8 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly IEnumerable<string> _headersToForward;
     private readonly string[]? _internalFlowActivitySources;
+    private readonly bool _trackDuringSetup;
+    private readonly bool _trackDuringAction;
     private string? _lastStepType;
     private bool _wasInGivenSection;
     private bool _actionStartInjected;
@@ -29,6 +31,8 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _httpContextAccessor = httpContextAccessor;
         _headersToForward = options.HeadersToForward;
         _internalFlowActivitySources = options.InternalFlowActivitySources;
+        _trackDuringSetup = options.TrackDuringSetup;
+        _trackDuringAction = options.TrackDuringAction;
         InnerHandler ??= new HttpClientHandler();
 
         TrackingComponentRegistry.Register(this);
@@ -141,6 +145,10 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         var requestFocusFields = !hasCurrentTestNameHeader ? DiagramFocus.ConsumePendingRequestFocus() : null;
         var responseFocusFields = !hasCurrentTestNameHeader ? DiagramFocus.ConsumePendingResponseFocus() : null;
 
+        var trackingIgnore = requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
+                             || !PhaseConfiguration.ShouldTrack(_trackDuringSetup, _trackDuringAction);
+        var currentPhase = TestPhaseContext.Current;
+
         RequestResponseLogger.Log(new RequestResponseLog(
             currentTestInfo.Name,
             currentTestInfo.Id,
@@ -153,13 +161,14 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore)
+            trackingIgnore
         )
         {
             FocusFields = requestFocusFields,
             Timestamp = DateTimeOffset.UtcNow,
             ActivitySpanId = activitySpanId,
-            ActivityTraceId = activityTraceId
+            ActivityTraceId = activityTraceId,
+            Phase = currentPhase
         });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -179,14 +188,15 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             RequestResponseType.Response,
             traceId,
             requestResponseId,
-            requestHeaders.Any(x => x.Key == TestTrackingHttpHeaders.Ignore),
+            trackingIgnore,
             response.StatusCode
             )
         {
             FocusFields = responseFocusFields,
             Timestamp = DateTimeOffset.UtcNow,
             ActivitySpanId = activitySpanId,
-            ActivityTraceId = activityTraceId
+            ActivityTraceId = activityTraceId,
+            Phase = currentPhase
         });
 
         return response;

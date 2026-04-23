@@ -119,6 +119,10 @@ public class TrackingDbCommand : DbCommand
     {
         _connection.IncrementInvocationCount();
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return null;
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var op = DapperOperationClassifier.Classify(CommandText, CommandType);
         if (_options.ExcludedOperations.Contains(op.Operation)) return null;
 
@@ -128,9 +132,9 @@ public class TrackingDbCommand : DbCommand
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        var label = DapperOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = BuildUri(op);
-        var content = _options.Verbosity == DapperTrackingVerbosity.Raw
+        var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = BuildUri(op, effectiveVerbosity);
+        var content = effectiveVerbosity == DapperTrackingVerbosity.Raw
             ? BuildParameterizedContent()
             : _options.LogSqlText ? CommandText : null;
 
@@ -146,22 +150,27 @@ public class TrackingDbCommand : DbCommand
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false));
+            false)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return (traceId, requestResponseId);
     }
 
     internal void LogResponse(Guid traceId, Guid requestResponseId, int? rowsAffected = null)
     {
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var op = DapperOperationClassifier.Classify(CommandText, CommandType);
         if (_options.ExcludedOperations.Contains(op.Operation)) return;
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = DapperOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = BuildUri(op);
-        var responseContent = _options.Verbosity == DapperTrackingVerbosity.Summarised
+        var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = BuildUri(op, effectiveVerbosity);
+        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
@@ -178,10 +187,13 @@ public class TrackingDbCommand : DbCommand
             traceId,
             requestResponseId,
             false,
-            (OneOf<HttpStatusCode, string>)"OK"));
+            (OneOf<HttpStatusCode, string>)"OK")
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
-    private Uri BuildUri(DapperOperationInfo op)
+    private Uri BuildUri(DapperOperationInfo op, DapperTrackingVerbosity verbosity)
     {
         var database = _connection.InnerConnection.Database;
         var dataSource = _connection.InnerConnection.DataSource;
@@ -189,7 +201,7 @@ public class TrackingDbCommand : DbCommand
         if (string.IsNullOrEmpty(database)) database = "unknown";
         if (string.IsNullOrEmpty(dataSource)) dataSource = "localhost";
 
-        return _options.Verbosity switch
+        return verbosity switch
         {
             DapperTrackingVerbosity.Raw => new Uri($"sql://{dataSource}/{database}"),
             DapperTrackingVerbosity.Summarised => op.TableName is not null

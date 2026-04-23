@@ -20,17 +20,21 @@ public class ServiceBusTracker : ITrackingComponent
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
         ServiceBusOperationInfo operation, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return (Guid.Empty, Guid.Empty);
+
         Interlocked.Increment(ref _invocationCount);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return (Guid.Empty, Guid.Empty);
 
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = ServiceBusOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
-        var uri = BuildUri(operation);
+        var label = ServiceBusOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+        var uri = BuildUri(operation, effectiveVerbosity);
 
         OneOf<System.Net.Http.HttpMethod, string> method = label;
 
@@ -45,7 +49,7 @@ public class ServiceBusTracker : ITrackingComponent
             testInfo.Value.Name,
             testInfo.Value.Id,
             method,
-            _options.Verbosity == ServiceBusTrackingVerbosity.Summarised ? null : content,
+            effectiveVerbosity == ServiceBusTrackingVerbosity.Summarised ? null : content,
             uri,
             [],
             _options.ServiceName,
@@ -56,7 +60,10 @@ public class ServiceBusTracker : ITrackingComponent
             false,
             MetaType: metaType,
             DependencyCategory: "ServiceBus"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return (requestResponseId, traceId);
     }
@@ -65,6 +72,8 @@ public class ServiceBusTracker : ITrackingComponent
         ServiceBusOperationInfo operation,
         Guid requestResponseId, Guid traceId, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return;
@@ -72,8 +81,10 @@ public class ServiceBusTracker : ITrackingComponent
         if (requestResponseId == Guid.Empty)
             return;
 
-        var label = ServiceBusOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
-        var uri = BuildUri(operation);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var label = ServiceBusOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+        var uri = BuildUri(operation, effectiveVerbosity);
 
         OneOf<System.Net.Http.HttpMethod, string> method = label;
 
@@ -88,7 +99,7 @@ public class ServiceBusTracker : ITrackingComponent
             testInfo.Value.Name,
             testInfo.Value.Id,
             method,
-            _options.Verbosity == ServiceBusTrackingVerbosity.Summarised ? null : content,
+            effectiveVerbosity == ServiceBusTrackingVerbosity.Summarised ? null : content,
             uri,
             [],
             _options.ServiceName,
@@ -99,15 +110,18 @@ public class ServiceBusTracker : ITrackingComponent
             false,
             MetaType: metaType,
             DependencyCategory: "ServiceBus"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
-    private Uri BuildUri(ServiceBusOperationInfo op)
+    private Uri BuildUri(ServiceBusOperationInfo op, ServiceBusTrackingVerbosity effectiveVerbosity)
     {
         var queue = op.QueueOrTopicName ?? "unknown";
         var sub = op.SubscriptionName;
 
-        return _options.Verbosity switch
+        return effectiveVerbosity switch
         {
             ServiceBusTrackingVerbosity.Summarised => new Uri($"servicebus://{queue}/"),
             ServiceBusTrackingVerbosity.Detailed => sub is not null

@@ -25,4 +25,8 @@ public record CosmosTrackingMessageHandlerOptions
         "x-ms-cosmos-sdk-supportedcapabilities",
         "x-ms-cosmos-internal-operation-type"
     ];
+    public CosmosTrackingVerbosity? SetupVerbosity { get; set; }
+    public CosmosTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

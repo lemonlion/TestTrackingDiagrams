@@ -23,6 +23,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackSend) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogOutgoing(op, message);
     }
 
@@ -31,6 +33,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackPublish) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogOutgoing(op, message);
     }
 
@@ -39,6 +43,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.TrackConsume) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogIncoming(op, message);
     }
 
@@ -47,6 +53,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.LogFaults) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogFault(op, exception, outgoing: true);
     }
 
@@ -55,6 +63,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.LogFaults) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogFault(op, exception, outgoing: true);
     }
 
@@ -63,6 +73,8 @@ public class MassTransitTracker : ITrackingComponent
         Interlocked.Increment(ref _invocationCount);
 
         if (!_options.LogFaults) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
         LogFault(op, exception, outgoing: false);
     }
 
@@ -71,10 +83,11 @@ public class MassTransitTracker : ITrackingComponent
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = MassTransitOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = MassTransitOperationClassifier.BuildUri(op, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var label = MassTransitOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = MassTransitOperationClassifier.BuildUri(op, effectiveVerbosity);
 
-        var body = _options.LogMessageBody && _options.Verbosity != MassTransitTrackingVerbosity.Summarised && message is not null
+        var body = _options.LogMessageBody && effectiveVerbosity != MassTransitTrackingVerbosity.Summarised && message is not null
             ? JsonSerializer.Serialize(message, message.GetType())
             : null;
 
@@ -86,14 +99,20 @@ public class MassTransitTracker : ITrackingComponent
             label, body, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private void LogIncoming(MassTransitOperationInfo op, object? message)
@@ -101,10 +120,11 @@ public class MassTransitTracker : ITrackingComponent
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = MassTransitOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = MassTransitOperationClassifier.BuildUri(op, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var label = MassTransitOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = MassTransitOperationClassifier.BuildUri(op, effectiveVerbosity);
 
-        var body = _options.LogMessageBody && _options.Verbosity != MassTransitTrackingVerbosity.Summarised && message is not null
+        var body = _options.LogMessageBody && effectiveVerbosity != MassTransitTrackingVerbosity.Summarised && message is not null
             ? JsonSerializer.Serialize(message, message.GetType())
             : null;
 
@@ -117,14 +137,20 @@ public class MassTransitTracker : ITrackingComponent
             label, body, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private void LogFault(MassTransitOperationInfo op, Exception exception, bool outgoing)
@@ -132,8 +158,9 @@ public class MassTransitTracker : ITrackingComponent
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var label = MassTransitOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
-        var uri = MassTransitOperationClassifier.BuildUri(op, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var label = MassTransitOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        var uri = MassTransitOperationClassifier.BuildUri(op, effectiveVerbosity);
 
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
@@ -146,7 +173,10 @@ public class MassTransitTracker : ITrackingComponent
             label, exception.Message, uri, [],
             svc, caller,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -154,6 +184,9 @@ public class MassTransitTracker : ITrackingComponent
             svc, caller,
             RequestResponseType.Response, traceId, requestResponseId, false,
             StatusCode: "Fault",
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 }

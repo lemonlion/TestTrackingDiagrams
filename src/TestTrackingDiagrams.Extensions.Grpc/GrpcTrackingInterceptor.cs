@@ -28,15 +28,19 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return continuation(request, context);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return continuation(request, context);
 
         var opInfo = Classify(context);
-        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
         var serviceName = ResolveServiceName(opInfo);
-        var uri = BuildUri(opInfo);
-        var requestContent = SerializeMessage(request);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
+        var requestContent = SerializeMessage(request, effectiveVerbosity);
         var headers = GetCallHeaders(context);
 
         var traceId = Guid.NewGuid();
@@ -47,7 +51,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var call = continuation(request, context);
 
         var wrappedResponseAsync = WrapUnaryResponse(
-            call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId);
+            call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId, effectiveVerbosity);
 
         return new AsyncUnaryCall<TResponse>(
             wrappedResponseAsync,
@@ -64,15 +68,19 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return continuation(request, context);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return continuation(request, context);
 
         var opInfo = Classify(context);
-        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
         var serviceName = ResolveServiceName(opInfo);
-        var uri = BuildUri(opInfo);
-        var requestContent = SerializeMessage(request);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
+        var requestContent = SerializeMessage(request, effectiveVerbosity);
         var headers = GetCallHeaders(context);
 
         var traceId = Guid.NewGuid();
@@ -83,7 +91,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         try
         {
             var response = continuation(request, context);
-            var responseContent = SerializeMessage(response);
+            var responseContent = SerializeMessage(response, effectiveVerbosity);
             LogResponse(testInfo.Value, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
             return response;
         }
@@ -102,15 +110,19 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return continuation(request, context);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return continuation(request, context);
 
         var opInfo = Classify(context);
-        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
         var serviceName = ResolveServiceName(opInfo);
-        var uri = BuildUri(opInfo);
-        var requestContent = SerializeMessage(request);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
+        var requestContent = SerializeMessage(request, effectiveVerbosity);
         var headers = GetCallHeaders(context);
 
         var traceId = Guid.NewGuid();
@@ -131,14 +143,18 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return continuation(context);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return continuation(context);
 
         var opInfo = Classify(context);
-        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
         var serviceName = ResolveServiceName(opInfo);
-        var uri = BuildUri(opInfo);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
         var headers = GetCallHeaders(context);
 
         var traceId = Guid.NewGuid();
@@ -159,14 +175,18 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return continuation(context);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return continuation(context);
 
         var opInfo = Classify(context);
-        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var label = GrpcOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
         var serviceName = ResolveServiceName(opInfo);
-        var uri = BuildUri(opInfo);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
         var headers = GetCallHeaders(context);
 
         var traceId = Guid.NewGuid();
@@ -185,12 +205,12 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         Task<TResponse> responseTask,
         (string Name, string Id) testInfo,
         string label, Uri uri, string serviceName,
-        Guid traceId, Guid requestResponseId)
+        Guid traceId, Guid requestResponseId, GrpcTrackingVerbosity effectiveVerbosity)
     {
         try
         {
             var response = await responseTask;
-            var responseContent = SerializeMessage(response);
+            var responseContent = SerializeMessage(response, effectiveVerbosity);
             LogResponse(testInfo, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
             return response;
         }
@@ -211,7 +231,10 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             testInfo.Name, testInfo.Id,
             label, content, uri,
             headers, serviceName, _options.CallingServiceName,
-            RequestResponseType.Request, traceId, requestResponseId, false));
+            RequestResponseType.Request, traceId, requestResponseId, false)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private void LogResponse(
@@ -224,7 +247,10 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             label, content, uri,
             [], serviceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            statusCode));
+            statusCode)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private static GrpcOperationInfo Classify<TRequest, TResponse>(
@@ -246,9 +272,9 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             : _options.ServiceName;
     }
 
-    private Uri BuildUri(GrpcOperationInfo opInfo)
+    private Uri BuildUri(GrpcOperationInfo opInfo, GrpcTrackingVerbosity verbosity)
     {
-        return _options.Verbosity switch
+        return verbosity switch
         {
             GrpcTrackingVerbosity.Summarised =>
                 new Uri($"grpc:///{opInfo.ServiceName ?? "service"}/"),
@@ -259,9 +285,9 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         };
     }
 
-    private string? SerializeMessage<T>(T message)
+    private string? SerializeMessage<T>(T message, GrpcTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == GrpcTrackingVerbosity.Summarised) return null;
+        if (verbosity == GrpcTrackingVerbosity.Summarised) return null;
 
         if (message is IMessage protoMsg)
             return JsonFormatter.Default.Format(protoMsg);

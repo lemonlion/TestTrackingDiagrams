@@ -13,4 +13,8 @@ public record StorageQueueTrackingMessageHandlerOptions
         "x-ms-client-request-id", "x-ms-return-client-request-id",
         "User-Agent", "Cache-Control"
     ];
+    public StorageQueueTrackingVerbosity? SetupVerbosity { get; set; }
+    public StorageQueueTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

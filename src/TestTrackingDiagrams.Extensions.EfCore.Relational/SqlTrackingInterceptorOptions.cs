@@ -7,4 +7,8 @@ public record SqlTrackingInterceptorOptions
     public SqlTrackingVerbosity Verbosity { get; set; } = SqlTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
+    public SqlTrackingVerbosity? SetupVerbosity { get; set; }
+    public SqlTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

@@ -29,8 +29,13 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var blobOp = BlobOperationClassifier.Classify(request);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         // Skip internal/metadata operations when in Summarised mode
-        if (_options.Verbosity == BlobTrackingVerbosity.Summarised && blobOp.Operation == BlobOperation.Other)
+        if (effectiveVerbosity == BlobTrackingVerbosity.Summarised && blobOp.Operation == BlobOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
@@ -40,18 +45,18 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = BlobOperationClassifier.GetDiagramLabel(blobOp, _options.Verbosity);
+        var label = BlobOperationClassifier.GetDiagramLabel(blobOp, effectiveVerbosity);
 
-        var requestContent = await GetRequestContent(request, cancellationToken);
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestContent = await GetRequestContent(request, effectiveVerbosity, cancellationToken);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == BlobTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == BlobTrackingVerbosity.Raw
             ? request.Method
             : label;
 
-        var requestUri = _options.Verbosity == BlobTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == BlobTrackingVerbosity.Raw
             ? request.RequestUri!
-            : BuildCleanUri(request.RequestUri!, blobOp, _options.Verbosity);
+            : BuildCleanUri(request.RequestUri!, blobOp, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -67,12 +72,15 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             requestResponseId,
             false,
             DependencyCategory: "BlobStorage"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = await GetResponseContent(response, cancellationToken);
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseContent = await GetResponseContent(response, effectiveVerbosity, cancellationToken);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -89,33 +97,36 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             false,
             response.StatusCode,
             DependencyCategory: "BlobStorage"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
 
-    private async Task<string?> GetRequestContent(HttpRequestMessage request, CancellationToken ct)
+    private async Task<string?> GetRequestContent(HttpRequestMessage request, BlobTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (request.Content is null)
             return null;
 
-        if (_options.Verbosity == BlobTrackingVerbosity.Summarised)
+        if (verbosity == BlobTrackingVerbosity.Summarised)
             return null;
 
         return await request.Content.ReadAsStringAsync(ct);
     }
 
-    private async Task<string?> GetResponseContent(HttpResponseMessage response, CancellationToken ct)
+    private async Task<string?> GetResponseContent(HttpResponseMessage response, BlobTrackingVerbosity verbosity, CancellationToken ct)
     {
-        if (_options.Verbosity == BlobTrackingVerbosity.Summarised)
+        if (verbosity == BlobTrackingVerbosity.Summarised)
             return null;
 
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, BlobTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == BlobTrackingVerbosity.Summarised)
+        if (verbosity == BlobTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -124,9 +135,9 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, BlobTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == BlobTrackingVerbosity.Summarised)
+        if (verbosity == BlobTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

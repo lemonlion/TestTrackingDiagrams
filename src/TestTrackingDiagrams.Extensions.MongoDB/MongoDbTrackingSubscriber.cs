@@ -37,6 +37,10 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         if (_options.IgnoredCommands.Contains(e.CommandName)) return;
         if (!_options.TrackGetMore && e.CommandName.Equals("getMore", StringComparison.OrdinalIgnoreCase)) return;
 
@@ -48,14 +52,14 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             e.DatabaseNamespace?.DatabaseName,
             e.Command);
 
-        if (_options.Verbosity == MongoDbTrackingVerbosity.Summarised &&
+        if (effectiveVerbosity == MongoDbTrackingVerbosity.Summarised &&
             opInfo.Operation == MongoDbOperation.Other)
             return;
 
-        var uri = BuildUri(opInfo);
-        var label = MongoDbOperationClassifier.GetDiagramLabel(opInfo, _options.Verbosity);
+        var uri = BuildUri(opInfo, effectiveVerbosity);
+        var label = MongoDbOperationClassifier.GetDiagramLabel(opInfo, effectiveVerbosity);
 
-        var content = _options.Verbosity switch
+        var content = effectiveVerbosity switch
         {
             MongoDbTrackingVerbosity.Summarised => null,
             MongoDbTrackingVerbosity.Raw => e.Command?.ToString(),
@@ -73,14 +77,19 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             label,
             content, uri,
             [], _options.ServiceName, _options.CallingServiceName,
-            RequestResponseType.Request, traceId, requestResponseId, false));
+            RequestResponseType.Request, traceId, requestResponseId, false)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     public void OnCommandSucceeded(CommandSucceededEvent e)
     {
         if (!_pending.TryRemove(e.RequestId, out var pending)) return;
 
-        var content = _options.Verbosity switch
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var content = effectiveVerbosity switch
         {
             MongoDbTrackingVerbosity.Summarised => null,
             MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
@@ -93,7 +102,10 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             content, pending.Uri,
             [], _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
-            HttpStatusCode.OK));
+            HttpStatusCode.OK)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     public void OnCommandFailed(CommandFailedEvent e)
@@ -106,15 +118,18 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             e.Failure?.Message, pending.Uri,
             [], _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
-            HttpStatusCode.InternalServerError));
+            HttpStatusCode.InternalServerError)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
-    private Uri BuildUri(MongoDbOperationInfo opInfo)
+    private Uri BuildUri(MongoDbOperationInfo opInfo, MongoDbTrackingVerbosity verbosity)
     {
         var db = opInfo.DatabaseName ?? "unknown";
         var coll = opInfo.CollectionName;
 
-        return _options.Verbosity switch
+        return verbosity switch
         {
             MongoDbTrackingVerbosity.Summarised =>
                 new Uri($"mongodb:///{db}"),

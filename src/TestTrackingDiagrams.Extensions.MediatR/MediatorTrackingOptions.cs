@@ -10,4 +10,6 @@ public record MediatorTrackingOptions
     public TrackingLogMode LogMode { get; init; } = TrackingLogMode.Immediate;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; init; }
     public TrackingSerializerOptions? SerializerOptions { get; init; }
+    public bool TrackDuringSetup { get; init; } = true;
+    public bool TrackDuringAction { get; init; } = true;
 }

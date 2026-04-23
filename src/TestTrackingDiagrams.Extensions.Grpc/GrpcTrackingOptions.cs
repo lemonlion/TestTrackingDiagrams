@@ -8,4 +8,8 @@ public record GrpcTrackingOptions
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
     public bool UseProtoServiceNameInDiagram { get; set; } = false;
+    public GrpcTrackingVerbosity? SetupVerbosity { get; set; }
+    public GrpcTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

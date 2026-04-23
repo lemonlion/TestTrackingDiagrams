@@ -29,7 +29,12 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
 
         var gcsOp = CloudStorageOperationClassifier.Classify(request);
 
-        if (_options.Verbosity == CloudStorageTrackingVerbosity.Summarised && gcsOp.Operation == CloudStorageOperation.Other)
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        if (effectiveVerbosity == CloudStorageTrackingVerbosity.Summarised && gcsOp.Operation == CloudStorageOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
@@ -39,16 +44,16 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = CloudStorageOperationClassifier.GetDiagramLabel(gcsOp, _options.Verbosity);
+        var label = CloudStorageOperationClassifier.GetDiagramLabel(gcsOp, effectiveVerbosity);
 
-        var requestContent = await GetRequestContent(request, cancellationToken);
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestContent = await GetRequestContent(request, effectiveVerbosity, cancellationToken);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == CloudStorageTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == CloudStorageTrackingVerbosity.Raw
             ? request.Method
             : label;
 
-        var requestUri = _options.Verbosity == CloudStorageTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == CloudStorageTrackingVerbosity.Raw
             ? request.RequestUri!
             : BuildCleanUri(gcsOp);
 
@@ -65,12 +70,15 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
             traceId,
             requestResponseId,
             false
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = await GetResponseContent(response, cancellationToken);
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseContent = await GetResponseContent(response, effectiveVerbosity, cancellationToken);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -86,36 +94,39 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
             requestResponseId,
             false,
             response.StatusCode
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
 
-    private async Task<string?> GetRequestContent(HttpRequestMessage request, CancellationToken ct)
+    private async Task<string?> GetRequestContent(HttpRequestMessage request, CloudStorageTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (request.Content is null) return null;
-        if (_options.Verbosity == CloudStorageTrackingVerbosity.Summarised) return null;
+        if (verbosity == CloudStorageTrackingVerbosity.Summarised) return null;
         return await request.Content.ReadAsStringAsync(ct);
     }
 
-    private async Task<string?> GetResponseContent(HttpResponseMessage response, CancellationToken ct)
+    private async Task<string?> GetResponseContent(HttpResponseMessage response, CloudStorageTrackingVerbosity verbosity, CancellationToken ct)
     {
-        if (_options.Verbosity == CloudStorageTrackingVerbosity.Summarised) return null;
+        if (verbosity == CloudStorageTrackingVerbosity.Summarised) return null;
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, CloudStorageTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == CloudStorageTrackingVerbosity.Summarised) return [];
+        if (verbosity == CloudStorageTrackingVerbosity.Summarised) return [];
         return request.Headers
             .Where(h => !_options.ExcludedHeaders.Contains(h.Key))
             .SelectMany(h => h.Value.Select(v => (h.Key, (string?)v)))
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, CloudStorageTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == CloudStorageTrackingVerbosity.Summarised) return [];
+        if (verbosity == CloudStorageTrackingVerbosity.Summarised) return [];
         return response.Headers
             .Where(h => !_options.ExcludedHeaders.Contains(h.Key))
             .SelectMany(h => h.Value.Select(v => (h.Key, (string?)v)))

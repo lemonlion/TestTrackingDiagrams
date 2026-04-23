@@ -1,4 +1,5 @@
 using TestStack.BDDfy;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
@@ -18,6 +19,8 @@ internal class BDDfyStepTrackingExecutor(IStepExecutor inner) : IStepExecutor
             _ => null
         };
 
+        TestPhaseContext.Current = PhaseConfiguration.ResolvePhaseFromStepType(CurrentStepTypeLocal.Value);
+
         try
         {
             return inner.Execute(step, testObject);
@@ -25,6 +28,7 @@ internal class BDDfyStepTrackingExecutor(IStepExecutor inner) : IStepExecutor
         finally
         {
             CurrentStepTypeLocal.Value = null;
+            TestPhaseContext.Current = TestPhase.Unknown;
         }
     }
 }

@@ -24,9 +24,13 @@ public class RedisTracker : ITrackingComponent
     {
         Interlocked.Increment(ref _invocationCount);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return (Guid.Empty, Guid.Empty);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var op = RedisOperationClassifier.Classify(command, hasResult: false, key, db);
 
-        if (_options.Verbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
+        if (effectiveVerbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
             return (Guid.Empty, Guid.Empty);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
@@ -38,14 +42,14 @@ public class RedisTracker : ITrackingComponent
 
         // Request label never includes hit/miss — that's only known after the response
         var requestOp = op with { CacheResult = RedisCacheResult.None };
-        var label = RedisOperationClassifier.GetDiagramLabel(requestOp, _options.Verbosity);
+        var label = RedisOperationClassifier.GetDiagramLabel(requestOp, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == RedisTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == RedisTrackingVerbosity.Raw
             ? command.ToUpperInvariant()
             : label ?? op.Operation.ToString();
 
-        var requestUri = BuildUri(key, db, _options.Verbosity);
-        var logContent = _options.Verbosity == RedisTrackingVerbosity.Summarised ? null : content;
+        var requestUri = BuildUri(key, db, effectiveVerbosity);
+        var logContent = effectiveVerbosity == RedisTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -61,30 +65,37 @@ public class RedisTracker : ITrackingComponent
             requestResponseId,
             false,
             DependencyCategory: "Redis"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return (requestResponseId, traceId);
     }
 
     public void LogRedisResponse(string command, string? key, int db, bool hasResult, Guid requestResponseId, Guid traceId, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         var op = RedisOperationClassifier.Classify(command, hasResult, key, db);
 
-        if (_options.Verbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
+        if (effectiveVerbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
             return;
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null)
             return;
 
-        var label = RedisOperationClassifier.GetDiagramLabel(op, _options.Verbosity);
+        var label = RedisOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == RedisTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == RedisTrackingVerbosity.Raw
             ? command.ToUpperInvariant()
             : label ?? op.Operation.ToString();
 
-        var requestUri = BuildUri(key, db, _options.Verbosity);
-        var logContent = _options.Verbosity == RedisTrackingVerbosity.Summarised ? null : content;
+        var requestUri = BuildUri(key, db, effectiveVerbosity);
+        var logContent = effectiveVerbosity == RedisTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -101,7 +112,10 @@ public class RedisTracker : ITrackingComponent
             false,
             (OneOf<HttpStatusCode, string>)"OK",
             DependencyCategory: "Redis"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
     private Uri BuildUri(string? key, int db, RedisTrackingVerbosity verbosity)

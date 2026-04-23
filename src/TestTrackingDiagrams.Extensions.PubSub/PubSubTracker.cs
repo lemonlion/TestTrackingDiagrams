@@ -20,24 +20,31 @@ public class PubSubTracker : ITrackingComponent
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
         PubSubOperationInfo operation, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return (Guid.Empty, Guid.Empty);
+
         Interlocked.Increment(ref _invocationCount);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return (Guid.Empty, Guid.Empty);
 
-        var uri = BuildUri(operation);
-        var label = PubSubOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var uri = BuildUri(operation, effectiveVerbosity);
+        var label = PubSubOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        var logContent = _options.Verbosity == PubSubTrackingVerbosity.Summarised ? null : content;
+        var logContent = effectiveVerbosity == PubSubTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event));
+            MetaType: RequestResponseMetaType.Event)
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return (requestResponseId, traceId);
     }
@@ -46,28 +53,35 @@ public class PubSubTracker : ITrackingComponent
         PubSubOperationInfo operation,
         Guid requestResponseId, Guid traceId, string? content)
     {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
+
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
         if (testInfo is null) return;
 
-        var uri = BuildUri(operation);
-        var label = PubSubOperationClassifier.GetDiagramLabel(operation, _options.Verbosity);
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var logContent = _options.Verbosity == PubSubTrackingVerbosity.Summarised ? null : content;
+        var uri = BuildUri(operation, effectiveVerbosity);
+        var label = PubSubOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+
+        var logContent = effectiveVerbosity == PubSubTrackingVerbosity.Summarised ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
-            RequestResponseType.Response, traceId, requestResponseId, false));
+            RequestResponseType.Response, traceId, requestResponseId, false)
+        {
+            Phase = TestPhaseContext.Current
+        });
     }
 
-    private Uri BuildUri(PubSubOperationInfo op)
+    private Uri BuildUri(PubSubOperationInfo op, PubSubTrackingVerbosity effectiveVerbosity)
     {
         var topic = ShortName(op.TopicName);
         var sub = ShortName(op.SubscriptionName);
         var name = topic ?? sub ?? "unknown";
 
-        return _options.Verbosity switch
+        return effectiveVerbosity switch
         {
             PubSubTrackingVerbosity.Raw =>
                 new Uri($"pubsub:///{op.TopicName ?? op.SubscriptionName ?? "unknown"}"),

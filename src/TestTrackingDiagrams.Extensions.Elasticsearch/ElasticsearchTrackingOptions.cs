@@ -12,4 +12,8 @@ public class ElasticsearchTrackingOptions
         ElasticsearchOperation.ClusterHealth,
         ElasticsearchOperation.CatApis
     ];
+    public ElasticsearchTrackingVerbosity? SetupVerbosity { get; set; }
+    public ElasticsearchTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }

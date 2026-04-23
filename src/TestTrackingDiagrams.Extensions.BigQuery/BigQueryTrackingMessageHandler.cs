@@ -29,8 +29,13 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
 
         var bqOp = BigQueryOperationClassifier.Classify(request);
 
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
         // Skip unrecognised operations when in Summarised mode
-        if (_options.Verbosity == BigQueryTrackingVerbosity.Summarised && bqOp.Operation == BigQueryOperation.Other)
+        if (effectiveVerbosity == BigQueryTrackingVerbosity.Summarised && bqOp.Operation == BigQueryOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
@@ -40,18 +45,18 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         var requestResponseId = Guid.NewGuid();
         var traceId = Guid.NewGuid();
 
-        var label = BigQueryOperationClassifier.GetDiagramLabel(bqOp, _options.Verbosity);
+        var label = BigQueryOperationClassifier.GetDiagramLabel(bqOp, effectiveVerbosity);
 
-        var requestContent = await GetRequestContent(request, cancellationToken);
-        var requestHeaders = GetFilteredHeaders(request);
+        var requestContent = await GetRequestContent(request, effectiveVerbosity, cancellationToken);
+        var requestHeaders = GetFilteredHeaders(request, effectiveVerbosity);
 
-        OneOf<HttpMethod, string> method = _options.Verbosity == BigQueryTrackingVerbosity.Raw
+        OneOf<HttpMethod, string> method = effectiveVerbosity == BigQueryTrackingVerbosity.Raw
             ? request.Method
             : label!;
 
-        var requestUri = _options.Verbosity == BigQueryTrackingVerbosity.Raw
+        var requestUri = effectiveVerbosity == BigQueryTrackingVerbosity.Raw
             ? request.RequestUri!
-            : BuildCleanUri(request.RequestUri!, bqOp, _options.Verbosity);
+            : BuildCleanUri(request.RequestUri!, bqOp, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -67,12 +72,15 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             requestResponseId,
             false,
             DependencyCategory: "BigQuery"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContent = await GetResponseContent(response, cancellationToken);
-        var responseHeaders = GetFilteredHeaders(response);
+        var responseContent = await GetResponseContent(response, effectiveVerbosity, cancellationToken);
+        var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -89,33 +97,36 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             false,
             response.StatusCode,
             DependencyCategory: "BigQuery"
-        ));
+        )
+        {
+            Phase = TestPhaseContext.Current
+        });
 
         return response;
     }
 
-    private async Task<string?> GetRequestContent(HttpRequestMessage request, CancellationToken ct)
+    private async Task<string?> GetRequestContent(HttpRequestMessage request, BigQueryTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (request.Content is null)
             return null;
 
-        if (_options.Verbosity == BigQueryTrackingVerbosity.Summarised)
+        if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return null;
 
         return await request.Content.ReadAsStringAsync(ct);
     }
 
-    private async Task<string?> GetResponseContent(HttpResponseMessage response, CancellationToken ct)
+    private async Task<string?> GetResponseContent(HttpResponseMessage response, BigQueryTrackingVerbosity verbosity, CancellationToken ct)
     {
-        if (_options.Verbosity == BigQueryTrackingVerbosity.Summarised)
+        if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return null;
 
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, BigQueryTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == BigQueryTrackingVerbosity.Summarised)
+        if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return [];
 
         return request.Headers
@@ -124,9 +135,9 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             .ToArray();
     }
 
-    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response)
+    private (string Key, string? Value)[] GetFilteredHeaders(HttpResponseMessage response, BigQueryTrackingVerbosity verbosity)
     {
-        if (_options.Verbosity == BigQueryTrackingVerbosity.Summarised)
+        if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return [];
 
         return response.Headers

@@ -18,4 +18,8 @@ public record DynamoDbTrackingMessageHandlerOptions
         "amz-sdk-invocation-id",
         "amz-sdk-request"
     ];
+    public DynamoDbTrackingVerbosity? SetupVerbosity { get; set; }
+    public DynamoDbTrackingVerbosity? ActionVerbosity { get; set; }
+    public bool TrackDuringSetup { get; set; } = true;
+    public bool TrackDuringAction { get; set; } = true;
 }
