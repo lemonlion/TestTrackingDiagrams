@@ -148,7 +148,7 @@ span.label {
 /* ---------- Scenario / sub-step borders ---------- */
 
 .scenario-steps {
-    border-left-color: #C4B5FD;
+    border-color: #C4B5FD;
 }
 
 .sub-steps {

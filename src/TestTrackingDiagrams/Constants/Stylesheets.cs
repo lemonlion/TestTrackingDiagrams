@@ -585,11 +585,16 @@ public class Stylesheets
                 .scenario-steps {
                     margin: 0.5em 0 1em 0;
                     padding: 0.5em 1em;
+                    border-radius: 1em;
+                    border: 1px solid;
+                    border-color: rgb(224, 224, 224);
                 }
 
                 .scenario-steps > summary {
                     cursor: pointer;
                     padding: 0.3em 0;
+                    background-color: white;
+                    border-radius: 1em;
                 }
 
                 .step {

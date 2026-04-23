@@ -287,15 +287,17 @@ public class ScenarioInteractionTests : IDisposable
     }
 
     [Fact]
-    public void Steps_section_has_no_left_border()
+    public void Steps_section_has_rounded_border()
     {
-        _driver.Navigate().GoToUrl(GenerateReport("StepsNoBorder.html"));
+        _driver.Navigate().GoToUrl(GenerateReport("StepsBorder.html"));
         WaitFor(By.CssSelector("details.feature"));
         ExpandFirstScenarioWithDiagram();
 
         var stepsDetails = _driver.FindElement(By.CssSelector("details.scenario-steps"));
-        var borderLeft = stepsDetails.GetCssValue("border-left-width");
-        Assert.Equal("0px", borderLeft);
+        var borderWidth = stepsDetails.GetCssValue("border-width");
+        Assert.Equal("1px", borderWidth);
+        var borderRadius = stepsDetails.GetCssValue("border-radius");
+        Assert.Contains("16px", borderRadius); // 1em = 16px at default font size
     }
 
     // ── Diagram container renders ──

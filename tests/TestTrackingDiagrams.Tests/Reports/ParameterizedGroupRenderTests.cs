@@ -871,4 +871,25 @@ public class ParameterizedGroupRenderTests
         Assert.Contains(">Value</th>", content);
         Assert.Contains(">42</td>", content);
     }
+
+    [Fact]
+    public void Steps_in_detail_panel_use_details_summary_pattern()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test",
+                exampleValues: new() { ["a"] = "1" },
+                steps: [new ScenarioStep { Text = "Given a setup", Keyword = "Given" }]),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test",
+                exampleValues: new() { ["a"] = "2" },
+                steps: [new ScenarioStep { Text = "Given a setup", Keyword = "Given" }])
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("param-detail-panel", content);
+        // Should use <details> with <summary>, not a plain <div>
+        Assert.Contains("<details class=\"scenario-steps\" open>", content);
+        Assert.Contains("<summary class=\"h4\">Steps</summary>", content);
+        Assert.DoesNotContain("<div class=\"scenario-steps\">", content);
+    }
 }

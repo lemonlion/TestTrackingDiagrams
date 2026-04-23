@@ -509,4 +509,22 @@ public class StepRenderingReportTests
         var content = GenerateReport(MakeFeatures(scenario), "NoCategoryFilter.html");
         Assert.DoesNotContain("<div class=\"category-filters\">", content);
     }
+
+    [Fact]
+    public void Report_scenario_steps_css_has_rounded_border()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps = [new ScenarioStep { Keyword = "Given", Text = "something" }]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "StepBorder.html");
+        var cssStart = content.IndexOf(".scenario-steps {");
+        Assert.True(cssStart >= 0, ".scenario-steps CSS class should exist");
+        var cssEnd = content.IndexOf("}", cssStart);
+        var cssBlock = content[cssStart..cssEnd];
+        Assert.Contains("border-radius: 1em", cssBlock);
+        Assert.Contains("border: 1px solid", cssBlock);
+        Assert.Contains("border-color: rgb(224, 224, 224)", cssBlock);
+    }
 }
