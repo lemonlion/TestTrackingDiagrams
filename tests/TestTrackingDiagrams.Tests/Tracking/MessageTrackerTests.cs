@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("TrackingComponentRegistry")]
 public class MessageTrackerTests
 {
     private static RequestResponseLog[] GetLogsById(Guid requestResponseId)

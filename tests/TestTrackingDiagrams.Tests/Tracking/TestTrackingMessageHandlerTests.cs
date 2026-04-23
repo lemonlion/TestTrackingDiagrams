@@ -6,6 +6,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("TrackingComponentRegistry")]
 public class TestTrackingMessageHandlerTests : IDisposable
 {
     // ─── Test infrastructure ────────────────────────────────────
