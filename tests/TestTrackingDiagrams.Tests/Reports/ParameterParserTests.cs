@@ -212,4 +212,57 @@ public class ParameterParserTests
         var result = ParameterParser.ExtractBaseName("Name [a: 1] [b: 2] [c: 3]");
         Assert.Equal("Name", result);
     }
+
+    [Fact]
+    public void Parse_handles_record_ToString_in_brackets()
+    {
+        var result = ParameterParser.Parse(
+            "Test [testCase: MyRecord { Name = Test 0, Value = 42 }]");
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("MyRecord { Name = Test 0, Value = 42 }", result["testCase"]);
+    }
+
+    [Fact]
+    public void Parse_handles_nested_record_ToString_in_brackets()
+    {
+        var result = ParameterParser.Parse(
+            "Test [testCase: RefundUpfrontPaymentTestCase { Name = Test 0, Input = RefundUpfrontPaymentTestCaseInputs { CreditOrder = upfrontpayment, CreditAmount = 90, UpfrontPaymentAmount = 10, RefundAmount = 60 }, Expected = RefundUpfrontPaymentTestCaseExpectation { Amount = 60 } }]");
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.StartsWith("RefundUpfrontPaymentTestCase {", result["testCase"]);
+        Assert.EndsWith("}", result["testCase"]);
+    }
+
+    [Fact]
+    public void Parse_handles_braces_with_multiple_params_in_brackets()
+    {
+        var result = ParameterParser.Parse(
+            "Test [a: Rec { X = 1, Y = 2 }, b: 99]");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("Rec { X = 1, Y = 2 }", result["a"]);
+        Assert.Equal("99", result["b"]);
+    }
+
+    [Fact]
+    public void Parse_handles_braces_in_parens()
+    {
+        var result = ParameterParser.Parse(
+            "Test(obj: MyRecord { A = 1, B = 2 }, flag: true)");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("MyRecord { A = 1, B = 2 }", result["obj"]);
+        Assert.Equal("true", result["flag"]);
+    }
+
+    [Fact]
+    public void Parse_handles_deeply_nested_braces()
+    {
+        var result = ParameterParser.Parse(
+            "Test [x: Outer { Inner = Mid { Deep = 1, Val = 2 }, Other = 3 }]");
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("Outer { Inner = Mid { Deep = 1, Val = 2 }, Other = 3 }", result["x"]);
+    }
 }

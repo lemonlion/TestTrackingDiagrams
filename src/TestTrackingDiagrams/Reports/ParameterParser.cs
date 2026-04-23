@@ -129,9 +129,10 @@ public static class ParameterParser
 
     private static int FindColon(string s)
     {
-        // Find ':' that isn't inside quotes or parens
+        // Find ':' that isn't inside quotes, parens or braces
         var inQuote = false;
         var parenDepth = 0;
+        var braceDepth = 0;
         for (var i = 0; i < s.Length; i++)
         {
             var c = s[i];
@@ -141,7 +142,9 @@ public static class ParameterParser
             {
                 if (c == '(') parenDepth++;
                 else if (c == ')') parenDepth--;
-                else if (c == ':' && parenDepth == 0)
+                else if (c == '{') braceDepth++;
+                else if (c == '}') braceDepth--;
+                else if (c == ':' && parenDepth == 0 && braceDepth == 0)
                     return i;
             }
         }
@@ -154,6 +157,7 @@ public static class ParameterParser
         var current = new System.Text.StringBuilder();
         var inQuote = false;
         var parenDepth = 0;
+        var braceDepth = 0;
 
         for (var i = 0; i < inner.Length; i++)
         {
@@ -166,7 +170,9 @@ public static class ParameterParser
             {
                 if (c == '(') parenDepth++;
                 else if (c == ')') parenDepth--;
-                else if (c == ',' && parenDepth == 0)
+                else if (c == '{') braceDepth++;
+                else if (c == '}') braceDepth--;
+                else if (c == ',' && parenDepth == 0 && braceDepth == 0)
                 {
                     tokens.Add(current.ToString());
                     current.Clear();
