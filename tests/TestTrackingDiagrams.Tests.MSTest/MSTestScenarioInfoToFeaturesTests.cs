@@ -213,6 +213,85 @@ public class MSTestScenarioInfoToFeaturesTests
         Assert.AreEqual("Validate otp validation [\"def\",99]", features[0].Scenarios[1].DisplayName);
     }
 
+    [TestMethod]
+    public void ShouldRebindPositionalParamsToNamedParamsWhenParameterNamesProvided()
+    {
+        var infos = new[]
+        {
+            CreateScenarioInfo("Feature", "ValidateOtp",
+                testDisplayName: "ValidateOtp (\"abc\",42)",
+                testId: "Feature.ValidateOtp1",
+                parameterNames: new[] { "otp", "userId" }),
+            CreateScenarioInfo("Feature", "ValidateOtp",
+                testDisplayName: "ValidateOtp (\"def\",99)",
+                testId: "Feature.ValidateOtp2",
+                parameterNames: new[] { "otp", "userId" })
+        };
+
+        var features = infos.ToFeatures();
+
+        var firstScenario = features[0].Scenarios[0];
+        Assert.IsNotNull(firstScenario.ExampleValues);
+        Assert.IsTrue(firstScenario.ExampleValues!.ContainsKey("otp"));
+        Assert.IsTrue(firstScenario.ExampleValues!.ContainsKey("userId"));
+    }
+
+    [TestMethod]
+    public void ShouldLeaveNamedParamsUnchangedWhenParameterNamesProvided()
+    {
+        var infos = new[]
+        {
+            CreateScenarioInfo("Feature", "TestMethod",
+                testDisplayName: "TestMethod (otp: \"abc\", userId: 42)",
+                testId: "Feature.TestMethod1",
+                parameterNames: new[] { "otp", "userId" })
+        };
+
+        var features = infos.ToFeatures();
+
+        var scenario = features[0].Scenarios[0];
+        Assert.IsNotNull(scenario.ExampleValues);
+        Assert.IsTrue(scenario.ExampleValues!.ContainsKey("otp"));
+        Assert.IsTrue(scenario.ExampleValues!.ContainsKey("userId"));
+    }
+
+    [TestMethod]
+    public void ShouldFallBackToStringParsingWhenParameterNamesNull()
+    {
+        var infos = new[]
+        {
+            CreateScenarioInfo("Feature", "TestMethod",
+                testDisplayName: "TestMethod (\"abc\",42)",
+                testId: "Feature.TestMethod1",
+                parameterNames: null)
+        };
+
+        var features = infos.ToFeatures();
+
+        var scenario = features[0].Scenarios[0];
+        Assert.IsNotNull(scenario.ExampleValues);
+        Assert.IsTrue(scenario.ExampleValues!.ContainsKey("arg0"));
+    }
+
+    [TestMethod]
+    public void ShouldNotRebindWhenParameterCountDoesNotMatchParsedCount()
+    {
+        var infos = new[]
+        {
+            CreateScenarioInfo("Feature", "TestMethod",
+                testDisplayName: "TestMethod (\"abc\",42)",
+                testId: "Feature.TestMethod1",
+                parameterNames: new[] { "onlyOne" })
+        };
+
+        var features = infos.ToFeatures();
+
+        var scenario = features[0].Scenarios[0];
+        Assert.IsNotNull(scenario.ExampleValues);
+        // Should keep positional keys since count doesn't match
+        Assert.IsTrue(scenario.ExampleValues!.ContainsKey("arg0"));
+    }
+
     private static MSTestScenarioInfo CreateScenarioInfo(
         string className = "TestClass",
         string methodName = "TestMethod",
@@ -222,7 +301,8 @@ public class MSTestScenarioInfoToFeaturesTests
         string? endpoint = null,
         bool isHappyPath = false,
         string? errorMessage = null,
-        string? errorStackTrace = null)
+        string? errorStackTrace = null,
+        string[]? parameterNames = null)
     {
         return new MSTestScenarioInfo
         {
@@ -234,7 +314,8 @@ public class MSTestScenarioInfoToFeaturesTests
             Endpoint = endpoint,
             IsHappyPath = isHappyPath,
             ErrorMessage = errorMessage,
-            ErrorStackTrace = errorStackTrace
+            ErrorStackTrace = errorStackTrace,
+            ParameterNames = parameterNames
         };
     }
 }

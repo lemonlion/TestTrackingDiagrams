@@ -60,19 +60,8 @@ internal static class TestContextEnumerableExtensions
             if (args is not { Length: > 0 } || parameters is not { Count: > 0 })
                 return null;
 
-            var paramList = parameters.ToArray();
-            if (paramList.Length != args.Length)
-                return null;
-
-            var result = new Dictionary<string, string>();
-            for (var i = 0; i < paramList.Length; i++)
-            {
-                var name = paramList[i].Name ?? $"param{i}";
-                var value = args[i]?.ToString() ?? "";
-                result[name] = value;
-            }
-
-            return result.Count > 0 ? result : null;
+            var paramNames = parameters.Select(p => p.Name).ToArray();
+            return ParameterParser.ExtractStructuredParameters(args, paramNames);
         }
         catch
         {

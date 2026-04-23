@@ -29,7 +29,10 @@ internal static class TestContextEnumerableExtensions
                         .Select(x =>
                         {
                             var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test.Name!);
-                            var parsed = ParameterParser.Parse(displayName);
+
+                            var structuredParams = TryExtractStructuredParameters(x);
+                            var parsed = structuredParams ?? ParameterParser.Parse(displayName);
+
                             return new Scenario
                             {
                                 Id = x.Test.ID,
@@ -39,11 +42,34 @@ internal static class TestContextEnumerableExtensions
                                 ErrorMessage = x.Result.Message,
                                 ErrorStackTrace = x.Result.StackTrace,
                                 Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null,
-                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+                                OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null
                             };
                         }).ToArray()
                 };
             }).ToArray();
+    }
+
+    private static Dictionary<string, string>? TryExtractStructuredParameters(TestContext context)
+    {
+        try
+        {
+            var args = context.Test.Arguments;
+            var methodParams = context.Test.Method?.GetParameters();
+            if (args is not { Length: > 0 } || methodParams is not { Length: > 0 })
+                return null;
+
+            var paramNames = methodParams.Select(p => p.ParameterInfo.Name).ToArray();
+            return ParameterParser.ExtractStructuredParameters(args, paramNames);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? GetStructuredOutlineId(TestContext context)
+    {
+        return context.Test.MethodName;
     }
 }

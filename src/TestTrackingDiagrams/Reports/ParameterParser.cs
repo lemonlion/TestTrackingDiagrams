@@ -195,4 +195,34 @@ public static class ParameterParser
             return value[1..^1];
         return value;
     }
+
+    /// <summary>
+    /// Builds a named parameter dictionary from raw argument values and their corresponding parameter names.
+    /// Returns null if inputs are null, empty, or mismatched in length.
+    /// </summary>
+    public static Dictionary<string, string>? ExtractStructuredParameters(object[]? args, string?[]? paramNames)
+    {
+        try
+        {
+            if (args is not { Length: > 0 } || paramNames is not { Length: > 0 })
+                return null;
+
+            if (args.Length != paramNames.Length)
+                return null;
+
+            var result = new Dictionary<string, string>();
+            for (var i = 0; i < args.Length; i++)
+            {
+                var name = paramNames[i] ?? $"param{i}";
+                var value = args[i]?.ToString() ?? "";
+                result[name] = value;
+            }
+
+            return result.Count > 0 ? result : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

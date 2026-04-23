@@ -31,7 +31,10 @@ internal static class TestContextEnumerableExtensions
                         .Select(x =>
                         {
                             var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Metadata.DisplayName);
-                            var parsed = ParameterParser.Parse(displayName);
+
+                            var structuredParams = TryExtractStructuredParameters(x);
+                            var parsed = structuredParams ?? ParameterParser.Parse(displayName);
+
                             return new Scenario
                             {
                                 Id = x.Id,
@@ -41,11 +44,34 @@ internal static class TestContextEnumerableExtensions
                                 ErrorMessage = x.Execution.Result?.Exception?.Message,
                                 ErrorStackTrace = x.Execution.Result?.Exception?.StackTrace,
                                 Duration = x.Execution.Result?.Duration,
-                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
+                                OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null
                             };
                         }).ToArray()
                 };
             }).ToArray();
+    }
+
+    private static Dictionary<string, string>? TryExtractStructuredParameters(TestContext context)
+    {
+        try
+        {
+            var args = context.Metadata.TestDetails.TestMethodArguments;
+            var parameterMetadata = context.Metadata.TestDetails.MethodMetadata?.Parameters;
+            if (args is not { Length: > 0 } || parameterMetadata is not { Length: > 0 })
+                return null;
+
+            var paramNames = parameterMetadata.Select(p => p.Name).ToArray();
+            return ParameterParser.ExtractStructuredParameters(args, paramNames);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? GetStructuredOutlineId(TestContext context)
+    {
+        return context.Metadata.TestDetails.MethodName;
     }
 }

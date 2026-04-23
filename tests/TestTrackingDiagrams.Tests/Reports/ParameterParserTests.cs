@@ -265,4 +265,82 @@ public class ParameterParserTests
         Assert.Single(result!);
         Assert.Equal("Outer { Inner = Mid { Deep = 1, Val = 2 }, Other = 3 }", result["x"]);
     }
+
+    [Fact]
+    public void ExtractStructured_should_map_named_parameters()
+    {
+        var args = new object[] { "hello", 42 };
+        var paramNames = new[] { "message", "count" };
+
+        var result = ParameterParser.ExtractStructuredParameters(args, paramNames);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("hello", result["message"]);
+        Assert.Equal("42", result["count"]);
+    }
+
+    [Fact]
+    public void ExtractStructured_returns_null_when_args_null()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParameters(null, new[] { "a" }));
+    }
+
+    [Fact]
+    public void ExtractStructured_returns_null_when_args_empty()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParameters(Array.Empty<object>(), new[] { "a" }));
+    }
+
+    [Fact]
+    public void ExtractStructured_returns_null_when_param_names_null()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParameters(new object[] { 1 }, null));
+    }
+
+    [Fact]
+    public void ExtractStructured_returns_null_when_param_names_empty()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParameters(new object[] { 1 }, Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void ExtractStructured_returns_null_when_lengths_mismatch()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParameters(new object[] { "a", "b" }, new[] { "x" }));
+    }
+
+    [Fact]
+    public void ExtractStructured_handles_null_arg_value()
+    {
+        var result = ParameterParser.ExtractStructuredParameters(new object?[] { null, "value" }!, new[] { "first", "second" });
+
+        Assert.NotNull(result);
+        Assert.Equal("", result!["first"]);
+        Assert.Equal("value", result["second"]);
+    }
+
+    [Fact]
+    public void ExtractStructured_uses_toString_on_complex_objects()
+    {
+        var result = ParameterParser.ExtractStructuredParameters(
+            new object[] { new StructuredTestRecord("hello", 42) },
+            new[] { "testCase" });
+
+        Assert.NotNull(result);
+        Assert.Equal("StructuredTestRecord { Name = hello, Value = 42 }", result!["testCase"]);
+    }
+
+    [Fact]
+    public void ExtractStructured_uses_positional_fallback_for_null_param_name()
+    {
+        var result = ParameterParser.ExtractStructuredParameters(
+            new object[] { "val" },
+            new string?[] { null });
+
+        Assert.NotNull(result);
+        Assert.Equal("val", result!["param0"]);
+    }
+
+    private record StructuredTestRecord(string Name, int Value);
 }

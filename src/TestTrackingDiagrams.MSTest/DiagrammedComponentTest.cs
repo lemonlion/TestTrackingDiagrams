@@ -26,6 +26,7 @@ public abstract class DiagrammedComponentTest
         var endpoint = type.GetCustomAttribute<EndpointAttribute>()?.Endpoint;
         var methodInfo = type.GetMethod(TestContext.TestName!);
         var isHappyPath = methodInfo?.GetCustomAttribute<HappyPathAttribute>() is not null;
+        var parameterNames = methodInfo?.GetParameters().Select(p => p.Name).ToArray();
 
         DiagrammedTestRun.TestContexts.Enqueue(new MSTestScenarioInfo
         {
@@ -39,7 +40,8 @@ public abstract class DiagrammedComponentTest
                 : null,
             Endpoint = endpoint,
             IsHappyPath = isHappyPath,
-            Duration = _stopwatch?.Elapsed
+            Duration = _stopwatch?.Elapsed,
+            ParameterNames = parameterNames
         });
     }
 
