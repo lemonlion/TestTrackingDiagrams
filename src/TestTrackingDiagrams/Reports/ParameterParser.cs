@@ -225,4 +225,36 @@ public static class ParameterParser
             return null;
         }
     }
+
+    /// <summary>
+    /// Builds both string and raw parameter dictionaries from raw argument values and their corresponding parameter names.
+    /// Returns null if inputs are null, empty, or mismatched in length.
+    /// </summary>
+    public static (Dictionary<string, string> StringValues, Dictionary<string, object?> RawValues)?
+        ExtractStructuredParametersWithRaw(object[]? args, string?[]? paramNames)
+    {
+        try
+        {
+            if (args is not { Length: > 0 } || paramNames is not { Length: > 0 })
+                return null;
+
+            if (args.Length != paramNames.Length)
+                return null;
+
+            var stringResult = new Dictionary<string, string>();
+            var rawResult = new Dictionary<string, object?>();
+            for (var i = 0; i < args.Length; i++)
+            {
+                var name = paramNames[i] ?? $"param{i}";
+                stringResult[name] = args[i]?.ToString() ?? "";
+                rawResult[name] = args[i];
+            }
+
+            return stringResult.Count > 0 ? (stringResult, rawResult) : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -804,6 +804,27 @@ public static class ReportGenerator
                                 }
                                 """;
 
+        // R4: param-expand toggle auto-selects row + cell-subtable click isolation
+        var paramExpandJs = """
+                            document.addEventListener('DOMContentLoaded', function() {
+                                document.querySelectorAll('.param-expand').forEach(function(details) {
+                                    details.addEventListener('toggle', function() {
+                                        var row = details.closest('tr');
+                                        if (row) {
+                                            var table = row.closest('table');
+                                            var scenario = table ? table.closest('.scenario-parameterized') : null;
+                                            var prefix = scenario ? 'pg' + scenario.id : '';
+                                            selectRow(row, prefix);
+                                        }
+                                    });
+                                    details.addEventListener('click', function(e) { e.stopPropagation(); });
+                                });
+                                document.querySelectorAll('.cell-subtable').forEach(function(el) {
+                                    el.addEventListener('click', function(e) { e.stopPropagation(); });
+                                });
+                            });
+                            """;
+
         // Toggle timeline
         var deactivateComponentDiagramJs = !string.IsNullOrEmpty(componentDiagramPlantUml)
             ? """
@@ -1217,6 +1238,7 @@ public static class ReportGenerator
                                 {{copyScenarioNameFunction}}
                                 {{toggleExamplesDetailFunction}}
                                 {{selectRowFunction}}
+                                {{paramExpandJs}}
                                 {{toggleTimelineFunction}}
                                 {{toggleComponentDiagramFunction}}
                                 {{jumpToFailureFunction}}
@@ -2175,9 +2197,9 @@ public static class ReportGenerator
 
         // Parameter table
         body.Append("<table class=\"param-test-table\"><thead>");
-        if (group.Rule == ParameterDisplayRule.ScalarColumns && group.ParameterNames.Length > 0)
+        if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
         {
-            // R1: Two-row header with master "Input Parameters" header
+            // R1/R2: Two-row header with master "Input Parameters" header
             body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
             body.Append($"<th colspan=\"{group.ParameterNames.Length}\" class=\"master-header\">Input Parameters</th>");
             body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
@@ -2237,13 +2259,32 @@ public static class ReportGenerator
             body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
             body.Append($"<td>{ri + 1}</td>");
 
-            if (group.Rule == ParameterDisplayRule.ScalarColumns && group.ParameterNames.Length > 0)
+            if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
             {
-                // R1: Individual parameter columns
+                // R1/R2: Individual parameter columns with cell-level R3/R4 rendering
                 foreach (var name in group.ParameterNames)
                 {
-                    var val = s.ExampleValues?.GetValueOrDefault(name, "") ?? "";
-                    body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                    var rawValue = s.ExampleRawValues?.GetValueOrDefault(name);
+                    if (rawValue is not null && ParameterValueRenderer.IsSmallComplexObject(rawValue))
+                    {
+                        // R3: Sub-table for small complex objects
+                        body.Append("<td>");
+                        ParameterValueRenderer.RenderSubTable(body, rawValue);
+                        body.Append("</td>");
+                    }
+                    else if (rawValue is not null && ParameterValueRenderer.IsComplexValue(rawValue))
+                    {
+                        // R4: Expandable details for deeply complex objects
+                        body.Append("<td>");
+                        ParameterValueRenderer.RenderExpandable(body, rawValue);
+                        body.Append("</td>");
+                    }
+                    else
+                    {
+                        // Scalar: plain text
+                        var val = s.ExampleValues?.GetValueOrDefault(name, "") ?? "";
+                        body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                    }
                 }
             }
             else

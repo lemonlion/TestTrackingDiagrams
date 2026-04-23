@@ -97,6 +97,14 @@ public static class ParameterGrouper
                 .Distinct()
                 .ToArray();
 
+            // R2 detection: single complex param with all scalar properties → flatten
+            if (keys.Length == 1)
+            {
+                var r2Result = TryDetectFlattenedObject(members, keys[0], maxColumns);
+                if (r2Result is not null)
+                    return r2Result.Value;
+            }
+
             if (keys.Length > maxColumns)
                 return ([], ParameterDisplayRule.Fallback);
 
@@ -121,5 +129,40 @@ public static class ParameterGrouper
             return ([], ParameterDisplayRule.Fallback);
 
         return (allKeys, ParameterDisplayRule.ScalarColumns);
+    }
+
+    /// <summary>
+    /// R2: If a single param is a complex object with all scalar properties ≤ maxColumns,
+    /// flatten its properties into columns and update ExampleValues/ExampleRawValues on each scenario.
+    /// </summary>
+    private static (string[] ParamNames, ParameterDisplayRule Rule)? TryDetectFlattenedObject(
+        Scenario[] members, string paramKey, int maxColumns)
+    {
+        // All members must have ExampleRawValues with the single key
+        var withRaw = members.Where(m => m.ExampleRawValues is not null && m.ExampleRawValues.ContainsKey(paramKey)).ToArray();
+        if (withRaw.Length != members.Length)
+            return null;
+
+        // Get the first non-null raw value to determine property structure
+        var firstRawValue = withRaw.Select(m => m.ExampleRawValues![paramKey]).FirstOrDefault(v => v is not null);
+        if (firstRawValue is null)
+            return null;
+
+        var propertyNames = ParameterValueRenderer.TryGetFlattenableProperties(firstRawValue, maxColumns);
+        if (propertyNames is null)
+            return null;
+
+        // Flatten each scenario's values
+        foreach (var m in members)
+        {
+            var rawValue = m.ExampleRawValues![paramKey];
+            if (rawValue is not null)
+            {
+                m.ExampleValues = ParameterValueRenderer.FlattenToStringValues(rawValue, propertyNames);
+                m.ExampleRawValues = ParameterValueRenderer.FlattenToRawValues(rawValue, propertyNames);
+            }
+        }
+
+        return (propertyNames, ParameterDisplayRule.FlattenedObject);
     }
 }

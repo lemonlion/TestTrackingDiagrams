@@ -16,6 +16,7 @@ public class ParameterizedGroupRenderTests
 
     private static Scenario MakeScenario(string id, string displayName, ExecutionResult result = ExecutionResult.Passed,
         string? outlineId = null, Dictionary<string, string>? exampleValues = null,
+        Dictionary<string, object?>? exampleRawValues = null,
         string? exampleDisplayName = null, string? errorMessage = null, string? errorStackTrace = null,
         TimeSpan? duration = null, ScenarioStep[]? steps = null, bool isHappyPath = false) =>
         new()
@@ -25,6 +26,7 @@ public class ParameterizedGroupRenderTests
             Result = result,
             OutlineId = outlineId,
             ExampleValues = exampleValues,
+            ExampleRawValues = exampleRawValues,
             ExampleDisplayName = exampleDisplayName,
             ErrorMessage = errorMessage,
             ErrorStackTrace = errorStackTrace,
@@ -704,5 +706,169 @@ public class ParameterizedGroupRenderTests
         var content = GenerateReport(MakeFeature(scenarios));
 
         Assert.Contains("scenario-parameterized happy-path", content);
+    }
+
+    // ── R2: FlattenedObject rendering ──
+
+    private record MerchantRequest(string Region, int Amount, string Currency);
+
+    [Fact]
+    public void R2_flattened_object_renders_property_columns()
+    {
+        var obj1 = new MerchantRequest("UK", 100, "GBP");
+        var obj2 = new MerchantRequest("US", 200, "USD");
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Process(request)", outlineId: "Process",
+                exampleValues: new() { ["request"] = obj1.ToString()! },
+                exampleRawValues: new() { ["request"] = obj1 }),
+            MakeScenario("s2", "Process(request)", outlineId: "Process",
+                exampleValues: new() { ["request"] = obj2.ToString()! },
+                exampleRawValues: new() { ["request"] = obj2 })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Should show flattened property columns
+        Assert.Contains("Input Parameters", content);
+        Assert.Contains(">Region</th>", content);
+        Assert.Contains(">Amount</th>", content);
+        Assert.Contains(">Currency</th>", content);
+        // Should show flattened values
+        Assert.Contains(">UK</td>", content);
+        Assert.Contains(">100</td>", content);
+        Assert.Contains(">GBP</td>", content);
+    }
+
+    // ── R3: SubTable cell rendering ──
+
+    private record SmallAddress(string Street, string City, string PostCode);
+
+    [Fact]
+    public void R3_small_complex_object_renders_subtable_in_cell()
+    {
+        var addr = new SmallAddress("1 Main St", "London", "SW1A 1AA");
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Send(amount: 100, address: ...)", outlineId: "Send",
+                exampleValues: new() { ["amount"] = "100", ["address"] = addr.ToString()! },
+                exampleRawValues: new() { ["amount"] = (object)100, ["address"] = addr }),
+            MakeScenario("s2", "Send(amount: 200, address: ...)", outlineId: "Send",
+                exampleValues: new() { ["amount"] = "200", ["address"] = new SmallAddress("2 Oak Ave", "Paris", "75001").ToString()! },
+                exampleRawValues: new() { ["amount"] = (object)200, ["address"] = new SmallAddress("2 Oak Ave", "Paris", "75001") })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("cell-subtable", content);
+        Assert.Contains(">Street</th>", content);
+        Assert.Contains(">City</th>", content);
+        Assert.Contains(">PostCode</th>", content);
+        Assert.Contains("1 Main St", content);
+    }
+
+    // ── R4: ExpandableComplex cell rendering ──
+
+    private record ComplexBatch(string Currency, string Priority, List<string> Payments);
+
+    [Fact]
+    public void R4_deeply_complex_object_renders_expandable_details()
+    {
+        var batch = new ComplexBatch("GBP", "Normal", ["P001", "P002"]);
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Process(id: batch-001, batch: ...)", outlineId: "Process",
+                exampleValues: new() { ["id"] = "batch-001", ["batch"] = batch.ToString()! },
+                exampleRawValues: new() { ["id"] = (object)"batch-001", ["batch"] = batch }),
+            MakeScenario("s2", "Process(id: batch-002, batch: ...)", outlineId: "Process",
+                exampleValues: new() { ["id"] = "batch-002", ["batch"] = batch.ToString()! },
+                exampleRawValues: new() { ["id"] = (object)"batch-002", ["batch"] = batch })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("param-expand", content);
+        Assert.Contains("expand-body", content);
+        Assert.Contains("prop-key", content);
+        Assert.Contains("prop-val", content);
+        // The scalar column "id" should still be plain text
+        Assert.Contains(">batch-001</td>", content);
+    }
+
+    // ── R4: CSS and JS present ──
+
+    [Fact]
+    public void Report_contains_param_expand_css()
+    {
+        var scenarios = new[] { MakeScenario("s1", "Test") };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("details.param-expand", content);
+        Assert.Contains(".expand-body", content);
+        Assert.Contains(".prop-key", content);
+        Assert.Contains(".prop-val", content);
+    }
+
+    [Fact]
+    public void Report_contains_cell_subtable_css()
+    {
+        var scenarios = new[] { MakeScenario("s1", "Test") };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains(".cell-subtable", content);
+    }
+
+    [Fact]
+    public void Report_contains_param_expand_js()
+    {
+        var scenarios = new[] { MakeScenario("s1", "Test") };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("param-expand", content);
+        Assert.Contains("cell-subtable", content);
+        Assert.Contains("stopPropagation", content);
+    }
+
+    // ── Nested object renders expandable ──
+
+    private record NestedPayment(string Name, SmallAddress Address);
+
+    [Fact]
+    public void Nested_complex_object_renders_as_R4_expandable()
+    {
+        var nested = new NestedPayment("Acme", new SmallAddress("1 Main St", "London", "SW1A 1AA"));
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(target: ...)", outlineId: "Test",
+                exampleValues: new() { ["target"] = nested.ToString()! },
+                exampleRawValues: new() { ["target"] = nested }),
+            MakeScenario("s2", "Test(target: ...)", outlineId: "Test",
+                exampleValues: new() { ["target"] = nested.ToString()! },
+                exampleRawValues: new() { ["target"] = nested })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Nested object should use R4 expandable, not R3 sub-table
+        Assert.Contains("param-expand", content);
+        Assert.Contains("NestedPayment", content);
+    }
+
+    // ── R2 not applied when single param is already scalar ──
+
+    [Fact]
+    public void Single_scalar_param_uses_ScalarColumns_not_FlattenedObject()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(value: 42)", outlineId: "Test",
+                exampleValues: new() { ["value"] = "42" },
+                exampleRawValues: new() { ["value"] = (object)42 }),
+            MakeScenario("s2", "Test(value: 99)", outlineId: "Test",
+                exampleValues: new() { ["value"] = "99" },
+                exampleRawValues: new() { ["value"] = (object)99 })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Should render as normal scalar column, not flattened
+        Assert.Contains("Input Parameters", content);
+        Assert.Contains(">Value</th>", content);
+        Assert.Contains(">42</td>", content);
     }
 }

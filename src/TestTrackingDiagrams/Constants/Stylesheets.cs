@@ -1166,6 +1166,21 @@ public class Stylesheets
                     font-weight: 500;
                     margin-bottom: 0.5em;
                 }
+
+                /* Sub-table inside a cell (R3) */
+                .cell-subtable { border-collapse: collapse; margin: 0; font-size: 0.9em; width: 100%; }
+                .cell-subtable th { background: #f5f5f5; font-weight: 600; font-size: 0.85em; padding: 0.2em 0.4em; border: 1px solid #e0e0e0; color: #666; }
+                .cell-subtable td { padding: 0.2em 0.4em; border: 1px solid #e0e0e0; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.92em; }
+
+                /* Expandable complex param (R4) */
+                details.param-expand { margin: 0; }
+                details.param-expand > summary { cursor: pointer; list-style: none; font-size: 0.9em; color: #555; padding: 0.15em 0; }
+                details.param-expand > summary::-webkit-details-marker { display: none; }
+                details.param-expand > summary::before { content: "▸ "; font-size: 0.8em; color: #999; }
+                details.param-expand[open] > summary::before { content: "▾ "; }
+                details.param-expand .expand-body { margin: 0.3em 0 0.2em 0.5em; padding: 0.5em 0.7em; background: #f8f9fa; border: 1px solid #e8e8e8; border-radius: 4px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.88em; white-space: pre-wrap; line-height: 1.4; }
+                details.param-expand .expand-body .prop-key { color: #7d3c98; }
+                details.param-expand .expand-body .prop-val { color: #1a5276; }
         """;
 
     public const string VioletThemeStyleSheet =

@@ -342,5 +342,43 @@ public class ParameterParserTests
         Assert.Equal("val", result!["param0"]);
     }
 
+    [Fact]
+    public void ExtractStructuredParametersWithRaw_returns_both_string_and_raw_values()
+    {
+        var obj = new StructuredTestRecord("UK", 100);
+        object[] args = [obj, "extra"];
+        string[] names = ["request", "tag"];
+
+        var result = ParameterParser.ExtractStructuredParametersWithRaw(args, names);
+        Assert.NotNull(result);
+        var (stringValues, rawValues) = result!.Value;
+
+        Assert.Equal(obj.ToString(), stringValues["request"]);
+        Assert.Equal("extra", stringValues["tag"]);
+        Assert.Same(obj, rawValues["request"]);
+        Assert.Equal("extra", rawValues["tag"]);
+    }
+
+    [Fact]
+    public void ExtractStructuredParametersWithRaw_returns_null_for_null_args()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParametersWithRaw(null, new[] { "a" }));
+    }
+
+    [Fact]
+    public void ExtractStructuredParametersWithRaw_returns_null_for_mismatched_lengths()
+    {
+        Assert.Null(ParameterParser.ExtractStructuredParametersWithRaw(new object[] { 1, 2 }, new[] { "a" }));
+    }
+
+    [Fact]
+    public void ExtractStructuredParametersWithRaw_preserves_null_raw_values()
+    {
+        var result = ParameterParser.ExtractStructuredParametersWithRaw(new object?[] { null }!, new[] { "x" });
+        Assert.NotNull(result);
+        Assert.Null(result!.Value.RawValues["x"]);
+        Assert.Equal("", result.Value.StringValues["x"]);
+    }
+
     private record StructuredTestRecord(string Name, int Value);
 }

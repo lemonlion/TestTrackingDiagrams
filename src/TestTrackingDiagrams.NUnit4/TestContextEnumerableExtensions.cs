@@ -30,7 +30,9 @@ internal static class TestContextEnumerableExtensions
                         {
                             var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test.Name!);
 
-                            var structuredParams = TryExtractStructuredParameters(x);
+                            var structuredResult = TryExtractStructuredParametersWithRaw(x);
+                            var structuredParams = structuredResult?.StringValues;
+                            Dictionary<string, object?>? rawValues = structuredResult?.RawValues;
                             var parsed = structuredParams ?? ParameterParser.Parse(displayName);
 
                             return new Scenario
@@ -43,14 +45,15 @@ internal static class TestContextEnumerableExtensions
                                 ErrorStackTrace = x.Result.StackTrace,
                                 Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null,
                                 OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
-                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null,
+                                ExampleRawValues = rawValues
                             };
                         }).ToArray()
                 };
             }).ToArray();
     }
 
-    private static Dictionary<string, string>? TryExtractStructuredParameters(TestContext context)
+    private static (Dictionary<string, string> StringValues, Dictionary<string, object?> RawValues)? TryExtractStructuredParametersWithRaw(TestContext context)
     {
         try
         {
@@ -60,7 +63,7 @@ internal static class TestContextEnumerableExtensions
                 return null;
 
             var paramNames = methodParams.Select(p => p.ParameterInfo.Name).ToArray();
-            return ParameterParser.ExtractStructuredParameters(args, paramNames);
+            return ParameterParser.ExtractStructuredParametersWithRaw(args, paramNames);
         }
         catch
         {

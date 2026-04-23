@@ -28,7 +28,9 @@ internal static class TestContextEnumerableExtensions
                             var displayName = ScenarioTitleResolver.FormatScenarioDisplayName(x.Test!.TestDisplayName);
 
                             // Try structured extraction from TestMethodArguments first
-                            var structuredParams = TryExtractStructuredParameters(x);
+                            var structuredResult = TryExtractStructuredParametersWithRaw(x);
+                            var structuredParams = structuredResult?.StringValues;
+                            Dictionary<string, object?>? rawValues = structuredResult?.RawValues;
                             var parsed = structuredParams ?? ParameterParser.Parse(displayName);
 
                             return new Scenario
@@ -41,14 +43,15 @@ internal static class TestContextEnumerableExtensions
                                 ErrorStackTrace = string.Join(Environment.NewLine, x.TestState!.ExceptionStackTraces ?? []),
                                 Duration = x.TestState!.ExecutionTime is > 0 ? TimeSpan.FromMilliseconds((double)x.TestState.ExecutionTime.Value) : null,
                                 OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
-                                ExampleValues = parsed is { Count: > 0 } ? parsed : null
+                                ExampleValues = parsed is { Count: > 0 } ? parsed : null,
+                                ExampleRawValues = rawValues
                             };
                         }).ToArray()
                 };
             }).ToArray();
     }
 
-    private static Dictionary<string, string>? TryExtractStructuredParameters(ITestContext context)
+    private static (Dictionary<string, string> StringValues, Dictionary<string, object?> RawValues)? TryExtractStructuredParametersWithRaw(ITestContext context)
     {
         try
         {
@@ -61,7 +64,7 @@ internal static class TestContextEnumerableExtensions
                 return null;
 
             var paramNames = parameters.Select(p => p.Name).ToArray();
-            return ParameterParser.ExtractStructuredParameters(args, paramNames);
+            return ParameterParser.ExtractStructuredParametersWithRaw(args, paramNames);
         }
         catch
         {

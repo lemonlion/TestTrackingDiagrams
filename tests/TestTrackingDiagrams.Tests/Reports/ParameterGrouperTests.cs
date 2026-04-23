@@ -229,10 +229,102 @@ public class ParameterGrouperTests
         Assert.Equal(ParameterDisplayRule.Fallback, groups[0].Rule);
     }
 
+    private record TestRequest(string Region, int Amount, string Currency);
+    private record NestedRequest(string Name, TestRequest Inner);
+    private record RecordWithArray(string Name, string[] Items);
+
+    [Fact]
+    public void R2_single_complex_param_with_all_scalar_props_uses_FlattenedObject()
+    {
+        var obj1 = new TestRequest("UK", 100, "GBP");
+        var obj2 = new TestRequest("US", 200, "USD");
+        var s1 = MakeScenario("s1", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj1.ToString()! },
+            exampleRawValues: new() { ["request"] = obj1 });
+        var s2 = MakeScenario("s2", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj2.ToString()! },
+            exampleRawValues: new() { ["request"] = obj2 });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
+        Assert.Contains("Region", groups[0].ParameterNames);
+        Assert.Contains("Amount", groups[0].ParameterNames);
+        Assert.Contains("Currency", groups[0].ParameterNames);
+        // ExampleValues should be flattened
+        Assert.Equal("UK", s1.ExampleValues!["Region"]);
+        Assert.Equal("100", s1.ExampleValues["Amount"]);
+    }
+
+    [Fact]
+    public void R2_not_applied_when_param_has_nested_complex_properties()
+    {
+        var obj1 = new NestedRequest("Test1", new TestRequest("UK", 100, "GBP"));
+        var obj2 = new NestedRequest("Test2", new TestRequest("US", 200, "USD"));
+        var s1 = MakeScenario("s1", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj1.ToString()! },
+            exampleRawValues: new() { ["request"] = obj1 });
+        var s2 = MakeScenario("s2", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj2.ToString()! },
+            exampleRawValues: new() { ["request"] = obj2 });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        // Should NOT flatten — falls back to ScalarColumns with single key
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_not_applied_when_no_ExampleRawValues()
+    {
+        var s1 = MakeScenario("s1", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = "TestRequest { Region = UK }" });
+        var s2 = MakeScenario("s2", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = "TestRequest { Region = US }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_not_applied_when_multiple_params()
+    {
+        var obj1 = new TestRequest("UK", 100, "GBP");
+        var s1 = MakeScenario("s1", "Test(a, b)", outlineId: "Test",
+            exampleValues: new() { ["a"] = "foo", ["b"] = "bar" },
+            exampleRawValues: new() { ["a"] = "foo", ["b"] = obj1 });
+        var s2 = MakeScenario("s2", "Test(a, b)", outlineId: "Test",
+            exampleValues: new() { ["a"] = "baz", ["b"] = "qux" },
+            exampleRawValues: new() { ["a"] = "baz", ["b"] = obj1 });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_not_applied_when_properties_exceed_maxColumns()
+    {
+        var obj1 = new TestRequest("UK", 100, "GBP");
+        var s1 = MakeScenario("s1", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj1.ToString()! },
+            exampleRawValues: new() { ["request"] = obj1 });
+        var s2 = MakeScenario("s2", "Test(request)", outlineId: "Test",
+            exampleValues: new() { ["request"] = obj1.ToString()! },
+            exampleRawValues: new() { ["request"] = obj1 });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2], maxColumns: 2);
+        Assert.Single(groups);
+        // 3 properties > maxColumns 2, so falls back to ScalarColumns with the single key
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
     private static Scenario MakeScenario(
         string id, string displayName,
         string? outlineId = null,
         Dictionary<string, string>? exampleValues = null,
+        Dictionary<string, object?>? exampleRawValues = null,
         string? exampleDisplayName = null,
         ExecutionResult result = ExecutionResult.Passed)
     {
@@ -242,6 +334,7 @@ public class ParameterGrouperTests
             DisplayName = displayName,
             OutlineId = outlineId,
             ExampleValues = exampleValues,
+            ExampleRawValues = exampleRawValues,
             ExampleDisplayName = exampleDisplayName,
             Result = result
         };
