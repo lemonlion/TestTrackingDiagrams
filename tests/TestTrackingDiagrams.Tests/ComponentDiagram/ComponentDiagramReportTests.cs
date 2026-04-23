@@ -471,11 +471,20 @@ public class ComponentDiagramReportTests : IDisposable
     }
 
     [Fact]
-    public void Null_ComponentDiagramOptions_Defaults_To_EmbedInTestRunReport_True()
+    public void Null_ComponentDiagramOptions_Does_Not_Embed_Component_Diagram()
     {
+        // When ComponentDiagramOptions is null (user hasn't opted in), the component
+        // diagram should NOT be embedded — preserving backward compatibility.
         var options = new ReportConfigurationOptions { ComponentDiagramOptions = null };
-        var resolved = options.ComponentDiagramOptions ?? new ComponentDiagramOptions();
-        Assert.True(resolved.EmbedInTestRunReport);
+        Assert.Null(options.ComponentDiagramOptions);
+    }
+
+    [Fact]
+    public void Explicit_ComponentDiagramOptions_Defaults_To_EmbedInTestRunReport_True()
+    {
+        // When ComponentDiagramOptions IS explicitly set, EmbedInTestRunReport defaults to true.
+        var options = new ComponentDiagramOptions();
+        Assert.True(options.EmbedInTestRunReport);
     }
 
     [Fact]

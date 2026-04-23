@@ -929,4 +929,34 @@ public class TestRunReportDataTests
         Assert.Contains("endTime", required);
         Assert.Contains("features", required);
     }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_ttd_version()
+    {
+        var features = new[] { new Feature { DisplayName = "F1", Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }] } };
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_version.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var version = doc.RootElement.GetProperty("ttdVersion").GetString();
+        Assert.NotNull(version);
+        Assert.NotEmpty(version!);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_xml_includes_ttd_version()
+    {
+        var features = new[] { new Feature { DisplayName = "F1", Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }] } };
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_version.xml", DataFormat.Xml);
+        var doc = XDocument.Parse(File.ReadAllText(path));
+        Assert.NotNull(doc.Root!.Element("TtdVersion"));
+        Assert.NotEmpty(doc.Root.Element("TtdVersion")!.Value);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_yaml_includes_ttd_version()
+    {
+        var features = new[] { new Feature { DisplayName = "F1", Scenarios = [new Scenario { Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed }] } };
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_version.yml", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+        Assert.Contains("TtdVersion:", content);
+    }
 }

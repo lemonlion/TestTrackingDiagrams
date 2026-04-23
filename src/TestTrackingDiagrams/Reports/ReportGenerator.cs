@@ -12,6 +12,10 @@ namespace TestTrackingDiagrams.Reports;
 
 public static class ReportGenerator
 {
+    internal static string TtdVersion { get; } =
+        typeof(ReportGenerator).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(ReportGenerator).Assembly.GetName().Version?.ToString()
+        ?? "unknown";
     private static readonly Lazy<string> AdvancedSearchJs = new(() =>
     {
         var assembly = Assembly.GetExecutingAssembly();
@@ -130,7 +134,7 @@ public static class ReportGenerator
 
         if (options.GenerateTestRunReport)
         {
-            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, componentDiagramPlantUml: (options.ComponentDiagramOptions ?? new ComponentDiagramOptions()).EmbedInTestRunReport ? componentDiagramPlantUml : null));
+            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, componentDiagramPlantUml: options.ComponentDiagramOptions?.EmbedInTestRunReport == true ? componentDiagramPlantUml : null));
         }
 
         if (options.GenerateSpecificationsData)
@@ -1216,6 +1220,7 @@ public static class ReportGenerator
         var html = $$"""
                     <html>
                         <head>
+                            <meta name="generator" content="TestTrackingDiagrams v{{TtdVersion}}" />
                             <style>
                                 {{combinedStylesheet}}
                                 {{contextMenuStyles}}
@@ -1359,6 +1364,7 @@ public static class ReportGenerator
                             <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss} (UTC)</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
                             <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss} (UTC)</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
                             <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
+                            <tr><td>TTD Version:</td><td>{TtdVersion}</td><td></td><td></td></tr>
                         </table>
                     </div>
                     """);
@@ -1952,6 +1958,7 @@ public static class ReportGenerator
             return WriteFile(string.Empty, fileName);
 
         var yml = new StringBuilder();
+        yml.Append("TtdVersion: " + TtdVersion + "\n");
         yml.Append("Title: " + title + "\n");
         yml.Append("Features:\n");
 
@@ -2928,6 +2935,7 @@ public static class ReportGenerator
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         var data = new
         {
+            TtdVersion = TtdVersion,
             StartTime = startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
             EndTime = endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
             Features = features.OrderBy(f => f.DisplayName).Select(f => new
@@ -2993,6 +3001,7 @@ public static class ReportGenerator
     {
         var doc = new XDocument(
             new XElement("TestRunReport",
+                new XElement("TtdVersion", TtdVersion),
                 new XElement("StartTime", startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")),
                 new XElement("EndTime", endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")),
                 new XElement("Features",
@@ -3071,6 +3080,7 @@ public static class ReportGenerator
     private static string GenerateTestRunReportYaml(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
     {
         var yml = new StringBuilder();
+        yml.Append("TtdVersion: " + TtdVersion + "\n");
         yml.Append("StartTime: " + startTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n");
         yml.Append("EndTime: " + endTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n");
         yml.Append("Features:\n");
@@ -3210,6 +3220,7 @@ public static class ReportGenerator
     private static string GenerateSpecificationsYaml(Feature[] features, string title)
     {
         var yml = new StringBuilder();
+        yml.Append("TtdVersion: " + TtdVersion + "\n");
         yml.Append("Title: " + title + "\n");
         yml.Append("Features:\n");
 
@@ -3271,6 +3282,7 @@ public static class ReportGenerator
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         var data = new
         {
+            TtdVersion = TtdVersion,
             Title = title,
             Features = features.OrderBy(f => f.DisplayName).Select(f => new
             {
@@ -3303,6 +3315,7 @@ public static class ReportGenerator
     {
         var doc = new XDocument(
             new XElement("Specifications",
+                new XElement("TtdVersion", TtdVersion),
                 new XElement("Title", title),
                 new XElement("Features",
                     features.OrderBy(f => f.DisplayName).Select(f =>
@@ -3434,6 +3447,7 @@ public static class ReportGenerator
             ["required"] = new[] { "startTime", "endTime", "features" },
             ["properties"] = new Dictionary<string, object?>
             {
+                ["ttdVersion"] = new Dictionary<string, object?> { ["type"] = "string", ["description"] = "Version of TestTrackingDiagrams that generated this report" },
                 ["startTime"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date-time", ["description"] = "UTC start time of the test run" },
                 ["endTime"] = new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date-time", ["description"] = "UTC end time of the test run" },
                 ["features"] = new Dictionary<string, object?>
@@ -3683,6 +3697,7 @@ public static class ReportGenerator
                     new XAttribute("name", "TestRunReport"),
                     new XElement(xs + "complexType",
                         new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "TtdVersion"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
                             new XElement(xs + "element", new XAttribute("name", "StartTime"), new XAttribute("type", "xs:string")),
                             new XElement(xs + "element", new XAttribute("name", "EndTime"), new XAttribute("type", "xs:string")),
                             new XElement(xs + "element", new XAttribute("name", "Features"),

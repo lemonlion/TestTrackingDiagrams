@@ -398,4 +398,109 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    private const string PartitionPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "SetupService" as setup
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        partition #E2E2F0 Setup
+          caller -> setup : POST /api/setup
+          note left
+          Content-Type: application/json
+          {"env":"test"}
+          end note
+          setup --> caller : 200 OK
+        end
+
+        caller -> svc : POST /api/orders
+        note left
+        Content-Type: application/json
+        {"item":"Widget","qty":2}
+        end note
+        svc -> db : INSERT INTO Orders
+        note left
+        INSERT INTO Orders (Item, Qty)
+        VALUES ('Widget', 2)
+        end note
+        db --> svc : OK
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    private static string PartitionLongNotePlantUmlSource
+    {
+        get
+        {
+            // Build PlantUML source with long notes (> 40 lines) to trigger truncation
+            var longContent = string.Join("\n", Enumerable.Range(1, 50).Select(i => $"Line {i}: some content here"));
+            return $"""
+                @startuml
+                actor "Caller" as caller
+                participant "SetupService" as setup
+                participant "OrderService" as svc
+                participant "Database" as db
+
+                partition #E2E2F0 Setup
+                  caller -> setup : POST /api/setup
+                  note left
+                {longContent}
+                  end note
+                  setup --> caller : 200 OK
+                end
+
+                caller -> svc : POST /api/orders
+                note left
+                {longContent}
+                end note
+                svc -> db : INSERT INTO Orders
+                note left
+                {longContent}
+                end note
+                db --> svc : OK
+                svc --> caller : 201 Created
+                @enduml
+                """;
+        }
+    }
+
+    public static string GenerateReportWithPartitionLongNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", PartitionLongNotePlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    public static string GenerateReportWithPartitionDiagram(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", PartitionPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }
