@@ -41,7 +41,8 @@ public class PubSubTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event)
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });
@@ -69,7 +70,8 @@ public class PubSubTracker : ITrackingComponent
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
-            RequestResponseType.Response, traceId, requestResponseId, false)
+            RequestResponseType.Response, traceId, requestResponseId, false,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });

@@ -69,7 +69,8 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current
@@ -93,7 +94,8 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current

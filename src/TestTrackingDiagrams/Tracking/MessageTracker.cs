@@ -25,6 +25,7 @@ public class MessageTracker : ITrackingComponent
     private readonly MessageTrackerVerbosity? _actionVerbosity;
     private readonly bool _trackDuringSetup;
     private readonly bool _trackDuringAction;
+    private readonly string _dependencyCategory;
     private int _invocationCount;
 
     /// <summary>
@@ -54,6 +55,7 @@ public class MessageTracker : ITrackingComponent
         _actionVerbosity = options.ActionVerbosity;
         _trackDuringSetup = options.TrackDuringSetup;
         _trackDuringAction = options.TrackDuringAction;
+        _dependencyCategory = options.DependencyCategory;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -77,6 +79,7 @@ public class MessageTracker : ITrackingComponent
         _verbosity = MessageTrackerVerbosity.Detailed;
         _trackDuringSetup = true;
         _trackDuringAction = true;
+        _dependencyCategory = "MessageQueue";
         TrackingComponentRegistry.Register(this);
     }
 
@@ -125,7 +128,8 @@ public class MessageTracker : ITrackingComponent
             testInfo.Value.TraceId,
             requestResponseId,
             false,
-            MetaType: RequestResponseMetaType.Event
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: _dependencyCategory
         )
         {
             Timestamp = DateTimeOffset.UtcNow,
@@ -175,7 +179,8 @@ public class MessageTracker : ITrackingComponent
             requestResponseId,
             false,
             "Responded",
-            MetaType: RequestResponseMetaType.Event
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: _dependencyCategory
         )
         {
             Timestamp = DateTimeOffset.UtcNow,

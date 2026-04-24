@@ -92,7 +92,8 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current
@@ -121,7 +122,8 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current

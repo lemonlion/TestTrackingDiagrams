@@ -69,7 +69,8 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "S3"
         )
         {
             Phase = TestPhaseContext.Current
@@ -93,7 +94,8 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "S3"
         )
         {
             Phase = TestPhaseContext.Current

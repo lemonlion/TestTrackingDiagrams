@@ -69,7 +69,8 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "CloudStorage"
         )
         {
             Phase = TestPhaseContext.Current
@@ -93,7 +94,8 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "CloudStorage"
         )
         {
             Phase = TestPhaseContext.Current

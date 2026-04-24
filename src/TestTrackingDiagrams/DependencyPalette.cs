@@ -20,6 +20,13 @@ public static class DependencyPalette
             ["BlobStorage"] = DependencyType.Storage,
             ["HTTP"] = DependencyType.HttpApi,
             ["MediatR"] = DependencyType.HttpApi,
+            ["MessageQueue"] = DependencyType.MessageQueue,
+            ["MongoDB"] = DependencyType.Database,
+            ["DynamoDB"] = DependencyType.Database,
+            ["Elasticsearch"] = DependencyType.Database,
+            ["S3"] = DependencyType.Storage,
+            ["CloudStorage"] = DependencyType.Storage,
+            ["gRPC"] = DependencyType.HttpApi,
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Default hex colors for each <see cref="DependencyType"/>. Palette A (Vivid).</summary>

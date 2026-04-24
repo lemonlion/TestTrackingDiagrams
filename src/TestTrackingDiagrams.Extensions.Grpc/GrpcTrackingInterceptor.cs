@@ -231,7 +231,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             testInfo.Name, testInfo.Id,
             label, content, uri,
             headers, serviceName, _options.CallingServiceName,
-            RequestResponseType.Request, traceId, requestResponseId, false)
+            RequestResponseType.Request, traceId, requestResponseId, false,
+            DependencyCategory: "gRPC")
         {
             Phase = TestPhaseContext.Current
         });
@@ -247,7 +248,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             label, content, uri,
             [], serviceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            statusCode)
+            statusCode,
+            DependencyCategory: "gRPC")
         {
             Phase = TestPhaseContext.Current
         });

@@ -150,7 +150,8 @@ public class TrackingDbCommand : DbCommand
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false)
+            false,
+            DependencyCategory: "SQL")
         {
             Phase = TestPhaseContext.Current
         });
@@ -187,7 +188,8 @@ public class TrackingDbCommand : DbCommand
             traceId,
             requestResponseId,
             false,
-            (OneOf<HttpStatusCode, string>)"OK")
+            (OneOf<HttpStatusCode, string>)"OK",
+            DependencyCategory: "SQL")
         {
             Phase = TestPhaseContext.Current
         });

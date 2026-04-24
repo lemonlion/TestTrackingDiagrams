@@ -86,7 +86,8 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current
@@ -115,7 +116,8 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "MessageQueue"
         )
         {
             Phase = TestPhaseContext.Current

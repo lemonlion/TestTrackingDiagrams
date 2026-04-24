@@ -693,4 +693,74 @@ public class MessageTrackerTests
         Assert.Equal("FetcherTest", log.TestName);
         Assert.Equal(testId, log.TestId);
     }
+
+    // ─── DependencyCategory ─────────────────────────────────────
+
+    [Fact]
+    public void TrackMessageRequest_sets_DependencyCategory_to_MessageQueue_by_default()
+    {
+        var tracker = CreateOptionsTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("MessageQueue", log.DependencyCategory);
+    }
+
+    [Fact]
+    public void TrackMessageResponse_sets_DependencyCategory_to_MessageQueue_by_default()
+    {
+        var tracker = CreateOptionsTracker();
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        tracker.TrackMessageResponse("Kafka", "Svc", new Uri("kafka://t"), id);
+
+        var responseLog = GetLogsById(id).Last();
+        Assert.Equal("MessageQueue", responseLog.DependencyCategory);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_uses_custom_DependencyCategory_from_options()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            DependencyCategory = "CustomCategory",
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("CustomCategory", log.DependencyCategory);
+    }
+
+    [Fact]
+    public void Legacy_constructor_sets_DependencyCategory_to_MessageQueue()
+    {
+        var tracker = CreateTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("MessageQueue", log.DependencyCategory);
+    }
+
+    [Fact]
+    public void TrackSendEvent_sets_DependencyCategory_to_MessageQueue()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("SB", "Queue", new Uri("sb://q"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Equal("MessageQueue", l.DependencyCategory));
+    }
 }

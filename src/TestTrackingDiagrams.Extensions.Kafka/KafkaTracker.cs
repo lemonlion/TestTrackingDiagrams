@@ -76,7 +76,8 @@ public class KafkaTracker : ITrackingComponent
             label, body, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event)
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });
@@ -86,7 +87,8 @@ public class KafkaTracker : ITrackingComponent
             label, null, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event)
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });
@@ -112,7 +114,8 @@ public class KafkaTracker : ITrackingComponent
             label, body, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event)
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });
@@ -122,7 +125,8 @@ public class KafkaTracker : ITrackingComponent
             label, null, uri, [],
             _options.CallingServiceName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            MetaType: RequestResponseMetaType.Event)
+            MetaType: RequestResponseMetaType.Event,
+            DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
         });

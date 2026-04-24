@@ -50,6 +50,13 @@ public record MessageTrackerOptions
     public bool TrackDuringAction { get; set; } = true;
 
     /// <summary>
+    /// The dependency category used in PlantUML diagrams to determine the participant shape
+    /// (e.g. <c>queue</c>, <c>database</c>, <c>entity</c>).
+    /// Defaults to <c>"MessageQueue"</c> which renders as a queue shape.
+    /// </summary>
+    public string DependencyCategory { get; set; } = "MessageQueue";
+
+    /// <summary>
     /// When <c>true</c>, the <see cref="MessageTracker"/> will first attempt to resolve test info
     /// from <c>IHttpContextAccessor</c> request headers (the same dual-layer correlation used by
     /// the legacy constructor), falling back to <see cref="CurrentTestInfoFetcher"/> when

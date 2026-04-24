@@ -77,7 +77,8 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             label,
             content, uri,
             [], _options.ServiceName, _options.CallingServiceName,
-            RequestResponseType.Request, traceId, requestResponseId, false)
+            RequestResponseType.Request, traceId, requestResponseId, false,
+            DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
         });
@@ -102,7 +103,8 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             content, pending.Uri,
             [], _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
-            HttpStatusCode.OK)
+            HttpStatusCode.OK,
+            DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
         });
@@ -118,7 +120,8 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             e.Failure?.Message, pending.Uri,
             [], _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
-            HttpStatusCode.InternalServerError)
+            HttpStatusCode.InternalServerError,
+            DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
         });

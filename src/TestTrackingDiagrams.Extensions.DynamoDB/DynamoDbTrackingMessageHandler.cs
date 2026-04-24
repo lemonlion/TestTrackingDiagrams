@@ -87,7 +87,8 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             RequestResponseType.Request,
             traceId,
             requestResponseId,
-            false
+            false,
+            DependencyCategory: "DynamoDB"
         )
         {
             Phase = TestPhaseContext.Current
@@ -117,7 +118,8 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             traceId,
             requestResponseId,
             false,
-            response.StatusCode
+            response.StatusCode,
+            DependencyCategory: "DynamoDB"
         )
         {
             Phase = TestPhaseContext.Current

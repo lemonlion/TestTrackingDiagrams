@@ -80,7 +80,8 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             RequestResponseType.Request, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
-                : null)
+                : null,
+            DependencyCategory: "Elasticsearch")
         {
             Phase = TestPhaseContext.Current
         });
@@ -95,7 +96,8 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             RequestResponseType.Response, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
-                : null)
+                : null,
+            DependencyCategory: "Elasticsearch")
         {
             Phase = TestPhaseContext.Current
         });
