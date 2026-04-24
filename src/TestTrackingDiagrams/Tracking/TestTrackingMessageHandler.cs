@@ -7,7 +7,10 @@ namespace TestTrackingDiagrams.Tracking;
 
 public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
+    private readonly string? _fixedServiceName;
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
+    private readonly Dictionary<string, string> _clientNamesToServiceNames;
+    private readonly string? _clientName;
     private readonly string? _callingServiceName;
     private readonly Func<(string Name, string Id)>? _currentTestInfoFetcher;
     private readonly Func<string?>? _currentStepTypeFetcher;
@@ -22,9 +25,12 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private int _invocationCount;
     private bool _listenerStarted;
 
-    public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
+    public TestTrackingMessageHandler(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null, string? clientName = null)
     {
-        _getServiceNameFromPortTranslator = options.FixedNameForReceivingService is not null ? _ => options.FixedNameForReceivingService : GetPortTranslator(options.PortsToServiceNames);
+        _fixedServiceName = options.FixedNameForReceivingService;
+        _getServiceNameFromPortTranslator = GetPortTranslator(options.PortsToServiceNames);
+        _clientNamesToServiceNames = options.ClientNamesToServiceNames;
+        _clientName = clientName;
         _currentTestInfoFetcher = options.CurrentTestInfoFetcher;
         _currentStepTypeFetcher = options.CurrentStepTypeFetcher;
         _callingServiceName = options.CallingServiceName;
@@ -45,6 +51,20 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private static Func<int, string> GetPortTranslator(Dictionary<int, string> serviceNamesForEachPort)
     {
         return port => serviceNamesForEachPort.TryGetValue(port, out var serviceName) ? serviceName : $"localhost:{port}";
+    }
+
+    private string ResolveServiceName(int port)
+    {
+        // 1. FixedNameForReceivingService (highest priority)
+        if (_fixedServiceName is not null)
+            return _fixedServiceName;
+
+        // 2. Client name mapping (set via constructor clientName parameter)
+        if (_clientName is not null && _clientNamesToServiceNames.TryGetValue(_clientName, out var mapped))
+            return mapped;
+
+        // 3. Port-based mapping or fallback to localhost:port
+        return _getServiceNameFromPortTranslator(port);
     }
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -137,7 +157,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var currentTestInfo = currentTestInfoFetcher!();
 
-        var serviceName = _getServiceNameFromPortTranslator(request.RequestUri!.Port);
+        var serviceName = ResolveServiceName(request.RequestUri!.Port);
 
         if (!hasCurrentTestNameHeader)
             InjectImplicitActionStartIfNeeded(currentTestInfo);

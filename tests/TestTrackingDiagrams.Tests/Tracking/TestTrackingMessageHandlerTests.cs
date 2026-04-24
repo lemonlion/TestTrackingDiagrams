@@ -37,9 +37,9 @@ public class TestTrackingMessageHandlerTests : IDisposable
             .ToArray();
     }
 
-    private HttpMessageInvoker CreateInvoker(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null)
+    private HttpMessageInvoker CreateInvoker(TestTrackingMessageHandlerOptions options, IHttpContextAccessor? httpContextAccessor = null, string? clientName = null)
     {
-        var handler = new TestTrackingMessageHandler(options, httpContextAccessor)
+        var handler = new TestTrackingMessageHandler(options, httpContextAccessor, clientName)
         {
             InnerHandler = _innerHandler
         };
@@ -231,6 +231,77 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Equal("localhost:7777", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Uses_client_name_to_service_name_mapping_when_client_name_provided()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "AccountClient", "Account Service" } },
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "AccountClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Account Service", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Client_name_mapping_takes_priority_over_port_mapping()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "PaymentClient", "Payment Service" } },
+            PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port-Based Service" } },
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "PaymentClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Payment Service", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Falls_back_to_port_mapping_when_client_name_not_in_dictionary()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "OtherClient", "Other" } },
+            PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port Service" } },
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "UnknownClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Port Service", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Fixed_service_name_takes_priority_over_client_name_mapping()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            FixedNameForReceivingService = "Fixed Service",
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "MyClient", "Client Service" } },
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "MyClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Fixed Service", requestLog.ServiceName);
     }
 
     // ─── Caller name ────────────────────────────────────────────

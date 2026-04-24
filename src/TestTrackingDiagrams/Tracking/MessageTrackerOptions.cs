@@ -48,4 +48,18 @@ public record MessageTrackerOptions
 
     /// <summary>When <c>false</c>, messages during the Action phase are not tracked. Default: <c>true</c>.</summary>
     public bool TrackDuringAction { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the <see cref="MessageTracker"/> will first attempt to resolve test info
+    /// from <c>IHttpContextAccessor</c> request headers (the same dual-layer correlation used by
+    /// the legacy constructor), falling back to <see cref="CurrentTestInfoFetcher"/> when
+    /// <c>HttpContext</c> is null or the tracking headers are absent.
+    /// <para>
+    /// Enable this when messages are published as side-effects of HTTP request processing and the
+    /// xUnit <c>TestContext</c> ambient state may not flow to the publishing thread (e.g. thread-pool
+    /// continuations, <c>ConfigureAwait(false)</c> chains).
+    /// </para>
+    /// Default: <c>false</c> (uses <see cref="CurrentTestInfoFetcher"/> exclusively).
+    /// </summary>
+    public bool UseHttpContextCorrelation { get; set; }
 }

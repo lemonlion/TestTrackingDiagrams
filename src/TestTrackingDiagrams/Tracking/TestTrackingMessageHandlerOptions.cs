@@ -8,6 +8,16 @@ public record TestTrackingMessageHandlerOptions
     /// <summary>Maps port numbers to human-readable service names for diagram participants.</summary>
     public Dictionary<int, string> PortsToServiceNames { get; set; } = new();
 
+    /// <summary>
+    /// Maps <see cref="IHttpClientFactory"/> client names (the string passed to
+    /// <c>services.AddHttpClient("name")</c>) to human-readable service names for diagram participants.
+    /// <para>
+    /// This is useful when HTTP mocking (JustEat HttpClient Interception, WireMock, etc.) makes
+    /// port-based mapping via <see cref="PortsToServiceNames"/> unreliable.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, string> ClientNamesToServiceNames { get; set; } = new();
+
     /// <summary>When set, uses this fixed name for the receiving service instead of inferring from the port.</summary>
     public string? FixedNameForReceivingService { get; set; }
 

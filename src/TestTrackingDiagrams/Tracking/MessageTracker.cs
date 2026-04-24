@@ -33,8 +33,18 @@ public class MessageTracker : ITrackingComponent
     /// as all other TTD extensions.
     /// </summary>
     public MessageTracker(MessageTrackerOptions options)
+        : this(options, httpContextAccessor: null)
     {
-        _httpContextAccessor = null;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="MessageTracker"/> using an options record with an optional
+    /// <see cref="IHttpContextAccessor"/> for dual-layer correlation when
+    /// <see cref="MessageTrackerOptions.UseHttpContextCorrelation"/> is enabled.
+    /// </summary>
+    public MessageTracker(MessageTrackerOptions options, IHttpContextAccessor? httpContextAccessor)
+    {
+        _httpContextAccessor = options.UseHttpContextCorrelation ? httpContextAccessor : null;
         _callingServiceName = options.CallingServiceName;
         _serviceName = options.ServiceName;
         _serializerOptions = options.SerializerOptions ?? new JsonSerializerOptions();

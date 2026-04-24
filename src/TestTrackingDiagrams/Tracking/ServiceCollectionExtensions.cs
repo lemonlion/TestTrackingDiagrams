@@ -35,7 +35,15 @@ public static class ServiceCollectionHelper
         this IServiceCollection services,
         MessageTrackerOptions options)
     {
-        services.AddSingleton(new MessageTracker(options));
+        if (options.UseHttpContextCorrelation)
+        {
+            services.AddHttpContextAccessor();
+            services.AddSingleton(sp => new MessageTracker(options, sp.GetRequiredService<IHttpContextAccessor>()));
+        }
+        else
+        {
+            services.AddSingleton(new MessageTracker(options));
+        }
 
         return services;
     }

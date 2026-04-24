@@ -632,4 +632,65 @@ public class MessageTrackerTests
             .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
         Assert.Equal("My Custom Bus", log.ServiceName);
     }
+
+    // ─── UseHttpContextCorrelation ──────────────────────────────
+
+    [Fact]
+    public void Options_with_UseHttpContextCorrelation_reads_headers_from_HttpContext()
+    {
+        var accessor = CreateHttpContextAccessor(testName: "HeaderTest", testId: "header-id-1");
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "MySvc",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("FallbackTest", "fallback-id")
+        };
+        var tracker = new MessageTracker(options, accessor);
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs.First(l => l.RequestResponseId == id);
+        Assert.Equal("HeaderTest", log.TestName);
+        Assert.Equal("header-id-1", log.TestId);
+    }
+
+    [Fact]
+    public void Options_with_UseHttpContextCorrelation_falls_back_to_fetcher_when_no_HttpContext()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var testId = Guid.NewGuid().ToString();
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "MySvc",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("FallbackTest", testId)
+        };
+        var tracker = new MessageTracker(options, accessor);
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs.First(l => l.RequestResponseId == id);
+        Assert.Equal("FallbackTest", log.TestName);
+        Assert.Equal(testId, log.TestId);
+    }
+
+    [Fact]
+    public void Options_without_UseHttpContextCorrelation_ignores_HttpContext_headers()
+    {
+        var accessor = CreateHttpContextAccessor(testName: "HeaderTest", testId: "header-id");
+        var testId = Guid.NewGuid().ToString();
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "MySvc",
+            UseHttpContextCorrelation = false,
+            CurrentTestInfoFetcher = () => ("FetcherTest", testId)
+        };
+        var tracker = new MessageTracker(options, accessor);
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = RequestResponseLogger.RequestAndResponseLogs.First(l => l.RequestResponseId == id);
+        Assert.Equal("FetcherTest", log.TestName);
+        Assert.Equal(testId, log.TestId);
+    }
 }
