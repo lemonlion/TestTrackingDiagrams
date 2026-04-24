@@ -41,6 +41,20 @@ public class VersionEmbeddingTests
     }
 
     [Fact]
+    public void Html_report_ttd_version_row_is_hidden()
+    {
+        var path = ReportGenerator.GenerateHtmlReport(
+            [], SimpleFeatures(),
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "VersionHidden.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // The TTD Version row should be hidden from the user
+        Assert.Contains("style=\"display:none\"", content.Substring(content.IndexOf("TTD Version") - 50, 100));
+    }
+
+    [Fact]
     public void TtdVersion_is_not_null_or_empty()
     {
         Assert.NotNull(ReportGenerator.TtdVersion);

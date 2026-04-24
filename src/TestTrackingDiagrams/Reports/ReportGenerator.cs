@@ -1367,7 +1367,7 @@ public static class ReportGenerator
                             <tr><td>Start Time:</td><td>{startRunTime:HH:mm:ss} (UTC)</td><td>Passed Scenarios: </td><td>{passedScenarios.Length}</td></tr>
                             <tr><td>End Time:</td><td>{endRunTime:HH:mm:ss} (UTC)</td><td>Failed Scenarios: </td><td>{failedScenarios.Length}</td></tr>
                             <tr><td>Duration:</td><td>{FormatDuration(endRunTime - startRunTime)}</td><td>Skipped Scenarios: </td><td>{skippedScenarios.Length}</td></tr>
-                            <tr><td>TTD Version:</td><td>{TtdVersion}</td><td></td><td></td></tr>
+                            <tr style="display:none"><td>TTD Version:</td><td>{TtdVersion}</td><td></td><td></td></tr>
                         </table>
                     </div>
                     """);
