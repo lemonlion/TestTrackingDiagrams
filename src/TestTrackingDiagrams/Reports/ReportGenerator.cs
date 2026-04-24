@@ -1556,7 +1556,7 @@ public static class ReportGenerator
                     var anchorId = GenerateScenarioAnchorId(s.DisplayName);
                     var featureName = scenarioFeatureLookup.GetValueOrDefault(s.Id, "");
                     var prefix = featureName.Length > 0 ? $"<span style=\"color:rgb(100,100,100);font-size:0.85em\">{System.Net.WebUtility.HtmlEncode(featureName)} &rsaquo;</span> " : "";
-                    return $"<li>{prefix}<a class=\"failure-cluster-scenario-link\" href=\"#{anchorId}\" onclick=\"var el=document.getElementById('{anchorId}');if(el){{var f=el.closest('details.feature');if(f)f.setAttribute('open','');el.setAttribute('open','');}}\">{System.Net.WebUtility.HtmlEncode(s.DisplayName)}</a></li>";
+                    return $"<li>{prefix}<a class=\"failure-cluster-scenario-link\" href=\"#{anchorId}\" onclick=\"var el=document.getElementById('{anchorId}');if(el){{var p=el;while(p){{if(p.tagName==='DETAILS')p.setAttribute('open','');p=p.parentElement;}}if(el.tagName==='TR')el.click();else el.setAttribute('open','');}}\">{System.Net.WebUtility.HtmlEncode(s.DisplayName)}</a></li>";
                 }));
                 body.Append($"<details class=\"failure-cluster\"><summary>{System.Net.WebUtility.HtmlEncode(cluster.ClusterKey)}<span class=\"failure-cluster-count\">{cluster.Scenarios.Length} scenarios</span></summary>");
                 body.Append($"<ul class=\"failure-cluster-scenarios\">{anchorLinks}</ul></details>");
@@ -2266,7 +2266,7 @@ public static class ReportGenerator
             var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
             var rowAnchorId = GenerateScenarioAnchorId(s.DisplayName);
-            body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
+            body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" id=\"{rowAnchorId}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
             body.Append($"<td>{ri + 1}</td>");
 
             if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)

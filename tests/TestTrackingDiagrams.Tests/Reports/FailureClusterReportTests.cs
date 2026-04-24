@@ -150,4 +150,87 @@ public class FailureClusterReportTests
         Assert.True(elementIds.Contains(onclickId),
             $"onclick targets '{onclickId}' but no scenario element has that id. Available ids: {string.Join(", ", elementIds)}");
     }
+
+    [Fact]
+    public void Report_cluster_link_href_matches_element_id_for_parameterized_scenarios()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Test Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Process(region: UK)", Result = ExecutionResult.Failed,
+                        ErrorMessage = "Connection refused", OutlineId = "Process",
+                        ExampleValues = new Dictionary<string, string> { ["region"] = "UK" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Process(region: US)", Result = ExecutionResult.Failed,
+                        ErrorMessage = "Connection refused", OutlineId = "Process",
+                        ExampleValues = new Dictionary<string, string> { ["region"] = "US" }
+                    }
+                ]
+            }
+        };
+        var content = GenerateReport(features, "ClusterLinkParamHref.html");
+
+        // Extract all cluster link hrefs
+        var hrefMatches = Regex.Matches(content, @"class=""failure-cluster-scenario-link""\s+href=""#([^""]+)""");
+        Assert.True(hrefMatches.Count >= 2, $"Expected at least 2 cluster links, found {hrefMatches.Count}");
+
+        // Extract all element ids (both <details> and <tr> elements) — exclude data-scenario-id
+        var allIdMatches = Regex.Matches(content, @"(?<!\w-)id=""([^""]+)""");
+        var elementIds = allIdMatches.Select(m => m.Groups[1].Value).ToHashSet();
+
+        // Every cluster link href must target an existing element id
+        foreach (Match href in hrefMatches)
+        {
+            var targetId = href.Groups[1].Value;
+            Assert.True(elementIds.Contains(targetId),
+                $"Cluster link targets '#{targetId}' but no element has id='{targetId}'.");
+        }
+    }
+
+    [Fact]
+    public void Report_cluster_link_onclick_opens_ancestor_details_for_parameterized_row()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Test Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Process(region: UK)", Result = ExecutionResult.Failed,
+                        ErrorMessage = "Connection refused", OutlineId = "Process",
+                        ExampleValues = new Dictionary<string, string> { ["region"] = "UK" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Process(region: US)", Result = ExecutionResult.Failed,
+                        ErrorMessage = "Connection refused", OutlineId = "Process",
+                        ExampleValues = new Dictionary<string, string> { ["region"] = "US" }
+                    }
+                ]
+            }
+        };
+        var content = GenerateReport(features, "ClusterLinkParamOnclick.html");
+
+        // The onclick handler must call selectRow for parameterized row navigation
+        var onclickMatches = Regex.Matches(content, @"class=""failure-cluster-scenario-link""[^>]*onclick=""([^""]+)""");
+        Assert.True(onclickMatches.Count >= 2, $"Expected at least 2 onclick handlers, found {onclickMatches.Count}");
+
+        foreach (Match m in onclickMatches)
+        {
+            var onclick = m.Groups[1].Value;
+            // Must open all ancestor details AND trigger click for parameterized row navigation
+            Assert.Contains("el.click()", onclick);
+        }
+    }
 }
