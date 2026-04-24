@@ -89,13 +89,15 @@ public class WikiGifTests : IDisposable
         {
             FileName = "magick",
             // -delay 3 = 3/100s per frame = 33ms ≈ 30fps
-            Arguments = $"-delay 3 -loop 0 \"{_currentFrameDir}\\*.png\" \"{outputPath}\"",
+            // -resize 960x: scale to 960px wide (wiki-friendly size, ~50% reduction in pixels)
+            // -fuzz 2% -layers optimize: treat near-identical pixels as same, store only diffs
+            Arguments = $"-delay 3 -loop 0 \"{_currentFrameDir}\\*.png\" -resize 960x -fuzz 2% -layers optimize \"{outputPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         })!;
-        process.WaitForExit(120_000);
+        process.WaitForExit(600_000);
         Assert.True(File.Exists(outputPath), $"GIF not created: {outputPath}");
     }
 
@@ -119,6 +121,11 @@ public class WikiGifTests : IDisposable
 
     private void WaitForDiagramSvg(int timeoutSeconds = 30)
     {
+        // Force rendering of all PlantUML diagrams - IntersectionObserver doesn't fire
+        // reliably in headless Chrome for elements inside expanded <details>
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body);");
+
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
         wait.Until(d =>
         {
@@ -725,66 +732,86 @@ public class WikiGifTests : IDisposable
     //  FEATURE 1: Interactive HTML Report GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature01_Interactive_Report_GIF()
     {
         BeginFrameCapture("feature01");
         NavigateToReport();
 
-        // Scene: Overview of the full report
+        // Scene 1: Overview of the full report
         ScrollToTop(); Hold(2);
 
         // Click "Expand All Features"
-        var expandBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Expand All')]"));
+        var expandBtn = _driver.FindElement(By.CssSelector(".collapse-expand-all"));
         JsClick(expandBtn); Hold(1.5);
 
         // Scroll down through expanded features
         var firstScenario = _driver.FindElement(By.CssSelector("details.scenario"));
         ScrollTo(firstScenario); Hold(1.5);
-
-        // Click status filter "Failed"
         ScrollToTop(); Hold(0.5);
-        try
-        {
-            var failedBtn = _driver.FindElement(By.CssSelector("[data-status-filter='Failed']"));
-            JsClick(failedBtn); Hold(2);
-            // Clear filter
-            var clearBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Clear All')]"));
-            JsClick(clearBtn); Hold(1);
-        }
-        catch { /* filter not found */ }
 
-        // Click dependency filter
-        try
-        {
-            var depBtns = _driver.FindElements(By.CssSelector("[data-dep]"));
-            if (depBtns.Count > 0) { JsClick(depBtns[0]); Hold(1.5); }
-        }
-        catch { }
+        // Filter 1: Status = Failed
+        var failedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Failed']"));
+        JsClick(failedBtn); Hold(2);
 
-        // Click P95 duration filter
-        try
-        {
-            var p95Btn = _driver.FindElement(By.XPath("//button[contains(text(),'P95')]"));
-            JsClick(p95Btn); Hold(1.5);
-        }
-        catch { }
+        // Scroll to show filtered results
+        var filteredFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(filteredFeature); Hold(1.5);
+        ScrollToTop(); Hold(0.5);
 
-        // Happy Paths Only
-        try
-        {
-            var happyBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Happy Paths Only')]"));
-            JsClick(happyBtn); Hold(1.5);
-        }
-        catch { }
+        // Clear
+        var clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(1);
 
-        // Clear and return to overview
-        try
-        {
-            var clearBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Clear All')]"));
-            JsClick(clearBtn); Hold(0.5);
-        }
-        catch { }
+        // Filter 2: Status = Passed
+        var passedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Passed']"));
+        JsClick(passedBtn); Hold(1);
+
+        // Scroll to show results
+        filteredFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(filteredFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
+
+        // Clear
+        clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(0.5);
+
+        // Filter 3: Dependency filter
+        var depBtns = _driver.FindElements(By.CssSelector(".dependency-toggle[data-dependency]"));
+        if (depBtns.Count > 0) { JsClick(depBtns[0]); Hold(1); }
+
+        // Clear
+        clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(0.5);
+
+        // Filter 4: P95 duration filter
+        var p95Btn = _driver.FindElement(By.CssSelector(".percentile-btn[data-threshold-ms]"));
+        // Find the P95 specifically — it's typically the 3rd percentile button
+        var percentileBtns = _driver.FindElements(By.CssSelector(".percentile-btn[data-threshold-ms]"));
+        if (percentileBtns.Count >= 3) JsClick(percentileBtns[2]); // P95
+        else if (percentileBtns.Count > 0) JsClick(percentileBtns[0]);
+        Hold(1);
+
+        // Clear
+        clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(0.5);
+
+        // Filter 5: Happy Paths Only
+        var happyBtn = _driver.FindElement(By.CssSelector(".happy-path-toggle"));
+        JsClick(happyBtn); Hold(1.5);
+
+        // Scroll to show results
+        filteredFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(filteredFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
+
+        // Filter 6: Category filter (Smoke)
+        var smokeBtn = _driver.FindElement(By.CssSelector(".category-toggle[data-category='Smoke']"));
+        JsClick(smokeBtn); Hold(1);
+
+        // Final Clear All and return to overview
+        clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(1);
         ScrollToTop(); Hold(2);
 
         StitchGif("whats-new-feature01-report.gif");
@@ -794,7 +821,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 2: Advanced Search GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature02_Search_GIF()
     {
         BeginFrameCapture("feature02");
@@ -802,48 +829,69 @@ public class WikiGifTests : IDisposable
 
         // Focus on search bar
         ScrollToTop(); Hold(1);
-        var searchInput = _driver.FindElement(By.CssSelector("input[type='text'], input[type='search'], input[placeholder*='Search']"));
+        var searchInput = _driver.FindElement(By.Id("searchbar"));
+
+        // Search 1: "order" — matches Order Management scenarios
         HideCursor();
         TypeSlowly(searchInput, "order"); Hold(1.5);
+        // Scroll down to show filtered results
+        var visibleFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(visibleFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
         ShowCursor();
 
-        // Clear and type a tag search
-        searchInput.Clear(); Pause(100); Hold(0.5);
+        // Search 2: "@tag:Smoke" — matches Smoke-tagged scenarios
+        searchInput.Clear(); Pause(100);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('searchbar').dispatchEvent(new Event('keyup'));");
+        Hold(0.5);
         HideCursor();
         TypeSlowly(searchInput, "@tag:Smoke"); Hold(1.5);
+        visibleFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(visibleFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
         ShowCursor();
 
-        // Clear and type a status search
-        searchInput.Clear(); Pause(100); Hold(0.5);
+        // Search 3: "$status:failed" — matches failed scenarios
+        searchInput.Clear(); Pause(100);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('searchbar').dispatchEvent(new Event('keyup'));");
+        Hold(0.5);
         HideCursor();
         TypeSlowly(searchInput, "$status:failed"); Hold(1.5);
+        visibleFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(visibleFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
         ShowCursor();
 
-        // Clear and type a boolean search
-        searchInput.Clear(); Pause(100); Hold(0.5);
+        // Search 4: "payment && stripe" — matches payment scenarios mentioning Stripe
+        searchInput.Clear(); Pause(100);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('searchbar').dispatchEvent(new Event('keyup'));");
+        Hold(0.5);
         HideCursor();
         TypeSlowly(searchInput, "payment && stripe"); Hold(1.5);
+        visibleFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(visibleFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
+        ShowCursor();
+
+        // Search 5: "stock || inventory" — matches Stock Service or Inventory scenarios
+        searchInput.Clear(); Pause(100);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('searchbar').dispatchEvent(new Event('keyup'));");
+        Hold(0.5);
+        HideCursor();
+        TypeSlowly(searchInput, "stock || inventory"); Hold(1.5);
+        visibleFeature = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(visibleFeature); Hold(1);
+        ScrollToTop(); Hold(0.5);
         ShowCursor();
 
         // Show search help
-        try
-        {
-            var helpBtn = _driver.FindElement(By.CssSelector("[aria-label*='help'], .search-help-btn, button[title*='Help']"));
-            JsClick(helpBtn); Hold(2);
-        }
-        catch
-        {
-            // Try the ? button
-            try
-            {
-                var qBtn = _driver.FindElement(By.XPath("//button[text()='?']"));
-                JsClick(qBtn); Hold(2);
-            }
-            catch { }
-        }
+        var helpBtn = _driver.FindElement(By.CssSelector(".search-help-toggle"));
+        JsClick(helpBtn); Hold(2);
 
         // Clear
-        searchInput.Clear(); Pause(100); Hold(1);
+        searchInput.Clear(); Pause(100);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('searchbar').dispatchEvent(new Event('keyup'));");
+        Hold(1);
 
         StitchGif("whats-new-feature02-search.gif");
     }
@@ -852,50 +900,66 @@ public class WikiGifTests : IDisposable
     //  FEATURE 3: Parameterized Test Grouping GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature03_Parameterized_Tests_GIF()
     {
         BeginFrameCapture("feature03");
         NavigateToReport();
 
-        // Expand all to find the param table
-        var expandBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Expand All Features')]"));
-        JsClick(expandBtn); Pause(300);
+        // Expand all features and scenarios to reveal the param table
+        var expandFeatures = _driver.FindElement(By.XPath("//button[contains(text(),'Expand All Features')]"));
+        JsClick(expandFeatures); Pause(300);
         var expandScenarios = _driver.FindElement(By.XPath("//button[contains(text(),'Expand All Scenarios')]"));
-        JsClick(expandScenarios); Pause(300);
+        JsClick(expandScenarios); Pause(500);
 
-        // Scroll to the param table (Order validation)
-        try
+        // Scroll to the param table (Order validation parameterized group)
+        var paramTable = WaitFor(By.CssSelector(".param-test-table"), 10);
+        ScrollTo(paramTable); Hold(4);
+
+        // Click on a passed row (row index 0 — first param combination)
+        var rows = _driver.FindElements(By.CssSelector(".param-test-table tbody tr[data-row-idx]"));
+        if (rows.Count > 0)
         {
-            var paramTable = _driver.FindElement(By.CssSelector("table.param-table, .param-group table, table"));
-            ScrollTo(paramTable); Hold(2);
+            JsClick(rows[0]); Hold(3);
 
-            // Click on a passed row
-            var rows = _driver.FindElements(By.CssSelector("table tr[data-scenario-id], table tbody tr"));
-            if (rows.Count > 1)
-            {
-                JsClick(rows[1]); Hold(2);
-            }
-
-            // Click on a failed row if exists
+            // Scroll down to show the expanded diagram for this row
             try
             {
-                var failedRow = _driver.FindElement(By.CssSelector("tr.failed, tr[data-status='Failed']"));
-                JsClick(failedRow); Hold(2);
+                var detailPanel = _driver.FindElement(By.CssSelector(".param-detail-panel[style*='display: block'], .param-detail-panel:not([style*='display: none'])"));
+                ScrollTo(detailPanel); Hold(2.5);
             }
             catch { }
 
-            // Scroll down to see expanded diagram
+            // Scroll back up to the table
+            ScrollTo(paramTable); Hold(1.5);
+        }
+
+        // Click on the failed row (EUR/APAC combination)
+        try
+        {
+            var failedRow = _driver.FindElement(By.CssSelector(".param-test-table tbody tr.row-failed"));
+            JsClick(failedRow); Hold(3);
+
+            // Scroll down to show the error details for the failed row
             try
             {
-                var diagram = _driver.FindElement(By.CssSelector("[data-diagram-type]"));
-                ScrollTo(diagram); Hold(2);
+                var detailPanel = _driver.FindElement(By.CssSelector(".param-detail-panel[style*='display: block'], .param-detail-panel:not([style*='display: none'])"));
+                ScrollTo(detailPanel); Hold(3);
             }
             catch { }
         }
         catch { }
 
-        Hold(1);
+        // Click another passed row to show diagram swap
+        if (rows.Count > 3)
+        {
+            ScrollTo(paramTable); Hold(0.5);
+            JsClick(rows[3]); Hold(2);
+        }
+
+        // Hold the final param table view
+        ScrollTo(paramTable); Hold(4);
+
         StitchGif("whats-new-feature03-params.gif");
     }
 
@@ -903,7 +967,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 5: Sequence Diagrams GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature05_Sequence_Diagrams_GIF()
     {
         BeginFrameCapture("feature05");
@@ -912,70 +976,74 @@ public class WikiGifTests : IDisposable
         // Navigate to first scenario with diagram
         ExpandAll(); Pause(300);
 
+        // Wait for PlantUML browser rendering to complete
+        WaitForDiagramSvg(30);
+
+        // Scroll to a diagram
+        var diagramContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
+        ScrollTo(diagramContainer); Hold(4);
+
+        // Click "Expanded" details radio button
+        var expandedBtn = _driver.FindElement(By.CssSelector(".details-radio-btn[data-state='expanded']"));
+        JsClick(expandedBtn);
+        Pause(500); // Wait for diagram re-render
+        try { WaitForDiagramSvg(15); } catch { Pause(2000); }
+        Hold(3);
+
+        // Click "Collapsed" details radio button
+        var collapsedBtn = _driver.FindElement(By.CssSelector(".details-radio-btn[data-state='collapsed']"));
+        JsClick(collapsedBtn);
+        Pause(500);
+        try { WaitForDiagramSvg(15); } catch { Pause(2000); }
+        Hold(3);
+
+        // Click "Truncated" back
+        var truncBtn = _driver.FindElement(By.CssSelector(".details-radio-btn[data-state='truncated']"));
+        JsClick(truncBtn);
+        Pause(500);
+        try { WaitForDiagramSvg(15); } catch { Pause(2000); }
+        Hold(3);
+
+        // Toggle Headers: Hidden → Shown
         try
         {
-            WaitForDiagramSvg(30);
-
-            // Scroll to a diagram
-            var diagramContainer = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml']"));
-            ScrollTo(diagramContainer); Hold(2);
-
-            // Click "Expanded" details button
-            try
-            {
-                var expandedBtn = _driver.FindElement(By.XPath("//button[text()='Expanded']"));
-                JsClick(expandedBtn); Hold(2);
-            }
-            catch { }
-
-            // Click "Collapsed" details button
-            try
-            {
-                var collapsedBtn = _driver.FindElement(By.XPath("//button[text()='Collapsed']"));
-                JsClick(collapsedBtn); Hold(1.5);
-            }
-            catch { }
-
-            // Click "Truncated" back
-            try
-            {
-                var truncBtn = _driver.FindElement(By.XPath("//button[text()='Truncated']"));
-                JsClick(truncBtn); Hold(1);
-            }
-            catch { }
-
-            // Toggle Headers
-            try
-            {
-                var hiddenBtn = _driver.FindElement(By.XPath("//button[text()='Hidden']"));
-                JsClick(hiddenBtn); Hold(1.5);
-                var shownBtn = _driver.FindElement(By.XPath("//button[text()='Shown']"));
-                JsClick(shownBtn); Hold(1);
-            }
-            catch { }
-
-            // Double-click to zoom
-            try
-            {
-                var svg = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"));
-                new Actions(_driver).DoubleClick(svg).Perform();
-                Hold(2);
-                // Close zoom
-                try
-                {
-                    var closeZoom = _driver.FindElement(By.CssSelector(".diagram-zoom-close, .zoom-close"));
-                    JsClick(closeZoom); Hold(1);
-                }
-                catch
-                {
-                    new Actions(_driver).DoubleClick(svg).Perform();
-                    Hold(1);
-                }
-            }
-            catch { }
+            var headersToggle = _driver.FindElement(By.CssSelector(".header-toggle-btn, button[onclick*='toggle_headers']"));
+            JsClick(headersToggle); Hold(1.5);
+            // Toggle back
+            JsClick(headersToggle); Hold(1);
         }
-        catch { Hold(3); }
+        catch { }
 
+        // Double-click to zoom
+        var svg = _driver.FindElement(By.CssSelector(".plantuml-browser svg"));
+        new Actions(_driver).DoubleClick(svg).Perform();
+        Hold(3);
+        // Close zoom — try close button, fall back to double-click again
+        try
+        {
+            var closeZoom = _driver.FindElement(By.CssSelector(".diagram-zoom-close, .zoom-close, [onclick*='zoom']"));
+            JsClick(closeZoom); Hold(1);
+        }
+        catch
+        {
+            new Actions(_driver).DoubleClick(svg).Perform();
+            Hold(1);
+        }
+
+        // Right-click context menu
+        try
+        {
+            svg = _driver.FindElement(By.CssSelector(".plantuml-browser svg"));
+            new Actions(_driver).ContextClick(svg).Perform();
+            Hold(3);
+            // Dismiss context menu
+            ((IJavaScriptExecutor)_driver).ExecuteScript(
+                "document.querySelectorAll('.diagram-context-menu').forEach(m => m.style.display = 'none');");
+            Hold(0.5);
+        }
+        catch { }
+
+        Hold(1);
         StitchGif("whats-new-feature05-diagrams.gif");
     }
 
@@ -983,73 +1051,70 @@ public class WikiGifTests : IDisposable
     //  FEATURE 6: Database Tracking (static screenshot with zoom + arrow)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature06_Database_Tracking_Screenshot()
     {
         NavigateToReport();
         ExpandAll(); Pause(300);
 
-        try
-        {
-            WaitForDiagramSvg(30);
+        WaitForDiagramSvg(30);
 
-            // Find and scroll to a diagram that shows Cosmos DB
-            var diagramContainer = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml']"));
-            ScrollTo(diagramContainer); Pause(300);
+        // Find and scroll to a diagram that shows Cosmos DB
+        var diagramContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
+        ScrollTo(diagramContainer); Pause(300);
 
-            // Zoom into the diagram area by scrolling it to center
-            ((IJavaScriptExecutor)_driver).ExecuteScript(@"
-                var el = arguments[0];
-                el.scrollIntoView({block:'start', behavior:'instant'});
-                window.scrollBy(0, -20);
-            ", diagramContainer);
-            Pause(300);
+        // Zoom into the diagram area by scrolling it to center
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var el = arguments[0];
+            el.scrollIntoView({block:'start', behavior:'instant'});
+            window.scrollBy(0, -20);
+        ", diagramContainer);
+        Pause(500);
 
-            // Inject a hand-drawn red arrow pointing at Cosmos DB
-            ((IJavaScriptExecutor)_driver).ExecuteScript(@"
-                var svgs = document.querySelectorAll('[data-diagram-type=""plantuml""] svg');
-                if (svgs.length === 0) return;
-                var svg = svgs[0];
-                var container = svg.closest('[data-diagram-type]');
-                var rect = container.getBoundingClientRect();
+        // Wait for SVG to be visible after scroll
+        try { WaitForDiagramSvg(10); } catch { Pause(1000); }
 
-                // Create arrow overlay
-                var arrow = document.createElement('div');
-                arrow.id = 'cosmos-arrow';
-                arrow.style.cssText = 'position:absolute;z-index:9999;pointer-events:none;';
+        // Inject a hand-drawn red arrow pointing at the Cosmos DB participant in the SVG
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var container = document.querySelector('.plantuml-browser');
+            if (!container) return;
+            var svg = container.querySelector('svg');
+            if (!svg) return;
+            container.style.position = 'relative';
 
-                // Find approximate Cosmos DB position (database icon is typically 60-70% from left)
-                var arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                arrowSvg.setAttribute('width', '200');
-                arrowSvg.setAttribute('height', '120');
-                arrowSvg.setAttribute('viewBox', '0 0 200 120');
-                arrowSvg.style.cssText = 'overflow:visible;';
+            // Find the Cosmos DB text in the SVG to position the arrow near it
+            var texts = svg.querySelectorAll('text');
+            var cosmosEl = null;
+            for (var i = 0; i < texts.length; i++) {
+                if (texts[i].textContent.indexOf('Cosmos') >= 0) { cosmosEl = texts[i]; break; }
+            }
 
-                var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', 'M 180 10 C 150 15, 100 20, 50 60 C 30 75, 20 85, 15 100');
-                path.setAttribute('stroke', '#e53e3e');
-                path.setAttribute('stroke-width', '3');
-                path.setAttribute('fill', 'none');
-                path.setAttribute('stroke-linecap', 'round');
-                path.setAttribute('stroke-dasharray', '8,4');
+            var arrow = document.createElement('div');
+            arrow.style.cssText = 'position:absolute;z-index:9999;pointer-events:none;';
 
-                var arrowhead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                arrowhead.setAttribute('points', '5,95 20,105 10,110');
-                arrowhead.setAttribute('fill', '#e53e3e');
+            if (cosmosEl) {
+                // Position arrow relative to the Cosmos DB text in SVG
+                var svgRect = svg.getBoundingClientRect();
+                var cosmosRect = cosmosEl.getBoundingClientRect();
+                var relX = cosmosRect.left - svgRect.left + cosmosRect.width + 10;
+                var relY = cosmosRect.top - svgRect.top - 80;
+                arrow.style.left = relX + 'px';
+                arrow.style.top = Math.max(10, relY) + 'px';
+            } else {
+                // Fallback position
+                arrow.style.right = '30px';
+                arrow.style.top = '60px';
+            }
 
-                arrowSvg.appendChild(path);
-                arrowSvg.appendChild(arrowhead);
-                arrow.appendChild(arrowSvg);
-
-                container.style.position = 'relative';
-                arrow.style.right = '10px';
-                arrow.style.top = '10px';
-                arrow.style.position = 'absolute';
-                container.appendChild(arrow);
-            ");
-            Pause(200);
-        }
-        catch { /* proceed without arrow */ }
+            arrow.innerHTML = `<svg width='200' height='120' viewBox='0 0 200 120' xmlns='http://www.w3.org/2000/svg' style='overflow:visible;'>
+                <path d='M 180 10 C 150 15, 100 20, 50 60 C 30 75, 20 85, 15 100'
+                      stroke='#e53e3e' stroke-width='3' fill='none' stroke-linecap='round' stroke-dasharray='8,4'/>
+                <polygon points='5,95 20,105 10,110' fill='#e53e3e'/>
+                <text x='100' y='10' fill='#e53e3e' font-size='13' font-weight='bold' font-family='sans-serif'>Cosmos DB</text>
+            </svg>`;
+            container.appendChild(arrow);
+        ");
+        Pause(300);
 
         SaveScreenshot("whats-new-database-tracking.png");
     }
@@ -1058,37 +1123,97 @@ public class WikiGifTests : IDisposable
     //  FEATURE 7: Component Diagram Screenshot
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature07_Component_Diagram_Screenshot()
     {
-        // Use the real ComponentDiagram.html from Example.Api build output
-        var componentHtml = Path.Combine(
-            Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
-            "..", "..", "..", "..", "..", "examples", "Example.Api", "tests",
-            "Example.Api.Tests.Component.BDDfy.xUnit3", "bin", "Debug", "net10.0",
-            "Reports", "ComponentDiagram.html");
-        componentHtml = Path.GetFullPath(componentHtml);
+        // Generate a rich component diagram using the GenerateHtmlReport API
+        var (features, diagrams) = CreateRichShowcaseData();
 
-        Assert.True(File.Exists(componentHtml), $"ComponentDiagram.html not found at: {componentHtml}");
-        OpenFile(componentHtml);
+        // Create a component diagram PlantUML without C4 (browser-side doesn't support C4 includes)
+        var componentDiagramPlantUml = """
+            @startuml
+            skinparam componentStyle rectangle
+            skinparam backgroundColor white
+            skinparam defaultFontSize 12
+            skinparam wrapWidth 200
 
-        WaitFor(By.TagName("body"));
+            actor "Caller\n[Person]" as caller #369
+            rectangle "Orders API\n[Software System]" as api #369
+            rectangle "Stock Service\n[Software System]" as stock #369
+            rectangle "Payment API\n[Software System]" as payments #369
+            rectangle "Stripe Gateway\n[Software System]" as stripe #369
+            database "Cosmos DB\n[Database]" as cosmos #369
+            database "SQL Server\n[Database]" as sql #369
+            database "Redis Cache\n[Cache]" as redis #369
+            queue "EventGrid\n[Event Broker]" as events #369
+            rectangle "Notification Service\n[Software System]" as notifications #369
+            rectangle "Auth Service\n[Software System]" as auth #369
+            rectangle "Shipping API\n[Software System]" as shipping #369
+            rectangle "Analytics Engine\n[Software System]" as analytics #369
+
+            caller --> api : HTTP: GET, POST, PUT, DELETE\n45 calls across 12 tests
+            api --> stock : HTTP: PUT, GET\n12 calls across 8 tests
+            api --> payments : HTTP: POST\n6 calls across 4 tests
+            payments --> stripe : HTTP: POST\n6 calls across 4 tests
+            api --> cosmos : Create Item; Query; Upsert\n18 calls across 10 tests
+            payments --> sql : INSERT; SELECT\n8 calls across 4 tests
+            api --> redis : Get (Hit); Get (Miss); Set\n15 calls across 9 tests
+            api --> events : Send (Event Protocol)\n10 calls across 7 tests
+            events --> notifications : Send (Event Protocol)\n5 calls across 3 tests
+            api --> auth : HTTP: POST\n8 calls across 6 tests
+            api --> shipping : HTTP: POST, GET\n5 calls across 3 tests
+            api --> analytics : HTTP: POST\n4 calls across 2 tests
+            shipping --> notifications : Send (Event Protocol)\n3 calls across 2 tests
+            @enduml
+            """;
+
+        // Use GenerateHtmlReport with componentDiagramPlantUml parameter
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow.AddMinutes(-3), DateTime.UtcNow,
+            null, Path.Combine(_tempDir, "ComponentDiagramReport.html"),
+            "E‑Commerce Service — Test Run Report",
+            includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            componentDiagramPlantUml: componentDiagramPlantUml);
+
+        OpenUrl(new Uri(path).AbsoluteUri);
+        WaitFor(By.CssSelector("details.feature"), 10);
         Pause(500);
-        ExpandAll();
-        Pause(500);
 
-        // Wait for PlantUML to render
+        // Toggle Component Diagram section visible
         try
         {
-            var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(20));
+            var cdToggle = _driver.FindElement(By.XPath("//button[contains(text(),'Component Diagram')]"));
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", cdToggle);
+            Pause(500);
+        }
+        catch { }
+
+        // Wait for component diagram PlantUML to render
+        try
+        {
+            var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
             wait.Until(d =>
             {
-                try { return d.FindElement(By.CssSelector("svg, img[src*='plantuml']")).Displayed; }
+                try { return d.FindElement(By.CssSelector("#component-diagram .plantuml-browser svg")).Displayed; }
                 catch { return false; }
             });
             Pause(1000);
         }
-        catch { Pause(2000); /* wait for rendering */ }
+        catch { Pause(3000); }
+
+        // Scroll to component diagram section
+        try
+        {
+            var compSection = _driver.FindElement(By.Id("component-diagram"));
+            ((IJavaScriptExecutor)_driver).ExecuteScript(
+                "arguments[0].scrollIntoView({block:'start', behavior:'instant'}); window.scrollBy(0, -10);",
+                compSection);
+            Pause(500);
+        }
+        catch { }
 
         SaveScreenshot("whats-new-component-diagram.png");
     }
@@ -1097,83 +1222,41 @@ public class WikiGifTests : IDisposable
     //  FEATURE 8: Internal Flow GIF (10 spans, Activity → Flame)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature08_Internal_Flow_GIF()
     {
-        // Generate a test page with ~10 spans
-        var html = GenerateInternalFlowPage();
-        var path = Path.Combine(_tempDir, "InternalFlow.html");
-        File.WriteAllText(path, html);
-
-        BeginFrameCapture("feature08");
-        OpenFile(path);
-        WaitFor(By.TagName("body"));
-        Pause(500);
-
-        // Open the flow details
-        ExpandAll(); Hold(1);
-
-        // Wait for activity diagram to render
-        try
+        // Generate a report with internal flow data so we get Sequence/Activity/Flame Chart tabs
+        var features = new[]
         {
-            var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
-            wait.Until(d =>
+            new Feature
             {
-                try { return d.FindElement(By.CssSelector("svg, .activity-diagram")).Displayed; }
-                catch { return false; }
-            });
-        }
-        catch { }
-
-        InjectFakeCursor();
-
-        // Show the Activity diagram
-        Hold(2);
-
-        // Click "Flame Chart" toggle
-        try
-        {
-            var flameBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Flame')]"));
-            JsClick(flameBtn); Hold(2);
-
-            // Show the flame chart bars
-            try
-            {
-                var flameBars = _driver.FindElement(By.CssSelector(".flame-chart, .flame-bar, canvas"));
-                ScrollTo(flameBars); Hold(2);
+                DisplayName = "Order Service",
+                Scenarios = [
+                    Sc("flow-1", "Creating an order reserves stock and publishes event", true, ExecutionResult.Passed, 850, ["Smoke","Orders"],
+                        Steps("Given", "the Orders API is running", "And", "Stock Service has 50 units of SKU-42",
+                              "When", "I create an order for 3 units of SKU-42",
+                              "Then", "the order is confirmed with status Created"))
+                ]
             }
-            catch { Hold(2); }
+        };
+        var diagrams = new[] { new DiagramAsCode("flow-1", "", OrderDiagramSource) };
 
-            // Click "Activity" toggle to go back
-            var actBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Activity')]"));
-            JsClick(actBtn); Hold(2);
-        }
-        catch { Hold(3); }
-
-        Hold(1);
-        StitchGif("whats-new-feature08-internal-flow.gif");
-    }
-
-    private string GenerateInternalFlowPage()
-    {
-        using var activitySource = new ActivitySource("TestTrackingDiagrams.Wiki.InternalFlow");
+        // Generate internal flow segments for the test
+        using var activitySource = new ActivitySource("TestTrackingDiagrams.Wiki.InternalFlow.Report");
         using var listener = new ActivityListener
         {
             ShouldListenTo = _ => true,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
         };
         ActivitySource.AddActivityListener(listener);
-
         Activity.Current = null;
         var baseTime = DateTime.UtcNow;
 
-        // Root span: HTTP request
         var root = activitySource.StartActivity("HTTP POST /api/orders", ActivityKind.Server)!;
         root.SetStartTime(baseTime);
         root.SetEndTime(baseTime.AddMilliseconds(850));
         var rootCtx = new ActivityContext(root.TraceId, root.SpanId, ActivityTraceFlags.Recorded);
 
-        // Child spans simulating a realistic flow
         var spans = new List<Activity> { root };
         Activity MakeSpan(string name, int startMs, int endMs)
         {
@@ -1195,11 +1278,10 @@ public class WikiGifTests : IDisposable
         MakeSpan("EventGrid: Publish OrderCreated", 685, 750);
         MakeSpan("Serialization: JsonSerializer", 755, 775);
 
-        var testId = "test-flow-1";
         var segments = new Dictionary<string, InternalFlowSegment>
         {
-            [$"iflow-test-{testId}"] = new(
-                Guid.Empty, RequestResponseType.Request, testId,
+            ["iflow-test-flow-1"] = new(
+                Guid.Empty, RequestResponseType.Request, "flow-1",
                 root.StartTimeUtc, root.StartTimeUtc + root.Duration,
                 spans.ToArray())
         };
@@ -1210,167 +1292,141 @@ public class WikiGifTests : IDisposable
         };
 
         var flowHtml = InternalFlowHtmlGenerator.GenerateWholeTestFlowHtml(
-            segments, testId, boundaryLogs, WholeTestFlowVisualization.Both);
+            segments, "flow-1", boundaryLogs, WholeTestFlowVisualization.Both);
 
-        var styles = DiagramContextMenu.GetInternalFlowPopupStyles();
-        var toggleScript = DiagramContextMenu.GetToggleScript();
-        var flameChartScript = DiagramContextMenu.GetFlameChartRenderScript();
-        var plantUmlScript = DiagramContextMenu.GetPlantUmlBrowserRenderScript();
+        // Generate the full report incorporating internal flow
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow.AddMinutes(-3), DateTime.UtcNow,
+            null, Path.Combine(_tempDir, "InternalFlowReport.html"),
+            "Internal Flow Tracking Demo",
+            includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            showStepNumbers: true,
+            internalFlowTracking: true,
+            wholeTestSegments: segments,
+            wholeTestVisualization: WholeTestFlowVisualization.Both);
 
         foreach (var s in spans) s.Dispose();
 
-        return $$"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Internal Flow Tracking</title>
-                <style>
-                    {{styles}}
-                    body { font-family: sans-serif; padding: 20px; }
-                    h1 { color: #333; }
-                </style>
-                {{plantUmlScript}}
-                {{flameChartScript}}
-                {{toggleScript}}
-            </head>
-            <body>
-                <h2>▼ Creating an order reserves stock and publishes event</h2>
-                <p style="color:#666;">Scenario duration: 850ms &bull; 10 internal spans captured</p>
-                {{flowHtml}}
-            </body>
-            </html>
-            """;
+        BeginFrameCapture("feature08");
+        OpenUrl(new Uri(path).AbsoluteUri);
+        WaitFor(By.CssSelector("details.feature")); Pause(500);
+        ExpandAll(); Pause(500);
+        InjectFakeCursor();
+
+        // Wait for sequence diagram to render
+        WaitForDiagramSvg(30);
+
+        // Show the Sequence Diagrams tab (starting view)
+        var diagContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
+        ScrollTo(diagContainer); Hold(5);
+
+        // Click "Activity Diagrams" tab
+        var activityTab = _driver.FindElement(By.CssSelector(".diagram-toggle-btn[data-dtype='activity']"));
+        JsClick(activityTab); Hold(2);
+
+        // Wait for activity diagram to render
+        try
+        {
+            var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
+            wait.Until(d =>
+            {
+                try { return d.FindElement(By.CssSelector("[data-diagram-type='activity'] svg, .plantuml-browser svg")).Displayed; }
+                catch { return false; }
+            });
+        }
+        catch { Pause(2000); }
+        Hold(5);
+
+        // Click "Flame Chart" tab
+        var flameTab = _driver.FindElement(By.CssSelector(".diagram-toggle-btn[data-dtype='flame']"));
+        JsClick(flameTab); Hold(2);
+
+        // Wait for flame chart to render
+        try
+        {
+            var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+            wait.Until(d =>
+            {
+                try { return d.FindElement(By.CssSelector(".iflow-flame, [data-diagram-type='flamechart']")).Displayed; }
+                catch { return false; }
+            });
+        }
+        catch { Pause(2000); }
+
+        // Scroll through flame chart bars
+        try
+        {
+            var flameBars = _driver.FindElements(By.CssSelector(".iflow-flame-bar"));
+            if (flameBars.Count > 0)
+            {
+                // Hover over a few bars to show tooltips
+                MoveCursorTo(flameBars[0]); Hold(2);
+                if (flameBars.Count > 3) { MoveCursorTo(flameBars[3]); Hold(2); }
+                if (flameBars.Count > 6) { MoveCursorTo(flameBars[6]); Hold(2); }
+            }
+        }
+        catch { }
+        Hold(3);
+
+        // Switch back to Sequence Diagrams
+        var seqTab = _driver.FindElement(By.CssSelector(".diagram-toggle-btn[data-dtype='seq']"));
+        JsClick(seqTab); Hold(3);
+
+        StitchGif("whats-new-feature08-internal-flow.gif");
     }
 
     // ═══════════════════════════════════════════════════════════════════
     //  FEATURE 9: CI Summary (screenshot of rendered markdown)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature09_CI_Summary_Screenshot()
     {
-        // Generate a rich CI summary markdown
-        var (features, diagrams) = CreateRichShowcaseData();
-        var markdown = CiSummaryGenerator.GenerateMarkdown(
-            features, diagrams, diagrams,
-            DateTime.UtcNow.AddMinutes(-3), DateTime.UtcNow,
-            maxDiagrams: 5,
-            diagramFormat: DiagramFormat.PlantUml);
+        // Use the real report (which renders PlantUML correctly) and add CI summary header overlay
+        NavigateToReport();
+        ExpandAll(); Pause(300);
 
-        // Write markdown to file and render it as styled HTML
-        var htmlPath = Path.Combine(_tempDir, "CiSummary.html");
-        var styledHtml = $$"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.5; color: #24292f; background: #fff; }
-                    h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
-                    h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 24px; }
-                    table { border-collapse: collapse; width: auto; margin: 16px 0; }
-                    th, td { border: 1px solid #d0d7de; padding: 6px 13px; }
-                    th { background: #f6f8fa; font-weight: 600; }
-                    details { margin: 8px 0; }
-                    summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
-                    details summary strong { color: #cf222e; }
-                    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; font-size: 13px; }
-                    code { background: #f6f8fa; padding: 2px 4px; border-radius: 3px; font-size: 85%; }
-                    img { max-width: 100%; border: 1px solid #d0d7de; border-radius: 6px; margin: 8px 0; }
-                    .markdown-body { padding: 15px; }
-                    /* GitHub Actions summary header styling */
-                    .gh-header { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-                    .gh-header svg { width: 24px; height: 24px; }
-                    .gh-header .run-info { color: #57606a; font-size: 14px; }
-                </style>
-            </head>
-            <body>
-                <div class="gh-header">
-                    <svg viewBox="0 0 24 24" fill="#57606a"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                    <div>
-                        <strong>GitHub Actions</strong> &bull; <span class="run-info">E-Commerce CI &bull; Run #847 &bull; main &bull; 3m 12s</span>
-                    </div>
+        // Wait for diagrams to render
+        WaitForDiagramSvg(30);
+
+        // Inject GitHub Actions CI summary header at the top of the page
+        var js = (IJavaScriptExecutor)_driver;
+        js.ExecuteScript(@"
+            // Hide the original report toolbar and title  
+            var origTitle = document.querySelector('h1');
+            if (origTitle) origTitle.style.display = 'none';
+
+            // Insert CI summary at the top
+            var ciHeader = document.createElement('div');
+            ciHeader.innerHTML = `
+                <div style='background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;'>
+                    <svg viewBox='0 0 24 24' fill='#57606a' width='24' height='24' style='flex-shrink:0;'><path d='M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z'/></svg>
+                    <div><strong>GitHub Actions</strong> &bull; <span style='color:#57606a;font-size:14px;'>E-Commerce CI &bull; Run #847 &bull; main &bull; 3m 12s</span></div>
                 </div>
-                <div class="markdown-body">{{ConvertMarkdownToHtml(markdown)}}</div>
-            </body>
-            </html>
-            """;
-        File.WriteAllText(htmlPath, styledHtml);
+                <h1 style='border-bottom:1px solid #d0d7de;padding-bottom:0.3em;'>Diagrammed Test Run Summary</h1>`;
+            document.body.insertBefore(ciHeader, document.body.firstChild);
 
-        OpenFile(htmlPath);
-        WaitFor(By.TagName("body")); Pause(500);
+            // Click Failed filter to show only failures
+            var failedBtn = document.querySelector("".status-toggle[data-status='Failed']"");
+            if (failedBtn) failedBtn.click();
+        ");
+        Pause(500);
+
+        // Scroll to top
+        js.ExecuteScript("window.scrollTo(0, 0);");
+        Pause(300);
+
         SaveScreenshot("whats-new-ci-summary.png");
-    }
-
-    private static string ConvertMarkdownToHtml(string md)
-    {
-        // Simple markdown to HTML converter for tables, headers, details, code blocks
-        var sb = new StringBuilder();
-        var lines = md.Split('\n');
-        var inTable = false;
-        var inCodeBlock = false;
-        var headerRow = true;
-
-        foreach (var line in lines)
-        {
-            var l = line.TrimEnd('\r');
-            if (l.StartsWith("```"))
-            {
-                if (inCodeBlock) { sb.AppendLine("</code></pre>"); inCodeBlock = false; }
-                else { sb.AppendLine("<pre><code>"); inCodeBlock = true; }
-                continue;
-            }
-            if (inCodeBlock) { sb.AppendLine(System.Net.WebUtility.HtmlEncode(l)); continue; }
-
-            if (l.StartsWith("# ")) { sb.AppendLine($"<h1>{l[2..]}</h1>"); continue; }
-            if (l.StartsWith("## ")) { sb.AppendLine($"<h2>{l[3..]}</h2>"); continue; }
-            if (l.StartsWith("### ")) { sb.AppendLine($"<h3>{l[4..]}</h3>"); continue; }
-            if (l.StartsWith("<details")) { sb.AppendLine(l); continue; }
-            if (l.StartsWith("</details")) { sb.AppendLine(l); continue; }
-            if (l.StartsWith("<summary")) { sb.AppendLine(l); continue; }
-            if (l.StartsWith("</summary")) { sb.AppendLine(l); continue; }
-            if (l.StartsWith("**Error:**")) { sb.AppendLine($"<p><strong>Error:</strong> {l[10..]}</p>"); continue; }
-            if (l.StartsWith("*") && l.EndsWith("*")) { sb.AppendLine($"<p><em>{l.Trim('*')}</em></p>"); continue; }
-            if (l.StartsWith("!["))
-            {
-                var altEnd = l.IndexOf(']');
-                var urlStart = l.IndexOf('(', altEnd);
-                var urlEnd = l.IndexOf(')', urlStart);
-                if (altEnd > 0 && urlStart > 0 && urlEnd > 0)
-                {
-                    var alt = l[2..altEnd];
-                    var url = l[(urlStart+1)..urlEnd];
-                    sb.AppendLine($"<img src=\"{url}\" alt=\"{alt}\" />");
-                }
-                continue;
-            }
-            if (l.StartsWith("| "))
-            {
-                if (!inTable) { sb.AppendLine("<table>"); inTable = true; headerRow = true; }
-                if (l.Contains("---|")) continue; // separator row
-                var cells = l.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                sb.Append("<tr>");
-                foreach (var cell in cells)
-                {
-                    var tag = headerRow ? "th" : "td";
-                    sb.Append($"<{tag}>{cell.Trim()}</{tag}>");
-                }
-                sb.AppendLine("</tr>");
-                headerRow = false;
-                continue;
-            }
-            if (inTable && !l.StartsWith("| ")) { sb.AppendLine("</table>"); inTable = false; }
-            if (string.IsNullOrWhiteSpace(l)) { sb.AppendLine("<br/>"); continue; }
-            sb.AppendLine($"<p>{l}</p>");
-        }
-        if (inTable) sb.AppendLine("</table>");
-        return sb.ToString();
     }
 
     // ═══════════════════════════════════════════════════════════════════
     //  FEATURE 10: TestRunReport.json GIF (browser JSON viewer)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature10_JSON_Report_GIF()
     {
         // Generate a rich JSON report
@@ -1381,98 +1437,169 @@ public class WikiGifTests : IDisposable
             jsonPath, DataFormat.Json, diagrams);
 
         BeginFrameCapture("feature10");
-        OpenFile(jsonPath);
+
+        // Create a dark-themed interactive JSON viewer page
+        var jsonContent = File.ReadAllText(jsonPath);
+        var viewerHtml = CreateInteractiveJsonViewerHtml(jsonContent);
+        var viewerPath = Path.Combine(_tempDir, "JsonViewer.html");
+        File.WriteAllText(viewerPath, viewerHtml);
+
+        OpenFile(viewerPath);
         WaitFor(By.TagName("body"));
-        Pause(1000);
-
+        Pause(500);
         InjectFakeCursor();
-        Hold(2);
 
-        // Chrome renders JSON with collapsible tree — try clicking on expanders
-        var js = (IJavaScriptExecutor)_driver;
+        // Show initial fully-collapsed view
+        Hold(3);
 
-        // Try to interact with Chrome's built-in JSON viewer toggle elements
-        try
+        // Expand "features" section by clicking its toggle
+        var toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
+        if (toggles.Count > 0)
         {
-            var toggles = _driver.FindElements(By.CssSelector(".json-formatter-toggler, .json-formatter-open, .json-formatter-key, span.json-formatter-key"));
+            // Click first toggle (root object)
+            JsClick(toggles[0]); Hold(2.5);
+
+            // Refresh toggles after expansion
+            toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
+
+            // Click a few more toggles to expand sub-sections
+            for (var i = 1; i < Math.Min(4, toggles.Count); i++)
+            {
+                JsClick(toggles[i]); Hold(2.5);
+                // Re-fetch toggles as DOM changed
+                toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
+            }
+
+            // Scroll down to show expanded content
+            try
+            {
+                var content = _driver.FindElement(By.CssSelector(".json-content"));
+                ScrollTo(content); Hold(3);
+            }
+            catch { Hold(1); }
+
+            // Contract one section
+            toggles = _driver.FindElements(By.CssSelector(".json-toggle.open"));
+            if (toggles.Count > 1)
+            {
+                JsClick(toggles[toggles.Count - 1]); Hold(2.5);
+            }
+
+            // Expand a different section
+            toggles = _driver.FindElements(By.CssSelector(".json-toggle:not(.open)"));
             if (toggles.Count > 0)
             {
-                // Click first few toggles to expand
-                for (var i = 0; i < Math.Min(3, toggles.Count); i++)
-                {
-                    JsClick(toggles[i]); Hold(1);
-                }
+                JsClick(toggles[Math.Min(2, toggles.Count - 1)]); Hold(2.5);
             }
-            else
+
+            // Scroll down more
+            ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollBy(0, 300);");
+            CaptureFrames(15, 33); Hold(3);
+
+            // Contract another section
+            toggles = _driver.FindElements(By.CssSelector(".json-toggle.open"));
+            if (toggles.Count > 0)
             {
-                // Chrome might not format JSON — inject a formatter
-                InjectJsonFormatter(jsonPath);
-                Hold(2);
+                JsClick(toggles[0]); Hold(2.5);
             }
-        }
-        catch
-        {
-            InjectJsonFormatter(jsonPath);
-            Hold(2);
         }
 
-        Hold(2);
+        // Scroll to top for final view
+        ScrollToTop(); Hold(2);
+
         StitchGif("whats-new-feature10-json.gif");
     }
 
-    private void InjectJsonFormatter(string jsonPath)
+    private string CreateInteractiveJsonViewerHtml(string jsonContent)
     {
-        // Read the JSON content and inject a nice formatted view
-        var jsonContent = File.ReadAllText(jsonPath);
-        var js = (IJavaScriptExecutor)_driver;
-        // Navigate to a blank page and inject formatted JSON
-        _driver.Navigate().GoToUrl("about:blank");
-        Pause(200);
-        js.ExecuteScript($@"
-            document.title = 'TestRunReport.json';
-            document.body.style.fontFamily = 'Consolas, monospace';
-            document.body.style.fontSize = '13px';
-            document.body.style.padding = '20px';
-            document.body.style.lineHeight = '1.4';
-            document.body.style.background = '#1e1e1e';
-            document.body.style.color = '#d4d4d4';
+        var escapedJson = JsonSerializer.Serialize(jsonContent);
+        return $$"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>TestRunReport.json</title>
+                <style>
+                    body { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; padding: 20px; line-height: 1.5; background: #1e1e1e; color: #d4d4d4; margin: 0; }
+                    .json-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; text-align: center; color: #808080; font-family: monospace; }
+                    .json-toggle:hover { color: #569cd6; }
+                    .json-toggle::before { content: '▶'; font-size: 10px; }
+                    .json-toggle.open::before { content: '▼'; font-size: 10px; }
+                    .json-children { display: none; }
+                    .json-toggle.open + .json-bracket + .json-children { display: block; }
+                    .json-key { color: #9cdcfe; }
+                    .json-string { color: #ce9178; }
+                    .json-number { color: #b5cea8; }
+                    .json-bool { color: #569cd6; }
+                    .json-null { color: #569cd6; }
+                    .json-bracket { color: #d4d4d4; }
+                    .json-comma { color: #d4d4d4; }
+                    .json-line { padding-left: 0; white-space: nowrap; }
+                    .json-summary { color: #808080; font-style: italic; cursor: pointer; }
+                    .json-content { white-space: pre-wrap; }
+                    pre { margin: 0; }
+                </style>
+            </head>
+            <body>
+                <div class="json-content" id="jsonRoot"></div>
+                <script>
+                    var jsonText = {{escapedJson}};
+                    var obj = JSON.parse(jsonText);
 
-            var json = {JsonSerializer.Serialize(jsonContent)};
-            var obj = JSON.parse(json);
+                    function renderJson(val, depth, key) {
+                        var indent = '  '.repeat(depth);
+                        var innerIndent = '  '.repeat(depth + 1);
+                        var html = '';
 
-            function render(obj, depth) {{
-                if (depth > 5) return '<span style=""color:#808080"">...</span>';
-                if (obj === null) return '<span style=""color:#569cd6"">null</span>';
-                if (typeof obj === 'string') return '<span style=""color:#ce9178"">' + JSON.stringify(obj) + '</span>';
-                if (typeof obj === 'number') return '<span style=""color:#b5cea8"">' + obj + '</span>';
-                if (typeof obj === 'boolean') return '<span style=""color:#569cd6"">' + obj + '</span>';
-                if (Array.isArray(obj)) {{
-                    if (obj.length === 0) return '[]';
-                    var items = obj.map(function(v) {{ return render(v, depth + 1); }});
-                    var indent = '  '.repeat(depth);
-                    var innerIndent = '  '.repeat(depth + 1);
-                    return '[<br/>' + items.map(function(v) {{ return innerIndent + v; }}).join(',<br/>') + '<br/>' + indent + ']';
-                }}
-                var keys = Object.keys(obj);
-                if (keys.length === 0) return '{{}}';
-                var indent = '  '.repeat(depth);
-                var innerIndent = '  '.repeat(depth + 1);
-                var pairs = keys.map(function(k) {{
-                    return innerIndent + '<span style=""color:#9cdcfe"">""' + k + '""</span>: ' + render(obj[k], depth + 1);
-                }});
-                return '{{<br/>' + pairs.join(',<br/>') + '<br/>' + indent + '}}';
-            }}
+                        if (val === null) return '<span class="json-null">null</span>';
+                        if (typeof val === 'string') return '<span class="json-string">"' + escHtml(val).substring(0, 200) + (val.length > 200 ? '...' : '') + '"</span>';
+                        if (typeof val === 'number') return '<span class="json-number">' + val + '</span>';
+                        if (typeof val === 'boolean') return '<span class="json-bool">' + val + '</span>';
 
-            document.body.innerHTML = '<pre style=""white-space:pre-wrap;"">' + render(obj, 0) + '</pre>';
-        ");
-        Pause(500);
+                        var isArray = Array.isArray(val);
+                        var keys = isArray ? val : Object.keys(val);
+                        var count = isArray ? val.length : keys.length;
+                        var open = isArray ? '[' : '{';
+                        var close = isArray ? ']' : '}';
+                        var summary = isArray ? (count + ' items') : (count + ' keys');
+
+                        if (count === 0) return '<span class="json-bracket">' + open + close + '</span>';
+
+                        var id = 'n' + Math.random().toString(36).substr(2, 8);
+                        html += '<span class="json-toggle" onclick="this.classList.toggle(\'open\')" id="' + id + '"></span>';
+                        html += '<span class="json-bracket">' + open + '</span>';
+                        html += '<span class="json-summary" onclick="document.getElementById(\'' + id + '\').classList.toggle(\'open\')">' + summary + '</span>';
+                        html += '<div class="json-children">';
+
+                        if (isArray) {
+                            for (var i = 0; i < val.length; i++) {
+                                html += '<div class="json-line">' + innerIndent + renderJson(val[i], depth + 1) + (i < val.length - 1 ? '<span class="json-comma">,</span>' : '') + '</div>';
+                            }
+                        } else {
+                            for (var i = 0; i < keys.length; i++) {
+                                var k = keys[i];
+                                html += '<div class="json-line">' + innerIndent + '<span class="json-key">"' + escHtml(k) + '"</span>: ' + renderJson(val[k], depth + 1, k) + (i < keys.length - 1 ? '<span class="json-comma">,</span>' : '') + '</div>';
+                            }
+                        }
+
+                        html += '<div class="json-line">' + indent + '<span class="json-bracket">' + close + '</span></div>';
+                        html += '</div>';
+                        return html;
+                    }
+
+                    function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+                    document.getElementById('jsonRoot').innerHTML = '<pre>' + renderJson(obj, 0) + '</pre>';
+                </script>
+            </body>
+            </html>
+            """;
     }
 
     // ═══════════════════════════════════════════════════════════════════
     //  FEATURE 11: MediatR Tracking Screenshot (with red arrow)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature11_MediatR_Screenshot()
     {
         // Generate a report with MediatR-showing diagram
@@ -1498,33 +1625,54 @@ public class WikiGifTests : IDisposable
         WaitFor(By.CssSelector("details.feature"));
         ExpandAll(); Pause(300);
 
-        try
-        {
-            WaitForDiagramSvg(30);
-            var diagramContainer = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml']"));
-            ((IJavaScriptExecutor)_driver).ExecuteScript(
-                "arguments[0].scrollIntoView({block:'start', behavior:'instant'}); window.scrollBy(0, -20);",
-                diagramContainer);
-            Pause(500);
+        WaitForDiagramSvg(30);
+        var diagramContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "arguments[0].scrollIntoView({block:'start', behavior:'instant'}); window.scrollBy(0, -20);",
+            diagramContainer);
+        Pause(500);
 
-            // Inject red arrow pointing at the MediatR "Send: CreateOrderCommand" arrow
-            ((IJavaScriptExecutor)_driver).ExecuteScript(@"
-                var container = document.querySelector('[data-diagram-type=""plantuml""]');
-                if (!container) return;
-                container.style.position = 'relative';
-                var arrow = document.createElement('div');
-                arrow.style.cssText = 'position:absolute;right:30px;top:60px;z-index:9999;pointer-events:none;';
-                arrow.innerHTML = `<svg width='180' height='100' viewBox='0 0 180 100' xmlns='http://www.w3.org/2000/svg'>
-                    <path d='M 170 5 C 140 10, 90 25, 40 55 C 20 70, 15 80, 10 90'
-                          stroke='#e53e3e' stroke-width='3' fill='none' stroke-linecap='round' stroke-dasharray='8,4'/>
-                    <polygon points='2,85 15,95 8,98' fill='#e53e3e'/>
-                    <text x='100' y='15' fill='#e53e3e' font-size='12' font-weight='bold' font-family='sans-serif'>MediatR</text>
-                </svg>`;
-                container.appendChild(arrow);
-            ");
-            Pause(300);
-        }
-        catch { }
+        // Inject red arrow pointing at the MediatR messages in the SVG
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var container = document.querySelector('.plantuml-browser');
+            if (!container) return;
+            var svg = container.querySelector('svg');
+            if (!svg) return;
+            container.style.position = 'relative';
+
+            // Find 'Send: CreateOrderCommand' text in the SVG
+            var texts = svg.querySelectorAll('text');
+            var mediatrEl = null;
+            for (var i = 0; i < texts.length; i++) {
+                if (texts[i].textContent.indexOf('Send') >= 0 || texts[i].textContent.indexOf('CreateOrder') >= 0) {
+                    mediatrEl = texts[i]; break;
+                }
+            }
+
+            var arrow = document.createElement('div');
+            arrow.style.cssText = 'position:absolute;z-index:9999;pointer-events:none;';
+
+            if (mediatrEl) {
+                var svgRect = svg.getBoundingClientRect();
+                var elRect = mediatrEl.getBoundingClientRect();
+                var relX = elRect.right - svgRect.left + 10;
+                var relY = elRect.top - svgRect.top - 60;
+                arrow.style.left = Math.min(relX, svgRect.width - 200) + 'px';
+                arrow.style.top = Math.max(10, relY) + 'px';
+            } else {
+                arrow.style.right = '30px';
+                arrow.style.top = '100px';
+            }
+
+            arrow.innerHTML = `<svg width='180' height='100' viewBox='0 0 180 100' xmlns='http://www.w3.org/2000/svg'>
+                <text x='80' y='15' fill='#e53e3e' font-size='13' font-weight='bold' font-family='sans-serif'>MediatR</text>
+                <path d='M 100 20 C 80 30, 40 45, 20 70 C 15 78, 10 85, 8 90'
+                      stroke='#e53e3e' stroke-width='3' fill='none' stroke-linecap='round' stroke-dasharray='8,4'/>
+                <polygon points='0,85 13,95 6,98' fill='#e53e3e'/>
+            </svg>`;
+            container.appendChild(arrow);
+        ");
+        Pause(300);
 
         SaveScreenshot("whats-new-mediatr-tracking.png");
     }
@@ -1533,7 +1681,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 12: DiagramFocus Screenshot (full view with highlights)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature12_DiagramFocus_Screenshot()
     {
         // Generate a report with the Focus diagram
@@ -1557,27 +1705,23 @@ public class WikiGifTests : IDisposable
         WaitFor(By.CssSelector("details.feature"));
         ExpandAll(); Pause(300);
 
-        try
-        {
-            WaitForDiagramSvg(30);
-            // Scroll down to show the response note with highlighted fields
-            var diagramContainer = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml']"));
-            // Scroll so the bottom of the diagram (response note) is visible
-            ((IJavaScriptExecutor)_driver).ExecuteScript(@"
-                var el = arguments[0];
-                var svg = el.querySelector('svg');
-                if (svg) {
-                    var svgRect = svg.getBoundingClientRect();
-                    // Scroll to show the bottom third of the diagram
-                    var targetY = window.scrollY + svgRect.top + svgRect.height * 0.3;
-                    window.scrollTo(0, targetY);
-                } else {
-                    el.scrollIntoView({block:'center'});
-                }
-            ", diagramContainer);
-            Pause(500);
-        }
-        catch { }
+        WaitForDiagramSvg(30);
+        // Scroll to show the response note at the bottom with highlighted fields
+        var diagramContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var el = arguments[0];
+            var svg = el.querySelector('svg');
+            if (svg) {
+                var svgRect = svg.getBoundingClientRect();
+                // Scroll so the bottom of the diagram (response note with focus) is visible
+                // Position the viewport to show the last ~60% of the diagram
+                var targetY = window.scrollY + svgRect.top + svgRect.height * 0.4;
+                window.scrollTo(0, Math.max(0, targetY));
+            } else {
+                el.scrollIntoView({block:'end'});
+            }
+        ", diagramContainer);
+        Pause(500);
 
         SaveScreenshot("whats-new-diagram-focus.png");
     }
@@ -1586,7 +1730,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 13: Failure Diagnostics GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature13_Failure_Diagnostics_GIF()
     {
         BeginFrameCapture("feature13");
@@ -1594,42 +1738,69 @@ public class WikiGifTests : IDisposable
 
         InjectFakeCursor();
 
-        // Click "Failed" status filter
+        // Show initial report overview
+        Hold(3);
+
+        // Click "Failed" status filter to show only failures
+        var failedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Failed']"));
+        JsClick(failedBtn); Hold(3);
+
+        // Show failure clustering section
         try
         {
-            var failedBtn = _driver.FindElement(By.CssSelector("[data-status-filter='Failed']"));
-            JsClick(failedBtn); Hold(2);
+            var clusterSection = _driver.FindElement(By.CssSelector(".failure-clusters"));
+            ScrollTo(clusterSection); Hold(3);
 
-            // Click "Next Failure" button
-            try
+            // Expand a failure cluster
+            var clusterDetails = _driver.FindElements(By.CssSelector(".failure-cluster"));
+            if (clusterDetails.Count > 0)
             {
-                var nextFailBtn = _driver.FindElement(By.CssSelector(".next-failure-btn, [data-next-failure]"));
-                JsClick(nextFailBtn); Hold(2);
-                // Click again
-                JsClick(nextFailBtn); Hold(2);
-            }
-            catch { }
+                JsClick(clusterDetails[0]); Hold(2.5);
 
-            // Expand the failed scenario to show error details
-            try
-            {
-                var failedFeature = _driver.FindElement(By.CssSelector(".feature.has-failed details, details.feature"));
-                ScrollTo(failedFeature); Hold(1);
-                ExpandAll(); Hold(2);
-
-                // Scroll to error message area
+                // Click a scenario link within the cluster
                 try
                 {
-                    var errorArea = _driver.FindElement(By.CssSelector(".error-message, .stack-trace, pre"));
-                    ScrollTo(errorArea); Hold(2);
+                    var link = _driver.FindElement(By.CssSelector(".failure-cluster-scenario-link"));
+                    JsClick(link); Hold(3);
                 }
                 catch { }
             }
-            catch { }
         }
-        catch { Hold(3); }
+        catch { }
 
-        Hold(1);
+        // Click "Next Failure" button to cycle through failures
+        var nextFailBtn = _driver.FindElement(By.CssSelector(".jump-to-failure"));
+        JsClick(nextFailBtn); Hold(3);
+
+        // Scroll to see the expanded failed scenario
+        ExpandAll(); Hold(1.5);
+
+        // Find and show error details
+        try
+        {
+            var errorArea = _driver.FindElement(By.CssSelector(".failure-result pre, .failure-result"));
+            ScrollTo(errorArea); Hold(3);
+        }
+        catch { }
+
+        // Click Next Failure again to go to second failure
+        nextFailBtn = _driver.FindElement(By.CssSelector(".jump-to-failure"));
+        JsClick(nextFailBtn); Hold(3);
+
+        // Show the error stack trace
+        try
+        {
+            var errorArea = _driver.FindElement(By.CssSelector(".failure-result pre, .failure-result"));
+            ScrollTo(errorArea); Hold(3);
+        }
+        catch { }
+
+        // Click Next Failure one more time
+        JsClick(nextFailBtn); Hold(3);
+
+        // Scroll back to top for overview
+        ScrollToTop(); Hold(3);
+
         StitchGif("whats-new-feature13-failures.gif");
     }
 
@@ -1637,7 +1808,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 14: Category Filtering GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature14_Category_Filter_GIF()
     {
         BeginFrameCapture("feature14");
@@ -1646,41 +1817,33 @@ public class WikiGifTests : IDisposable
         ScrollToTop(); Hold(1);
 
         // Click "Smoke" category
+        var smokeBtn = _driver.FindElement(By.CssSelector(".category-toggle[data-category='Smoke']"));
+        JsClick(smokeBtn); Hold(2);
+
+        // Scroll down to see filtered results
+        var features = _driver.FindElement(By.CssSelector("details.feature"));
+        ScrollTo(features); Hold(1.5);
+        ScrollToTop(); Hold(0.5);
+
+        // Toggle OR → AND mode
         try
         {
-            var smokeBtn = _driver.FindElement(By.XPath("//button[text()='Smoke']"));
-            JsClick(smokeBtn); Hold(2);
-
-            // Scroll down to see filtered results
-            var features = _driver.FindElement(By.CssSelector("details.feature"));
-            ScrollTo(features); Hold(1.5);
-            ScrollToTop(); Hold(0.5);
-
-            // Click "OR" toggle to "AND"
-            try
-            {
-                var orBtn = _driver.FindElement(By.XPath("//button[text()='OR'] | //button[text()='All']"));
-                JsClick(orBtn); Hold(1);
-            }
-            catch { }
-
-            // Add another category
-            try
-            {
-                var ordersBtn = _driver.FindElement(By.XPath("//button[text()='Orders']"));
-                JsClick(ordersBtn); Hold(2);
-            }
-            catch { }
-
-            // Clear
-            try
-            {
-                var clearBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Clear')]"));
-                JsClick(clearBtn); Hold(1);
-            }
-            catch { }
+            var modeBtn = _driver.FindElement(By.CssSelector(".cat-mode-toggle"));
+            JsClick(modeBtn); Hold(1);
         }
-        catch { Hold(3); }
+        catch { }
+
+        // Add another category
+        try
+        {
+            var ordersBtn = _driver.FindElement(By.CssSelector(".category-toggle[data-category='Orders']"));
+            JsClick(ordersBtn); Hold(2);
+        }
+        catch { }
+
+        // Clear
+        var clearBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='clear_all']"));
+        JsClick(clearBtn); Hold(1);
 
         ScrollToTop(); Hold(1);
         StitchGif("whats-new-feature14-categories.gif");
@@ -1690,7 +1853,7 @@ public class WikiGifTests : IDisposable
     //  FEATURE 17: Framework Support (3 screenshots)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature17_Framework_xUnit_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1706,7 +1869,7 @@ public class WikiGifTests : IDisposable
         SaveScreenshot("whats-new-framework-xunit.png");
     }
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature17_Framework_ReqNRoll_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1726,7 +1889,7 @@ public class WikiGifTests : IDisposable
         SaveScreenshot("whats-new-framework-reqnroll.png");
     }
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature17_Framework_LightBDD_Screenshot()
     {
         var basePath = Path.GetFullPath(Path.Combine(
@@ -1746,20 +1909,16 @@ public class WikiGifTests : IDisposable
     //  FEATURE 19: Scenario Timeline (20+ scenarios, top = Expand All)
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature19_Scenario_Timeline_Screenshot()
     {
-        // Generate report with 20+ rich data (already have 51 scenarios in our dataset)
+        // Generate report with 20+ rich data (already have 45+ scenarios in our dataset)
         NavigateToReport();
 
         // Click "Scenario Timeline" button
-        try
-        {
-            var timelineBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Scenario Timeline')]"));
-            JsClick(timelineBtn);
-            Pause(500);
-        }
-        catch { }
+        var timelineBtn = _driver.FindElement(By.CssSelector(".timeline-toggle"));
+        JsClick(timelineBtn);
+        Pause(500);
 
         // Scroll so the top of the screenshot shows "Expand All Features" button
         try
@@ -1779,27 +1938,19 @@ public class WikiGifTests : IDisposable
     //  FEATURE 20: Export Filtered HTML & CSV GIF
     // ═══════════════════════════════════════════════════════════════════
 
-    [Fact(Skip = "Long-running GIF/screenshot generation — unskip when regenerating wiki assets, then re-skip afterwards")]
+    [Fact]
     public void Feature20_Export_GIF()
     {
         BeginFrameCapture("feature20");
         NavigateToReport();
 
         // Apply a filter first (Failed)
-        try
-        {
-            var failedBtn = _driver.FindElement(By.CssSelector("[data-status-filter='Failed']"));
-            JsClick(failedBtn); Hold(1.5);
-        }
-        catch { }
+        var failedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Failed']"));
+        JsClick(failedBtn); Hold(1.5);
 
         // Click "Export Filtered HTML"
-        try
-        {
-            var exportHtmlBtn = _driver.FindElement(By.XPath("//button[contains(text(),'Export Filtered HTML')]"));
-            JsClick(exportHtmlBtn); Hold(2);
-        }
-        catch { }
+        var exportHtmlBtn = _driver.FindElement(By.CssSelector(".export-btn[onclick*='export_html']"));
+        JsClick(exportHtmlBtn); Hold(2);
 
         // Brief screen clear with "Opening downloaded file..." message
         ((IJavaScriptExecutor)_driver).ExecuteScript(@"
