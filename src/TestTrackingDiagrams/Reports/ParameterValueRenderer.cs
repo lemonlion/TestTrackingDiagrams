@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
@@ -295,6 +296,96 @@ internal static class ParameterValueRenderer
             sb.Append('}');
         }
 
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Attempts string-based R3/R4 rendering for a cell value when no raw object is available.
+    /// Returns true and appends HTML if the string matches a record ToString() pattern.
+    /// R3 (sub-table) is used for ≤5 properties, R4 (expandable) for more.
+    /// </summary>
+    internal static bool TryRenderFromParsedString(StringBuilder body, string? value, int maxSubTableProperties = 5)
+    {
+        try
+        {
+            var parsed = ParameterParser.TryParseRecordToString(value);
+            if (parsed is null)
+                return false;
+
+            if (parsed.Count <= maxSubTableProperties)
+            {
+                RenderSubTableFromParsed(body, parsed);
+                return true;
+            }
+
+            RenderExpandableFromParsed(body, value!, parsed);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[TestTrackingDiagrams] Warning: String-based R3/R4 rendering failed for value '{value}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Renders a sub-table (R3) from parsed string key-value pairs.
+    /// </summary>
+    internal static void RenderSubTableFromParsed(StringBuilder body, Dictionary<string, string> parsed)
+    {
+        body.Append("<table class=\"cell-subtable\">");
+        foreach (var kvp in parsed)
+        {
+            body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(kvp.Key)}</th><td>{System.Net.WebUtility.HtmlEncode(kvp.Value)}</td></tr>");
+        }
+        body.Append("</table>");
+    }
+
+    /// <summary>
+    /// Renders an expandable details/summary (R4) from parsed string key-value pairs.
+    /// </summary>
+    internal static void RenderExpandableFromParsed(StringBuilder body, string originalValue, Dictionary<string, string> parsed)
+    {
+        var preview = GeneratePreviewFromParsed(originalValue, parsed);
+        var jsonBody = GenerateHighlightedJsonFromParsed(parsed);
+
+        body.Append("<details class=\"param-expand\">");
+        body.Append($"<summary>{System.Net.WebUtility.HtmlEncode(preview)}</summary>");
+        body.Append($"<div class=\"expand-body\">{jsonBody}</div>");
+        body.Append("</details>");
+    }
+
+    /// <summary>
+    /// Generates a short preview for the parsed record (shows up to 3 properties).
+    /// </summary>
+    internal static string GeneratePreviewFromParsed(string originalValue, Dictionary<string, string> parsed)
+    {
+        // Extract the type name from original string (everything before " { ")
+        var braceIdx = originalValue.IndexOf(" { ", StringComparison.Ordinal);
+        var typeName = braceIdx >= 0 ? originalValue[..braceIdx] : "Object";
+
+        var previewParts = parsed.Take(3).Select(kvp => $"{kvp.Key}: {kvp.Value}");
+        var suffix = parsed.Count > 3 ? ", ..." : "";
+        return $"{typeName} {{ {string.Join(", ", previewParts)}{suffix} }}";
+    }
+
+    /// <summary>
+    /// Generates JSON-like highlighted HTML from parsed string key-value pairs.
+    /// </summary>
+    internal static string GenerateHighlightedJsonFromParsed(Dictionary<string, string> parsed)
+    {
+        var sb = new StringBuilder();
+        sb.Append("{\n");
+        var entries = parsed.ToArray();
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var (key, value) = entries[i];
+            sb.Append($"  <span class=\"prop-key\">\"{System.Net.WebUtility.HtmlEncode(key)}\"</span>: ");
+            sb.Append($"<span class=\"prop-val\">{System.Net.WebUtility.HtmlEncode(value)}</span>");
+            if (i < entries.Length - 1) sb.Append(',');
+            sb.Append('\n');
+        }
+        sb.Append('}');
         return sb.ToString();
     }
 }

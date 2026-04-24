@@ -257,4 +257,108 @@ public static class ParameterParser
             return null;
         }
     }
+
+    /// <summary>
+    /// Parses a C# record/class ToString() representation into property name-value pairs.
+    /// Handles the pattern: "TypeName { Prop1 = Val1, Prop2 = Val2, ... }"
+    /// Values can be: null, numeric, quoted strings (with commas), booleans, or truncated strings (with ··...).
+    /// Returns null if the input doesn't match the record pattern.
+    /// </summary>
+    public static Dictionary<string, string>? TryParseRecordToString(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+
+        // Match pattern: "TypeName { ... }"
+        var braceOpen = value.IndexOf(" { ", StringComparison.Ordinal);
+        if (braceOpen < 0 || !value.EndsWith(" }") || braceOpen == 0)
+            return null;
+
+        // inner = everything between "{ " and " }"
+        var innerStart = braceOpen + 3;
+        var innerEnd = value.Length - 2;
+        if (innerEnd <= innerStart)
+            return null;
+
+        var inner = value[innerStart..innerEnd].Trim();
+        if (inner.Length == 0)
+            return null;
+
+        var result = new Dictionary<string, string>();
+        var pos = 0;
+
+        while (pos < inner.Length)
+        {
+            // Skip whitespace
+            while (pos < inner.Length && inner[pos] == ' ') pos++;
+            if (pos >= inner.Length) break;
+
+            // Read property name (until ' = ')
+            var eqIdx = inner.IndexOf(" = ", pos, StringComparison.Ordinal);
+            if (eqIdx < 0) return null; // malformed
+
+            var propName = inner[pos..eqIdx].Trim();
+            if (propName.Length == 0) return null;
+
+            pos = eqIdx + 3; // skip " = "
+
+            // Read value
+            string propValue;
+            if (pos < inner.Length && inner[pos] == '"')
+            {
+                // Quoted string — read until unescaped closing quote
+                var sb = new System.Text.StringBuilder();
+                pos++; // skip opening quote
+                while (pos < inner.Length)
+                {
+                    var c = inner[pos];
+                    if (c == '\\' && pos + 1 < inner.Length)
+                    {
+                        sb.Append(inner[pos + 1]);
+                        pos += 2;
+                        continue;
+                    }
+                    if (c == '"')
+                    {
+                        pos++; // skip closing quote
+                        break;
+                    }
+                    sb.Append(c);
+                    pos++;
+                }
+                propValue = sb.ToString();
+
+                // Skip any trailing ··... (truncation marker)
+                while (pos < inner.Length && (inner[pos] == '\u00B7' || inner[pos] == '.'))
+                    pos++;
+            }
+            else
+            {
+                // Unquoted value — read until ", " at brace-depth 0 or end
+                var valueStart = pos;
+                var braceDepth = 0;
+                while (pos < inner.Length)
+                {
+                    var c = inner[pos];
+                    if (c == '{') braceDepth++;
+                    else if (c == '}') braceDepth--;
+                    else if (c == ',' && braceDepth == 0)
+                        break;
+                    pos++;
+                }
+                propValue = inner[valueStart..pos].Trim();
+            }
+
+            result[propName] = propValue;
+
+            // Skip ", "
+            if (pos < inner.Length && inner[pos] == ',')
+            {
+                pos++;
+                while (pos < inner.Length && inner[pos] == ' ') pos++;
+            }
+        }
+
+        return result.Count > 0 ? result : null;
+    }
 }

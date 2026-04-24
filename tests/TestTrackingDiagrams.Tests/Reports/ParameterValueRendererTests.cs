@@ -342,4 +342,105 @@ public class ParameterValueRendererTests
     }
 
     #endregion
+
+    #region String-based R3/R4
+
+    [Fact]
+    public void TryRenderFromParsedString_renders_subtable_for_small_record_string()
+    {
+        var body = new StringBuilder();
+        var result = ParameterValueRenderer.TryRenderFromParsedString(body, "Risk { Score = 320, Band = E }");
+        Assert.True(result);
+        Assert.Contains("cell-subtable", body.ToString());
+        Assert.Contains("Score", body.ToString());
+        Assert.Contains("320", body.ToString());
+        Assert.Contains("Band", body.ToString());
+        Assert.Contains("E", body.ToString());
+    }
+
+    [Fact]
+    public void TryRenderFromParsedString_renders_expandable_for_large_record_string()
+    {
+        var body = new StringBuilder();
+        var value = "Scenario { A = 1, B = 2, C = 3, D = 4, E = 5, F = 6 }";
+        var result = ParameterValueRenderer.TryRenderFromParsedString(body, value);
+        Assert.True(result);
+        Assert.Contains("param-expand", body.ToString());
+        Assert.Contains("<summary>", body.ToString());
+        Assert.Contains("prop-key", body.ToString());
+        Assert.Contains("prop-val", body.ToString());
+    }
+
+    [Fact]
+    public void TryRenderFromParsedString_returns_false_for_plain_string()
+    {
+        var body = new StringBuilder();
+        var result = ParameterValueRenderer.TryRenderFromParsedString(body, "hello");
+        Assert.False(result);
+        Assert.Empty(body.ToString());
+    }
+
+    [Fact]
+    public void TryRenderFromParsedString_returns_false_for_null()
+    {
+        var body = new StringBuilder();
+        var result = ParameterValueRenderer.TryRenderFromParsedString(body, null);
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void RenderSubTableFromParsed_html_encodes_values()
+    {
+        var body = new StringBuilder();
+        var parsed = new Dictionary<string, string> { ["Name"] = "<script>alert(1)</script>" };
+        ParameterValueRenderer.RenderSubTableFromParsed(body, parsed);
+        Assert.DoesNotContain("<script>", body.ToString());
+        Assert.Contains("&lt;script&gt;", body.ToString());
+    }
+
+    [Fact]
+    public void RenderExpandableFromParsed_shows_preview_with_type_name()
+    {
+        var body = new StringBuilder();
+        var original = "MyType { A = 1, B = 2, C = 3, D = 4, E = 5, F = 6 }";
+        var parsed = new Dictionary<string, string>
+        {
+            ["A"] = "1", ["B"] = "2", ["C"] = "3", ["D"] = "4", ["E"] = "5", ["F"] = "6"
+        };
+        ParameterValueRenderer.RenderExpandableFromParsed(body, original, parsed);
+        var html = body.ToString();
+        Assert.Contains("<summary>", html);
+        Assert.Contains("MyType", html);
+        Assert.Contains("param-expand", html);
+    }
+
+    [Fact]
+    public void GeneratePreviewFromParsed_truncates_after_3_properties()
+    {
+        var parsed = new Dictionary<string, string>
+        {
+            ["A"] = "1", ["B"] = "2", ["C"] = "3", ["D"] = "4"
+        };
+        var preview = ParameterValueRenderer.GeneratePreviewFromParsed("Obj { A = 1, B = 2, C = 3, D = 4 }", parsed);
+        Assert.Contains("A: 1", preview);
+        Assert.Contains("B: 2", preview);
+        Assert.Contains("C: 3", preview);
+        Assert.Contains("...", preview);
+        Assert.DoesNotContain("D: 4", preview);
+    }
+
+    [Fact]
+    public void GenerateHighlightedJsonFromParsed_renders_all_properties()
+    {
+        var parsed = new Dictionary<string, string> { ["Score"] = "320", ["Band"] = "E" };
+        var json = ParameterValueRenderer.GenerateHighlightedJsonFromParsed(parsed);
+        Assert.Contains("prop-key", json);
+        Assert.Contains("\"Score\"", json);
+        Assert.Contains("prop-val", json);
+        Assert.Contains("320", json);
+        Assert.Contains("\"Band\"", json);
+        Assert.Contains("E", json);
+    }
+
+    #endregion
 }

@@ -2291,9 +2291,20 @@ public static class ReportGenerator
                     }
                     else
                     {
-                        // Scalar: plain text
+                        // Try string-based R3/R4 when raw values aren't available
                         var val = s.ExampleValues?.GetValueOrDefault(name, "") ?? "";
-                        body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                        var tdBody = new StringBuilder();
+                        if (ParameterValueRenderer.TryRenderFromParsedString(tdBody, val))
+                        {
+                            body.Append("<td>");
+                            body.Append(tdBody);
+                            body.Append("</td>");
+                        }
+                        else
+                        {
+                            // Scalar: plain text
+                            body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                        }
                     }
                 }
             }

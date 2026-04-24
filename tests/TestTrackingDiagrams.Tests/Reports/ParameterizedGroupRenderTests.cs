@@ -831,7 +831,7 @@ public class ParameterizedGroupRenderTests
     private record NestedPayment(string Name, SmallAddress Address);
 
     [Fact]
-    public void Nested_complex_object_renders_as_R4_expandable()
+    public void Nested_complex_object_flattens_via_string_parsing_with_nested_subtable()
     {
         var nested = new NestedPayment("Acme", new SmallAddress("1 Main St", "London", "SW1A 1AA"));
         var scenarios = new[]
@@ -845,9 +845,12 @@ public class ParameterizedGroupRenderTests
         };
         var content = GenerateReport(MakeFeature(scenarios));
 
-        // Nested object should use R4 expandable, not R3 sub-table
-        Assert.Contains("param-expand", content);
-        Assert.Contains("NestedPayment", content);
+        // Reflection-based R2 rejects nested complex, string-based R2 flattens to Name + Address
+        Assert.Contains(">Name</th>", content);
+        Assert.Contains(">Address</th>", content);
+        Assert.Contains("Acme", content);
+        // The Address column value is itself a record string → rendered as R3 sub-table
+        Assert.Contains("cell-subtable", content);
     }
 
     // ── R2 not applied when single param is already scalar ──
@@ -891,5 +894,113 @@ public class ParameterizedGroupRenderTests
         Assert.Contains("<details class=\"scenario-steps\" open>", content);
         Assert.Contains("<summary class=\"h4\">Steps</summary>", content);
         Assert.DoesNotContain("<div class=\"scenario-steps\">", content);
+    }
+
+    // ── String-based R2: record ToString() flattening without raw values ──
+
+    [Fact]
+    public void R2_string_based_record_ToString_flattens_into_columns()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+                exampleValues: new() { ["scenario"] = "Score { Age = 89, Score = 320, Band = E }" }),
+            MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+                exampleValues: new() { ["scenario"] = "Score { Age = 25, Score = 500, Band = A }" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Should flatten into individual columns, not show the raw string
+        Assert.Contains(">Age</th>", content);
+        Assert.Contains(">Score</th>", content);
+        Assert.Contains(">Band</th>", content);
+        Assert.Contains(">89</td>", content);
+        Assert.Contains(">500</td>", content);
+        Assert.Contains(">E</td>", content);
+        // Should NOT show the full record string as a single cell
+        Assert.DoesNotContain("Score { Age = 89", content);
+    }
+
+    [Fact]
+    public void R2_string_based_with_null_values_renders_correctly()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+                exampleValues: new() { ["scenario"] = "Risk { Score = 320, Band = null }" }),
+            MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+                exampleValues: new() { ["scenario"] = "Risk { Score = 500, Band = A }" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains(">Score</th>", content);
+        Assert.Contains(">Band</th>", content);
+        Assert.Contains(">null</td>", content);
+    }
+
+    // ── String-based R3: sub-table from record ToString() ──
+
+    [Fact]
+    public void R3_string_based_record_renders_subtable_in_cell()
+    {
+        // When a cell value (not single-key R2) is a record string with ≤5 props,
+        // it should render as a sub-table
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(id: 1, addr: ...)", outlineId: "Test",
+                exampleValues: new() { ["id"] = "1", ["addr"] = "Place { Street = 1 Main St, City = London }" }),
+            MakeScenario("s2", "Test(id: 2, addr: ...)", outlineId: "Test",
+                exampleValues: new() { ["id"] = "2", ["addr"] = "Place { Street = 2 Oak Ave, City = Paris }" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("cell-subtable", content);
+        Assert.Contains("Street", content);
+        Assert.Contains("1 Main St", content);
+        Assert.Contains("City", content);
+        Assert.Contains("London", content);
+    }
+
+    // ── String-based R4: expandable from record ToString() ──
+
+    [Fact]
+    public void R4_string_based_record_renders_expandable_in_cell()
+    {
+        // A record string value with >5 properties should render as expandable details
+        var bigRecord = "Scenario { A = 1, B = 2, C = 3, D = 4, E = 5, F = 6 }";
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(id: x, data: ...)", outlineId: "Test",
+                exampleValues: new() { ["id"] = "x", ["data"] = bigRecord }),
+            MakeScenario("s2", "Test(id: y, data: ...)", outlineId: "Test",
+                exampleValues: new() { ["id"] = "y", ["data"] = bigRecord })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        Assert.Contains("param-expand", content);
+        Assert.Contains("expand-body", content);
+        Assert.Contains("prop-key", content);
+        Assert.Contains("prop-val", content);
+    }
+
+    // ── String-based fallback: plain string stays plain text ──
+
+    [Fact]
+    public void Non_record_string_value_renders_as_plain_text()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(name: hello)", outlineId: "Test",
+                exampleValues: new() { ["name"] = "hello" }),
+            MakeScenario("s2", "Test(name: world)", outlineId: "Test",
+                exampleValues: new() { ["name"] = "world" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // No sub-table or expandable elements inside the table body
+        Assert.DoesNotContain("<table class=\"cell-subtable\">", content);
+        Assert.DoesNotContain("<details class=\"param-expand\">", content);
+        Assert.Contains(">hello</td>", content);
+        Assert.Contains(">world</td>", content);
     }
 }

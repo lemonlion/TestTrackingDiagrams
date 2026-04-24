@@ -257,7 +257,7 @@ public class ParameterGrouperTests
     }
 
     [Fact]
-    public void R2_not_applied_when_param_has_nested_complex_properties()
+    public void R2_nested_complex_flattens_via_string_based_when_reflection_rejects()
     {
         var obj1 = new NestedRequest("Test1", new TestRequest("UK", 100, "GBP"));
         var obj2 = new NestedRequest("Test2", new TestRequest("US", 200, "USD"));
@@ -270,12 +270,14 @@ public class ParameterGrouperTests
 
         var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
         Assert.Single(groups);
-        // Should NOT flatten — falls back to ScalarColumns with single key
-        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+        // Reflection-based R2 rejects nested complex, but string-based R2 flattens at top level
+        Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
+        Assert.Equal(["Name", "Inner"], groups[0].ParameterNames);
+        Assert.Equal("Test1", groups[0].Scenarios[0].ExampleValues!["Name"]);
     }
 
     [Fact]
-    public void R2_not_applied_when_no_ExampleRawValues()
+    public void R2_string_based_applied_when_no_ExampleRawValues_but_record_ToString_matches()
     {
         var s1 = MakeScenario("s1", "Test(request)", outlineId: "Test",
             exampleValues: new() { ["request"] = "TestRequest { Region = UK }" });
@@ -284,7 +286,11 @@ public class ParameterGrouperTests
 
         var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
         Assert.Single(groups);
-        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+        // String-based R2 now parses record ToString() and flattens into columns
+        Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
+        Assert.Equal(["Region"], groups[0].ParameterNames);
+        Assert.Equal("UK", groups[0].Scenarios[0].ExampleValues!["Region"]);
+        Assert.Equal("US", groups[0].Scenarios[1].ExampleValues!["Region"]);
     }
 
     [Fact]
@@ -318,6 +324,79 @@ public class ParameterGrouperTests
         Assert.Single(groups);
         // 3 properties > maxColumns 2, so falls back to ScalarColumns with the single key
         Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_string_based_flattens_record_ToString_when_no_raw_values()
+    {
+        var s1 = MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "ScoreScenario { Age = 89, Score = 320, Band = E }" });
+        var s2 = MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "ScoreScenario { Age = 25, Score = 500, Band = A }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
+        Assert.Equal(["Age", "Score", "Band"], groups[0].ParameterNames);
+        Assert.Equal("89", groups[0].Scenarios[0].ExampleValues!["Age"]);
+        Assert.Equal("500", groups[0].Scenarios[1].ExampleValues!["Score"]);
+    }
+
+    [Fact]
+    public void R2_string_based_not_applied_when_value_is_not_record_format()
+    {
+        var s1 = MakeScenario("s1", "Test(name: hello)", outlineId: "Test",
+            exampleValues: new() { ["name"] = "hello" });
+        var s2 = MakeScenario("s2", "Test(name: world)", outlineId: "Test",
+            exampleValues: new() { ["name"] = "world" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+        Assert.Equal(["name"], groups[0].ParameterNames);
+    }
+
+    [Fact]
+    public void R2_string_based_not_applied_when_properties_exceed_maxColumns()
+    {
+        var s1 = MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Type { A = 1, B = 2, C = 3 }" });
+        var s2 = MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Type { A = 4, B = 5, C = 6 }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2], maxColumns: 2);
+        Assert.Single(groups);
+        // 3 properties > maxColumns 2, falls back to ScalarColumns
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_string_based_not_applied_when_members_have_different_property_names()
+    {
+        var s1 = MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Type { A = 1, B = 2 }" });
+        var s2 = MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Type { X = 3, Y = 4 }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        // Different properties → can't flatten
+        Assert.Equal(ParameterDisplayRule.ScalarColumns, groups[0].Rule);
+    }
+
+    [Fact]
+    public void R2_string_based_handles_null_values_in_record()
+    {
+        var s1 = MakeScenario("s1", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Risk { Score = 320, Band = null }" });
+        var s2 = MakeScenario("s2", "Test(scenario)", outlineId: "Test",
+            exampleValues: new() { ["scenario"] = "Risk { Score = 500, Band = A }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
+        Assert.Equal("null", groups[0].Scenarios[0].ExampleValues!["Band"]);
+        Assert.Equal("A", groups[0].Scenarios[1].ExampleValues!["Band"]);
     }
 
     private static Scenario MakeScenario(

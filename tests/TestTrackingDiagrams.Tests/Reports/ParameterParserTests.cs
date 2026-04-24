@@ -381,4 +381,84 @@ public class ParameterParserTests
     }
 
     private record StructuredTestRecord(string Name, int Value);
+
+    // ── TryParseRecordToString tests ──
+
+    [Fact]
+    public void TryParseRecordToString_parses_simple_record()
+    {
+        var result = ParameterParser.TryParseRecordToString("TypeName { Prop1 = 89, Prop2 = hello }");
+        Assert.NotNull(result);
+        Assert.Equal("89", result!["Prop1"]);
+        Assert.Equal("hello", result["Prop2"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_parses_null_values()
+    {
+        var result = ParameterParser.TryParseRecordToString("MyRecord { X = null, Y = 42 }");
+        Assert.NotNull(result);
+        Assert.Equal("null", result!["X"]);
+        Assert.Equal("42", result["Y"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_parses_quoted_string_values()
+    {
+        var result = ParameterParser.TryParseRecordToString("""MyRecord { Name = "hello world", Count = 5 }""");
+        Assert.NotNull(result);
+        Assert.Equal("hello world", result!["Name"]);
+        Assert.Equal("5", result["Count"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_parses_real_account_risk_scenario()
+    {
+        var input = """AccountRiskScoreScenario { AccountAgeInDays = 89, AccountRiskScore = 320, ApplicationRiskScore = null, ExpectedRiskband = "E", Reason = "Pre 90. No application score present, account score in E band" }""";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("89", result!["AccountAgeInDays"]);
+        Assert.Equal("320", result["AccountRiskScore"]);
+        Assert.Equal("null", result["ApplicationRiskScore"]);
+        Assert.Equal("E", result["ExpectedRiskband"]);
+        Assert.Equal("Pre 90. No application score present, account score in E band", result["Reason"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_returns_null_for_plain_string()
+    {
+        Assert.Null(ParameterParser.TryParseRecordToString("just a plain string"));
+    }
+
+    [Fact]
+    public void TryParseRecordToString_returns_null_for_null_input()
+    {
+        Assert.Null(ParameterParser.TryParseRecordToString(null));
+    }
+
+    [Fact]
+    public void TryParseRecordToString_returns_null_for_empty_braces()
+    {
+        Assert.Null(ParameterParser.TryParseRecordToString("TypeName { }"));
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_values_with_ellipsis()
+    {
+        var input = """MyRecord { Name = "Pre 90. No application score present, account scor"··..., Age = 42 }""";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Contains("Pre 90", result!["Name"]);
+        Assert.Equal("42", result["Age"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_commas_inside_quoted_values()
+    {
+        var input = """MyRecord { Desc = "hello, world", Count = 3 }""";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("hello, world", result!["Desc"]);
+        Assert.Equal("3", result["Count"]);
+    }
 }

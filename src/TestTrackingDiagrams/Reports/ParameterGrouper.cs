@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace TestTrackingDiagrams.Reports;
 
 public static class ParameterGrouper
@@ -138,31 +140,74 @@ public static class ParameterGrouper
     private static (string[] ParamNames, ParameterDisplayRule Rule)? TryDetectFlattenedObject(
         Scenario[] members, string paramKey, int maxColumns)
     {
-        // All members must have ExampleRawValues with the single key
+        // Try reflection-based flattening first (when raw objects are available)
         var withRaw = members.Where(m => m.ExampleRawValues is not null && m.ExampleRawValues.ContainsKey(paramKey)).ToArray();
-        if (withRaw.Length != members.Length)
-            return null;
-
-        // Get the first non-null raw value to determine property structure
-        var firstRawValue = withRaw.Select(m => m.ExampleRawValues![paramKey]).FirstOrDefault(v => v is not null);
-        if (firstRawValue is null)
-            return null;
-
-        var propertyNames = ParameterValueRenderer.TryGetFlattenableProperties(firstRawValue, maxColumns);
-        if (propertyNames is null)
-            return null;
-
-        // Flatten each scenario's values
-        foreach (var m in members)
+        if (withRaw.Length == members.Length)
         {
-            var rawValue = m.ExampleRawValues![paramKey];
-            if (rawValue is not null)
+            var firstRawValue = withRaw.Select(m => m.ExampleRawValues![paramKey]).FirstOrDefault(v => v is not null);
+            if (firstRawValue is not null)
             {
-                m.ExampleValues = ParameterValueRenderer.FlattenToStringValues(rawValue, propertyNames);
-                m.ExampleRawValues = ParameterValueRenderer.FlattenToRawValues(rawValue, propertyNames);
+                var propertyNames = ParameterValueRenderer.TryGetFlattenableProperties(firstRawValue, maxColumns);
+                if (propertyNames is not null)
+                {
+                    foreach (var m in members)
+                    {
+                        var rawValue = m.ExampleRawValues![paramKey];
+                        if (rawValue is not null)
+                        {
+                            m.ExampleValues = ParameterValueRenderer.FlattenToStringValues(rawValue, propertyNames);
+                            m.ExampleRawValues = ParameterValueRenderer.FlattenToRawValues(rawValue, propertyNames);
+                        }
+                    }
+                    return (propertyNames, ParameterDisplayRule.FlattenedObject);
+                }
             }
         }
 
-        return (propertyNames, ParameterDisplayRule.FlattenedObject);
+        // Fallback: try string-based record ToString() parsing (e.g. "TypeName { Prop = Val, ... }")
+        return TryStringBasedFlatten(members, paramKey, maxColumns);
+    }
+
+    /// <summary>
+    /// String-based R2: Parse record ToString() representations (e.g. "TypeName { Prop = Val, ... }")
+    /// into individual columns when all members match and property count ≤ maxColumns.
+    /// </summary>
+    private static (string[] ParamNames, ParameterDisplayRule Rule)? TryStringBasedFlatten(
+        Scenario[] members, string paramKey, int maxColumns)
+    {
+        try
+        {
+            // Parse the first member's value to detect the pattern
+            var firstValue = members[0].ExampleValues?.GetValueOrDefault(paramKey);
+            var firstParsed = ParameterParser.TryParseRecordToString(firstValue);
+            if (firstParsed is null)
+                return null;
+
+            var propertyNames = firstParsed.Keys.ToArray();
+            if (propertyNames.Length == 0 || propertyNames.Length > maxColumns)
+                return null;
+
+            // Verify all members parse with the same property names and flatten
+            foreach (var m in members)
+            {
+                var val = m.ExampleValues?.GetValueOrDefault(paramKey);
+                var parsed = ParameterParser.TryParseRecordToString(val);
+                if (parsed is null)
+                    return null;
+
+                // All members must have the same set of property names
+                if (!propertyNames.All(parsed.ContainsKey))
+                    return null;
+
+                m.ExampleValues = parsed;
+            }
+
+            return (propertyNames, ParameterDisplayRule.FlattenedObject);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[TestTrackingDiagrams] Warning: String-based record flattening failed for param '{paramKey}': {ex.Message}");
+            return null;
+        }
     }
 }
