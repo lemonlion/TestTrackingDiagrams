@@ -17,6 +17,15 @@ public static class ParameterGrouper
         if (scenarios.Length == 0)
             return ([], scenarios);
 
+        // Deep-clone scenarios before analysis, because R2 flattening mutates ExampleValues/ExampleRawValues.
+        // This prevents race conditions when multiple report generators call Analyze in parallel
+        // on the same Scenario objects (e.g. Specifications + TestRunReport via Parallel.Invoke).
+        scenarios = scenarios.Select(s => s with
+        {
+            ExampleValues = s.ExampleValues is not null ? new Dictionary<string, string>(s.ExampleValues) : null,
+            ExampleRawValues = s.ExampleRawValues is not null ? new Dictionary<string, object?>(s.ExampleRawValues) : null
+        }).ToArray();
+
         var groups = new List<ParameterizedGroup>();
         var ungrouped = new List<Scenario>();
         var consumed = new HashSet<string>(); // scenario IDs already assigned to a group

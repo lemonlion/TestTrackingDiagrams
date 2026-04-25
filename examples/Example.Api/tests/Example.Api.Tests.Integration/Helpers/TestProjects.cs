@@ -14,6 +14,13 @@ public static class TestProjects
     public const string BDDfyXUnit3 = "Example.Api.Tests.Component.BDDfy.xUnit3";
     public const string ReqNRollXUnit2 = "Example.Api.Tests.Component.ReqNRoll.xUnit2";
     public const string ReqNRollXUnit3 = "Example.Api.Tests.Component.ReqNRoll.xUnit3";
+    public const string TUnit = "Example.Api.Tests.Component.TUnit";
+
+    /// <summary>
+    /// Projects that use Microsoft.Testing.Platform (e.g. TUnit) and require
+    /// <c>dotnet run</c> instead of <c>dotnet test</c> on .NET 10+.
+    /// </summary>
+    public static readonly HashSet<string> MicrosoftTestingPlatformProjects = [TUnit];
 
     public static readonly string[] All =
     [
@@ -23,7 +30,8 @@ public static class TestProjects
         LightBddXUnit2,
         BDDfyXUnit3,
         ReqNRollXUnit2,
-        ReqNRollXUnit3
+        ReqNRollXUnit3,
+        TUnit
     ];
 
     public static string GetProjectPath(string projectName) =>

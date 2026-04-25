@@ -34,7 +34,10 @@ public static class TestProjectRunner
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = "test --no-restore --verbosity quiet",
+            // TUnit / Microsoft.Testing.Platform projects require "dotnet run" on .NET 10+
+            Arguments = TestProjects.MicrosoftTestingPlatformProjects.Contains(projectName)
+                ? "run --no-restore"
+                : "test --no-restore --verbosity quiet",
             WorkingDirectory = projectPath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

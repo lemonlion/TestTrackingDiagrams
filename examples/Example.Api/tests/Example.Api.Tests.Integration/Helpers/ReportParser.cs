@@ -8,6 +8,8 @@ namespace Example.Api.Tests.Integration.Helpers;
 
 public record ReportFiles(string? SpecificationsHtml, string? TestRunReportHtml, string? SpecificationsYaml);
 
+public record ParsedParameterizedGroup(string ScenarioName, string[] ColumnHeaders, int RowCount, bool HasSubTables, bool HasExpandables);
+
 public record ParsedScenario(string Name, bool IsHappyPath, string[] PlantUmlSources);
 
 public static class ReportParser
@@ -129,6 +131,39 @@ public static class ReportParser
                 img.GetAttribute("loading") == "lazy"))
             .Where(d => d.Src.Length > 0)
             .ToArray();
+    }
+
+    public static async Task<ParsedParameterizedGroup[]> ExtractParameterizedGroupsAsync(string htmlFilePath)
+    {
+        var html = await File.ReadAllTextAsync(htmlFilePath);
+        var config = Configuration.Default;
+        using var context = BrowsingContext.New(config);
+        using var document = await context.OpenAsync(req => req.Content(html));
+
+        var results = new List<ParsedParameterizedGroup>();
+
+        foreach (var scenario in document.QuerySelectorAll("details.scenario-parameterized"))
+        {
+            var summary = scenario.QuerySelector("summary");
+            var name = summary?.TextContent.Trim() ?? "";
+
+            var table = scenario.QuerySelector("table.param-test-table");
+            if (table is null) continue;
+
+            // Extract column headers — skip the first row (#) and last two (Status, Duration)
+            var headers = table.QuerySelectorAll("thead th")
+                .Select(th => th.TextContent.Trim())
+                .Where(h => h != "#" && h != "Status" && h != "Duration" && h != "Input Parameters")
+                .ToArray();
+
+            var rowCount = table.QuerySelectorAll(":scope > tbody > tr").Length;
+            var hasSubTables = table.QuerySelectorAll(".cell-subtable").Length > 0;
+            var hasExpandables = table.QuerySelectorAll("details.param-expand").Length > 0;
+
+            results.Add(new ParsedParameterizedGroup(name, headers, rowCount, hasSubTables, hasExpandables));
+        }
+
+        return results.ToArray();
     }
 
     private static bool IsSequenceDiagram(string puml) =>

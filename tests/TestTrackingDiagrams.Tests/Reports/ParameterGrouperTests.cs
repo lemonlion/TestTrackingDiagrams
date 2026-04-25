@@ -251,9 +251,9 @@ public class ParameterGrouperTests
         Assert.Contains("Region", groups[0].ParameterNames);
         Assert.Contains("Amount", groups[0].ParameterNames);
         Assert.Contains("Currency", groups[0].ParameterNames);
-        // ExampleValues should be flattened
-        Assert.Equal("UK", s1.ExampleValues!["Region"]);
-        Assert.Equal("100", s1.ExampleValues["Amount"]);
+        // ExampleValues should be flattened on the group's cloned scenarios
+        Assert.Equal("UK", groups[0].Scenarios[0].ExampleValues!["Region"]);
+        Assert.Equal("100", groups[0].Scenarios[0].ExampleValues["Amount"]);
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class ParameterGrouperTests
         // Reflection-based R2 rejects nested complex, but string-based R2 flattens at top level
         Assert.Equal(ParameterDisplayRule.FlattenedObject, groups[0].Rule);
         Assert.Equal(["Name", "Inner"], groups[0].ParameterNames);
-        Assert.Equal("Test1", groups[0].Scenarios[0].ExampleValues!["Name"]);
+        Assert.Equal("Test1", groups[0].Scenarios[0].ExampleValues!["Name"]);  // Cloned scenario
     }
 
     [Fact]
