@@ -269,20 +269,29 @@ public static class ParameterParser
         if (string.IsNullOrEmpty(value))
             return null;
 
-        // Match pattern: "TypeName { ... }"
+        // Match pattern: "TypeName { ... }" or truncated "TypeName { ... ··..."
         var braceOpen = value.IndexOf(" { ", StringComparison.Ordinal);
-        if (braceOpen < 0 || !value.EndsWith(" }") || braceOpen == 0)
+        if (braceOpen < 0 || braceOpen == 0)
             return null;
 
-        // inner = everything between "{ " and " }"
+        // Detect whether the record is truncated (ends with ··... or ... instead of " }")
+        var isTruncated = !value.EndsWith(" }");
+        if (isTruncated && !IsTruncationSuffix(value))
+            return null;
+
+        // inner = everything between "{ " and " }" (or end for truncated)
         var innerStart = braceOpen + 3;
-        var innerEnd = value.Length - 2;
+        var innerEnd = isTruncated ? value.Length : value.Length - 2;
         if (innerEnd <= innerStart)
             return null;
 
         var inner = value[innerStart..innerEnd].Trim();
         if (inner.Length == 0)
             return null;
+
+        // Strip trailing truncation markers from the inner content
+        if (isTruncated)
+            inner = StripTrailingTruncation(inner);
 
         var result = new Dictionary<string, string>();
         var pos = 0;
@@ -295,7 +304,12 @@ public static class ParameterParser
 
             // Read property name (until ' = ')
             var eqIdx = inner.IndexOf(" = ", pos, StringComparison.Ordinal);
-            if (eqIdx < 0) return null; // malformed
+            if (eqIdx < 0)
+            {
+                // Truncation mid-property-name: discard incomplete property and stop
+                if (isTruncated) break;
+                return null; // malformed
+            }
 
             var propName = inner[pos..eqIdx].Trim();
             if (propName.Length == 0) return null;
@@ -309,6 +323,7 @@ public static class ParameterParser
                 // Quoted string — read until unescaped closing quote
                 var sb = new System.Text.StringBuilder();
                 pos++; // skip opening quote
+                var closedQuote = false;
                 while (pos < inner.Length)
                 {
                     var c = inner[pos];
@@ -321,12 +336,20 @@ public static class ParameterParser
                     if (c == '"')
                     {
                         pos++; // skip closing quote
+                        closedQuote = true;
                         break;
                     }
                     sb.Append(c);
                     pos++;
                 }
                 propValue = sb.ToString();
+
+                if (!closedQuote && isTruncated)
+                {
+                    // Truncation inside a quoted value — keep what we have and stop
+                    result[propName] = propValue;
+                    break;
+                }
 
                 // Skip any trailing ··... (truncation marker)
                 while (pos < inner.Length && (inner[pos] == '\u00B7' || inner[pos] == '.'))
@@ -347,6 +370,9 @@ public static class ParameterParser
                     pos++;
                 }
                 propValue = inner[valueStart..pos].Trim();
+
+                // Strip trailing truncation markers from value
+                propValue = StripTrailingTruncation(propValue);
             }
 
             result[propName] = propValue;
@@ -360,5 +386,29 @@ public static class ParameterParser
         }
 
         return result.Count > 0 ? result : null;
+    }
+
+    /// <summary>
+    /// Checks if the string ends with a truncation suffix (··... or ... patterns).
+    /// </summary>
+    private static bool IsTruncationSuffix(string value)
+    {
+        var i = value.Length - 1;
+        // Walk backwards over dots and middle dots
+        while (i >= 0 && (value[i] == '.' || value[i] == '\u00B7'))
+            i--;
+        // We consumed at least one truncation character, and we're not at the same position
+        return i < value.Length - 1;
+    }
+
+    /// <summary>
+    /// Strips trailing truncation markers (··... or ...) from a string.
+    /// </summary>
+    private static string StripTrailingTruncation(string value)
+    {
+        var i = value.Length - 1;
+        while (i >= 0 && (value[i] == '.' || value[i] == '\u00B7'))
+            i--;
+        return i < value.Length - 1 ? value[..(i + 1)].TrimEnd() : value;
     }
 }

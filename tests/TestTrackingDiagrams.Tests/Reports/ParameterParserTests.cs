@@ -461,4 +461,67 @@ public class ParameterParserTests
         Assert.Equal("hello, world", result!["Desc"]);
         Assert.Equal("3", result["Count"]);
     }
+
+    // ── TryParseRecordToString: truncated record tests (xUnit display name truncation) ──
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_record_ending_with_middot_ellipsis()
+    {
+        // xUnit truncates the entire record ToString() — no closing " }"
+        var input = "AccountRiskScoreScenario { AccountAgeInDays = 89, AccountRiskScore = 320, ApplicationRiskScore = null, ExpectedRiskband = \"E\", Reason = \"Pre 90. No application score present, account scor\"\u00B7\u00B7...";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("89", result!["AccountAgeInDays"]);
+        Assert.Equal("320", result["AccountRiskScore"]);
+        Assert.Equal("null", result["ApplicationRiskScore"]);
+        Assert.Equal("E", result["ExpectedRiskband"]);
+        Assert.Contains("Pre 90", result["Reason"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_record_mid_unquoted_value()
+    {
+        // Truncation in the middle of a numeric value
+        var input = "MyRecord { Count = 42, LongName = \"hello\", Score = 12\u00B7\u00B7...";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("42", result!["Count"]);
+        Assert.Equal("hello", result["LongName"]);
+        // Score may be partially parsed or omitted — at least Count and LongName are present
+        Assert.True(result.Count >= 2);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_record_mid_property_name()
+    {
+        // Truncation in the middle of a property name — incomplete property discarded
+        var input = "MyRecord { Count = 42, LongProp\u00B7\u00B7...";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("42", result!["Count"]);
+        Assert.Single(result); // Only Count parsed, LongProp discarded
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_record_mid_quoted_value()
+    {
+        // Truncation inside a quoted string (unclosed quote)
+        var input = "MyRecord { Id = 5, Desc = \"some long descri\u00B7\u00B7...";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("5", result!["Id"]);
+        Assert.True(result.Count >= 1);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_handles_truncated_record_with_plain_ellipsis()
+    {
+        // Some formatters use plain "..." without middle dots
+        var input = "MyRecord { X = 1, Y = 2, Z = 3...";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("1", result!["X"]);
+        Assert.Equal("2", result["Y"]);
+        Assert.True(result.Count >= 2);
+    }
 }
