@@ -59,6 +59,9 @@ public class ParameterizedRenderingIntegrationTests
             ExampleDisplayName = exampleDisplayName
         };
 
+    private static string MakePlantUml(string scenarioName) =>
+        $"@startuml\nActor -> Service: {scenarioName}\nService --> Actor: OK\n@enduml";
+
     private string GenerateReport(
         Feature[] features,
         bool groupParameterizedTests = true,
@@ -66,7 +69,7 @@ public class ParameterizedRenderingIntegrationTests
         bool titleizeParameterNames = true)
     {
         var diagrams = features.SelectMany(f => f.Scenarios)
-            .Select(s => new DefaultDiagramsFetcher.DiagramAsCode(s.Id, "", ""))
+            .Select(s => new DefaultDiagramsFetcher.DiagramAsCode(s.Id, "", MakePlantUml(s.DisplayName)))
             .ToArray();
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
@@ -453,6 +456,63 @@ public class ParameterizedRenderingIntegrationTests
         Assert.Contains(">Score</th>", content);
         Assert.Contains(">Test1</td>", content);
         Assert.Contains(">90</td>", content);
+    }
+
+    [Fact]
+    public void TUnit_scalar_plus_small_complex_object_renders_R3_subtable()
+    {
+        // TUnit [Arguments] with scalar + small complex object → R3 sub-table for the complex param
+        var addr1 = new SimpleAddress("10 High St", "Manchester", "M1 1AA");
+        var addr2 = new SimpleAddress("20 Broad St", "Bristol", "BS1 2AB");
+        var scenarios = new[]
+        {
+            MakeScenario("tu-r3a", "Ship(orderId: 101, address: ...)", outlineId: "Ship",
+                exampleValues: new() { ["orderId"] = "101", ["address"] = addr1.ToString()! },
+                exampleRawValues: new() { ["orderId"] = (object)101, ["address"] = addr1 }),
+            MakeScenario("tu-r3b", "Ship(orderId: 102, address: ...)", outlineId: "Ship",
+                exampleValues: new() { ["orderId"] = "102", ["address"] = addr2.ToString()! },
+                exampleRawValues: new() { ["orderId"] = (object)102, ["address"] = addr2 })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // R1 scalar column for orderId
+        Assert.Contains(">Order Id</th>", content);
+        Assert.Contains(">101</td>", content);
+        // R3 sub-table for address (≤5 scalar properties — uses raw property names, not titleized)
+        Assert.Contains("cell-subtable", content);
+        Assert.Contains(">Street</th>", content);
+        Assert.Contains(">City</th>", content);
+        Assert.Contains(">PostCode</th>", content);
+        Assert.Contains("10 High St", content);
+        Assert.Contains("Manchester", content);
+    }
+
+    [Fact]
+    public void TUnit_scalar_plus_deeply_nested_object_renders_R4_expandable()
+    {
+        // TUnit [Arguments] with scalar + deeply nested object → R4 expandable for the complex param
+        var profile1 = new CustomerProfile("Alice", 30, "alice@test.com", new SimpleAddress("1 Main St", "London", "SW1A"));
+        var profile2 = new CustomerProfile("Bob", 25, "bob@test.com", new SimpleAddress("2 Oak Ave", "Paris", "75001"));
+        var scenarios = new[]
+        {
+            MakeScenario("tu-r4a", "Enroll(tier: Gold, profile: ...)", outlineId: "Enroll",
+                exampleValues: new() { ["tier"] = "Gold", ["profile"] = profile1.ToString()! },
+                exampleRawValues: new() { ["tier"] = (object)"Gold", ["profile"] = profile1 }),
+            MakeScenario("tu-r4b", "Enroll(tier: Silver, profile: ...)", outlineId: "Enroll",
+                exampleValues: new() { ["tier"] = "Silver", ["profile"] = profile2.ToString()! },
+                exampleRawValues: new() { ["tier"] = (object)"Silver", ["profile"] = profile2 })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // R1 scalar column for tier
+        Assert.Contains(">Tier</th>", content);
+        Assert.Contains(">Gold</td>", content);
+        Assert.Contains(">Silver</td>", content);
+        // R4 expandable for profile (has nested Address object)
+        Assert.Contains("param-expand", content);
+        Assert.Contains("expand-body", content);
+        Assert.Contains("prop-key", content);
+        Assert.Contains("prop-val", content);
     }
 
     #endregion
