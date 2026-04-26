@@ -1422,7 +1422,7 @@ public static class ReportGenerator
                     <div class="search-help-panel" style="display:none">
                     <table class="search-help-table">
                     <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
-                    <tr><td><code>word</code></td><td>Text search (scenario name, step text)</td><td><code>order</code></td></tr>
+                    <tr><td><code>word</code></td><td>Text search (feature name, scenario name, step text, tags, diagram source)</td><td><code>order</code></td></tr>
                     <tr><td><code>"phrase"</code></td><td>Exact phrase match</td><td><code>"create order"</code></td></tr>
                     <tr><td><code>&&</code></td><td>AND — both sides must match</td><td><code>order && create</code></td></tr>
                     <tr><td><code>||</code></td><td>OR — either side must match</td><td><code>payment || order</code></td></tr>
@@ -1689,7 +1689,10 @@ public static class ReportGenerator
                     RenderParameterizedGroup(body, group, groupPrefix, diagramsByTestId, scenarioDependencies,
                         showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
                         ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
-                        titleizeParameterNames);
+                        titleizeParameterNames,
+                        featureDisplayName: feature.DisplayName,
+                        featureDescription: feature.Description,
+                        featureLabels: feature.Labels);
                     continue;
                 }
 
@@ -1714,8 +1717,12 @@ public static class ReportGenerator
                 // Deep link anchor ID
                 var anchorId = GenerateScenarioAnchorId(scenario.DisplayName);
 
-                // Pre-build searchable text: scenario name + error info + step text + diagram sources
-                var searchParts = new List<string> { scenario.DisplayName };
+                // Pre-build searchable text: feature context + scenario name + error info + step text + diagram sources + tags
+                var searchParts = new List<string> { feature.DisplayName, scenario.DisplayName };
+                if (feature.Description is not null) searchParts.Add(feature.Description);
+                if (feature.Labels is { Length: > 0 }) searchParts.AddRange(feature.Labels);
+                if (scenario.Categories is { Length: > 0 }) searchParts.AddRange(scenario.Categories);
+                if (scenario.Labels is { Length: > 0 }) searchParts.AddRange(scenario.Labels);
                 if (failed && scenario.ErrorMessage is not null) searchParts.Add(scenario.ErrorMessage);
                 CollectStepText(scenario.Steps, searchParts);
                 var diagramsForSearch = diagramsByTestId[scenario.Id].ToArray();
@@ -2148,7 +2155,10 @@ public static class ReportGenerator
         RequestResponseLog[]? trackedLogs,
         WholeTestFlowVisualization wholeTestVisualization,
         int medianSpanCount,
-        bool titleizeParameterNames = true)
+        bool titleizeParameterNames = true,
+        string? featureDisplayName = null,
+        string? featureDescription = null,
+        string[]? featureLabels = null)
     {
         var scenarios = group.Scenarios;
 
@@ -2162,9 +2172,14 @@ public static class ReportGenerator
 
         // Build search text
         var searchParts = new List<string> { group.GroupDisplayName };
+        if (featureDisplayName is not null) searchParts.Add(featureDisplayName);
+        if (featureDescription is not null) searchParts.Add(featureDescription);
+        if (featureLabels is { Length: > 0 }) searchParts.AddRange(featureLabels);
         foreach (var s in scenarios)
         {
             searchParts.Add(s.DisplayName);
+            if (s.Categories is { Length: > 0 }) searchParts.AddRange(s.Categories);
+            if (s.Labels is { Length: > 0 }) searchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) searchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, searchParts);
             foreach (var d in diagramsByTestId[s.Id]) searchParts.Add(d.CodeBehind);
@@ -2260,6 +2275,11 @@ public static class ReportGenerator
             };
 
             var rowSearchParts = new List<string> { s.DisplayName };
+            if (featureDisplayName is not null) rowSearchParts.Add(featureDisplayName);
+            if (featureDescription is not null) rowSearchParts.Add(featureDescription);
+            if (featureLabels is { Length: > 0 }) rowSearchParts.AddRange(featureLabels);
+            if (s.Categories is { Length: > 0 }) rowSearchParts.AddRange(s.Categories);
+            if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, rowSearchParts);
             foreach (var d in diagramsByTestId[s.Id]) rowSearchParts.Add(d.CodeBehind);

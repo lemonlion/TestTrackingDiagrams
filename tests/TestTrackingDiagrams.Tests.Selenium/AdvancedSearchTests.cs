@@ -287,4 +287,48 @@ public class AdvancedSearchTests : IDisposable
         Assert.Contains("$status", text);
         Assert.Contains("parentheses", text.ToLowerInvariant());
     }
+
+    // ── Feature name search ──
+
+    [Fact]
+    public void Search_by_feature_name_shows_all_scenarios_in_that_feature()
+    {
+        // "Order Feature" is a feature name — all its scenarios should be visible
+        _driver.Navigate().GoToUrl(GenerateReport("AdvSearchFeatureName.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        SearchAndWait("order feature", () =>
+        {
+            var vis = GetVisibleScenarios();
+            // Order Feature has 3 scenarios, Payment Feature has 2
+            // Only Order Feature scenarios should match
+            return vis.Count == 3;
+        });
+
+        var visible = GetVisibleScenarios();
+        Assert.Equal(3, visible.Count);
+    }
+
+    [Fact]
+    public void Search_by_feature_name_hides_other_features()
+    {
+        // "Payment Feature" should show only 2 scenarios from that feature
+        _driver.Navigate().GoToUrl(GenerateReport("AdvSearchFeatureNameFilter.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        SearchAndWait("payment feature", () =>
+        {
+            var vis = GetVisibleScenarios();
+            return vis.Count == 2;
+        });
+
+        var visible = GetVisibleScenarios();
+        Assert.Equal(2, visible.Count);
+
+        // Order Feature should be hidden
+        var features = _driver.FindElements(By.CssSelector("details.feature"))
+            .Where(f => f.GetCssValue("display") != "none")
+            .ToList();
+        Assert.Single(features);
+    }
 }
