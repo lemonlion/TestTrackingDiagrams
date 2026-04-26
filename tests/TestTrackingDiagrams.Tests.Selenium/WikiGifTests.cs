@@ -530,8 +530,8 @@ public class WikiGifTests : IDisposable
         note left
         {
           "orderId": "ord-7f3a",
-          <color:blue><b>"status": "Confirmed"</b></color>,
-          <color:blue><b>"totalAmount": 250.50</b></color>,
+          <back:#FFEB3B><b>"status": "Confirmed"</b></back>,
+          <back:#FFEB3B><b>"totalAmount": 250.50</b></back>,
           <color:gray><size:10>"currency": "GBP"</size></color>,
           <color:gray><size:10>"createdAt": "2026-04-17T19:35:06Z"</size></color>,
           <color:gray><size:10>"updatedAt": "2026-04-17T19:35:06Z"</size></color>,
@@ -1445,11 +1445,25 @@ public class WikiGifTests : IDisposable
 
         OpenFile(viewerPath);
         WaitFor(By.CssSelector(".gh-body"));
-        Pause(1500); // wait for marked.js to render + diagram images to load
+        Pause(1500); // wait for marked.js to render
 
-        // Scroll to top
-        ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
-        Pause(300);
+        // Expand the first failed scenario <details> to reveal the embedded diagram
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var allDetails = document.querySelectorAll('.gh-body details');
+            for (var i = 0; i < allDetails.length; i++) {
+                allDetails[i].setAttribute('open', '');
+            }
+        ");
+        Pause(2000); // wait for diagram images to load after expanding
+
+        // Scroll down so the first diagram image is visible
+        ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            var img = document.querySelector('.gh-body img');
+            if (img) {
+                img.scrollIntoView({ block: 'center' });
+            }
+        ");
+        Pause(500);
 
         SaveScreenshot("whats-new-ci-summary.png");
     }
@@ -1482,59 +1496,75 @@ public class WikiGifTests : IDisposable
         InjectFakeCursor();
 
         // Show initial fully-collapsed view
-        Hold(3);
+        Hold(2);
 
-        // Expand "features" section by clicking its toggle
-        var toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
-        if (toggles.Count > 0)
+        // Directly manipulate DOM to expand/collapse JSON nodes (click handlers unreliable in headless)
+        var js = (IJavaScriptExecutor)_driver;
+
+        // Helper: expand a node by its children ID
+        void ExpandNode(string childrenId)
         {
-            // Click first toggle (root object)
-            JsClick(toggles[0]); Hold(2.5);
-
-            // Refresh toggles after expansion
-            toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
-
-            // Click a few more toggles to expand sub-sections
-            for (var i = 1; i < Math.Min(4, toggles.Count); i++)
-            {
-                JsClick(toggles[i]); Hold(2.5);
-                // Re-fetch toggles as DOM changed
-                toggles = _driver.FindElements(By.CssSelector(".json-toggle"));
-            }
-
-            // Scroll down to show expanded content
-            try
-            {
-                var content = _driver.FindElement(By.CssSelector(".json-content"));
-                ScrollTo(content); Hold(3);
-            }
-            catch { Hold(1); }
-
-            // Contract one section
-            toggles = _driver.FindElements(By.CssSelector(".json-toggle.open"));
-            if (toggles.Count > 1)
-            {
-                JsClick(toggles[toggles.Count - 1]); Hold(2.5);
-            }
-
-            // Expand a different section
-            toggles = _driver.FindElements(By.CssSelector(".json-toggle:not(.open)"));
-            if (toggles.Count > 0)
-            {
-                JsClick(toggles[Math.Min(2, toggles.Count - 1)]); Hold(2.5);
-            }
-
-            // Scroll down more
-            ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollBy(0, 300);");
-            CaptureFrames(15, 33); Hold(3);
-
-            // Contract another section
-            toggles = _driver.FindElements(By.CssSelector(".json-toggle.open"));
-            if (toggles.Count > 0)
-            {
-                JsClick(toggles[0]); Hold(2.5);
-            }
+            js.ExecuteScript($@"
+                var ch = document.getElementById('{childrenId}');
+                if (ch) {{
+                    ch.style.display = 'inline';
+                    // Hide the summary (next sibling before children is the summary)
+                    var sm = document.getElementById('{childrenId}'.replace('jch','jsm'));
+                    if (sm) sm.style.display = 'none';
+                    // Update toggle arrow
+                    var toggle = ch.previousElementSibling;
+                    while (toggle && !toggle.classList.contains('json-toggle')) toggle = toggle.previousElementSibling;
+                    if (toggle) toggle.textContent = '\u25BC';
+                }}
+            ");
+            Pause(300);
         }
+
+        void CollapseNode(string childrenId)
+        {
+            js.ExecuteScript($@"
+                var ch = document.getElementById('{childrenId}');
+                if (ch) {{
+                    ch.style.display = 'none';
+                    var sm = document.getElementById('{childrenId}'.replace('jch','jsm'));
+                    if (sm) sm.style.display = 'inline';
+                    var toggle = ch.previousElementSibling;
+                    while (toggle && !toggle.classList.contains('json-toggle')) toggle = toggle.previousElementSibling;
+                    if (toggle) toggle.textContent = '\u25B6';
+                }}
+            ");
+            Pause(300);
+        }
+
+        // Expand root object (jch0 = root children)
+        ExpandNode("jch0");
+        Hold(2.5);
+
+        // Expand first child node (jch1 = first child with children)
+        ExpandNode("jch1");
+        Hold(2);
+
+        // Expand second child node (jch2)
+        ExpandNode("jch2");
+        Hold(2);
+
+        // Scroll down to show expanded content
+        js.ExecuteScript("window.scrollBy(0, 300);");
+        Pause(200);
+        Hold(2);
+
+        // Expand a third section (jch3)
+        ExpandNode("jch3");
+        Hold(2.5);
+
+        // Scroll down more
+        js.ExecuteScript("window.scrollBy(0, 400);");
+        Pause(200);
+        Hold(2);
+
+        // Collapse one section
+        CollapseNode("jch3");
+        Hold(2);
 
         // Scroll to top for final view
         ScrollToTop(); Hold(2);
@@ -1557,10 +1587,6 @@ public class WikiGifTests : IDisposable
                     .json-toolbar .meta { color: #57606a; font-size: 12px; }
                     .json-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; text-align: center; color: #57606a; font-family: monospace; }
                     .json-toggle:hover { color: #0969da; }
-                    .json-toggle::before { content: '▶'; font-size: 10px; }
-                    .json-toggle.open::before { content: '▼'; font-size: 10px; }
-                    .json-children { display: none; }
-                    .json-toggle.open + .json-bracket + .json-children { display: block; }
                     .json-key { color: #0550ae; }
                     .json-string { color: #0a3069; }
                     .json-number { color: #0550ae; font-weight: 600; }
@@ -1568,11 +1594,9 @@ public class WikiGifTests : IDisposable
                     .json-null { color: #8250df; }
                     .json-bracket { color: #24292f; }
                     .json-comma { color: #57606a; }
-                    .json-line { padding-left: 0; white-space: nowrap; }
                     .json-summary { color: #57606a; font-style: italic; cursor: pointer; background: #f6f8fa; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
                     .json-summary:hover { background: #eaeef2; }
-                    .json-content { white-space: pre-wrap; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; background: #ffffff; }
-                    pre { margin: 0; }
+                    .json-content { border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; background: #ffffff; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; white-space: pre; overflow: auto; }
                 </style>
             </head>
             <body>
@@ -1585,10 +1609,22 @@ public class WikiGifTests : IDisposable
                     var jsonText = {{escapedJson}};
                     var obj = JSON.parse(jsonText);
 
-                    function renderJson(val, depth, key) {
+                    function toggleNode(toggleEl) {
+                        var childrenEl = toggleEl.getAttribute('data-target');
+                        var summaryEl = toggleEl.getAttribute('data-summary');
+                        var ch = document.getElementById(childrenEl);
+                        var sm = document.getElementById(summaryEl);
+                        if (!ch) return;
+                        var isOpen = ch.style.display !== 'none';
+                        ch.style.display = isOpen ? 'none' : 'inline';
+                        if (sm) sm.style.display = isOpen ? 'inline' : 'none';
+                        toggleEl.textContent = isOpen ? '\u25B6' : '\u25BC';
+                    }
+
+                    var _nodeId = 0;
+                    function renderJson(val, depth) {
                         var indent = '  '.repeat(depth);
                         var innerIndent = '  '.repeat(depth + 1);
-                        var html = '';
 
                         if (val === null) return '<span class="json-null">null</span>';
                         if (typeof val === 'string') return '<span class="json-string">"' + escHtml(val).substring(0, 200) + (val.length > 200 ? '...' : '') + '"</span>';
@@ -1604,31 +1640,34 @@ public class WikiGifTests : IDisposable
 
                         if (count === 0) return '<span class="json-bracket">' + open + close + '</span>';
 
-                        var id = 'n' + Math.random().toString(36).substr(2, 8);
-                        html += '<span class="json-toggle" onclick="this.classList.toggle(\'open\')" id="' + id + '"></span>';
+                        var nid = _nodeId++;
+                        var chId = 'jch' + nid;
+                        var smId = 'jsm' + nid;
+                        var html = '';
+                        html += '<span class="json-toggle" data-target="' + chId + '" data-summary="' + smId + '" onclick="toggleNode(this)">\u25B6</span>';
                         html += '<span class="json-bracket">' + open + '</span>';
-                        html += '<span class="json-summary" onclick="document.getElementById(\'' + id + '\').classList.toggle(\'open\')">' + summary + '</span>';
-                        html += '<div class="json-children">';
+                        html += '<span class="json-summary" id="' + smId + '" onclick="toggleNode(this.previousElementSibling.previousElementSibling)">' + summary + '</span>';
+                        html += '<span id="' + chId + '" style="display:none">';
 
                         if (isArray) {
                             for (var i = 0; i < val.length; i++) {
-                                html += '<div class="json-line">' + innerIndent + renderJson(val[i], depth + 1) + (i < val.length - 1 ? '<span class="json-comma">,</span>' : '') + '</div>';
+                                html += '\n' + innerIndent + renderJson(val[i], depth + 1) + (i < val.length - 1 ? '<span class="json-comma">,</span>' : '');
                             }
                         } else {
                             for (var i = 0; i < keys.length; i++) {
                                 var k = keys[i];
-                                html += '<div class="json-line">' + innerIndent + '<span class="json-key">"' + escHtml(k) + '"</span>: ' + renderJson(val[k], depth + 1, k) + (i < keys.length - 1 ? '<span class="json-comma">,</span>' : '') + '</div>';
+                                html += '\n' + innerIndent + '<span class="json-key">"' + escHtml(k) + '"</span>: ' + renderJson(val[k], depth + 1) + (i < keys.length - 1 ? '<span class="json-comma">,</span>' : '');
                             }
                         }
 
-                        html += '<div class="json-line">' + indent + '<span class="json-bracket">' + close + '</span></div>';
-                        html += '</div>';
+                        html += '\n' + indent + '<span class="json-bracket">' + close + '</span>';
+                        html += '</span>';
                         return html;
                     }
 
                     function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-                    document.getElementById('jsonRoot').innerHTML = '<pre>' + renderJson(obj, 0) + '</pre>';
+                    document.getElementById('jsonRoot').innerHTML = renderJson(obj, 0);
                 </script>
             </body>
             </html>
@@ -1783,14 +1822,11 @@ public class WikiGifTests : IDisposable
 
         InjectFakeCursor();
 
-        // Show initial report overview
-        Hold(3);
-
-        // Scroll to and showcase the failure clustering section first
+        // Scroll directly to the failure clustering section and expand it
         try
         {
             var clusterSection = _driver.FindElement(By.CssSelector(".failure-clusters"));
-            ScrollTo(clusterSection); Hold(3);
+            ScrollTo(clusterSection); Hold(1);
 
             // Expand the failure cluster to show grouped scenarios
             var clusterDetails = _driver.FindElements(By.CssSelector(".failure-cluster"));
