@@ -56,14 +56,14 @@ public class DependencyFilterReportGeneratorTests
     }
 
     [Fact]
-    public void Report_excludes_caller_actor_from_dependency_toggles()
+    public void Report_includes_caller_actor_in_dependency_toggles()
     {
         var features = MakeFeatures(("t1", "Create order"));
         var diagrams = MakeDiagrams(("t1", "@startuml\nactor \"Caller\" as caller\nentity \"OrderService\" as orderService\ncaller -> orderService: POST /orders\n@enduml"));
 
-        var content = GenerateReport(features, diagrams, "DepFilterNoCaller.html");
+        var content = GenerateReport(features, diagrams, "DepFilterWithCaller.html");
 
-        Assert.DoesNotContain("data-dependency=\"Caller\"", content);
+        Assert.Contains("data-dependency=\"Caller\"", content);
         Assert.Contains("data-dependency=\"OrderService\"", content);
     }
 
@@ -156,5 +156,56 @@ public class DependencyFilterReportGeneratorTests
 
         Assert.True(alphaIdx < middleIdx, "Alpha should come before Middle");
         Assert.True(middleIdx < zebraIdx, "Middle should come before Zebra");
+    }
+
+    [Fact]
+    public void Report_contains_database_dependency_toggle()
+    {
+        var features = MakeFeatures(("t1", "Query cosmos"));
+        var diagrams = MakeDiagrams(("t1", "@startuml\nactor \"Caller\" as caller\ndatabase \"Cosmos DB\" as cosmosDB\ncaller -> cosmosDB: query\n@enduml"));
+
+        var content = GenerateReport(features, diagrams, "DepFilterDatabase.html");
+
+        Assert.Contains("data-dependency=\"Cosmos DB\"", content);
+    }
+
+    [Fact]
+    public void Report_contains_queue_dependency_toggle()
+    {
+        var features = MakeFeatures(("t1", "Send message"));
+        var diagrams = MakeDiagrams(("t1", "@startuml\nactor \"Caller\" as caller\nqueue \"ServiceBus\" as serviceBus\ncaller -> serviceBus: send\n@enduml"));
+
+        var content = GenerateReport(features, diagrams, "DepFilterQueue.html");
+
+        Assert.Contains("data-dependency=\"ServiceBus\"", content);
+    }
+
+    [Fact]
+    public void Report_contains_collections_dependency_toggle()
+    {
+        var features = MakeFeatures(("t1", "Cache lookup"));
+        var diagrams = MakeDiagrams(("t1", "@startuml\nactor \"Caller\" as caller\ncollections \"Redis Cache\" as redisCache\ncaller -> redisCache: GET\n@enduml"));
+
+        var content = GenerateReport(features, diagrams, "DepFilterCollections.html");
+
+        Assert.Contains("data-dependency=\"Redis Cache\"", content);
+    }
+
+    [Fact]
+    public void Report_contains_all_plantuml_participant_types_as_dependency_toggles()
+    {
+        var features = MakeFeatures(("t1", "Full test"));
+        var diagrams = MakeDiagrams(("t1", "@startuml\nactor \"TestRunner\" as tr\nboundary \"Gateway\" as gw\ncontrol \"Orchestrator\" as orch\nentity \"OrderService\" as os\ndatabase \"SQL\" as sql\ncollections \"Cache\" as cache\nqueue \"Queue\" as q\nparticipant \"Legacy\" as leg\ntr -> os: call\n@enduml"));
+
+        var content = GenerateReport(features, diagrams, "DepFilterAllTypes.html");
+
+        Assert.Contains("data-dependency=\"TestRunner\"", content);
+        Assert.Contains("data-dependency=\"Gateway\"", content);
+        Assert.Contains("data-dependency=\"Orchestrator\"", content);
+        Assert.Contains("data-dependency=\"OrderService\"", content);
+        Assert.Contains("data-dependency=\"SQL\"", content);
+        Assert.Contains("data-dependency=\"Cache\"", content);
+        Assert.Contains("data-dependency=\"Queue\"", content);
+        Assert.Contains("data-dependency=\"Legacy\"", content);
     }
 }

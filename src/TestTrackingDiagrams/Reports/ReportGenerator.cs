@@ -3398,10 +3398,9 @@ public static class ReportGenerator
         {
             var trimmed = line.Trim();
 
-            // Match: entity "ServiceName" as alias  OR  participant "ServiceName" as alias
-            // Skip: actor "Caller" as caller (these are the test caller, not a dependency)
+            // Match all PlantUML participant types: actor, boundary, control, entity, database, collections, queue, participant
             var match = System.Text.RegularExpressions.Regex.Match(trimmed,
-                @"^(?:entity|participant)\s+""([^""]+)""\s+as\s+");
+                @"^(?:actor|boundary|control|entity|database|collections|queue|participant)\s+""([^""]+)""\s+as\s+");
             if (match.Success)
                 deps.Add(match.Groups[1].Value);
         }
