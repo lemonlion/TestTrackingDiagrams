@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using OpenQA.Selenium;
@@ -6,6 +7,7 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using TestTrackingDiagrams.InternalFlow;
+using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 using static TestTrackingDiagrams.DefaultDiagramsFetcher;
@@ -406,8 +408,6 @@ public class WikiGifTests : IDisposable
 
     private static readonly string FailureDiagramSource = """
         @startuml
-        !pragma teoz true
-        skinparam wrapWidth 800
         autonumber 1
 
         actor "Test" as test
@@ -1763,7 +1763,99 @@ public class WikiGifTests : IDisposable
     [Fact]
     public void Feature12_DiagramFocus_Screenshot()
     {
-        // Generate a report with the Focus diagram
+        // Generate diagram using the REAL PlantUmlCreator infrastructure with DiagramFocus,
+        // so the output matches what real TTD users see (correct note placement, arrow colors, etc.)
+        var traceId = Guid.NewGuid();
+        var logs = new List<RequestResponseLog>();
+
+        // Step 1: Test → Orders API: POST /api/orders
+        var req1Id = Guid.NewGuid();
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            HttpMethod.Post,
+            JsonSerializer.Serialize(new
+            {
+                productId = "SKU-42", quantity = 3, customerId = "cust-1234",
+                shippingAddress = "123 High St", billingAddress = "123 High St",
+                paymentMethod = "card_visa_4242", couponCode = (string?)null,
+                giftWrap = false, deliveryNotes = "Leave at door"
+            }, new JsonSerializerOptions { WriteIndented = true }),
+            new Uri("http://orders-api/api/orders"),
+            [("Content-Type", "application/json")],
+            "Orders API", "Test",
+            RequestResponseType.Request, traceId, req1Id, false));
+
+        // Step 2: Orders API → Stock Service: PUT /stock/reserve
+        var req2Id = Guid.NewGuid();
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            HttpMethod.Put, null,
+            new Uri("http://stock-service/stock/reserve"), [],
+            "Stock Service", "Orders API",
+            RequestResponseType.Request, traceId, req2Id, false));
+
+        // Step 3: Stock Service → Orders API: 200 OK
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            HttpMethod.Put, null,
+            new Uri("http://stock-service/stock/reserve"), [],
+            "Stock Service", "Orders API",
+            RequestResponseType.Response, traceId, req2Id, false,
+            HttpStatusCode.OK));
+
+        // Step 4: Orders API → Cosmos DB: Create Item
+        var req3Id = Guid.NewGuid();
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            "Create Item",
+            JsonSerializer.Serialize(new { id = "ord-7f3a", status = "created" },
+                new JsonSerializerOptions { WriteIndented = true }),
+            new Uri("http://cosmos-db/orders"), [],
+            "Cosmos DB", "Orders API",
+            RequestResponseType.Request, traceId, req3Id, false));
+
+        // Step 5: Cosmos DB → Orders API: 201
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            "Create Item", null,
+            new Uri("http://cosmos-db/orders"), [],
+            "Cosmos DB", "Orders API",
+            RequestResponseType.Response, traceId, req3Id, false,
+            HttpStatusCode.Created));
+
+        // Step 6: Orders API → Test: 201 Created (response with DiagramFocus)
+        logs.Add(new RequestResponseLog(
+            "Creating an order shows focused fields in diagram", "focus-1",
+            HttpMethod.Post,
+            JsonSerializer.Serialize(new
+            {
+                orderId = "ord-7f3a", status = "Confirmed", totalAmount = 250.50,
+                currency = "GBP", createdAt = "2026-04-17T19:35:06Z",
+                updatedAt = "2026-04-17T19:35:06Z", customerId = "cust-1234",
+                shippingAddress = "123 High St", paymentRef = "pay-001",
+                trackingNumber = (string?)null
+            }, new JsonSerializerOptions { WriteIndented = true }),
+            new Uri("http://orders-api/api/orders"), [],
+            "Orders API", "Test",
+            RequestResponseType.Response, traceId, req1Id, false,
+            HttpStatusCode.Created)
+        {
+            FocusFields = ["status", "totalAmount"]
+        });
+
+        // Generate PlantUML using real TTD infrastructure
+        var plantUmlResults = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
+            logs,
+            focusEmphasis: FocusEmphasis.Bold,
+            focusDeEmphasis: FocusDeEmphasis.LightGray | FocusDeEmphasis.SmallerText,
+            maxEncodedDiagramLength: 10000,
+            serviceTypeOverrides: new Dictionary<string, string>
+            {
+                ["Cosmos DB"] = "database"
+            }).ToList();
+
+        var plantUmlSource = plantUmlResults.Single().PlantUmls.First().PlainText;
+
         var features = new[]
         {
             new Feature { DisplayName = "Order Service", Scenarios = [
@@ -1773,7 +1865,7 @@ public class WikiGifTests : IDisposable
                           "Then", "the response fields status and totalAmount are highlighted"))
             ]}
         };
-        var diagrams = new[] { new DiagramAsCode("focus-1", "", FocusDiagramSource) };
+        var diagrams = new[] { new DiagramAsCode("focus-1", "", plantUmlSource) };
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow,
             null, Path.Combine(_tempDir, "Focus.html"),
@@ -1828,11 +1920,14 @@ public class WikiGifTests : IDisposable
             var clusterSection = _driver.FindElement(By.CssSelector(".failure-clusters"));
             ScrollTo(clusterSection); Hold(1);
 
-            // Expand the failure cluster to show grouped scenarios
+            // Expand the failure cluster via JS setAttribute (click on <details> unreliable in headless)
             var clusterDetails = _driver.FindElements(By.CssSelector(".failure-cluster"));
             if (clusterDetails.Count > 0)
             {
-                JsClick(clusterDetails[0]); Hold(3);
+                ((IJavaScriptExecutor)_driver).ExecuteScript(
+                    "arguments[0].setAttribute('open', '');", clusterDetails[0]);
+                Pause(300);
+                Hold(3);
 
                 // Click a scenario link within the cluster to jump to it
                 try
