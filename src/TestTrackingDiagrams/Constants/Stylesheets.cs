@@ -1168,7 +1168,7 @@ public class Stylesheets
                 .status-badge.badge-bypass { background: #e8eaf6; color: #3949ab; }
 
                 /* Detail panels and diagram area for parameterized groups */
-                .param-detail-panels { margin: 0.5em 0 0.5em 1em; }
+                .param-detail-panels { margin: 0.5em 0 0.5em 0; }
                 .param-detail-panel { padding: 0.5em 0; }
                 .param-diagram-area { margin: 0.5em 0 0.5em 1em; }
                 .param-diagram-identical-badge {

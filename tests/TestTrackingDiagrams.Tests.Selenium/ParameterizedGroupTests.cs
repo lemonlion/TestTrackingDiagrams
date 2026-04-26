@@ -708,4 +708,25 @@ public class ParameterizedGroupTests : IDisposable
         var panelsB = groupB.FindElements(By.CssSelector(".param-detail-panel"));
         Assert.True(panelsB[1].Displayed, "Feature Beta detail panel 1 should be visible after clicking row 1");
     }
+
+    [Fact]
+    public void Steps_and_diagrams_borders_are_left_aligned_in_parameterized_group()
+    {
+        _driver.Navigate().GoToUrl(GenerateParamReport("ParamBorderAlign.html"));
+        WaitFor(By.CssSelector("details.scenario-parameterized"));
+        ExpandAll();
+
+        var group = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        var summary = group.FindElement(By.CssSelector("summary"));
+        if (group.GetAttribute("open") == null) summary.Click();
+
+        var stepsDetails = group.FindElement(By.CssSelector(".scenario-steps"));
+        var diagramsDetails = group.FindElement(By.CssSelector(".example-diagrams"));
+
+        var stepsLeft = stepsDetails.Location.X;
+        var diagramsLeft = diagramsDetails.Location.X;
+
+        Assert.True(Math.Abs(stepsLeft - diagramsLeft) <= 2,
+            $"Steps left border ({stepsLeft}px) and diagrams left border ({diagramsLeft}px) should be aligned (within 2px tolerance)");
+    }
 }
