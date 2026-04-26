@@ -561,8 +561,8 @@ public class WikiGifTests : IDisposable
                     Sc("order-2", "Insufficient stock returns 409 Conflict", false, ExecutionResult.Failed, 1204, ["Orders","ErrorHandling"],
                         Steps("Given", "the Orders API is running", "And", "Stock Service has 12 units of SKU-99",
                               "When", "I create an order for 1000 units of SKU-99", "Then", "a 409 Conflict is returned"),
-                        "Expected status code 409, but got 500.\nResponse body: {\"error\":\"Internal Server Error\"}",
-                        "   at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)\n   at OrderTests.Insufficient_stock_returns_409() in /src/Tests/OrderTests.cs:line 87"),
+                        "System.Net.Http.HttpRequestException: Connection refused (Stock Service:5001)\nResponse body: {\"error\":\"Connection refused\"}",
+                        "   at System.Net.Http.HttpClient.SendAsync()\n   at OrderTests.Insufficient_stock_returns_409() in /src/Tests/OrderTests.cs:line 87"),
                     Sc("order-3", "Listing orders returns paginated results", true, ExecutionResult.Passed, 189, ["Smoke","Orders"]),
                     Sc("order-4", "Updating order status sends notification", true, ExecutionResult.Passed, 267, ["Orders"]),
                     Sc("order-5", "Cancelling order within grace period succeeds", true, ExecutionResult.Passed, 198, ["Orders"]),
@@ -570,7 +570,7 @@ public class WikiGifTests : IDisposable
                     // Parameterized tests
                     ScParam("order-p1", "Order validation", "Amount: 100, Currency: GBP, Region: EU", ExecutionResult.Passed, 34, ["Orders","Validation"], new(){["Amount"]="100.00",["Currency"]="GBP",["Region"]="EU"}),
                     ScParam("order-p2", "Order validation", "Amount: 250.50, Currency: USD, Region: US", ExecutionResult.Passed, 28, ["Orders","Validation"], new(){["Amount"]="250.50",["Currency"]="USD",["Region"]="US"}),
-                    ScParam("order-p3", "Order validation", "Amount: 999.99, Currency: EUR, Region: APAC", ExecutionResult.Failed, 1102, ["Orders","Validation"], new(){["Amount"]="999.99",["Currency"]="EUR",["Region"]="APAC"}, "Expected 200 OK but got 502 Bad Gateway"),
+                    ScParam("order-p3", "Order validation", "Amount: 999.99, Currency: EUR, Region: APAC", ExecutionResult.Failed, 1102, ["Orders","Validation"], new(){["Amount"]="999.99",["Currency"]="EUR",["Region"]="APAC"}, "System.Net.Http.HttpRequestException: Connection refused (Stock Service:5001)"),
                     ScParam("order-p4", "Order validation", "Amount: 0.01, Currency: JPY, Region: APAC", ExecutionResult.Passed, 31, ["Orders","Validation"], new(){["Amount"]="0.01",["Currency"]="JPY",["Region"]="APAC"}),
                     ScParam("order-p5", "Order validation", "Amount: 50, Currency: AUD, Region: APAC", ExecutionResult.Passed, 29, ["Orders","Validation"], new(){["Amount"]="50.00",["Currency"]="AUD",["Region"]="APAC"}),
                     ScParam("order-p6", "Order validation", "Amount: 1500, Currency: CAD, Region: NA", ExecutionResult.Passed, 35, ["Orders","Validation"], new(){["Amount"]="1500.00",["Currency"]="CAD",["Region"]="NA"}),
@@ -612,8 +612,8 @@ public class WikiGifTests : IDisposable
                     Sc("inv-1", "Stock level decreases after order", true, ExecutionResult.Passed, 220, ["Inventory"]),
                     Sc("inv-2", "Restock event increases available units", true, ExecutionResult.Passed, 145, ["Inventory"]),
                     Sc("inv-3", "Low stock triggers reorder alert", false, ExecutionResult.Failed, 890, ["Inventory","Alerting"],
-                        error: "Expected alert to be triggered but notification service returned 503",
-                        stack: "   at InventoryTests.Low_stock_triggers_alert() in /src/Tests/InventoryTests.cs:line 134"),
+                        error: "System.Net.Http.HttpRequestException: Connection refused (Stock Service:5001)",
+                        stack: "   at System.Net.Http.HttpClient.SendAsync()\n   at InventoryTests.Low_stock_triggers_alert() in /src/Tests/InventoryTests.cs:line 134"),
                     Sc("inv-4", "Cross-warehouse transfer updates both locations", true, ExecutionResult.Passed, 334, ["Inventory"]),
                 ]
             },
@@ -624,7 +624,9 @@ public class WikiGifTests : IDisposable
                 Scenarios = [
                     Sc("ship-1", "Creating shipment allocates tracking number", true, ExecutionResult.Passed, 178, ["Smoke","Shipping"]),
                     Sc("ship-2", "Delivery confirmation updates order status", true, ExecutionResult.Passed, 267, ["Shipping"]),
-                    Sc("ship-3", "Failed delivery triggers return process", false, ExecutionResult.Passed, 445, ["Shipping","ErrorHandling"]),
+                    Sc("ship-3", "Failed delivery triggers return process", false, ExecutionResult.Failed, 445, ["Shipping","ErrorHandling"],
+                        error: "System.Net.Http.HttpRequestException: Connection refused (Stock Service:5001)",
+                        stack: "   at System.Net.Http.HttpClient.SendAsync()\n   at ShippingTests.Failed_delivery_triggers_return_process() in /src/Tests/ShippingTests.cs:line 56"),
                     Sc("ship-4", "Express shipping selects priority carrier", true, ExecutionResult.Passed, 156, ["Shipping"]),
                     Sc("ship-5", "International shipping calculates customs duty", true, ExecutionResult.Passed, 312, ["Shipping"]),
                 ]
@@ -676,6 +678,7 @@ public class WikiGifTests : IDisposable
             new("order-p6", "", OrderDiagramSource),
             new("pay-1", "", PaymentDiagramSource),
             new("inv-3", "", FailureDiagramSource),
+            new("ship-3", "", FailureDiagramSource),
         };
 
         return (features, diagrams.ToArray());
@@ -1385,38 +1388,67 @@ public class WikiGifTests : IDisposable
     [Fact]
     public void Feature09_CI_Summary_Screenshot()
     {
-        // Use the real report (which renders PlantUML correctly) and add CI summary header overlay
-        NavigateToReport();
-        ExpandAll(); Pause(300);
+        // Generate the actual CI Summary markdown using the real CiSummaryGenerator
+        var (features, diagrams) = CreateRichShowcaseData();
+        var markdown = CiSummaryGenerator.GenerateMarkdown(
+            features, diagrams, diagrams,
+            DateTime.UtcNow.AddMinutes(-3), DateTime.UtcNow,
+            maxDiagrams: 5,
+            diagramFormat: DiagramFormat.PlantUml);
 
-        // Wait for diagrams to render
-        WaitForDiagramSvg(30);
-
-        // Inject GitHub Actions CI summary header at the top of the page
-        var js = (IJavaScriptExecutor)_driver;
-        js.ExecuteScript(@"
-            // Hide the original report toolbar and title  
-            var origTitle = document.querySelector('h1');
-            if (origTitle) origTitle.style.display = 'none';
-
-            // Insert CI summary at the top
-            var ciHeader = document.createElement('div');
-            ciHeader.innerHTML = `
-                <div style='background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;'>
-                    <svg viewBox='0 0 24 24' fill='#57606a' width='24' height='24' style='flex-shrink:0;'><path d='M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z'/></svg>
-                    <div><strong>GitHub Actions</strong> &bull; <span style='color:#57606a;font-size:14px;'>E-Commerce CI &bull; Run #847 &bull; main &bull; 3m 12s</span></div>
+        // Create an HTML page that renders the markdown in GitHub's job summary style
+        var escapedMd = System.Text.Json.JsonSerializer.Serialize(markdown);
+        var viewerPath = Path.Combine(_tempDir, "CiSummary.html");
+        File.WriteAllText(viewerPath, $$"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Noto Sans, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2328; background: #f6f8fa; margin: 0; padding: 0; }
+                    .gh-header { background: #24292f; color: white; padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+                    .gh-header svg { flex-shrink: 0; }
+                    .gh-header strong { font-size: 16px; }
+                    .gh-header .subtext { color: #8b949e; font-size: 13px; }
+                    .gh-breadcrumb { background: #f6f8fa; border-bottom: 1px solid #d0d7de; padding: 8px 24px; font-size: 13px; color: #57606a; }
+                    .gh-breadcrumb a { color: #0969da; text-decoration: none; }
+                    .gh-body { max-width: 960px; margin: 24px auto; background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 32px; }
+                    .gh-body h1 { font-size: 24px; font-weight: 600; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 0; }
+                    .gh-body h2 { font-size: 20px; font-weight: 600; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 24px; }
+                    .gh-body table { border-collapse: collapse; width: auto; }
+                    .gh-body th, .gh-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
+                    .gh-body th { background: #f6f8fa; font-weight: 600; }
+                    .gh-body details { margin: 8px 0; }
+                    .gh-body details > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+                    .gh-body pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; font-size: 13px; }
+                    .gh-body code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-size: 85%; }
+                    .gh-body img { max-width: 100%; }
+                    .gh-body p { margin: 8px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="gh-header">
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <div><strong>GitHub Actions</strong><br/><span class="subtext">acme-corp/e-commerce-api &bull; E-Commerce CI &bull; Run #847 &bull; main</span></div>
                 </div>
-                <h1 style='border-bottom:1px solid #d0d7de;padding-bottom:0.3em;'>Diagrammed Test Run Summary</h1>`;
-            document.body.insertBefore(ciHeader, document.body.firstChild);
+                <div class="gh-breadcrumb">
+                    <a href="#">acme-corp/e-commerce-api</a> / <a href="#">Actions</a> / <a href="#">E-Commerce CI</a> / Run #847 &bull; <strong>Summary</strong>
+                </div>
+                <div class="gh-body" id="content"></div>
+                <script>
+                    var md = {{escapedMd}};
+                    document.getElementById('content').innerHTML = marked.parse(md);
+                </script>
+            </body>
+            </html>
+            """);
 
-            // Click Failed filter to show only failures
-            var failedBtn = document.querySelector("".status-toggle[data-status='Failed']"");
-            if (failedBtn) failedBtn.click();
-        ");
-        Pause(500);
+        OpenFile(viewerPath);
+        WaitFor(By.CssSelector(".gh-body"));
+        Pause(1500); // wait for marked.js to render + diagram images to load
 
         // Scroll to top
-        js.ExecuteScript("window.scrollTo(0, 0);");
+        ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
         Pause(300);
 
         SaveScreenshot("whats-new-ci-summary.png");
@@ -1519,27 +1551,35 @@ public class WikiGifTests : IDisposable
             <head>
                 <title>TestRunReport.json</title>
                 <style>
-                    body { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; padding: 20px; line-height: 1.5; background: #1e1e1e; color: #d4d4d4; margin: 0; }
-                    .json-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; text-align: center; color: #808080; font-family: monospace; }
-                    .json-toggle:hover { color: #569cd6; }
+                    body { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; padding: 20px; line-height: 1.5; background: #ffffff; color: #24292f; margin: 0; }
+                    .json-toolbar { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 8px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; font-family: -apple-system, sans-serif; font-size: 14px; }
+                    .json-toolbar .filename { font-weight: 600; color: #0969da; }
+                    .json-toolbar .meta { color: #57606a; font-size: 12px; }
+                    .json-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; text-align: center; color: #57606a; font-family: monospace; }
+                    .json-toggle:hover { color: #0969da; }
                     .json-toggle::before { content: '▶'; font-size: 10px; }
                     .json-toggle.open::before { content: '▼'; font-size: 10px; }
                     .json-children { display: none; }
                     .json-toggle.open + .json-bracket + .json-children { display: block; }
-                    .json-key { color: #9cdcfe; }
-                    .json-string { color: #ce9178; }
-                    .json-number { color: #b5cea8; }
-                    .json-bool { color: #569cd6; }
-                    .json-null { color: #569cd6; }
-                    .json-bracket { color: #d4d4d4; }
-                    .json-comma { color: #d4d4d4; }
+                    .json-key { color: #0550ae; }
+                    .json-string { color: #0a3069; }
+                    .json-number { color: #0550ae; font-weight: 600; }
+                    .json-bool { color: #cf222e; }
+                    .json-null { color: #8250df; }
+                    .json-bracket { color: #24292f; }
+                    .json-comma { color: #57606a; }
                     .json-line { padding-left: 0; white-space: nowrap; }
-                    .json-summary { color: #808080; font-style: italic; cursor: pointer; }
-                    .json-content { white-space: pre-wrap; }
+                    .json-summary { color: #57606a; font-style: italic; cursor: pointer; background: #f6f8fa; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+                    .json-summary:hover { background: #eaeef2; }
+                    .json-content { white-space: pre-wrap; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; background: #ffffff; }
                     pre { margin: 0; }
                 </style>
             </head>
             <body>
+                <div class="json-toolbar">
+                    <span class="filename">📄 TestRunReport.json</span>
+                    <span class="meta">Generated by TestTrackingDiagrams</span>
+                </div>
                 <div class="json-content" id="jsonRoot"></div>
                 <script>
                     var jsonText = {{escapedJson}};
@@ -1706,6 +1746,12 @@ public class WikiGifTests : IDisposable
         ExpandAll(); Pause(300);
 
         WaitForDiagramSvg(30);
+
+        // Set Details to "Expanded" so all notes/payloads are fully visible
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "if (window._setReportDetails) window._setReportDetails('expanded');");
+        Pause(500);
+
         // Scroll to show the response note at the bottom with highlighted fields
         var diagramContainer = _driver.FindElement(By.CssSelector(".plantuml-browser"));
         ((IJavaScriptExecutor)_driver).ExecuteScript(@"
@@ -1713,9 +1759,8 @@ public class WikiGifTests : IDisposable
             var svg = el.querySelector('svg');
             if (svg) {
                 var svgRect = svg.getBoundingClientRect();
-                // Scroll so the bottom of the diagram (response note with focus) is visible
-                // Position the viewport to show the last ~60% of the diagram
-                var targetY = window.scrollY + svgRect.top + svgRect.height * 0.4;
+                // Scroll to show the bottom half of the diagram where the response note lives
+                var targetY = window.scrollY + svgRect.top + svgRect.height - window.innerHeight + 40;
                 window.scrollTo(0, Math.max(0, targetY));
             } else {
                 el.scrollIntoView({block:'end'});
@@ -1741,30 +1786,50 @@ public class WikiGifTests : IDisposable
         // Show initial report overview
         Hold(3);
 
-        // Click "Failed" status filter to show only failures
-        var failedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Failed']"));
-        JsClick(failedBtn); Hold(3);
-
-        // Show failure clustering section
+        // Scroll to and showcase the failure clustering section first
         try
         {
             var clusterSection = _driver.FindElement(By.CssSelector(".failure-clusters"));
             ScrollTo(clusterSection); Hold(3);
 
-            // Expand a failure cluster
+            // Expand the failure cluster to show grouped scenarios
             var clusterDetails = _driver.FindElements(By.CssSelector(".failure-cluster"));
             if (clusterDetails.Count > 0)
             {
-                JsClick(clusterDetails[0]); Hold(2.5);
+                JsClick(clusterDetails[0]); Hold(3);
 
-                // Click a scenario link within the cluster
+                // Click a scenario link within the cluster to jump to it
                 try
                 {
-                    var link = _driver.FindElement(By.CssSelector(".failure-cluster-scenario-link"));
-                    JsClick(link); Hold(3);
+                    var links = _driver.FindElements(By.CssSelector(".failure-cluster-scenario-link"));
+                    if (links.Count > 0)
+                    {
+                        JsClick(links[0]); Hold(3);
+                    }
                 }
                 catch { }
             }
+        }
+        catch { }
+
+        // Show the expanded failure details with error message
+        try
+        {
+            var errorArea = _driver.FindElement(By.CssSelector(".failure-result"));
+            ScrollTo(errorArea); Hold(3);
+        }
+        catch { }
+
+        // Click "Failed" status filter to show only failures
+        ScrollToTop(); Hold(1);
+        var failedBtn = _driver.FindElement(By.CssSelector(".status-toggle[data-status='Failed']"));
+        JsClick(failedBtn); Hold(3);
+
+        // Show the Feature Summary with red rows
+        try
+        {
+            var featureSummary = _driver.FindElement(By.CssSelector(".features-summary-details"));
+            JsClick(featureSummary); Hold(2.5);
         }
         catch { }
 
@@ -1772,10 +1837,8 @@ public class WikiGifTests : IDisposable
         var nextFailBtn = _driver.FindElement(By.CssSelector(".jump-to-failure"));
         JsClick(nextFailBtn); Hold(3);
 
-        // Scroll to see the expanded failed scenario
-        ExpandAll(); Hold(1.5);
-
-        // Find and show error details
+        // Show the error details for this failure
+        ExpandAll(); Hold(1);
         try
         {
             var errorArea = _driver.FindElement(By.CssSelector(".failure-result pre, .failure-result"));
@@ -1783,19 +1846,7 @@ public class WikiGifTests : IDisposable
         }
         catch { }
 
-        // Click Next Failure again to go to second failure
-        nextFailBtn = _driver.FindElement(By.CssSelector(".jump-to-failure"));
-        JsClick(nextFailBtn); Hold(3);
-
-        // Show the error stack trace
-        try
-        {
-            var errorArea = _driver.FindElement(By.CssSelector(".failure-result pre, .failure-result"));
-            ScrollTo(errorArea); Hold(3);
-        }
-        catch { }
-
-        // Click Next Failure one more time
+        // Click Next Failure to go to another failure
         JsClick(nextFailBtn); Hold(3);
 
         // Scroll back to top for overview
