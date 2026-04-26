@@ -737,6 +737,7 @@ public class DiagramNoteTests : IDisposable
         ExpandAndRenderLongNoteDiagram("ShortNoteNoUpArrow.html");
         SetScenarioState("expanded");
 
+        // Re-query after state change since SetScenarioState re-renders the SVG
         var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
         Assert.True(hoverRects.Count >= 2);
 
