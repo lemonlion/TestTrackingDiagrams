@@ -139,7 +139,7 @@ public class FailureClusterReportTests
         var content = GenerateReport(features, "ClusterLinkOnclick.html");
 
         // Extract the getElementById argument from the onclick handler
-        var onclickMatch = Regex.Match(content, @"onclick=""var el=document\.getElementById\('([^']+)'\)");
+        var onclickMatch = Regex.Match(content, @"onclick=""[^""]*document\.getElementById\('([^']+)'\)");
         Assert.True(onclickMatch.Success, "Could not find onclick getElementById in cluster link");
         var onclickId = onclickMatch.Groups[1].Value;
 
@@ -231,6 +231,43 @@ public class FailureClusterReportTests
             var onclick = m.Groups[1].Value;
             // Must open all ancestor details AND trigger click for parameterized row navigation
             Assert.Contains("el.click()", onclick);
+        }
+    }
+
+    [Fact]
+    public void Report_cluster_link_onclick_calls_scrollIntoView()
+    {
+        var features = MakeFeatures(
+            ("t1", "Test 1", ExecutionResult.Failed, "Connection refused"),
+            ("t2", "Test 2", ExecutionResult.Failed, "Connection refused"));
+        var content = GenerateReport(features, "ClusterLinkScroll.html");
+
+        var onclickMatches = Regex.Matches(content, @"class=""failure-cluster-scenario-link""[^>]*onclick=""([^""]+)""");
+        Assert.True(onclickMatches.Count >= 2, $"Expected at least 2 onclick handlers, found {onclickMatches.Count}");
+
+        foreach (Match m in onclickMatches)
+        {
+            var onclick = m.Groups[1].Value;
+            Assert.Contains("scrollIntoView", onclick);
+        }
+    }
+
+    [Fact]
+    public void Report_cluster_link_onclick_prevents_default_for_reliable_scrolling()
+    {
+        var features = MakeFeatures(
+            ("t1", "Test 1", ExecutionResult.Failed, "Connection refused"),
+            ("t2", "Test 2", ExecutionResult.Failed, "Connection refused"));
+        var content = GenerateReport(features, "ClusterLinkPreventDefault.html");
+
+        var onclickMatches = Regex.Matches(content, @"class=""failure-cluster-scenario-link""[^>]*onclick=""([^""]+)""");
+        Assert.True(onclickMatches.Count >= 2);
+
+        foreach (Match m in onclickMatches)
+        {
+            var onclick = m.Groups[1].Value;
+            // Must prevent default to avoid native anchor behavior racing with scrollIntoView
+            Assert.Contains("event.preventDefault()", onclick);
         }
     }
 }
