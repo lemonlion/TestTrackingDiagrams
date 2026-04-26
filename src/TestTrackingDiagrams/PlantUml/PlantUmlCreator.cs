@@ -188,6 +188,11 @@ public static partial class PlantUmlCreator
                         pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
 
                     var requestLabel = $"{trace.Method.Value}: {pathAndQuery}";
+
+                    var graphQlLabel = GraphQlOperationDetector.TryExtractLabel(trace.Content);
+                    if (graphQlLabel is not null)
+                        requestLabel = $"{requestLabel}\\n({graphQlLabel})";
+
                     if (internalFlowTracking)
                         requestLabel = $"[[#iflow-{trace.RequestResponseId} {requestLabel}]]";
 

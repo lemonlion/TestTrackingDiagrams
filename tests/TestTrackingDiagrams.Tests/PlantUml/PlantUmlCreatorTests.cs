@@ -194,6 +194,62 @@ public class PlantUmlCreatorTests
         Assert.Contains("entity \"Api\" as api", plantUml);
     }
 
+    // ─── GraphQL label enrichment ───────────────────────────────
+
+    [Fact]
+    public void GraphQL_named_query_appends_operation_label_to_arrow()
+    {
+        var graphqlContent = """{"query":"query GetUser { user { name } }"}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains($"POST: /graphql\\n(query GetUser){Nl}", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_named_mutation_appends_operation_label_to_arrow()
+    {
+        var graphqlContent = """{"query":"mutation CreateOrder { createOrder { id } }"}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/api/data", content: graphqlContent),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains($"POST: /api/data\\n(mutation CreateOrder){Nl}", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_anonymous_query_appends_query_label_to_arrow()
+    {
+        var graphqlContent = """{"query":"{ user { name } }"}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains($"POST: /graphql\\n(query){Nl}", plantUml);
+    }
+
+    [Fact]
+    public void Non_GraphQL_POST_has_no_extra_label()
+    {
+        var jsonContent = """{"name":"Alice","age":30}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/api/users", content: jsonContent),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains($"POST: /api/users{Nl}", plantUml);
+        Assert.DoesNotContain("query", plantUml);
+        Assert.DoesNotContain("mutation", plantUml);
+    }
+
     // ─── Basic response arrow ───────────────────────────────────
 
     [Fact]
