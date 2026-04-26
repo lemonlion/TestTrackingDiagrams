@@ -1,5 +1,6 @@
 using System.Text;
 using Elastic.Transport;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
@@ -7,11 +8,13 @@ namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
 {
     private readonly ElasticsearchTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public ElasticsearchTrackingCallbackHandler(ElasticsearchTrackingOptions options)
+    public ElasticsearchTrackingCallbackHandler(ElasticsearchTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -42,7 +45,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             return;
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var method = new System.Net.Http.HttpMethod(httpMethod);

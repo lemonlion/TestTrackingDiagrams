@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.InternalFlow;
 
 namespace TestTrackingDiagrams.Tracking;
@@ -15,6 +16,7 @@ public record TrackingProxyOptions
     public TrackingSerializerOptions? SerializerOptions { get; init; }
     public TrackingLogMode LogMode { get; init; } = TrackingLogMode.Immediate;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; init; }
+    public IHttpContextAccessor? HttpContextAccessor { get; init; }
 
     /// <summary>When <c>false</c>, calls during the Setup phase are not tracked. Default: <c>true</c>.</summary>
     public bool TrackDuringSetup { get; init; } = true;
@@ -174,25 +176,18 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
             return;
         }
 
-        if (_options.CurrentTestInfoFetcher is null) return;
+        var testInfo = TestInfoResolver.Resolve(_options.HttpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
 
-        try
-        {
-            var (testName, testId) = _options.CurrentTestInfoFetcher();
-            RequestResponseLogger.LogPair(
-                testName, testId,
-                (OneOf<HttpMethod, string>)methodName,
-                uri,
-                _options.ServiceName,
-                _options.CallingServiceName,
-                requestContent,
-                responseContent,
-                statusCode,
-                TestPhaseContext.Current);
-        }
-        catch
-        {
-            // Tracking failures should not break tests
-        }
+        RequestResponseLogger.LogPair(
+            testInfo.Value.Name, testInfo.Value.Id,
+            (OneOf<HttpMethod, string>)methodName,
+            uri,
+            _options.ServiceName,
+            _options.CallingServiceName,
+            requestContent,
+            responseContent,
+            statusCode,
+            TestPhaseContext.Current);
     }
 }

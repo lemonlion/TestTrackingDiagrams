@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
@@ -5,11 +6,13 @@ namespace TestTrackingDiagrams.Extensions.StorageQueues;
 public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly StorageQueueTrackingMessageHandlerOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public StorageQueueTrackingMessageHandler(StorageQueueTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    public StorageQueueTrackingMessageHandler(StorageQueueTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -37,7 +40,7 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
         if (effectiveVerbosity == StorageQueueTrackingVerbosity.Summarised && queueOp.Operation == StorageQueueOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 

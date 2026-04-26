@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.CloudStorage;
@@ -5,11 +6,13 @@ namespace TestTrackingDiagrams.Extensions.CloudStorage;
 public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly CloudStorageTrackingMessageHandlerOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public CloudStorageTrackingMessageHandler(CloudStorageTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    public CloudStorageTrackingMessageHandler(CloudStorageTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -37,7 +40,7 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
         if (effectiveVerbosity == CloudStorageTrackingVerbosity.Summarised && gcsOp.Operation == CloudStorageOperation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 

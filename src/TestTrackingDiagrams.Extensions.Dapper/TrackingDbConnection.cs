@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
@@ -8,12 +9,14 @@ public class TrackingDbConnection : DbConnection, ITrackingComponent
 {
     private readonly DbConnection _inner;
     private readonly DapperTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public TrackingDbConnection(DbConnection inner, DapperTrackingOptions options)
+    public TrackingDbConnection(DbConnection inner, DapperTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _inner = inner;
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -46,7 +49,7 @@ public class TrackingDbConnection : DbConnection, ITrackingComponent
     protected override DbCommand CreateDbCommand()
     {
         var innerCommand = _inner.CreateCommand();
-        return new TrackingDbCommand(innerCommand, this, _options);
+        return new TrackingDbCommand(innerCommand, this, _options, _httpContextAccessor);
     }
 
     protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)

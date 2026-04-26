@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
@@ -6,11 +7,13 @@ namespace TestTrackingDiagrams.Extensions.DynamoDB;
 public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly DynamoDbTrackingMessageHandlerOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public DynamoDbTrackingMessageHandler(DynamoDbTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    public DynamoDbTrackingMessageHandler(DynamoDbTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -49,7 +52,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
         {
             ReconstructContent(request, requestBody);

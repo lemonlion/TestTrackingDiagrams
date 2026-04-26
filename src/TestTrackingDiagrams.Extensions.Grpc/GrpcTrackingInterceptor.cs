@@ -2,6 +2,7 @@ using System.Net;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
@@ -9,11 +10,13 @@ namespace TestTrackingDiagrams.Extensions.Grpc;
 public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 {
     private readonly GrpcTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public GrpcTrackingInterceptor(GrpcTrackingOptions options)
+    public GrpcTrackingInterceptor(GrpcTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -32,7 +35,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return continuation(request, context);
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return continuation(request, context);
 
@@ -72,7 +75,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return continuation(request, context);
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return continuation(request, context);
 
@@ -114,7 +117,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return continuation(request, context);
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return continuation(request, context);
 
@@ -147,7 +150,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return continuation(context);
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return continuation(context);
 
@@ -179,7 +182,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return continuation(context);
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return continuation(context);
 

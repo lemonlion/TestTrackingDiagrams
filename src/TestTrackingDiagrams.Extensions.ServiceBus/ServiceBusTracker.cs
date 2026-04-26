@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
@@ -5,11 +6,13 @@ namespace TestTrackingDiagrams.Extensions.ServiceBus;
 public class ServiceBusTracker : ITrackingComponent
 {
     private readonly ServiceBusTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public ServiceBusTracker(ServiceBusTrackingOptions options)
+    public ServiceBusTracker(ServiceBusTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -24,7 +27,7 @@ public class ServiceBusTracker : ITrackingComponent
 
         Interlocked.Increment(ref _invocationCount);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return (Guid.Empty, Guid.Empty);
 
@@ -74,7 +77,7 @@ public class ServiceBusTracker : ITrackingComponent
     {
         if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return;
 

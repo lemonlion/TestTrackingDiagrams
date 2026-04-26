@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams.Tracking;
 
@@ -44,7 +45,8 @@ public static class MediatorTrackingExtensions
         {
             var reg = sp.GetRequiredService<MediatorTrackingRegistration>();
             var realMediator = ResolveInstance<IMediator>(sp, reg.OriginalDescriptor);
-            return TrackingProxy<IMediator>.Create(realMediator, reg.ProxyOptions);
+            var opts = reg.ProxyOptions with { HttpContextAccessor = sp.GetService<IHttpContextAccessor>() };
+            return TrackingProxy<IMediator>.Create(realMediator, opts);
         });
 
         // Also replace ISender if registered separately

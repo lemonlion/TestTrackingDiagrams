@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Redis;
@@ -6,12 +7,14 @@ namespace TestTrackingDiagrams.Extensions.Redis;
 public class RedisTracker : ITrackingComponent
 {
     private readonly RedisTrackingDatabaseOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly string _endpoint;
     private int _invocationCount;
 
-    public RedisTracker(RedisTrackingDatabaseOptions options, string endpoint = "localhost")
+    public RedisTracker(RedisTrackingDatabaseOptions options, string endpoint = "localhost", IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         _endpoint = endpoint;
         TrackingComponentRegistry.Register(this);
     }
@@ -33,7 +36,7 @@ public class RedisTracker : ITrackingComponent
         if (effectiveVerbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
             return (Guid.Empty, Guid.Empty);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return (Guid.Empty, Guid.Empty);
 
@@ -84,7 +87,7 @@ public class RedisTracker : ITrackingComponent
         if (effectiveVerbosity == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other)
             return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return;
 

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
@@ -10,12 +11,14 @@ public class TrackingDbCommand : DbCommand
     private readonly DbCommand _inner;
     private readonly TrackingDbConnection _connection;
     private readonly DapperTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
-    public TrackingDbCommand(DbCommand inner, TrackingDbConnection connection, DapperTrackingOptions options)
+    public TrackingDbCommand(DbCommand inner, TrackingDbConnection connection, DapperTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _inner = inner;
         _connection = connection;
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public override string CommandText
@@ -126,7 +129,7 @@ public class TrackingDbCommand : DbCommand
         var op = DapperOperationClassifier.Classify(CommandText, CommandType);
         if (_options.ExcludedOperations.Contains(op.Operation)) return null;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return null;
 
         var traceId = Guid.NewGuid();
@@ -166,7 +169,7 @@ public class TrackingDbCommand : DbCommand
         var op = DapperOperationClassifier.Classify(CommandText, CommandType);
         if (_options.ExcludedOperations.Contains(op.Operation)) return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);

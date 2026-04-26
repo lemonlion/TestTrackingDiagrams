@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using global::MongoDB.Bson;
 using global::MongoDB.Driver.Core.Events;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MongoDB;
@@ -9,12 +10,14 @@ namespace TestTrackingDiagrams.Extensions.MongoDB;
 public class MongoDbTrackingSubscriber : ITrackingComponent
 {
     private readonly MongoDbTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly ConcurrentDictionary<int, PendingOperation> _pending = new();
     private int _invocationCount;
 
-    public MongoDbTrackingSubscriber(MongoDbTrackingOptions options)
+    public MongoDbTrackingSubscriber(MongoDbTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -44,7 +47,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
         if (_options.IgnoredCommands.Contains(e.CommandName)) return;
         if (!_options.TrackGetMore && e.CommandName.Equals("getMore", StringComparison.OrdinalIgnoreCase)) return;
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var opInfo = MongoDbOperationClassifier.Classify(

@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Data.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
@@ -210,36 +209,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
     // ─── Test identity resolution ────────────────────────────────
 
     private (string Name, string Id)? GetTestInfo()
-    {
-        // 1. Try HttpContext request headers first (works inside server-side HTTP pipeline)
-        try
-        {
-            var httpContext = _httpContextAccessor?.HttpContext;
-            if (httpContext is not null &&
-                httpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CurrentTestNameHeader, out var testName) &&
-                httpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CurrentTestIdHeader, out var testId) &&
-                testName.Count > 0 && testId.Count > 0)
-            {
-                return (testName[0]!, testId[0]!);
-            }
-        }
-        catch
-        {
-            // HttpContext access can fail in edge cases — fall through to delegate
-        }
-
-        // 2. Fall back to delegate (works on the test thread's async context)
-        try
-        {
-            return _options.CurrentTestInfoFetcher?.Invoke();
-        }
-        catch
-        {
-            // Delegate may throw (e.g. ScenarioExecutionContext outside LightBDD context).
-            // A diagnostic/tracking fetcher should never crash the EF Core pipeline.
-            return null;
-        }
-    }
+        => TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
 
     // ─── URI construction ──────────────────────────────────────
 

@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EventBridge;
@@ -6,11 +7,13 @@ namespace TestTrackingDiagrams.Extensions.EventBridge;
 public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly EventBridgeTrackingMessageHandlerOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public EventBridgeTrackingMessageHandler(EventBridgeTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    public EventBridgeTrackingMessageHandler(EventBridgeTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -48,7 +51,7 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
         {
             ReconstructContent(request, requestBody);

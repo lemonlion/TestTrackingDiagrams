@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
@@ -5,11 +6,13 @@ namespace TestTrackingDiagrams.Extensions.Kafka;
 public class KafkaTracker : ITrackingComponent
 {
     private readonly KafkaTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public KafkaTracker(KafkaTrackingOptions options)
+    public KafkaTracker(KafkaTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -59,7 +62,7 @@ public class KafkaTracker : ITrackingComponent
 
     private void LogOutgoing(KafkaOperationInfo op, string? content)
     {
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
@@ -96,7 +99,7 @@ public class KafkaTracker : ITrackingComponent
 
     private void LogIncoming(KafkaOperationInfo op, string? content)
     {
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);

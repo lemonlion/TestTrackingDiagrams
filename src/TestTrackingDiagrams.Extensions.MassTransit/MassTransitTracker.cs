@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
@@ -6,11 +7,13 @@ namespace TestTrackingDiagrams.Extensions.MassTransit;
 public class MassTransitTracker : ITrackingComponent
 {
     private readonly MassTransitTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public MassTransitTracker(MassTransitTrackingOptions options)
+    public MassTransitTracker(MassTransitTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -80,7 +83,7 @@ public class MassTransitTracker : ITrackingComponent
 
     private void LogOutgoing(MassTransitOperationInfo op, object? message)
     {
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
@@ -119,7 +122,7 @@ public class MassTransitTracker : ITrackingComponent
 
     private void LogIncoming(MassTransitOperationInfo op, object? message)
     {
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
@@ -159,7 +162,7 @@ public class MassTransitTracker : ITrackingComponent
 
     private void LogFault(MassTransitOperationInfo op, Exception exception, bool outgoing)
     {
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
 
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);

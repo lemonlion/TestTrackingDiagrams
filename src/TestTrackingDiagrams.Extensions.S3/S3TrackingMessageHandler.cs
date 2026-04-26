@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.S3;
@@ -5,11 +6,13 @@ namespace TestTrackingDiagrams.Extensions.S3;
 public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly S3TrackingMessageHandlerOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
 
-    public S3TrackingMessageHandler(S3TrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null)
+    public S3TrackingMessageHandler(S3TrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -37,7 +40,7 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (effectiveVerbosity == S3TrackingVerbosity.Summarised && s3Op.Operation == S3Operation.Other)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var testInfo = _options.CurrentTestInfoFetcher?.Invoke();
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null)
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 

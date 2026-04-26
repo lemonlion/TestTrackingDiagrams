@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Reqnroll;
 using Reqnroll.BoDi;
 using TestTrackingDiagrams;
-using TestTrackingDiagrams.ReqNRoll.TUnit;
+using TestTrackingDiagrams.ReqNRoll;
 using TestTrackingDiagrams.Tracking;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
