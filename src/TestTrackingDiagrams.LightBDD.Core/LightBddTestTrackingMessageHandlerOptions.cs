@@ -6,9 +6,17 @@ namespace TestTrackingDiagrams.LightBDD;
 
 public record LightBddTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
+    /// <summary>
+    /// A reusable delegate that returns the current LightBDD scenario's name and runtime ID.
+    /// Use this when configuring extension options (e.g. <c>SqlTrackingInterceptorOptions</c>)
+    /// instead of writing the fetcher lambda inline.
+    /// </summary>
+    public static readonly Func<(string Name, string Id)> TestInfoFetcher =
+        () => (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(), ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString());
+
     public LightBddTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = () => (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(), ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString());
+        CurrentTestInfoFetcher = TestInfoFetcher;
         CurrentStepTypeFetcher = GetTopLevelStepType;
     }
 
