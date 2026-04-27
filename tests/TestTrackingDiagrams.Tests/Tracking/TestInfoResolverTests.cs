@@ -164,6 +164,139 @@ public class TestInfoResolverTests
         Assert.Equal("header-wins", result.Value.Id);
     }
 
+    #region CreateHttpFallbackFetcher
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_returns_fallback_when_accessor_is_null()
+    {
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(null, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("Fallback", result.Name);
+        Assert.Equal("fb-id", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_returns_fallback_when_http_context_is_null()
+    {
+        var accessor = new FakeHttpContextAccessor(null);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("Fallback", result.Name);
+        Assert.Equal("fb-id", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_returns_fallback_when_headers_missing()
+    {
+        var httpContext = new DefaultHttpContext();
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("Fallback", result.Name);
+        Assert.Equal("fb-id", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_returns_http_headers_when_present()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestNameHeader] = "HttpTest";
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestIdHeader] = "http-id-1";
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("HttpTest", result.Name);
+        Assert.Equal("http-id-1", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_prefers_http_headers_over_fallback()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestNameHeader] = "FromHeaders";
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestIdHeader] = "from-headers";
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("FromDelegate", "from-delegate"));
+
+        var result = fetcher();
+
+        Assert.Equal("FromHeaders", result.Name);
+        Assert.Equal("from-headers", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_falls_back_when_only_name_header_present()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestNameHeader] = "OnlyName";
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("Fallback", result.Name);
+        Assert.Equal("fb-id", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_falls_back_when_only_id_header_present()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestIdHeader] = "only-id";
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        var result = fetcher();
+
+        Assert.Equal("Fallback", result.Name);
+        Assert.Equal("fb-id", result.Id);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_propagates_fallback_exception_when_no_http_context()
+    {
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(null, () => throw new InvalidOperationException("No context"));
+
+        Action act = () => fetcher();
+        Assert.Throws<InvalidOperationException>(act);
+    }
+
+    [Fact]
+    public void CreateHttpFallbackFetcher_returns_delegate_that_reflects_changing_http_context()
+    {
+        var httpContext = new DefaultHttpContext();
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        var fetcher = TestInfoResolver.CreateHttpFallbackFetcher(accessor, () => ("Fallback", "fb-id"));
+
+        // Initially no headers — uses fallback
+        var result1 = fetcher();
+        Assert.Equal("Fallback", result1.Name);
+
+        // Add headers — now uses httpContext
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestNameHeader] = "Dynamic";
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestIdHeader] = "dynamic-id";
+        var result2 = fetcher();
+        Assert.Equal("Dynamic", result2.Name);
+        Assert.Equal("dynamic-id", result2.Id);
+    }
+
+    #endregion
+
     private class FakeHttpContextAccessor(HttpContext? context) : IHttpContextAccessor
     {
         public HttpContext? HttpContext { get; set; } = context;

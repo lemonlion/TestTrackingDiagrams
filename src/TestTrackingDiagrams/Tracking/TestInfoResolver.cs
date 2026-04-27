@@ -52,6 +52,36 @@ public static class TestInfoResolver
         }
     }
 
+    /// <summary>
+    /// Creates a <c>Func&lt;(string Name, string Id)&gt;</c> that tries to resolve test identity
+    /// from HTTP request headers first, falling back to the provided delegate.
+    /// <para>
+    /// Use this to eliminate the repetitive httpContext+fallback boilerplate when setting
+    /// <c>CurrentTestInfoFetcher</c> on tracking options classes.
+    /// </para>
+    /// </summary>
+    /// <param name="httpContextAccessor">
+    /// Optional accessor for the current HTTP context. When available, the returned delegate
+    /// reads <see cref="TestTrackingHttpHeaders.CurrentTestNameHeader"/> and
+    /// <see cref="TestTrackingHttpHeaders.CurrentTestIdHeader"/> from request headers.
+    /// </param>
+    /// <param name="fallback">
+    /// Delegate invoked when the HTTP context is unavailable or headers are missing
+    /// (e.g. test framework context like <c>TestContext.Current</c>).
+    /// </param>
+    public static Func<(string Name, string Id)> CreateHttpFallbackFetcher(
+        IHttpContextAccessor? httpContextAccessor,
+        Func<(string Name, string Id)> fallback)
+    {
+        return () =>
+        {
+            if (TryResolveFromHttpContext(httpContextAccessor, out var result))
+                return result;
+
+            return fallback();
+        };
+    }
+
     private static bool TryResolveFromHttpContext(
         IHttpContextAccessor? httpContextAccessor,
         out (string Name, string Id) result)

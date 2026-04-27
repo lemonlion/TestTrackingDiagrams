@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.23.12] - 2026-04-27
+
+### Added
+- **`TestInfoResolver.CreateHttpFallbackFetcher()`**: New convenience method that creates a `Func<(string Name, string Id)>` encapsulating the dual-resolution pattern (httpContext headers first, fallback delegate second). Eliminates the ~10-line boilerplate previously needed when setting `CurrentTestInfoFetcher` on tracking options.
+- **`ServiceCollectionDecoratorExtensions.DecorateAll<TService>()`**: New DI helper that wraps all existing registrations of a service type with a decorator. Removes the original registration and adds the decorated version, preserving the original service lifetime. Handles all descriptor types (factory, instance, type).
+- **`ServiceCollectionDecoratorExtensions.DecorateAllOpen()`**: New DI helper that scans for all closed-generic registrations matching an open generic type and replaces each with a decorator type. Additional constructor parameters are resolved from DI via `ActivatorUtilities`.
+- **`KafkaServiceCollectionExtensions.AddKafkaProducerTestTracking<TKey,TValue>()`**: New DI extension in the Kafka package that decorates all `IProducer<TKey,TValue>` registrations with `TrackingKafkaProducer` for test diagram tracking. Automatically resolves `IHttpContextAccessor` from DI.
+- **`KafkaServiceCollectionExtensions.AddKafkaConsumerTestTracking<TKey,TValue>()`**: Same pattern for `IConsumer<TKey,TValue>` with `TrackingKafkaConsumer`.
+- **`PubSubServiceCollectionExtensions.AddPubSubTestTracking()`**: New DI extension in the PubSub package that registers a singleton `PubSubTracker` with `IHttpContextAccessor` auto-resolved from DI.
+
 ## [2.23.11] - 2026-04-27
 
 ### Added
