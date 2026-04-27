@@ -16,13 +16,11 @@ public class MongoDbTrackingSubscriberTests : IDisposable
 
     public MongoDbTrackingSubscriberTests()
     {
-        RequestResponseLogger.Clear();
         TrackingComponentRegistry.Clear();
     }
 
     public void Dispose()
     {
-        RequestResponseLogger.Clear();
         TrackingComponentRegistry.Clear();
     }
 
@@ -146,8 +144,7 @@ public class MongoDbTrackingSubscriberTests : IDisposable
 
         subscriber.OnCommandStarted(MakeStartedEvent("find"));
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
-        Assert.Empty(logs);
+        Assert.Empty(GetLogsFromThisTest());
     }
 
     // ─── Summarised: skip Other ──────────────────────────────

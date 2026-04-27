@@ -6,18 +6,21 @@ namespace TestTrackingDiagrams.Tests.Dapper;
 
 public class TrackingDbCommandTests : IDisposable
 {
+    private readonly string _testId = Guid.NewGuid().ToString();
     private readonly FakeDbConnection _fakeConnection = new();
     private readonly DapperTrackingOptions _options;
     private readonly TrackingDbConnection _trackingConnection;
 
+    private RequestResponseLog[] GetLogsForTest()
+        => RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == _testId).ToArray();
+
     public TrackingDbCommandTests()
     {
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
 
         _options = new DapperTrackingOptions
         {
-            CurrentTestInfoFetcher = () => ("TestMethod", "test-123"),
+            CurrentTestInfoFetcher = () => ("TestMethod", _testId),
             ServiceName = "TestDB",
             CallingServiceName = "TestCaller"
         };
@@ -29,7 +32,6 @@ public class TrackingDbCommandTests : IDisposable
     {
         _trackingConnection.Dispose();
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
     }
 
     private TrackingDbCommand CreateCommand(string sql, CommandType type = CommandType.Text)
@@ -48,7 +50,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
         Assert.Equal(RequestResponseType.Request, logs[0].Type);
         Assert.Equal(RequestResponseType.Response, logs[1].Type);
@@ -60,7 +62,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         await cmd.ExecuteReaderAsync();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
     }
 
@@ -70,12 +72,12 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("INSERT INTO Users (Name) VALUES ('test')");
         cmd.ExecuteNonQuery();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
 
         var request = logs[0];
         Assert.Equal("TestMethod", request.TestName);
-        Assert.Equal("test-123", request.TestId);
+        Assert.Equal(_testId, request.TestId);
         Assert.Equal("TestDB", request.ServiceName);
         Assert.Equal("TestCaller", request.CallerName);
     }
@@ -86,7 +88,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("UPDATE Users SET Name = 'test'");
         await cmd.ExecuteNonQueryAsync();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
     }
 
@@ -96,7 +98,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT COUNT(*) FROM Users");
         cmd.ExecuteScalar();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
     }
 
@@ -106,7 +108,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT COUNT(*) FROM Users");
         await cmd.ExecuteScalarAsync();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
     }
 
@@ -116,7 +118,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         Assert.Equal(logs[0].TraceId, logs[1].TraceId);
         Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
     }
@@ -129,7 +131,7 @@ public class TrackingDbCommandTests : IDisposable
         cmd.CommandText = "DELETE FROM Users WHERE Active = 0";
         cmd.ExecuteNonQuery();
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs;
+        var logs = GetLogsForTest();
         var response = logs[1];
         Assert.Equal("5 rows affected", response.Content);
     }
@@ -143,7 +145,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        Assert.Empty(RequestResponseLogger.RequestAndResponseLogs);
+        Assert.Empty(GetLogsForTest());
     }
 
     [Fact]
@@ -153,7 +155,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        Assert.Empty(RequestResponseLogger.RequestAndResponseLogs);
+        Assert.Empty(GetLogsForTest());
     }
 
     // ─── Excluded operations ────────────────────────────────────
@@ -165,7 +167,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        Assert.Empty(RequestResponseLogger.RequestAndResponseLogs);
+        Assert.Empty(GetLogsForTest());
     }
 
     // ─── Parameters ─────────────────────────────────────────────
@@ -183,7 +185,7 @@ public class TrackingDbCommandTests : IDisposable
 
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Contains("@Id=42", request.Content);
         Assert.Contains("-- Parameters:", request.Content);
     }
@@ -201,7 +203,7 @@ public class TrackingDbCommandTests : IDisposable
 
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.DoesNotContain("-- Parameters:", request.Content);
     }
 
@@ -214,7 +216,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Equal("SELECT * FROM Users WHERE Id = 1", request.Method.Value?.ToString());
     }
 
@@ -225,7 +227,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Equal("SELECT FROM Users", request.Method.Value?.ToString());
     }
 
@@ -236,7 +238,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Equal("SELECT", request.Method.Value?.ToString());
     }
 
@@ -247,7 +249,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         cmd.ExecuteReader();
 
-        var response = RequestResponseLogger.RequestAndResponseLogs[1];
+        var response = GetLogsForTest()[1];
         Assert.Null(response.Content);
     }
 
@@ -260,7 +262,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Contains("localhost", request.Uri.ToString());
         Assert.Contains("TestDb", request.Uri.ToString());
         Assert.Contains("Users", request.Uri.ToString());
@@ -273,7 +275,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Contains("TestDb", request.Uri.ToString());
         Assert.Contains("Users", request.Uri.ToString());
     }
@@ -285,7 +287,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Contains("localhost", request.Uri.ToString());
         Assert.Contains("TestDb", request.Uri.ToString());
     }
@@ -335,7 +337,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Secret = 'password'");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Null(request.Content);
     }
 
@@ -347,7 +349,7 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT * FROM Users");
         cmd.ExecuteReader();
 
-        var request = RequestResponseLogger.RequestAndResponseLogs[0];
+        var request = GetLogsForTest()[0];
         Assert.Equal("SELECT * FROM Users", request.Content);
     }
 

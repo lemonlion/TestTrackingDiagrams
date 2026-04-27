@@ -10,13 +10,11 @@ public class ServiceBusTrackerTests : IDisposable
 
     public ServiceBusTrackerTests()
     {
-        RequestResponseLogger.Clear();
         TrackingComponentRegistry.Clear();
     }
 
     public void Dispose()
     {
-        RequestResponseLogger.Clear();
         TrackingComponentRegistry.Clear();
     }
 

@@ -110,9 +110,8 @@ public class PendingRequestResponseLogsTests
     [Fact]
     public void FlushAll_with_no_pending_entries_is_noop()
     {
-        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
         PendingRequestResponseLogs.FlushAll("Test", _testId);
-        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+        Assert.Empty(GetLogsForTest());
     }
 
     [Fact]

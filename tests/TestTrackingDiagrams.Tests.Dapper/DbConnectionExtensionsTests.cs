@@ -8,13 +8,11 @@ public class DbConnectionExtensionsTests : IDisposable
     public DbConnectionExtensionsTests()
     {
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
     }
 
     [Fact]

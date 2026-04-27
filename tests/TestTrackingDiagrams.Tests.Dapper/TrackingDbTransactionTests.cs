@@ -12,13 +12,11 @@ public class TrackingDbTransactionTests : IDisposable
     public TrackingDbTransactionTests()
     {
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
     }
 
     public void Dispose()
     {
         TrackingComponentRegistry.Clear();
-        RequestResponseLogger.Clear();
     }
 
     [Fact]

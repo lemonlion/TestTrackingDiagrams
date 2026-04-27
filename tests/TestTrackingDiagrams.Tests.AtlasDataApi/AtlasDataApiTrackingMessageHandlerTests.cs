@@ -4,20 +4,12 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.AtlasDataApi;
 
-public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
+public class AtlasDataApiTrackingMessageHandlerTests
 {
-    private readonly List<RequestResponseLog> _capturedLogs = [];
+    private readonly string _testId = Guid.NewGuid().ToString();
 
-    public AtlasDataApiTrackingMessageHandlerTests()
-    {
-        RequestResponseLogger.Clear();
-    }
-
-    public void Dispose()
-    {
-        RequestResponseLogger.Clear();
-        GC.SuppressFinalize(this);
-    }
+    private RequestResponseLog[] GetLogsForTest()
+        => RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == _testId).ToArray();
 
     // ── Basic tracking ──
 
@@ -39,8 +31,8 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs.ToList();
-        Assert.Equal(2, logs.Count);
+        var logs = GetLogsForTest();
+        Assert.Equal(2, logs.Length);
         Assert.Equal(RequestResponseType.Request, logs[0].Type);
         Assert.Equal(RequestResponseType.Response, logs[1].Type);
     }
@@ -63,7 +55,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs.ToList();
+        var logs = GetLogsForTest();
         Assert.All(logs, l => Assert.Equal("AtlasDataApi", l.DependencyCategory));
     }
 
@@ -85,7 +77,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var log = RequestResponseLogger.RequestAndResponseLogs.First();
+        var log = GetLogsForTest().First();
         Assert.Equal(new Uri("atlas:///orders_db/orders"), log.Uri);
     }
 
@@ -110,7 +102,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var logs = RequestResponseLogger.RequestAndResponseLogs.ToList();
+        var logs = GetLogsForTest();
         Assert.All(logs, l => Assert.Null(l.Content));
     }
 
@@ -132,7 +124,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        Assert.Empty(RequestResponseLogger.RequestAndResponseLogs);
+        Assert.Empty(GetLogsForTest());
     }
 
     [Fact]
@@ -154,7 +146,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var log = RequestResponseLogger.RequestAndResponseLogs.First();
+        var log = GetLogsForTest().First();
         Assert.IsType<HttpMethod>(log.Method.Value); // HttpMethod
     }
 
@@ -179,7 +171,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        Assert.Empty(RequestResponseLogger.RequestAndResponseLogs);
+        Assert.Empty(GetLogsForTest());
     }
 
     // ── Excluded headers ──
@@ -205,7 +197,7 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
         await client.SendAsync(request);
 
-        var log = RequestResponseLogger.RequestAndResponseLogs.First();
+        var log = GetLogsForTest().First();
         Assert.DoesNotContain(log.Headers, h => h.Key == "api-key");
         Assert.Contains(log.Headers, h => h.Key == "X-Custom");
     }
@@ -273,10 +265,10 @@ public class AtlasDataApiTrackingMessageHandlerTests : IDisposable
 
     // ── Helpers ──
 
-    private static AtlasDataApiTrackingMessageHandlerOptions CreateOptions() =>
+    private AtlasDataApiTrackingMessageHandlerOptions CreateOptions() =>
         new()
         {
-            CurrentTestInfoFetcher = () => ("TestName", "test-id-1")
+            CurrentTestInfoFetcher = () => ("TestName", _testId)
         };
 
     private class FakeInnerHandler : HttpMessageHandler

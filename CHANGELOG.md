@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.2] - 2026-04-27
+
+### Fixed
+- **Flaky `PendingRequestResponseLogsTests` under parallel execution**: Added missing `[CollectionDefinition("PendingLogs")]` so the three test classes sharing the `"PendingLogs"` collection are properly serialized by xUnit. Without this, xUnit silently ignored the `[Collection]` attribute.
+- **`FlushAll_with_no_pending_entries_is_noop`**: Replaced assertion on total `RequestAndResponseLogs.Length` with testId-filtered assertion, eliminating race condition with concurrent test projects.
+- **`AtlasDataApiTrackingMessageHandlerTests`**: Replaced `RequestResponseLogger.Clear()` with per-test `_testId` filtering. Tests no longer wipe the shared static log queue or assert on unfiltered total counts.
+- **`TrackingDbCommandTests`**: Same fix — replaced `Clear()` and unfiltered `[0]`/`[1]` indexing with `GetLogsForTest()` filtered by unique `_testId`.
+- **`MongoDbTrackingSubscriberTests`**: Replaced `Assert.Empty(RequestResponseLogger.RequestAndResponseLogs)` with testId-filtered assertion in `NoLogging_WhenCurrentTestInfoFetcherIsNull`.
+- **Removed `RequestResponseLogger.Clear()` from all test constructors/teardown**: `ServiceBusTrackerTests`, `TrackingDbConnectionTests`, `TrackingDbTransactionTests`, `DbConnectionExtensionsTests`, `MongoDbTrackingSubscriberTests`. The `Clear()` call is destructive to concurrent tests and unnecessary when assertions filter by testId.
+
 ## [2.27.1] - 2026-04-27
 
 ### Fixed
