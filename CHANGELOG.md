@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.0] - 2025-07-25
+
+### Added
+- **`SpannerTrackingInterceptor`** — new gRPC interceptor that captures **all** Spanner operations at the transport layer, including Spanner-specific methods (`CreateInsertCommand`, `CreateSelectCommand`, `CreateInsertOrUpdateCommand`, etc.) that bypass ADO.NET wrapping. Extracts SQL text, table names, and mutation details from protobuf messages.
+- **`SpannerConnectionStringBuilder.WithTestTracking()` extension** — configures gRPC interception via `SessionPoolManager.CreateWithSettings()` with `SpannerSettings.Interceptor`. Zero production code changes required.
+- **`SpannerTracker.CreateServerObservers()`** — returns delegate tuple `(Action<string, IMessage, DateTimeOffset>, Action<string, IMessage, IMessage?, TimeSpan, StatusCode?, DateTimeOffset>)` for wiring to `Spanner.InMemoryEmulator`'s `FakeSpannerServer.OnRequestReceived` / `OnResponseSent` callbacks. Enables server-side observation as an alternative to client-side gRPC interception.
+
+### Changed
+- **Spanner extension now depends on `Google.Cloud.Spanner.V1` (5.\*) and `Grpc.Core.Api` (2.\*)** for protobuf type extraction in `SpannerTrackingInterceptor` and `CreateServerObservers()`.
+
+### Documentation
+- **Spanner wiki page**: Added Option D (gRPC Interception — recommended) and Option E (Server-Side Observation) setup guides with architecture diagrams, comparison tables, and "What Gets Captured" reference. Added warnings to Options A/B/C about limitations. Updated See Also with gRPC Extension and Phase-Aware Tracking links.
+
 ## [2.26.3] - 2025-07-24
 
 ### Added
