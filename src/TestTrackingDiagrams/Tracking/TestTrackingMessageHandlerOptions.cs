@@ -41,4 +41,11 @@ public record TestTrackingMessageHandlerOptions
 
     /// <summary>When <c>false</c>, HTTP requests made during the Action phase are not tracked. Default: <c>true</c>.</summary>
     public bool TrackDuringAction { get; set; } = true;
+
+    /// <summary>
+    /// Resolves test identity from HTTP context headers when the handler runs inside
+    /// the SUT's request pipeline. Auto-resolved from DI by <c>CreateTestTrackingClient</c>
+    /// and <c>AddTrackedGrpcClient</c> when not explicitly set.
+    /// </summary>
+    public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
 }

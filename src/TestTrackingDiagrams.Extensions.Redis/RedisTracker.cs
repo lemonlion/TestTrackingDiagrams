@@ -14,7 +14,7 @@ public class RedisTracker : ITrackingComponent
     public RedisTracker(RedisTrackingDatabaseOptions options, string endpoint = "localhost", IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         _endpoint = endpoint;
         TrackingComponentRegistry.Register(this);
     }

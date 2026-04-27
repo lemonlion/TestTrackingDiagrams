@@ -12,6 +12,7 @@ public class EventHubsTracker : ITrackingComponent
     public EventHubsTracker(EventHubsTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }

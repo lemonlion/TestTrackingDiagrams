@@ -18,7 +18,7 @@ public static class BlobClientOptionsExtensions
         BlobTrackingMessageHandlerOptions trackingOptions,
         HttpMessageHandler? innerHandler = null)
     {
-        var handler = new BlobTrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler());
+        var handler = new BlobTrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler(), trackingOptions.HttpContextAccessor);
         var httpClient = new HttpClient(handler);
         options.Transport = new Azure.Core.Pipeline.HttpClientTransport(httpClient);
         return options;

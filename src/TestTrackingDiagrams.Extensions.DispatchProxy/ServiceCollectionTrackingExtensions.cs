@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams.Tracking;
 
@@ -38,13 +39,15 @@ public static class ServiceCollectionTrackingExtensions
         TService implementation,
         string serviceName,
         Func<(string Name, string Id)>? testInfoFetcher = null,
-        TrackingLogMode logMode = TrackingLogMode.Immediate) where TService : class
+        TrackingLogMode logMode = TrackingLogMode.Immediate,
+        IHttpContextAccessor? httpContextAccessor = null) where TService : class
     {
         return services.ReplaceWithTracked(implementation, new TrackingProxyOptions
         {
             ServiceName = serviceName,
             CurrentTestInfoFetcher = testInfoFetcher,
-            LogMode = logMode
+            LogMode = logMode,
+            HttpContextAccessor = httpContextAccessor
         });
     }
 }

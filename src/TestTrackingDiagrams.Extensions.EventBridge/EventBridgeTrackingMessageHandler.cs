@@ -13,7 +13,7 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
     public EventBridgeTrackingMessageHandler(EventBridgeTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }

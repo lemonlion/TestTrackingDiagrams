@@ -9,7 +9,7 @@ public static class AmazonSNSConfigExtensions
         SnsTrackingMessageHandlerOptions options)
     {
         config.HttpClientFactory = new TrackingHttpClientFactory(
-            new SnsTrackingMessageHandler(options));
+            new SnsTrackingMessageHandler(options, null, options.HttpContextAccessor));
         return config;
     }
 }

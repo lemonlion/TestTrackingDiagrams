@@ -13,7 +13,7 @@ public class TrackingEventHubConsumerClient
         EventHubConsumerClient inner, EventHubsTrackingOptions options)
     {
         _inner = inner;
-        _tracker = new EventHubsTracker(options);
+        _tracker = new EventHubsTracker(options, options.HttpContextAccessor);
         _options = options;
     }
 

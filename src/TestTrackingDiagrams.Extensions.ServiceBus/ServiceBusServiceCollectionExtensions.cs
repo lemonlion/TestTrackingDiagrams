@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
@@ -31,6 +32,7 @@ public static class ServiceBusServiceCollectionExtensions
                 else
                     innerClient = (ServiceBusClient)ActivatorUtilities.CreateInstance(sp, existingDescriptor.ImplementationType!);
 
+                options.HttpContextAccessor ??= sp.GetService<IHttpContextAccessor>();
                 return new TrackingServiceBusClient(innerClient, options);
             });
         }

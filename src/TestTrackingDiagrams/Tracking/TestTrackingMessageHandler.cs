@@ -34,7 +34,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _currentTestInfoFetcher = options.CurrentTestInfoFetcher;
         _currentStepTypeFetcher = options.CurrentStepTypeFetcher;
         _callingServiceName = options.CallingServiceName;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         _headersToForward = options.HeadersToForward;
         _internalFlowActivitySources = options.InternalFlowActivitySources;
         _trackDuringSetup = options.TrackDuringSetup;

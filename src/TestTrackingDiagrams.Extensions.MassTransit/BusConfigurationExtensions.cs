@@ -8,7 +8,7 @@ public static class BusConfigurationExtensions
         this IBusFactoryConfigurator configurator,
         MassTransitTrackingOptions options)
     {
-        var tracker = new MassTransitTracker(options);
+        var tracker = new MassTransitTracker(options, options.HttpContextAccessor);
 
         if (options.TrackSend)
             configurator.ConnectSendObserver(new TrackingSendObserver(tracker));

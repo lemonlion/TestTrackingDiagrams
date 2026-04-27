@@ -12,7 +12,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
     public CosmosTrackingMessageHandler(CosmosTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }

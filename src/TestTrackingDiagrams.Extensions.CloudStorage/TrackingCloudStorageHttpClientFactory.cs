@@ -14,6 +14,6 @@ internal class TrackingCloudStorageHttpClientFactory : Google.Apis.Http.HttpClie
     protected override HttpMessageHandler CreateHandler(CreateHttpClientArgs args)
     {
         var innerHandler = base.CreateHandler(args);
-        return new CloudStorageTrackingMessageHandler(_options, innerHandler);
+        return new CloudStorageTrackingMessageHandler(_options, innerHandler, _options.HttpContextAccessor);
     }
 }

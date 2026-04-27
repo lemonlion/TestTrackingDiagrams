@@ -12,7 +12,7 @@ public class TrackingServiceBusClient
     {
         _inner = inner;
         _options = options;
-        _tracker = new ServiceBusTracker(options);
+        _tracker = new ServiceBusTracker(options, options.HttpContextAccessor);
     }
 
     public TrackingServiceBusSender CreateSender(string queueOrTopicName)

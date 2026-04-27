@@ -9,7 +9,7 @@ public static class AmazonS3ConfigExtensions
         S3TrackingMessageHandlerOptions trackingOptions,
         HttpMessageHandler? innerHandler = null)
     {
-        var handler = new S3TrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler());
+        var handler = new S3TrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler(), trackingOptions.HttpContextAccessor);
         config.HttpClientFactory = new TrackingHttpClientFactory(handler);
         return config;
     }

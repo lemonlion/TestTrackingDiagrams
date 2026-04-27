@@ -9,7 +9,7 @@ public static class AmazonEventBridgeConfigExtensions
         EventBridgeTrackingMessageHandlerOptions options)
     {
         config.HttpClientFactory = new TrackingHttpClientFactory(
-            new EventBridgeTrackingMessageHandler(options));
+            new EventBridgeTrackingMessageHandler(options, null, options.HttpContextAccessor));
         return config;
     }
 }

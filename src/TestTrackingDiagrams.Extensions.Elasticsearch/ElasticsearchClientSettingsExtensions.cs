@@ -8,7 +8,7 @@ public static class ElasticsearchClientSettingsExtensions
         this ElasticsearchClientSettings settings,
         ElasticsearchTrackingOptions options)
     {
-        var handler = new ElasticsearchTrackingCallbackHandler(options);
+        var handler = new ElasticsearchTrackingCallbackHandler(options, options.HttpContextAccessor);
 
         return settings
             .DisableDirectStreaming()

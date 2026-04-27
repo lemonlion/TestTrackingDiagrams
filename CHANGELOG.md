@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.26.3] - 2025-07-24
+
+### Added
+- **`HttpContextAccessor` property on all extension options classes**: Every tracking extension options class now exposes `IHttpContextAccessor? HttpContextAccessor`. When set, the tracker reads it automatically via `?? options.HttpContextAccessor`, providing an alternative to the constructor parameter for dual-resolution test identity. This applies to: `TestTrackingMessageHandlerOptions`, `ServiceBusTrackingOptions`, `MassTransitTrackingOptions`, `ElasticsearchTrackingOptions`, `RedisTrackingDatabaseOptions`, `DapperTrackingOptions`, `EventHubsTrackingOptions`, `BlobTrackingMessageHandlerOptions`, `CloudStorageTrackingMessageHandlerOptions`, `CosmosTrackingMessageHandlerOptions`, `DynamoDbTrackingMessageHandlerOptions`, `EventBridgeTrackingMessageHandlerOptions`, `S3TrackingMessageHandlerOptions`, `SnsTrackingMessageHandlerOptions`, `SqsTrackingMessageHandlerOptions`, `StorageQueueTrackingMessageHandlerOptions`.
+- **Auto-resolution of `IHttpContextAccessor` from DI**: DI extensions and convenience methods now auto-resolve `IHttpContextAccessor` from the service provider when available, eliminating the need for manual `httpContextAccessor: sp.GetRequiredService<IHttpContextAccessor>()` wiring:
+  - `CreateTestTrackingClient()` (both overloads) — resolves from `factory.Services`
+  - `AddServiceBusTestTracking()` — resolves from `IServiceProvider` in the factory lambda
+  - `ReplaceWithTrackingProxy` simplified overload — accepts optional `IHttpContextAccessor?` parameter
+  - All `DelegatingHandler`-based extensions (BlobStorage, CloudStorage, CosmosDB, DynamoDB, EventBridge, S3, SNS, SQS, StorageQueues) — convenience methods pass `options.HttpContextAccessor` to handler constructors
+  - MassTransit, Elasticsearch, Redis, Dapper, EventHubs — convenience methods pass `options.HttpContextAccessor` to tracker constructors
+
+### Documentation
+- **All 16 extension wiki pages**: Added `HttpContextAccessor` row to options tables and updated dual-resolution notes with v2.26.3 auto-resolution info.
+- **HTTP Tracking Setup wiki**: Rewrote "How to Use It" section with simplified examples showing auto-resolution. Replaced "MediatR Auto-Resolution" with broader "Auto-Resolution (v2.26.2+)" section covering all extensions. Updated extensions table with auto-resolution version info.
+- **Diagnostics and Debugging wiki**: Added new "Other dependencies not appearing in per-test reports" section generalizing the gRPC troubleshooting pattern to all extensions.
+
 ## [2.26.2] - 2026-04-27
 
 ### Added

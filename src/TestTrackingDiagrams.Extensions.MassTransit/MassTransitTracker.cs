@@ -13,7 +13,7 @@ public class MassTransitTracker : ITrackingComponent
     public MassTransitTracker(MassTransitTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 

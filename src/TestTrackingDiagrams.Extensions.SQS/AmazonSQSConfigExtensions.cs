@@ -9,7 +9,7 @@ public static class AmazonSQSConfigExtensions
         SqsTrackingMessageHandlerOptions options)
     {
         config.HttpClientFactory = new TrackingHttpClientFactory(
-            new SqsTrackingMessageHandler(options));
+            new SqsTrackingMessageHandler(options, null, options.HttpContextAccessor));
         return config;
     }
 }

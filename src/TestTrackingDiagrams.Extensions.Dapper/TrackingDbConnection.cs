@@ -16,7 +16,7 @@ public class TrackingDbConnection : DbConnection, ITrackingComponent
     {
         _inner = inner;
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 

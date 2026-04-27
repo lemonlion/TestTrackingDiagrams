@@ -13,7 +13,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
     public DynamoDbTrackingMessageHandler(DynamoDbTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }

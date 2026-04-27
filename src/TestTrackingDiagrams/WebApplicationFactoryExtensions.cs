@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
@@ -18,6 +20,7 @@ public static class WebApplicationFactoryExtensions
     /// <returns>An HTTP client with test-tracking middleware installed.</returns>
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, TestTrackingMessageHandlerOptions options) where T : class
     {
+        options.HttpContextAccessor ??= factory.Services.GetService<IHttpContextAccessor>();
         return factory.CreateDefaultClient(new TestTrackingMessageHandler(options));
     }
 
@@ -32,6 +35,7 @@ public static class WebApplicationFactoryExtensions
     /// <returns>An HTTP client with test-tracking middleware and additional handlers installed.</returns>
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, TestTrackingMessageHandlerOptions options, params DelegatingHandler[] additionalHandlers) where T : class
     {
+        options.HttpContextAccessor ??= factory.Services.GetService<IHttpContextAccessor>();
         var handlers = new DelegatingHandler[additionalHandlers.Length + 1];
         handlers[0] = new TestTrackingMessageHandler(options);
         additionalHandlers.CopyTo(handlers, 1);

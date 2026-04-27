@@ -8,6 +8,6 @@ public static class DbConnectionExtensions
         this DbConnection connection,
         DapperTrackingOptions options)
     {
-        return new TrackingDbConnection(connection, options);
+        return new TrackingDbConnection(connection, options, options.HttpContextAccessor);
     }
 }

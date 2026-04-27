@@ -15,7 +15,8 @@ public class RedisTrackingDatabase : DispatchProxy
         trackingDb._inner = inner;
         trackingDb._tracker = new RedisTracker(
             options,
-            inner.Multiplexer?.GetEndPoints()?.FirstOrDefault()?.ToString() ?? "localhost");
+            inner.Multiplexer?.GetEndPoints()?.FirstOrDefault()?.ToString() ?? "localhost",
+            options.HttpContextAccessor);
         return proxy;
     }
 

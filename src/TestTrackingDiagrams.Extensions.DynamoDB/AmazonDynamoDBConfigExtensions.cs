@@ -9,7 +9,7 @@ public static class AmazonDynamoDBConfigExtensions
         DynamoDbTrackingMessageHandlerOptions trackingOptions,
         HttpMessageHandler? innerHandler = null)
     {
-        var handler = new DynamoDbTrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler());
+        var handler = new DynamoDbTrackingMessageHandler(trackingOptions, innerHandler ?? new HttpClientHandler(), trackingOptions.HttpContextAccessor);
         config.HttpClientFactory = new TrackingHttpClientFactory(handler);
         return config;
     }

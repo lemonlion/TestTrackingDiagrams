@@ -22,7 +22,8 @@ public static class CosmosClientOptionsExtensions
         {
             var handler = new CosmosTrackingMessageHandler(
                 trackingOptions,
-                innerHandler ?? new HttpClientHandler());
+                innerHandler ?? new HttpClientHandler(),
+                trackingOptions.HttpContextAccessor);
             return new HttpClient(handler);
         };
 
