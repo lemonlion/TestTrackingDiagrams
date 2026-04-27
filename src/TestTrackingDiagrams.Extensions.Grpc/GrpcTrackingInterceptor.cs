@@ -1,17 +1,21 @@
+using System.Diagnostics;
 using System.Net;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
 public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 {
+    private static readonly ActivitySource GrpcActivitySource = new("TestTrackingDiagrams.Grpc");
     private readonly GrpcTrackingOptions _options;
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private int _invocationCount;
+    private bool _listenerStarted;
 
     public GrpcTrackingInterceptor(GrpcTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
     {
@@ -49,12 +53,17 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId);
+        EnsureListenerStarted();
+        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(request, context);
 
         var wrappedResponseAsync = WrapUnaryResponse(
-            call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId, effectiveVerbosity);
+            call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId, effectiveVerbosity,
+            activityTraceId, activitySpanId);
 
         return new AsyncUnaryCall<TResponse>(
             wrappedResponseAsync,
@@ -89,19 +98,23 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId);
+        EnsureListenerStarted();
+        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         try
         {
             var response = continuation(request, context);
             var responseContent = SerializeMessage(response, effectiveVerbosity);
-            LogResponse(testInfo.Value, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
+            LogResponse(testInfo.Value, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
             return response;
         }
         catch (RpcException ex)
         {
             LogResponse(testInfo.Value, label, $"{ex.StatusCode}: {ex.Message}", uri, serviceName,
-                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode));
+                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId);
             throw;
         }
     }
@@ -131,11 +144,15 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId);
+        EnsureListenerStarted();
+        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(request, context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
 
         return call;
     }
@@ -163,11 +180,15 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId);
+        EnsureListenerStarted();
+        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
 
         return call;
     }
@@ -195,11 +216,15 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId);
+        EnsureListenerStarted();
+        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
 
         return call;
     }
@@ -208,19 +233,20 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         Task<TResponse> responseTask,
         (string Name, string Id) testInfo,
         string label, Uri uri, string serviceName,
-        Guid traceId, Guid requestResponseId, GrpcTrackingVerbosity effectiveVerbosity)
+        Guid traceId, Guid requestResponseId, GrpcTrackingVerbosity effectiveVerbosity,
+        string? activityTraceId, string? activitySpanId)
     {
         try
         {
             var response = await responseTask;
             var responseContent = SerializeMessage(response, effectiveVerbosity);
-            LogResponse(testInfo, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK);
+            LogResponse(testInfo, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
             return response;
         }
         catch (RpcException ex)
         {
             LogResponse(testInfo, label, $"{ex.StatusCode}: {ex.Message}", uri, serviceName,
-                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode));
+                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId);
             throw;
         }
     }
@@ -228,7 +254,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
     private void LogRequest(
         (string Name, string Id) testInfo, string label, string? content,
         Uri uri, (string Key, string? Value)[] headers, string serviceName,
-        Guid traceId, Guid requestResponseId)
+        Guid traceId, Guid requestResponseId,
+        string? activityTraceId, string? activitySpanId)
     {
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
@@ -237,14 +264,18 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             RequestResponseType.Request, traceId, requestResponseId, false,
             DependencyCategory: "gRPC")
         {
-            Phase = TestPhaseContext.Current
+            Phase = TestPhaseContext.Current,
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivityTraceId = activityTraceId,
+            ActivitySpanId = activitySpanId
         });
     }
 
     private void LogResponse(
         (string Name, string Id) testInfo, string label, string? content,
         Uri uri, string serviceName,
-        Guid traceId, Guid requestResponseId, HttpStatusCode statusCode)
+        Guid traceId, Guid requestResponseId, HttpStatusCode statusCode,
+        string? activityTraceId, string? activitySpanId)
     {
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
@@ -254,8 +285,26 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             statusCode,
             DependencyCategory: "gRPC")
         {
-            Phase = TestPhaseContext.Current
+            Phase = TestPhaseContext.Current,
+            Timestamp = DateTimeOffset.UtcNow,
+            ActivityTraceId = activityTraceId,
+            ActivitySpanId = activitySpanId
         });
+    }
+
+    private void EnsureListenerStarted()
+    {
+        if (_listenerStarted) return;
+        InternalFlowActivityListener.EnsureStarted();
+        _listenerStarted = true;
+    }
+
+    private static (string? TraceId, string? SpanId) CaptureActivityContext()
+    {
+        if (Activity.Current != null)
+            return (Activity.Current.TraceId.ToString(), Activity.Current.SpanId.ToString());
+
+        return (ActivityTraceId.CreateRandom().ToString(), ActivitySpanId.CreateRandom().ToString());
     }
 
     private static GrpcOperationInfo Classify<TRequest, TResponse>(

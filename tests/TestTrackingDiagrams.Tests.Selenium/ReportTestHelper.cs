@@ -503,4 +503,123 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// PlantUML source with long notes (10+ lines) for testing truncation across
+    /// multiple diagrams. Each scenario gets its own diagram with notes that exceed
+    /// a truncation limit of 5 lines.
+    /// </summary>
+    private static string TwoScenarioLongNotePlantUmlSource(int scenarioIndex)
+    {
+        var longContent = string.Join("\n", Enumerable.Range(1, 15).Select(i => $"Scenario {scenarioIndex} - Line {i}"));
+        return $"""
+            @startuml
+            actor "Caller" as caller
+            participant "Service{scenarioIndex}" as svc
+            participant "Database" as db
+
+            caller -> svc : POST /api/items
+            note left
+            {longContent}
+            end note
+            svc -> db : INSERT INTO Items
+            db --> svc : OK
+            svc --> caller : 201 Created
+            note right
+            {longContent}
+            end note
+            @enduml
+            """;
+    }
+
+    public static string GenerateReportWithTwoLongNoteDiagrams(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", TwoScenarioLongNotePlantUmlSource(1)),
+            new DiagramAsCode("t2", "", TwoScenarioLongNotePlantUmlSource(2))
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    /// <summary>
+    /// Generates a report where ONE scenario has TWO diagram containers (simulating a
+    /// split diagram). Each diagram has long notes that exceed a truncation limit of 5.
+    /// Used to test that hover buttons appear on ALL diagrams within a single scenario
+    /// after a truncation dropdown change.
+    /// </summary>
+    public static string GenerateReportWithSplitDiagramLongNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+
+        // Generate long note content (50+ lines) to simulate real-world split diagrams
+        var longContent1 = string.Join("\n",
+            Enumerable.Range(1, 50).Select(i => $"  \"field{i}\": \"value {i}\","));
+        var longContent2 = string.Join("\n",
+            new[] { "..Continued From Previous Diagram.." }.Concat(
+                Enumerable.Range(1, 50).Select(i => $"  \"continued_{i}\": \"data {i}\",")));
+
+        var source1 = $$"""
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 1
+            actor "Caller" as caller
+            entity "Service" as svc
+            caller -> svc : GET /api/spec
+            note left
+            <color:gray>[traceparent=00-abc-123-00]
+            end note
+            svc --> caller : OK
+            note right
+            <color:gray>[X-Correlation-Id=test-123]
+
+            {
+            {{longContent1}}
+            ..Continued On Next Diagram..
+            end note
+            @enduml
+            """;
+
+        var source2 = $$"""
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 2
+            actor "Caller" as caller
+            entity "Service" as svc
+            svc --> caller : OK
+            note right
+            {{longContent2}}
+            }
+            end note
+            @enduml
+            """;
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", source1),
+            new DiagramAsCode("t1", "", source2)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

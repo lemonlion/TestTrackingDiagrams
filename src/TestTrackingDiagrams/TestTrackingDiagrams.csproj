@@ -11,6 +11,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests" />
 		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests.Selenium" />
+		<InternalsVisibleTo Include="TestTrackingDiagrams.Extensions.Grpc" />
 	</ItemGroup>
 
 	<ItemGroup>

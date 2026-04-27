@@ -1253,4 +1253,212 @@ public class DiagramNoteTests : IDisposable
         // The hover rect count should match the note block count (not more)
         Assert.Equal(noteBlockCount, (long)hoverRectCount);
     }
+
+    // ── Multi-diagram truncation hover button regression ──
+
+    private string GenerateTwoLongNoteReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithTwoLongNoteDiagrams(_tempDir, OutputDir, fileName);
+
+    private string GenerateSplitDiagramReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithSplitDiagramLongNotes(_tempDir, OutputDir, fileName);
+
+    [Fact]
+    public void After_report_truncation_change_all_diagrams_have_hover_buttons()
+    {
+        _driver.Navigate().GoToUrl(GenerateTwoLongNoteReport("TwoLongNoteTruncHover.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        // Force-render all diagrams (some may be outside viewport / IntersectionObserver range)
+        var js = (IJavaScriptExecutor)_driver;
+        js.ExecuteScript("""
+            document.querySelectorAll('[data-diagram-type="plantuml"]').forEach(function(c) {
+                if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(c.parentElement);
+            });
+        """);
+
+        // Wait for BOTH diagrams to render
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-diagram-type='plantuml'] svg")).Count >= 2);
+
+        // Wait for initial note processing on both diagrams
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count >= 4);
+
+        // Change report-level truncation to 5
+        var select = _driver.FindElement(By.CssSelector(".toolbar-row .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+
+        // Wait for all diagrams to re-render with note toggle icons
+        wait.Until(d =>
+        {
+            var containers = d.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+            return containers.Count >= 2 && containers.All(c =>
+                c.FindElements(By.CssSelector(".note-toggle-icon")).Count > 0 &&
+                c.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+        });
+
+        // Verify each diagram container independently has hover rects
+        var allContainers = _driver.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+        for (var i = 0; i < allContainers.Count; i++)
+        {
+            var hoverRects = allContainers[i].FindElements(By.CssSelector(".note-hover-rect"));
+            Assert.True(hoverRects.Count > 0,
+                $"Diagram {i + 1} should have hover rects after truncation change, but has {hoverRects.Count}");
+
+            var toggleIcons = allContainers[i].FindElements(By.CssSelector(".note-toggle-icon"));
+            Assert.True(toggleIcons.Count > 0,
+                $"Diagram {i + 1} should have toggle icons after truncation change, but has {toggleIcons.Count}");
+        }
+    }
+
+    [Fact]
+    public void After_scenario_truncation_change_all_diagrams_have_hover_buttons()
+    {
+        _driver.Navigate().GoToUrl(GenerateTwoLongNoteReport("TwoLongNoteScenTruncHover.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        // Force-render all diagrams
+        var js = (IJavaScriptExecutor)_driver;
+        js.ExecuteScript("""
+            document.querySelectorAll('[data-diagram-type="plantuml"]').forEach(function(c) {
+                if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(c.parentElement);
+            });
+        """);
+
+        // Wait for BOTH diagrams to render
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-diagram-type='plantuml'] svg")).Count >= 2);
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count >= 4);
+
+        // Change scenario-level truncation to 5 for the first scenario
+        var select = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+
+        // Wait for the first scenario's diagram to re-render with toggle icons
+        wait.Until(d =>
+        {
+            var firstContainer = d.FindElements(By.CssSelector("[data-diagram-type='plantuml']")).FirstOrDefault();
+            return firstContainer != null &&
+                   firstContainer.FindElements(By.CssSelector(".note-toggle-icon")).Count > 0 &&
+                   firstContainer.FindElements(By.CssSelector(".note-hover-rect")).Count > 0;
+        });
+
+        // Verify the first scenario's diagram has hover rects
+        var firstDiagram = _driver.FindElements(By.CssSelector("[data-diagram-type='plantuml']")).First();
+        var hoverRects = firstDiagram.FindElements(By.CssSelector(".note-hover-rect"));
+        Assert.True(hoverRects.Count > 0,
+            $"First diagram should have hover rects after scenario truncation change, has {hoverRects.Count}");
+    }
+
+    [Fact]
+    public void Split_diagram_all_parts_have_hover_buttons_after_truncation_change()
+    {
+        _driver.Navigate().GoToUrl(GenerateSplitDiagramReport("SplitDiagTruncHover.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        var js = (IJavaScriptExecutor)_driver;
+
+        // Diagnostic: check how many containers exist and their state
+        var containerCount = (long)js.ExecuteScript(
+            "return document.querySelectorAll('[data-diagram-type=\"plantuml\"]').length;");
+        Assert.True(containerCount >= 2,
+            $"Expected at least 2 diagram containers, found {containerCount}");
+
+        // Force-render all diagrams in the scenario
+        js.ExecuteScript("""
+            document.querySelectorAll('[data-diagram-type="plantuml"]').forEach(function(c) {
+                if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(c.parentElement);
+            });
+        """);
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(60));
+        // Wait for both diagram parts to render
+        wait.Until(d =>
+        {
+            var svgCount = d.FindElements(By.CssSelector("[data-diagram-type='plantuml'] svg")).Count;
+            return svgCount >= 2;
+        });
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count >= 2);
+
+        // Change scenario-level truncation to 5
+        var select = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+
+        // Wait for re-render
+        wait.Until(d =>
+        {
+            var containers = d.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+            return containers.Count >= 2 && containers.All(c =>
+                c.FindElements(By.CssSelector(".note-toggle-icon")).Count > 0 &&
+                c.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+        });
+
+        // Verify EACH diagram part has hover rects and toggle icons
+        var allContainers = _driver.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+        for (var i = 0; i < allContainers.Count; i++)
+        {
+            var hoverRects = allContainers[i].FindElements(By.CssSelector(".note-hover-rect"));
+            Assert.True(hoverRects.Count > 0,
+                $"Split diagram part {i + 1} should have hover rects, but has {hoverRects.Count}");
+
+            var toggleIcons = allContainers[i].FindElements(By.CssSelector(".note-toggle-icon"));
+            Assert.True(toggleIcons.Count > 0,
+                $"Split diagram part {i + 1} should have toggle icons, but has {toggleIcons.Count}");
+        }
+    }
+
+    [Fact]
+    public void Split_diagram_hover_buttons_visible_on_second_diagram_after_truncation()
+    {
+        // Reproduces the bug: one scenario with TWO diagram parts (split diagram),
+        // each with long notes. After changing truncation to 5, hovering over the
+        // second diagram's note should make toggle buttons visible.
+        _driver.Navigate().GoToUrl(GenerateSplitDiagramReport("SplitDiagHoverVisible.html"));
+        WaitFor(By.CssSelector("details.feature"));
+        ExpandFirstScenarioWithDiagram();
+
+        var js = (IJavaScriptExecutor)_driver;
+        js.ExecuteScript("""
+            document.querySelectorAll('[data-diagram-type="plantuml"]').forEach(function(c) {
+                if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(c.parentElement);
+            });
+        """);
+
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(60));
+        wait.Until(d => d.FindElements(By.CssSelector("[data-diagram-type='plantuml'] svg")).Count >= 2);
+        wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count >= 2);
+
+        // Change scenario-level truncation to 5
+        var select = _driver.FindElement(By.CssSelector(
+            ".diagram-toggle .truncate-lines-select"));
+        new SelectElement(select).SelectByValue("5");
+
+        // Wait for re-render on all diagrams
+        wait.Until(d =>
+        {
+            var containers = d.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+            return containers.Count >= 2 && containers.All(c =>
+                c.FindElements(By.CssSelector(".note-toggle-icon")).Count > 0 &&
+                c.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
+        });
+
+        // Hover over the SECOND diagram's hover rect and verify buttons become visible
+        var allContainers = _driver.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
+        var secondContainer = allContainers[1];
+        var hoverRect = secondContainer.FindElement(By.CssSelector(".note-hover-rect"));
+
+        js.ExecuteScript("arguments[0].scrollIntoView({block:'center'});", hoverRect);
+        new Actions(_driver).MoveToElement(hoverRect).Perform();
+
+        wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            var icons = secondContainer.FindElements(By.CssSelector(".note-toggle-icon"));
+            return icons.Any(i => i.GetCssValue("opacity") != "0");
+        });
+    }
 }

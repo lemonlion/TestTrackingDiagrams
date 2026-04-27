@@ -485,6 +485,94 @@ public class GrpcTrackingInterceptorTests
         var components = TrackingComponentRegistry.GetRegisteredComponents();
         Assert.Contains(components, c => ReferenceEquals(c, interceptor));
     }
+
+    // ─── Activity / Span Tracking ──────────────────────────
+
+    [Fact]
+    public async Task AsyncUnaryCall_sets_ActivityTraceId_on_request_log()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.ActivityTraceId);
+        Assert.Matches(@"^[0-9a-f]{32}$", requestLog.ActivityTraceId);
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_sets_ActivitySpanId_on_request_log()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.ActivitySpanId);
+        Assert.Matches(@"^[0-9a-f]{16}$", requestLog.ActivitySpanId);
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_sets_Timestamp_on_logs()
+    {
+        var before = DateTimeOffset.UtcNow;
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+        var after = DateTimeOffset.UtcNow;
+
+        var logs = GetLogsFromThisTest();
+        Assert.All(logs, l =>
+        {
+            Assert.NotNull(l.Timestamp);
+            Assert.InRange(l.Timestamp.Value, before, after);
+        });
+    }
+
+    [Fact]
+    public void BlockingUnaryCall_sets_ActivityTraceId_on_request_log()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        interceptor.BlockingUnaryCall(
+            "Hello", context,
+            (req, ctx) => "World");
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(requestLog.ActivityTraceId);
+        Assert.Matches(@"^[0-9a-f]{32}$", requestLog.ActivityTraceId);
+    }
 }
 
 // Helper class for creating streaming call stubs

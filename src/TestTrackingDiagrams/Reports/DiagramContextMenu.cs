@@ -316,6 +316,9 @@ public static class DiagramContextMenu
                 plantumlLoad();
                 var renderQueue = [];
                 var rendering = false;
+                // Expose rendering lock globally so processRenderQueue (note state changes)
+                // can avoid calling plantuml.render() concurrently — TeaVM uses global state.
+                window._plantumlRendering = false;
                 function extractIflowMap(source) {
                     var map = {};
                     var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
@@ -327,8 +330,9 @@ public static class DiagramContextMenu
                     return map;
                 }
                 function processQueue() {
-                    if (rendering || renderQueue.length === 0) return;
+                    if (rendering || window._plantumlRendering || renderQueue.length === 0) return;
                     rendering = true;
+                    window._plantumlRendering = true;
                     var item = renderQueue.shift();
                     var lines = item.source.split('\n');
                     var mo = new MutationObserver(function() {
@@ -338,6 +342,7 @@ public static class DiagramContextMenu
                         if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
                         requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
                         rendering = false;
+                        window._plantumlRendering = false;
                         processQueue();
                     });
                     mo.observe(item.el, { childList: true, subtree: true });
@@ -347,6 +352,7 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         item.el.dataset.rendered = '1';
                         rendering = false;
+                        window._plantumlRendering = false;
                         var msg = (e && e.message) ? e.message : String(e);
                         if (msg.indexOf('too large') >= 0) {
                             item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
@@ -2079,7 +2085,7 @@ public static class DiagramContextMenu
             var _svgCache = {};
 
             function setNoteState(container, noteIdx, targetStep) {
-                if (container._noteRendering) return;
+                if (container._noteRendering || window._plantumlRendering) return;
                 if (!container._noteSteps) container._noteSteps = {};
                 if (container._noteSteps[noteIdx] === targetStep) return;
                 container._noteSteps[noteIdx] = targetStep;
@@ -2100,6 +2106,7 @@ public static class DiagramContextMenu
                 }
 
                 container._noteRendering = true;
+                window._plantumlRendering = true;
 
                 var done = false;
                 function afterRender() {
@@ -2107,6 +2114,7 @@ public static class DiagramContextMenu
                     done = true;
                     _svgCache[newSource] = container.innerHTML;
                     container._noteRendering = false;
+                    window._plantumlRendering = false;
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
                     requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
@@ -2124,6 +2132,7 @@ public static class DiagramContextMenu
                 } catch(e) {
                     mo.disconnect();
                     container._noteRendering = false;
+                    window._plantumlRendering = false;
                 }
 
                 var pollCount = 0;
@@ -2140,6 +2149,7 @@ public static class DiagramContextMenu
                         clearInterval(poll);
                         mo.disconnect();
                         container._noteRendering = false;
+                        window._plantumlRendering = false;
                     }
                 }, 250);
             }
@@ -2163,7 +2173,8 @@ public static class DiagramContextMenu
                 // Always initialize _noteSteps so that subsequent headers toggle
                 // or details changes see the correct state (step 2 = expanded)
                 if (!el._noteSteps) el._noteSteps = {};
-                el._truncateLines = window._truncateLines;
+                // Preserve per-element truncateLines if already set by a scenario-level change
+                if (el._truncateLines === undefined) el._truncateLines = window._truncateLines;
                 for (var i = 0; i < noteBlocks.length; i++) {
                     var targetStep;
                     if (state === 'expanded') { targetStep = 2; }
@@ -2182,6 +2193,11 @@ public static class DiagramContextMenu
             function processRenderQueue(queue, onAllDone) {
                 function processNext() {
                     if (queue.length === 0) { if (onAllDone) onAllDone(); return; }
+                    // Wait for any in-flight initial render to complete before proceeding
+                    if (window._plantumlRendering) {
+                        setTimeout(processNext, 50);
+                        return;
+                    }
                     var item = queue.shift();
                     var container = item.container;
                     var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines);
@@ -2196,12 +2212,14 @@ public static class DiagramContextMenu
                         return;
                     }
                     container._noteRendering = true;
+                    window._plantumlRendering = true;
                     var done = false;
                     function afterRender() {
                         if (done) return;
                         done = true;
                         _svgCache[newSource] = container.innerHTML;
                         container._noteRendering = false;
+                        window._plantumlRendering = false;
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
                         requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
@@ -2213,14 +2231,14 @@ public static class DiagramContextMenu
                         afterRender();
                     });
                     mo.observe(container, { childList: true, subtree: true });
-                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; processNext(); }
+                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; processNext(); }
                     var pollCount = 0;
                     var poll = setInterval(function() {
                         pollCount++;
                         if (done) { clearInterval(poll); return; }
                         var svg = container.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; processNext(); }
+                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; processNext(); }
                     }, 250);
                 }
                 processNext();
@@ -2320,7 +2338,7 @@ public static class DiagramContextMenu
                 });
                 // When switching to truncated at report level, sync container truncate lines from global
                 if (targetState === 'truncated') {
-                    document.querySelectorAll('[data-plantuml]').forEach(function(c) {
+                    document.querySelectorAll('[data-diagram-type="plantuml"]').forEach(function(c) {
                         c._truncateLines = window._truncateLines;
                     });
                     // Sync scenario dropdowns to match global value
@@ -2339,9 +2357,11 @@ public static class DiagramContextMenu
                 document.querySelectorAll('.truncate-lines-select').forEach(function(s) {
                     s.value = String(window._truncateLines);
                 });
-                // Update per-container truncate lines
+                // Update per-container truncate lines — include not-yet-decompressed elements
+                var allDiagrams = document.querySelectorAll('[data-diagram-type="plantuml"]');
+                allDiagrams.forEach(function(c) { c._truncateLines = window._truncateLines; });
+                // Only re-render containers that have been decompressed (have data-plantuml)
                 var containers = document.querySelectorAll('[data-plantuml]');
-                containers.forEach(function(c) { c._truncateLines = window._truncateLines; });
                 // Force re-render all containers as truncated (even if already truncated — line count changed)
                 processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 // Update report + scenario radio buttons to truncated state
@@ -2356,9 +2376,11 @@ public static class DiagramContextMenu
                 var scenario = sel.closest('details.scenario');
                 if (!scenario) return;
                 var scenarioLines = parseInt(sel.value, 10) || 20;
-                // Store per-container so headers toggle and details toggle preserve the value
+                // Store per-container — include not-yet-decompressed elements
+                var allDiagrams = scenario.querySelectorAll('[data-diagram-type="plantuml"]');
+                allDiagrams.forEach(function(c) { c._truncateLines = scenarioLines; });
+                // Only re-render containers that have been decompressed (have data-plantuml)
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                containers.forEach(function(c) { c._truncateLines = scenarioLines; });
                 processRenderQueue(buildDetailsQueue(containers, 'truncated', true));
                 syncRadioButtons(scenario, 'truncated');
             };
