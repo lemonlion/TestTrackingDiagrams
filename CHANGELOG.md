@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.26.0] - 2026-07-14
+
+### Added
+- **New `TestTrackingDiagrams.Extensions.AtlasDataApi` package**: MongoDB Atlas Data API extension with a `DelegatingHandler` (`AtlasDataApiTrackingMessageHandler`) that intercepts and classifies REST API operations. Supports 10 classified operations (FindOne, Find, InsertOne, InsertMany, UpdateOne, UpdateMany, DeleteOne, DeleteMany, ReplaceOne, Aggregate) with directional arrows (← read, → write, ↔ read-modify-write), three verbosity levels (Raw, Detailed, Summarised), JSON body metadata extraction (dataSource, database, collection, filter), ExcludedOperations filtering, and DI registration via `AddAtlasDataApiTestTracking()`.
+- **MongoDB Extension — 11 new classified operations**: Added Change Streams (`Watch` via `$changeStream` pipeline detection), Transactions (`CommitTransaction`, `AbortTransaction`), Admin (`DropDatabase`, `ServerStatus`, `DbStats`, `CollStats`), DDL (`RenameCollection`, `ListIndexes`), and Legacy (`MapReduce`). Total classified operations: 28 (up from 17).
+- **MongoDB Extension — directional arrows**: Detailed verbosity labels now include directional arrows: `←` for reads (Find, Aggregate, Count, Distinct, ListCollections, ListDatabases, ListIndexes), `→` for writes (Insert, Delete, DropIndex, DropCollection, DropDatabase, RenameCollection), `↔` for read-modify-write (FindAndModify, Update, BulkWrite). Schema and admin operations show no arrow.
+- **MongoDB Extension — enriched metadata**: `MongoDbOperationInfo` now includes `DocumentCount` (from insert arrays), `DocumentId` (from filter `_id`), `PipelineStages` (from aggregate pipelines), and `IsGridFs` (from `fs.files`/`fs.chunks` collections). Detailed labels show enriched info like `Insert (×5) → users` and `Aggregate ($match, $group) ← orders`.
+- **MongoDB Extension — `ExcludedOperations`**: New `HashSet<MongoDbOperation>` option to suppress specific operations from tracking (e.g. `ServerStatus`, `ListDatabases`).
+- **MongoDB Extension — `LogFilterText`**: New `bool` option (default: `true`) to control whether filter document text is included in Detailed mode request content.
+- **MongoDB Extension — `AddMongoDbTestTracking()` DI extension**: New service collection extension method that registers `MongoDbTrackingSubscriber` as a singleton with `IHttpContextAccessor` auto-resolved from DI.
+- **MongoDB Extension — `endSessions` ignored by default**: Added `endSessions` to the default `IgnoredCommands` set to suppress session cleanup noise.
+- **MongoDB Extension — response metadata extraction**: In Detailed mode, successful command replies now extract `n`, `nModified`, and `nUpserted` counts from the BSON reply and append them to response content.
+
 ## [2.25.2] - 2026-04-27
 
 ### Fixed

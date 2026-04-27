@@ -25,6 +25,15 @@ public class MongoDbOperationClassifierTests
     [InlineData("listCollections", MongoDbOperation.ListCollections)]
     [InlineData("listDatabases", MongoDbOperation.ListDatabases)]
     [InlineData("getMore", MongoDbOperation.GetMore)]
+    [InlineData("mapReduce", MongoDbOperation.MapReduce)]
+    [InlineData("commitTransaction", MongoDbOperation.CommitTransaction)]
+    [InlineData("abortTransaction", MongoDbOperation.AbortTransaction)]
+    [InlineData("dropDatabase", MongoDbOperation.DropDatabase)]
+    [InlineData("renameCollection", MongoDbOperation.RenameCollection)]
+    [InlineData("listIndexes", MongoDbOperation.ListIndexes)]
+    [InlineData("serverStatus", MongoDbOperation.ServerStatus)]
+    [InlineData("dbStats", MongoDbOperation.DbStats)]
+    [InlineData("collStats", MongoDbOperation.CollStats)]
     public void Classify_MapsCommandNameToCorrectOperation(string commandName, MongoDbOperation expected)
     {
         var command = new BsonDocument(commandName, "testcollection");
@@ -169,7 +178,7 @@ public class MongoDbOperationClassifierTests
 
         var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
 
-        Assert.Equal("Find → users", label);
+        Assert.Equal("Find ← users", label);
     }
 
     [Fact]
@@ -200,5 +209,302 @@ public class MongoDbOperationClassifierTests
         var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Raw);
 
         Assert.DoesNotContain("filter=", label);
+    }
+
+    // ─── Change stream detection ─────────────────────────────
+
+    [Fact]
+    public void Classify_AggregateWithChangeStreamPipeline_ReturnsWatch()
+    {
+        var pipeline = new BsonArray { new BsonDocument("$changeStream", new BsonDocument()) };
+        var command = new BsonDocument { { "aggregate", "orders" }, { "pipeline", pipeline } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Equal(MongoDbOperation.Watch, result.Operation);
+        Assert.Equal("orders", result.CollectionName);
+    }
+
+    [Fact]
+    public void Classify_AggregateWithoutChangeStreamPipeline_ReturnsAggregate()
+    {
+        var pipeline = new BsonArray { new BsonDocument("$match", new BsonDocument("status", "active")) };
+        var command = new BsonDocument { { "aggregate", "orders" }, { "pipeline", pipeline } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Equal(MongoDbOperation.Aggregate, result.Operation);
+    }
+
+    [Fact]
+    public void Classify_AggregateWithEmptyPipeline_ReturnsAggregate()
+    {
+        var command = new BsonDocument { { "aggregate", "orders" }, { "pipeline", new BsonArray() } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Equal(MongoDbOperation.Aggregate, result.Operation);
+    }
+
+    [Fact]
+    public void Classify_AggregateWithNoPipeline_ReturnsAggregate()
+    {
+        var command = new BsonDocument { { "aggregate", "orders" } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Equal(MongoDbOperation.Aggregate, result.Operation);
+    }
+
+    // ─── Directional arrows in Detailed mode ─────────────────
+
+    [Theory]
+    [InlineData(MongoDbOperation.Find, "users", "Find ← users")]
+    [InlineData(MongoDbOperation.Aggregate, "orders", "Aggregate ← orders")]
+    [InlineData(MongoDbOperation.Watch, "orders", "Watch ← orders")]
+    [InlineData(MongoDbOperation.Count, "users", "Count ← users")]
+    [InlineData(MongoDbOperation.Distinct, "users", "Distinct ← users")]
+    [InlineData(MongoDbOperation.GetMore, "users", "GetMore ← users")]
+    [InlineData(MongoDbOperation.MapReduce, "orders", "MapReduce ← orders")]
+    [InlineData(MongoDbOperation.Insert, "users", "Insert → users")]
+    [InlineData(MongoDbOperation.Update, "users", "Update → users")]
+    [InlineData(MongoDbOperation.Delete, "users", "Delete → users")]
+    [InlineData(MongoDbOperation.BulkWrite, "users", "BulkWrite → users")]
+    [InlineData(MongoDbOperation.FindAndModify, "users", "FindAndModify ↔ users")]
+    public void GetDiagramLabel_Detailed_ShowsDirectionalArrow(
+        MongoDbOperation op, string collection, string expectedLabel)
+    {
+        var info = new MongoDbOperationInfo(op, "mydb", collection);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal(expectedLabel, label);
+    }
+
+    [Theory]
+    [InlineData(MongoDbOperation.ListCollections)]
+    [InlineData(MongoDbOperation.ListDatabases)]
+    [InlineData(MongoDbOperation.ServerStatus)]
+    [InlineData(MongoDbOperation.DbStats)]
+    [InlineData(MongoDbOperation.CollStats)]
+    [InlineData(MongoDbOperation.CommitTransaction)]
+    [InlineData(MongoDbOperation.AbortTransaction)]
+    public void GetDiagramLabel_Detailed_AdminOps_NoArrow(MongoDbOperation op)
+    {
+        var info = new MongoDbOperationInfo(op, "mydb", null);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal(op.ToString(), label);
+    }
+
+    [Theory]
+    [InlineData(MongoDbOperation.CreateIndex, "users", "CreateIndex → users")]
+    [InlineData(MongoDbOperation.DropIndex, "users", "DropIndex → users")]
+    [InlineData(MongoDbOperation.CreateCollection, "users", "CreateCollection → users")]
+    [InlineData(MongoDbOperation.DropCollection, "users", "DropCollection → users")]
+    [InlineData(MongoDbOperation.DropDatabase, null, "DropDatabase")]
+    [InlineData(MongoDbOperation.RenameCollection, "users", "RenameCollection → users")]
+    [InlineData(MongoDbOperation.ListIndexes, "users", "ListIndexes ← users")]
+    public void GetDiagramLabel_Detailed_SchemaOps_DirectionalArrow(
+        MongoDbOperation op, string? collection, string expectedLabel)
+    {
+        var info = new MongoDbOperationInfo(op, "mydb", collection);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal(expectedLabel, label);
+    }
+
+    // ─── Document count extraction ───────────────────────────
+
+    [Fact]
+    public void Classify_Insert_ExtractsDocumentCount()
+    {
+        var docs = new BsonArray { new BsonDocument("name", "Alice"), new BsonDocument("name", "Bob") };
+        var command = new BsonDocument { { "insert", "users" }, { "documents", docs } };
+
+        var result = MongoDbOperationClassifier.Classify("insert", "mydb", command);
+
+        Assert.Equal(2, result.DocumentCount);
+    }
+
+    [Fact]
+    public void Classify_InsertSingleDocument_CountIsOne()
+    {
+        var docs = new BsonArray { new BsonDocument("name", "Alice") };
+        var command = new BsonDocument { { "insert", "users" }, { "documents", docs } };
+
+        var result = MongoDbOperationClassifier.Classify("insert", "mydb", command);
+
+        Assert.Equal(1, result.DocumentCount);
+    }
+
+    [Fact]
+    public void Classify_Find_DocumentCountIsNull()
+    {
+        var command = new BsonDocument { { "find", "users" }, { "filter", new BsonDocument() } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.Null(result.DocumentCount);
+    }
+
+    // ─── Document ID extraction ──────────────────────────────
+
+    [Fact]
+    public void Classify_FindWithIdFilter_ExtractsDocumentId()
+    {
+        var filter = new BsonDocument("_id", "abc123");
+        var command = new BsonDocument { { "find", "users" }, { "filter", filter } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.Equal("abc123", result.DocumentId);
+    }
+
+    [Fact]
+    public void Classify_FindWithObjectIdFilter_ExtractsDocumentId()
+    {
+        var oid = new ObjectId("507f1f77bcf86cd799439011");
+        var filter = new BsonDocument("_id", oid);
+        var command = new BsonDocument { { "find", "users" }, { "filter", filter } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.Equal("507f1f77bcf86cd799439011", result.DocumentId);
+    }
+
+    [Fact]
+    public void Classify_FindWithComplexFilter_DocumentIdIsNull()
+    {
+        var filter = new BsonDocument("age", new BsonDocument("$gt", 25));
+        var command = new BsonDocument { { "find", "users" }, { "filter", filter } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.Null(result.DocumentId);
+    }
+
+    [Fact]
+    public void Classify_DeleteWithIdFilter_ExtractsDocumentId()
+    {
+        var deletes = new BsonArray
+        {
+            new BsonDocument { { "q", new BsonDocument("_id", "xyz789") }, { "limit", 1 } }
+        };
+        var command = new BsonDocument { { "delete", "users" }, { "deletes", deletes } };
+
+        var result = MongoDbOperationClassifier.Classify("delete", "mydb", command);
+
+        Assert.Equal("xyz789", result.DocumentId);
+    }
+
+    // ─── Pipeline stages extraction ──────────────────────────
+
+    [Fact]
+    public void Classify_Aggregate_ExtractsPipelineStages()
+    {
+        var pipeline = new BsonArray
+        {
+            new BsonDocument("$match", new BsonDocument("status", "active")),
+            new BsonDocument("$group", new BsonDocument("_id", "$category")),
+            new BsonDocument("$sort", new BsonDocument("count", -1))
+        };
+        var command = new BsonDocument { { "aggregate", "orders" }, { "pipeline", pipeline } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Equal("$match, $group, $sort", result.PipelineStages);
+    }
+
+    [Fact]
+    public void Classify_AggregateEmptyPipeline_PipelineStagesIsNull()
+    {
+        var command = new BsonDocument { { "aggregate", "orders" }, { "pipeline", new BsonArray() } };
+
+        var result = MongoDbOperationClassifier.Classify("aggregate", "mydb", command);
+
+        Assert.Null(result.PipelineStages);
+    }
+
+    [Fact]
+    public void Classify_NonAggregate_PipelineStagesIsNull()
+    {
+        var command = new BsonDocument { { "find", "users" }, { "filter", new BsonDocument() } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.Null(result.PipelineStages);
+    }
+
+    // ─── GridFS detection ────────────────────────────────────
+
+    [Theory]
+    [InlineData("fs.files")]
+    [InlineData("fs.chunks")]
+    public void Classify_GridFsCollection_SetsIsGridFs(string collectionName)
+    {
+        var command = new BsonDocument { { "find", collectionName } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.True(result.IsGridFs);
+    }
+
+    [Fact]
+    public void Classify_RegularCollection_IsGridFsFalse()
+    {
+        var command = new BsonDocument { { "find", "users" } };
+
+        var result = MongoDbOperationClassifier.Classify("find", "mydb", command);
+
+        Assert.False(result.IsGridFs);
+    }
+
+    // ─── Enriched labels with metadata ───────────────────────
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_InsertWithDocumentCount()
+    {
+        var info = new MongoDbOperationInfo(MongoDbOperation.Insert, "mydb", "users",
+            DocumentCount: 5);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal("Insert (×5) → users", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_AggregateWithPipelineStages()
+    {
+        var info = new MongoDbOperationInfo(MongoDbOperation.Aggregate, "mydb", "orders",
+            PipelineStages: "$match, $group");
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal("Aggregate ($match, $group) ← orders", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_GridFs_ShowsAnnotation()
+    {
+        var info = new MongoDbOperationInfo(MongoDbOperation.Insert, "mydb", "fs.files",
+            IsGridFs: true);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Detailed);
+
+        Assert.Equal("Insert → fs.files (GridFS)", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Summarised_IgnoresMetadata()
+    {
+        var info = new MongoDbOperationInfo(MongoDbOperation.Insert, "mydb", "users",
+            DocumentCount: 5, IsGridFs: false);
+
+        var label = MongoDbOperationClassifier.GetDiagramLabel(info, MongoDbTrackingVerbosity.Summarised);
+
+        Assert.Equal("Insert", label);
     }
 }

@@ -18,5 +18,15 @@ public enum MongoDbOperation
     ListCollections,
     ListDatabases,
     GetMore,
+    Watch,
+    MapReduce,
+    CommitTransaction,
+    AbortTransaction,
+    DropDatabase,
+    RenameCollection,
+    ListIndexes,
+    ServerStatus,
+    DbStats,
+    CollStats,
     Other
 }

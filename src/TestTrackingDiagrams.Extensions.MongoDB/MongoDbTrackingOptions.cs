@@ -15,7 +15,7 @@ public record MongoDbTrackingOptions
     [
         "isMaster", "hello", "saslStart", "saslContinue",
         "ping", "buildInfo", "getLastError",
-        "killCursors"
+        "killCursors", "endSessions"
     ];
 
     /// <summary>
@@ -27,4 +27,16 @@ public record MongoDbTrackingOptions
     public MongoDbTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
+
+    /// <summary>
+    /// Classified operations to exclude from tracking.
+    /// Unlike <see cref="IgnoredCommands"/> (which filters raw driver command names),
+    /// this filters at the classified operation level.
+    /// </summary>
+    public HashSet<MongoDbOperation> ExcludedOperations { get; set; } = [];
+
+    /// <summary>
+    /// Whether to include filter BSON text in the logged content for Detailed verbosity.
+    /// </summary>
+    public bool LogFilterText { get; set; } = true;
 }

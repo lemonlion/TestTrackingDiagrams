@@ -428,4 +428,104 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         var registered = TrackingComponentRegistry.GetRegisteredComponents();
         Assert.Contains(registered, c => c.ComponentName == subscriber.ComponentName);
     }
+
+    // ─── ExcludedOperations ──────────────────────────────────
+
+    [Fact]
+    public void ExcludedOperations_SkipsExcludedOps()
+    {
+        var options = MakeOptions();
+        options.ExcludedOperations = [MongoDbOperation.Find];
+        var subscriber = new MongoDbTrackingSubscriber(options);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Empty(logs);
+    }
+
+    [Fact]
+    public void ExcludedOperations_AllowsNonExcludedOps()
+    {
+        var options = MakeOptions();
+        options.ExcludedOperations = [MongoDbOperation.Find];
+        var subscriber = new MongoDbTrackingSubscriber(options);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("insert"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("insert"));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    // ─── LogFilterText ───────────────────────────────────────
+
+    [Fact]
+    public void LogFilterText_False_SuppressesFilterInContent()
+    {
+        var options = MakeOptions();
+        options.LogFilterText = false;
+        var subscriber = new MongoDbTrackingSubscriber(options);
+        var command = new BsonDocument { { "find", "users" }, { "filter", new BsonDocument("age", 25) } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find", command));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void LogFilterText_True_ShowsFilterInContent()
+    {
+        var options = MakeOptions();
+        options.LogFilterText = true;
+        var subscriber = new MongoDbTrackingSubscriber(options);
+        var command = new BsonDocument { { "find", "users" }, { "filter", new BsonDocument("age", 25) } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find", command));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Contains("age", log.Content!);
+    }
+
+    // ─── endSessions ignored by default ──────────────────────
+
+    [Fact]
+    public void EndSessions_IgnoredByDefault()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+
+        subscriber.OnCommandStarted(MakeStartedEvent("endSessions"));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Empty(logs);
+    }
+
+    // ─── Response metadata extraction ────────────────────────
+
+    [Fact]
+    public void SucceededResponse_Detailed_IncludesRowsAffected()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+
+        subscriber.OnCommandStarted(MakeStartedEvent("update"));
+        var reply = new BsonDocument { { "ok", 1 }, { "n", 3 }, { "nModified", 2 } };
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("update", reply: reply));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("n=3", log.Content!);
+        Assert.Contains("nModified=2", log.Content!);
+    }
+
+    [Fact]
+    public void SucceededResponse_Detailed_NoRowsAffected_ContentIsNull()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find"));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
 }

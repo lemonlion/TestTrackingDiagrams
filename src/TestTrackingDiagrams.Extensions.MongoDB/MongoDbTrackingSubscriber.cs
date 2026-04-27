@@ -55,6 +55,9 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             e.DatabaseNamespace?.DatabaseName,
             e.Command);
 
+        if (_options.ExcludedOperations.Contains(opInfo.Operation))
+            return;
+
         if (effectiveVerbosity == MongoDbTrackingVerbosity.Summarised &&
             opInfo.Operation == MongoDbOperation.Other)
             return;
@@ -66,7 +69,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
         {
             MongoDbTrackingVerbosity.Summarised => null,
             MongoDbTrackingVerbosity.Raw => e.Command?.ToString(),
-            _ => opInfo.FilterText // Detailed: show the filter
+            _ => _options.LogFilterText ? opInfo.FilterText : null // Detailed: show filter if enabled
         };
 
         var traceId = Guid.NewGuid();
@@ -97,7 +100,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
         {
             MongoDbTrackingVerbosity.Summarised => null,
             MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
-            _ => null // Detailed: no response body
+            _ => ExtractResponseMetadata(e.Reply) // Detailed: show rows affected if present
         };
 
         RequestResponseLogger.Log(new RequestResponseLog(
@@ -128,6 +131,22 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
         {
             Phase = TestPhaseContext.Current
         });
+    }
+
+    private static string? ExtractResponseMetadata(BsonDocument? reply)
+    {
+        if (reply is null) return null;
+
+        var parts = new List<string>();
+
+        if (reply.TryGetValue("n", out var n) && n.IsInt32)
+            parts.Add($"n={n.AsInt32}");
+        if (reply.TryGetValue("nModified", out var nModified) && nModified.IsInt32)
+            parts.Add($"nModified={nModified.AsInt32}");
+        if (reply.TryGetValue("nUpserted", out var nUpserted) && nUpserted.IsInt32 && nUpserted.AsInt32 > 0)
+            parts.Add($"nUpserted={nUpserted.AsInt32}");
+
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
     }
 
     private Uri BuildUri(MongoDbOperationInfo opInfo, MongoDbTrackingVerbosity verbosity)
