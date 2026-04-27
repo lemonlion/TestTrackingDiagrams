@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.26.1] - 2026-07-14
+
+### Added
+- **gRPC Extension — `AddTrackedGrpcClient<TClient>()` DI extension**: New `IServiceCollection` extension method that registers a singleton tracked gRPC client with `IHttpContextAccessor` auto-resolved from DI, matching the existing pattern used by BigQuery, Bigtable, MongoDB, Kafka, and other extensions. Eliminates the need for manual `HttpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>()` wiring.
+- **gRPC Extension — auto-resolve `IHttpContextAccessor` in `CreateTestTrackingGrpcClient`**: Both `CreateTestTrackingGrpcClient` and `CreateTestTrackingGrpcClientWithChannel` now auto-resolve `IHttpContextAccessor` from `factory.Services` when not explicitly set on `GrpcTrackingOptions`. This ensures dual-resolution test identity works out of the box for the test → SUT direction.
+
 ## [2.26.0] - 2026-07-14
 
 ### Added

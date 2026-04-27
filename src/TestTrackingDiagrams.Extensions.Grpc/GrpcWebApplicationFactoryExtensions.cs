@@ -1,7 +1,9 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
@@ -46,6 +48,8 @@ public static class GrpcWebApplicationFactoryExtensions
         where TEntryPoint : class
         where TClient : ClientBase
     {
+        options.HttpContextAccessor ??= factory.Services.GetService<IHttpContextAccessor>();
+
         var handler = new GrpcResponseVersionHandler(factory.Server.CreateHandler());
         var channel = GrpcChannel.ForAddress(factory.Server.BaseAddress, new GrpcChannelOptions
         {
@@ -71,6 +75,8 @@ public static class GrpcWebApplicationFactoryExtensions
         where TEntryPoint : class
         where TClient : ClientBase
     {
+        options.HttpContextAccessor ??= factory.Services.GetService<IHttpContextAccessor>();
+
         var handler = new GrpcResponseVersionHandler(factory.Server.CreateHandler());
         var channel = GrpcChannel.ForAddress(factory.Server.BaseAddress, new GrpcChannelOptions
         {
