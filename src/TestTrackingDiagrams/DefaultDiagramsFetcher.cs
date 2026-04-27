@@ -107,7 +107,8 @@ public static class DefaultDiagramsFetcher
             sequenceDiagramArrowColors: options.SequenceDiagramArrowColors,
             sequenceDiagramParticipantColors: options.SequenceDiagramParticipantColors,
             dependencyColors: options.DependencyColors,
-            serviceTypeOverrides: options.ServiceTypeOverrides).ToArray();
+            serviceTypeOverrides: options.ServiceTypeOverrides,
+            graphQlBodyFormat: options.GraphQlBodyFormat).ToArray();
     }
 
     public static (DiagramAsCode[] TruncatedDiagrams, DiagramAsCode[] FullDiagrams) GetCiSummaryDiagrams(DiagramsFetcherOptions options, int truncateNotesAfterLines = 10)

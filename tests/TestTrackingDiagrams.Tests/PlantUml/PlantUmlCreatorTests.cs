@@ -250,6 +250,101 @@ public class PlantUmlCreatorTests
         Assert.DoesNotContain("mutation", plantUml);
     }
 
+    // ─── GraphQL body formatting ────────────────────────────────
+
+    [Fact]
+    public void GraphQL_FormattedWithMetadata_formats_query_in_note()
+    {
+        var graphqlContent = """{"query":"query GetUser($id: ID!) { user(id: $id) { name } }","variables":{"id":"123"}}""";
+        var logs = new[] { MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, graphQlBodyFormat: GraphQlBodyFormat.FormattedWithMetadata).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("query GetUser($id: ID!) {", plantUml);
+        Assert.Contains("  user(id: $id) {", plantUml);
+        Assert.Contains("    name", plantUml);
+        Assert.Contains("variables:", plantUml);
+        Assert.Contains("\"id\": \"123\"", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_FormattedQueryOnly_shows_only_formatted_query_without_headers()
+    {
+        var graphqlContent = """{"query":"{ user { name } }","variables":{"id":"123"}}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent,
+                headers: [("Content-Type", "application/json"), ("Authorization", "Bearer tok")]),
+        };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, graphQlBodyFormat: GraphQlBodyFormat.FormattedQueryOnly).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("user {", plantUml);
+        Assert.Contains("  name", plantUml);
+        Assert.DoesNotContain("Content-Type", plantUml);
+        Assert.DoesNotContain("Authorization", plantUml);
+        Assert.DoesNotContain("variables", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_Formatted_shows_formatted_query_with_headers()
+    {
+        var graphqlContent = """{"query":"{ user { name } }"}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent,
+                headers: [("Content-Type", "application/json")]),
+        };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, graphQlBodyFormat: GraphQlBodyFormat.Formatted).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("user {", plantUml);
+        Assert.Contains("  name", plantUml);
+        Assert.Contains("Content-Type", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_Json_mode_shows_json_pretty_printed_body()
+    {
+        var graphqlContent = """{"query":"{ user { name } }"}""";
+        var logs = new[] { MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, graphQlBodyFormat: GraphQlBodyFormat.Json).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        // In Json mode, the body is JSON pretty-printed — query value stays as single-line string
+        Assert.Contains("\"query\": \"{ user { name } }\"", plantUml);
+    }
+
+    [Fact]
+    public void GraphQL_with_FocusFields_falls_back_to_json_mode()
+    {
+        var graphqlContent = """{"query":"query GetUser { user { name age } }"}""";
+        var logs = new[]
+        {
+            MakeRequest(method: "POST", uri: "http://example.com/graphql", content: graphqlContent,
+                focusFields: ["query"]),
+        };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs,
+            graphQlBodyFormat: GraphQlBodyFormat.FormattedWithMetadata).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        // FocusFields forces Json mode — field highlighting needs JSON structure
+        Assert.Contains("\"query\":", plantUml);
+    }
+
+    [Fact]
+    public void Non_GraphQL_json_is_unaffected_by_GraphQL_format_setting()
+    {
+        var jsonContent = """{"name":"Alice","age":30}""";
+        var logs = new[] { MakeRequest(method: "POST", uri: "http://example.com/api/users", content: jsonContent) };
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, graphQlBodyFormat: GraphQlBodyFormat.FormattedWithMetadata).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        // Regular JSON gets pretty-printed as before
+        Assert.Contains("\"name\": \"Alice\"", plantUml);
+        Assert.Contains("\"age\": 30", plantUml);
+    }
+
     // ─── Basic response arrow ───────────────────────────────────
 
     [Fact]

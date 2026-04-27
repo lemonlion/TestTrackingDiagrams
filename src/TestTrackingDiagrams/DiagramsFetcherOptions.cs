@@ -27,4 +27,5 @@ public record DiagramsFetcherOptions
     public bool SequenceDiagramParticipantColors { get; set; }
     public Dictionary<string, string>? DependencyColors { get; set; }
     public Dictionary<string, string>? ServiceTypeOverrides { get; set; }
+    public GraphQlBodyFormat GraphQlBodyFormat { get; set; } = GraphQlBodyFormat.FormattedWithMetadata;
 }

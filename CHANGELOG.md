@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.23.11] - 2026-04-27
+
+### Added
+- **GraphQL query formatting in sequence diagram notes**: GraphQL request bodies are now automatically detected and formatted with proper indentation in diagram notes, replacing the previous single-line JSON string representation. The GraphQL query is parsed and pretty-printed with brace-depth indentation, while arguments inside parentheses (e.g. HotChocolate filtering/sorting) stay inline. Four configurable display modes via `GraphQlBodyFormat` on `ReportConfigurationOptions`:
+  - `Json` — Previous behaviour: JSON pretty-print with query as a single-line string value.
+  - `FormattedQueryOnly` — Formatted GraphQL query only; HTTP headers and metadata are suppressed.
+  - `Formatted` — Formatted GraphQL query with HTTP headers shown above.
+  - `FormattedWithMetadata` (default) — Formatted GraphQL query with HTTP headers, plus `variables` and `extensions` sections rendered below.
+- When `FocusFields` are in use, GraphQL formatting automatically falls back to `Json` mode so JSON field highlighting works correctly.
+
 ## [2.23.10] - 2026-04-27
 
 ### Fixed

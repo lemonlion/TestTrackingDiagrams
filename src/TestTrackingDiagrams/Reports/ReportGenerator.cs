@@ -75,7 +75,8 @@ public static class ReportGenerator
             SequenceDiagramArrowColors = options.SequenceDiagramArrowColors,
             SequenceDiagramParticipantColors = options.SequenceDiagramParticipantColors,
             DependencyColors = options.DependencyColors,
-            ServiceTypeOverrides = options.ServiceTypeOverrides
+            ServiceTypeOverrides = options.ServiceTypeOverrides,
+            GraphQlBodyFormat = options.GraphQlBodyFormat
         };
         var diagrams = DefaultDiagramsFetcher.GetDiagramsFetcher(fetcherOptions)();
 

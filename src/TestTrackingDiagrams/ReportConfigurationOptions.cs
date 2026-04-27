@@ -197,6 +197,9 @@ public record ReportConfigurationOptions
     /// <summary>User overrides mapping service names to dependency categories. Keys are service names, values are category strings (e.g. <c>"CosmosDB"</c>, <c>"Redis"</c>).</summary>
     public Dictionary<string, string>? ServiceTypeOverrides { get; set; }
 
+    /// <summary>Controls how GraphQL request bodies are displayed in sequence diagram notes. Default: <see cref="GraphQlBodyFormat.FormattedWithMetadata"/>.</summary>
+    public GraphQlBodyFormat GraphQlBodyFormat { get; set; } = GraphQlBodyFormat.FormattedWithMetadata;
+
     /// <summary>Maximum number of parameter columns shown per parameterized test group. Default: <c>10</c>.</summary>
     public int MaxParameterColumns { get; set; } = 10;
 

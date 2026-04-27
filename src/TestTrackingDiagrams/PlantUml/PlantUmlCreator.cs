@@ -47,7 +47,8 @@ public static partial class PlantUmlCreator
         bool sequenceDiagramArrowColors = true,
         bool sequenceDiagramParticipantColors = false,
         Dictionary<string, string>? dependencyColors = null,
-        Dictionary<string, string>? serviceTypeOverrides = null)
+        Dictionary<string, string>? serviceTypeOverrides = null,
+        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -82,7 +83,8 @@ public static partial class PlantUmlCreator
                 sequenceDiagramArrowColors,
                 sequenceDiagramParticipantColors,
                 dependencyColors,
-                serviceTypeOverrides);
+                serviceTypeOverrides,
+                graphQlBodyFormat);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -112,7 +114,8 @@ public static partial class PlantUmlCreator
         bool sequenceDiagramArrowColors = true,
         bool sequenceDiagramParticipantColors = false,
         Dictionary<string, string>? dependencyColors = null,
-        Dictionary<string, string>? serviceTypeOverrides = null)
+        Dictionary<string, string>? serviceTypeOverrides = null,
+        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
     {
         var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength,
             sequenceDiagramArrowColors, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides);
@@ -178,7 +181,7 @@ public static partial class PlantUmlCreator
                     if (requestPreFormattingProcessor is not null)
                         content = requestPreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis, graphQlBodyFormat);
 
                     if (requestPostFormattingProcessor is not null)
                         noteContent = requestPostFormattingProcessor(noteContent);
@@ -441,9 +444,21 @@ public static partial class PlantUmlCreator
         Func<string, string>? midFormattingProcessor = null,
         string[]? focusFields = null,
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
-        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray)
+        FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
+        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
     {
-        var parsedContent = TryFormatAsJson(content);
+        // For requests, try GraphQL formatting first (unless FocusFields are in use, which need JSON)
+        string? parsedContent = null;
+        var suppressHeaders = false;
+
+        if (type is RequestResponseType.Request && graphQlBodyFormat != GraphQlBodyFormat.Json && focusFields is not { Length: > 0 })
+        {
+            parsedContent = GraphQlBodyFormatter.TryFormat(content, graphQlBodyFormat);
+            if (parsedContent is not null && graphQlBodyFormat == GraphQlBodyFormat.FormattedQueryOnly)
+                suppressHeaders = true;
+        }
+
+        parsedContent ??= TryFormatAsJson(content);
 
         if (parsedContent is null)
         {
@@ -462,7 +477,7 @@ public static partial class PlantUmlCreator
             formattedContent = JsonFocusFormatter.FormatWithFocus(formattedContent, focusFields, focusEmphasis, focusDeEmphasis);
         }
 
-        var headersOnTop = string.Join(Environment.NewLine, headers
+        var headersOnTop = suppressHeaders ? "" : string.Join(Environment.NewLine, headers
             .Where(y => !excludedHeaders.Contains(y.Key))
             .OrderBy(y => y.Key)
             .SelectMany(y => BatchGray($"[{y.Key}={y.Value}]")));
