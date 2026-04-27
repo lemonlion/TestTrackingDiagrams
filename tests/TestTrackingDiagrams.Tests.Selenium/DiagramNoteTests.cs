@@ -39,6 +39,10 @@ public class DiagramNoteTests : IDisposable
 
     private IWebElement WaitForDiagramSvg(int timeoutSeconds = 20)
     {
+        // Force rendering — IntersectionObserver doesn't fire reliably in headless Chrome
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body);");
+
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
         return wait.Until(d =>
         {
@@ -262,17 +266,20 @@ public class DiagramNoteTests : IDisposable
         ExpandFirstScenarioWithDiagram();
         WaitForDiagramSvg();
 
+        // Scope to the first scenario — other scenarios remain in truncated state
+        var scenario = _driver.FindElement(By.CssSelector("details.scenario"));
+
         // Click scenario-level "Collapsed" radio button
-        var collapseBtn = _driver.FindElement(By.CssSelector(
+        var collapseBtn = scenario.FindElement(By.CssSelector(
             ".diagram-toggle .details-radio-btn[data-state='collapsed']"));
         collapseBtn.Click();
 
         // Wait for re-render — plus button should appear
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        wait.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > 0);
+        wait.Until(d => scenario.FindElements(By.CssSelector("[data-note-btn='plus']")).Count > 0);
 
-        var plusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='plus']"));
-        var minusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='minus']"));
+        var plusBtns = scenario.FindElements(By.CssSelector("[data-note-btn='plus']"));
+        var minusBtns = scenario.FindElements(By.CssSelector("[data-note-btn='minus']"));
         Assert.True(plusBtns.Count > 0, "Plus button should appear when note is collapsed");
         Assert.Equal(0, minusBtns.Count);
     }

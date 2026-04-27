@@ -45,6 +45,10 @@ public class DiagramZoomTests : IDisposable
 
     private IWebElement WaitForDiagramSvg(int timeoutSeconds = 20)
     {
+        // Force rendering — IntersectionObserver doesn't fire reliably in headless Chrome
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body);");
+
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
         return wait.Until(d =>
         {

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.25.1] - 2026-04-27
+
+### Fixed
+- **Selenium tests**: Fixed `WaitForDiagramSvg` timeout in CI by explicitly calling `_renderDiagramsInContainer` before polling for SVG — `IntersectionObserver` doesn't fire reliably in headless Chrome. Applied to all 5 affected test files (`DiagramNoteTests`, `ContextMenuExtendedTests`, `ScenarioInteractionTests`, `DiagramZoomTests`, `DependencyColoringTests`).
+- **`Collapsed_note_shows_plus_button_in_top_right`**: Fixed false assertion failure by scoping button selectors to the target scenario instead of the entire page — other scenarios' minus buttons (in truncated state) were being matched.
+
 ## [2.25.0] - 2026-04-27
 
 ### Added
