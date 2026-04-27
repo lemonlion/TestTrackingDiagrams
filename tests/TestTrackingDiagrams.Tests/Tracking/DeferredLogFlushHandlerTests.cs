@@ -89,6 +89,26 @@ public class DeferredLogFlushHandlerTests
         Assert.NotNull(handler);
     }
 
+    [Fact]
+    public async Task Forwards_response_without_flushing_when_fetcher_throws()
+    {
+        PendingRequestResponseLogs.Clear();
+        PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
+            "Svc", "Caller", "Op", null, null, new Uri("mock://svc/op")));
+
+        var handler = new DeferredLogFlushHandler(() => throw new InvalidOperationException("No test context"))
+        {
+            InnerHandler = new FakeInnerHandler()
+        };
+
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var response = await client.GetAsync("/test");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(PendingRequestResponseLogs.Count > 0, "Pending logs should NOT have been flushed");
+        Assert.Empty(GetLogsForTest());
+    }
+
     private class FakeInnerHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(

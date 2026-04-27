@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.1] - 2026-04-27
+
+### Fixed
+- **`TestTrackingMessageHandler`** — exception from `CurrentTestInfoFetcher` (e.g. during app startup when no test is active) no longer crashes the HTTP call. The request is forwarded without tracking instead.
+- **`DeferredLogFlushHandler`** — same fix: a throwing fetcher no longer prevents the HTTP response from being returned. Pending log entries remain queued for the next successful invocation.
+- Partial context headers (test name present but no test ID) now gracefully skip tracking instead of throwing.
+
 ## [2.27.0] - 2025-07-25
 
 ### Added

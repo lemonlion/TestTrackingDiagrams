@@ -141,21 +141,32 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First()!, currentTestIdHeaders.First()!) : _currentTestInfoFetcher;
 
+        // Resolve test info once — if the fetcher throws, skip all tracking and just forward the request.
+        (string Name, string Id) currentTestInfo;
+        try
+        {
+            if (currentTestInfoFetcher is null)
+                return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            currentTestInfo = currentTestInfoFetcher();
+        }
+        catch
+        {
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
         var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()!) : Guid.NewGuid();
 
         if (!hasTraceIdHeader)
             request.Headers.Add(TestTrackingHttpHeaders.TraceIdHeader, new[] { traceId.ToString() });
 
         if (!hasCurrentTestNameHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestNameHeader, new[] { currentTestInfoFetcher!().Name });
+            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestNameHeader, new[] { currentTestInfo.Name });
 
         if (!hasCurrentTestIdHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfoFetcher!().Id.ToString() });
+            request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfo.Id.ToString() });
 
         if (!hasCallerNameHeader)
             request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName! });
-
-        var currentTestInfo = currentTestInfoFetcher!();
 
         var serviceName = ResolveServiceName(request.RequestUri!.Port);
 

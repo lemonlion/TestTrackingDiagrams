@@ -933,23 +933,26 @@ public class TestTrackingMessageHandlerTests : IDisposable
     // ─── Partial context headers (only name, no ID) ─────────────
 
     [Fact]
-    public async Task Context_with_test_name_but_no_test_id_throws_because_fetcher_assumes_both()
+    public async Task Context_with_test_name_but_no_test_id_skips_tracking_instead_of_crashing()
     {
         // When hasCurrentTestNameHeader is true, the handler replaces the test info fetcher
         // with one that reads both name and ID from context headers. If only the name header
-        // is present, the ID StringValues is empty and .First() throws.
+        // is present, the ID StringValues is empty and .First() throws — but the safety
+        // catch ensures the request is still forwarded without tracking.
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Context Name Only"));
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
             CallingServiceName = "Caller",
-            CurrentTestInfoFetcher = () => ("Fetcher Name", "fetcher-id"),
+            CurrentTestInfoFetcher = () => ("Fetcher Name", _testId),
         };
         using var invoker = CreateInvoker(options, accessor);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => invoker.SendAsync(MakeGetRequest(), CancellationToken.None));
+        var response = await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(GetLogsFromThisTest());
     }
 
     // ─── Fixed service name ignores port completely ─────────────
@@ -1515,5 +1518,46 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
         Assert.NotNull(requestLog.ActivitySpanId);
         Assert.Matches(@"^[0-9a-f]{16}$", requestLog.ActivitySpanId);
+    }
+
+    // ─── Fetcher exception safety ───────────────────────────────
+
+    [Fact]
+    public async Task Forwards_request_without_tracking_when_fetcher_throws()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            FixedNameForReceivingService = "Svc",
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => throw new InvalidOperationException("No test context"),
+        };
+        using var invoker = CreateInvoker(options);
+
+        var response = await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        Assert.NotNull(response);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public async Task Response_body_is_readable_when_fetcher_throws()
+    {
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("expected-body")
+        };
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            FixedNameForReceivingService = "Svc",
+            CallingServiceName = "Caller",
+            CurrentTestInfoFetcher = () => throw new InvalidOperationException("No test context"),
+        };
+        using var invoker = CreateInvoker(options);
+
+        var response = await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Equal("expected-body", body);
     }
 }

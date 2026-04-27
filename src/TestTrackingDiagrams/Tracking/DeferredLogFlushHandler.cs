@@ -29,8 +29,16 @@ public class DeferredLogFlushHandler : DelegatingHandler
 
         if (PendingRequestResponseLogs.Count > 0)
         {
-            var (testName, testId) = _testInfoFetcher();
-            PendingRequestResponseLogs.FlushAll(testName, testId);
+            try
+            {
+                var (testName, testId) = _testInfoFetcher();
+                PendingRequestResponseLogs.FlushAll(testName, testId);
+            }
+            catch
+            {
+                // Fetcher threw (e.g. no test context during startup) — skip flush.
+                // Entries remain pending for the next successful invocation.
+            }
         }
 
         return response;
