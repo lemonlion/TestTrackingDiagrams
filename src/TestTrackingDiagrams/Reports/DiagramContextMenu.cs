@@ -1694,9 +1694,30 @@ public static class DiagramContextMenu
                             grp.paths.push(children[ci]);
                             ci++;
                         }
-                        while (ci < children.length && children[ci].tagName === 'text') {
-                            grp.texts.push(children[ci]);
-                            ci++;
+                        // Compute note bounding box from the collected paths
+                        var noteBox = null;
+                        try {
+                            var bb = grp.paths[0].getBBox();
+                            noteBox = { x: bb.x, y: bb.y, right: bb.x + bb.width, bottom: bb.y + bb.height };
+                        } catch(e) {}
+                        // Collect text elements. PlantUML Creole separator markup
+                        // (e.g. ..text..) inserts <line> elements inside notes
+                        // between paths and texts. Skip line/rect/circle elements
+                        // that are visually inside the note bounding box.
+                        while (ci < children.length) {
+                            var tag = children[ci].tagName;
+                            if (tag === 'text') { grp.texts.push(children[ci]); ci++; }
+                            else if (noteBox && (tag === 'line' || tag === 'rect' || tag === 'circle')) {
+                                // Only skip if the element is inside the note bounding box
+                                try {
+                                    var ebb = children[ci].getBBox();
+                                    if (ebb.x >= noteBox.x - 2 && ebb.x + ebb.width <= noteBox.right + 2
+                                        && ebb.y >= noteBox.y - 2 && ebb.y + ebb.height <= noteBox.bottom + 2) {
+                                        ci++;
+                                    } else { break; }
+                                } catch(e) { break; }
+                            }
+                            else { break; }
                         }
                         if (grp.paths.length > 0 && grp.texts.length > 0) {
                             groups.push(grp);

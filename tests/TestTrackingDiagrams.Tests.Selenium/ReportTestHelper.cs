@@ -622,4 +622,101 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with THREE diagram containers for ONE scenario, matching a real-world
+    /// split diagram with a very large response body (like an AsyncAPI spec).
+    /// Structure: diagram 1 has no notes, diagram 2 has 2 notes (short header + long body),
+    /// diagram 3 has 1 note (continuation with "..Continued From Previous Diagram..").
+    /// </summary>
+    public static string GenerateReportWithThreeDiagramSplit(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+
+        // Diagram 1: simple request/response with NO notes (like puml-0 in the real report)
+        const string source1 = """
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 1
+            actor "Caller" as caller
+            entity "Service" as svc
+            caller -[#438DD5]> svc : GET /api/spec
+            @enduml
+            """;
+
+        // Diagram 2: response with 2 notes — short header + VERY long JSON body (200+ lines)
+        var longJsonContent = string.Join("\n",
+            Enumerable.Range(1, 200).Select(i =>
+                $"    \"field_{i}\": {{\"type\": \"string\", \"description\": \"Field {i} description\"}},"
+            ));
+        var source2 = $$"""
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 1
+            actor "Caller" as caller
+            entity "Service" as svc
+            caller -[#438DD5]> svc : GET /api/spec
+            note left
+            <color:gray>[traceparent=00-abc-def-00]
+            end note
+            svc -[#438DD5]-> caller: OK
+            note right
+            <color:gray>[X-Correlation-Id=test-456]
+
+            {
+              "asyncapi": "3.0.0",
+              "info": {
+                "title": "Breakfast Provider",
+                "version": "1.0.0"
+              },
+              "components": {
+                "schemas": {
+            {{longJsonContent}}
+              ..Continued On Next Diagram..
+            end note
+            @enduml
+            """;
+
+        // Diagram 3: continuation note with "..Continued From Previous Diagram.."
+        var continuedContent = string.Join("\n",
+            Enumerable.Range(201, 100).Select(i =>
+                $"    \"continued_{i}\": {{\"type\": \"integer\", \"description\": \"Continued field {i}\"}},"
+            ));
+        var source3 = $$"""
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 2
+            actor "Caller" as caller
+            entity "Service" as svc
+            svc -[#438DD5]-> caller: OK
+            note right
+            ..Continued From Previous Diagram..
+            {{continuedContent}}
+                }
+              }
+            }
+            end note
+            @enduml
+            """;
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", source1),
+            new DiagramAsCode("t1", "", source2),
+            new DiagramAsCode("t1", "", source3)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }
