@@ -154,4 +154,147 @@ public class RequestResponseLoggerTests
         var logs = GetLogsFromThisTest();
         Assert.All(logs, l => Assert.False(l.TrackingIgnore));
     }
+
+    // ─── MaxContentLength ───────────────────────────────────
+
+    [Fact]
+    public void Log_MaxContentLength_Null_NoTruncation()
+    {
+        RequestResponseLogger.MaxContentLength = null;
+        var longContent = new string('x', 50_000);
+
+        RequestResponseLogger.Log(MakeLog(longContent));
+
+        var log = GetLogsFromThisTest().Single();
+        Assert.Equal(50_000, log.Content!.Length);
+    }
+
+    [Fact]
+    public void Log_MaxContentLength_TruncatesContent()
+    {
+        RequestResponseLogger.MaxContentLength = 100;
+        try
+        {
+            var longContent = new string('x', 500);
+
+            RequestResponseLogger.Log(MakeLog(longContent));
+
+            var log = GetLogsFromThisTest().Single();
+            Assert.True(log.Content!.Length < 500);
+            Assert.StartsWith(new string('x', 100), log.Content);
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    [Fact]
+    public void Log_MaxContentLength_AddsMarker()
+    {
+        RequestResponseLogger.MaxContentLength = 50;
+        try
+        {
+            var longContent = new string('y', 200);
+
+            RequestResponseLogger.Log(MakeLog(longContent));
+
+            var log = GetLogsFromThisTest().Single();
+            Assert.Contains("…truncated", log.Content!);
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    [Fact]
+    public void Log_MaxContentLength_ShortContentUnchanged()
+    {
+        RequestResponseLogger.MaxContentLength = 100;
+        try
+        {
+            RequestResponseLogger.Log(MakeLog("short"));
+
+            var log = GetLogsFromThisTest().Single();
+            Assert.Equal("short", log.Content);
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    [Fact]
+    public void Log_MaxContentLength_NullContentUnchanged()
+    {
+        RequestResponseLogger.MaxContentLength = 100;
+        try
+        {
+            RequestResponseLogger.Log(MakeLog(null));
+
+            var log = GetLogsFromThisTest().Single();
+            Assert.Null(log.Content);
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    [Fact]
+    public void LogPair_MaxContentLength_TruncatesBothRequestAndResponse()
+    {
+        RequestResponseLogger.MaxContentLength = 20;
+        try
+        {
+            var longReq = new string('a', 200);
+            var longRes = new string('b', 200);
+
+            RequestResponseLogger.LogPair(
+                testName: "My Test",
+                testId: _testId,
+                method: "Op",
+                uri: new Uri("mock://svc/op"),
+                serviceName: "Svc",
+                callerName: "Caller",
+                requestContent: longReq,
+                responseContent: longRes);
+
+            var logs = GetLogsFromThisTest();
+            Assert.All(logs.Where(l => l.Content is not null), l =>
+            {
+                Assert.True(l.Content!.Length < 200);
+                Assert.Contains("…truncated", l.Content);
+            });
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    [Fact]
+    public void Log_MaxContentLength_MarkerShowsOriginalSize()
+    {
+        RequestResponseLogger.MaxContentLength = 30;
+        try
+        {
+            var content = new string('z', 5000);
+
+            RequestResponseLogger.Log(MakeLog(content));
+
+            var log = GetLogsFromThisTest().Single();
+            Assert.Contains("5000", log.Content!);
+        }
+        finally
+        {
+            RequestResponseLogger.MaxContentLength = null;
+        }
+    }
+
+    private RequestResponseLog MakeLog(string? content) => new(
+        "My Test", _testId, "Op", content, new Uri("mock://svc/op"),
+        [], "Svc", "Caller", RequestResponseType.Request,
+        Guid.NewGuid(), Guid.NewGuid(), false);
 }

@@ -7,8 +7,20 @@ public static class RequestResponseLogger
 {
     private static readonly ConcurrentQueue<RequestResponseLog> RequestsAndResponses = new();
 
-    public static void Log(RequestResponseLog log) => RequestsAndResponses.Enqueue(log);
-    public static RequestResponseLog[] RequestAndResponseLogs => RequestsAndResponses.ToArray();
+    /// <summary>
+    /// When set, content longer than this value is truncated at capture time.
+    /// The truncated content includes a marker showing the original size.
+    /// Default is <c>null</c> (no limit).
+    /// </summary>
+    public static int? MaxContentLength { get; set; }
+
+    public static void Log(RequestResponseLog log)
+    {
+        if (MaxContentLength is { } max && log.Content is { Length: var len } && len > max)
+            log = log with { Content = $"{log.Content[..max]}\n\n…truncated ({len} chars total)" };
+
+        RequestsAndResponses.Enqueue(log);
+    }    public static RequestResponseLog[] RequestAndResponseLogs => RequestsAndResponses.ToArray();
     public static void Clear() => RequestsAndResponses.Clear();
 
     /// <summary>

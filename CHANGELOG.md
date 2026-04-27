@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.25.0] - 2026-04-27
+
+### Added
+- **`RequestResponseLogger.MaxContentLength`**: New global static property that truncates content at capture time when set. Content exceeding the limit is trimmed to the specified character count with a `…truncated (N chars total)` marker appended. Applies to all extensions (HTTP, BigQuery, Spanner, Bigtable, Cosmos, Redis, etc.) since truncation happens in the core `Log()` method. Default is `null` (no limit). Set during test setup, e.g. `RequestResponseLogger.MaxContentLength = 2000;`
+
 ## [2.24.1] - 2026-04-27
 
 ### Added
