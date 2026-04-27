@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
 public record GrpcTrackingOptions
@@ -12,4 +14,5 @@ public record GrpcTrackingOptions
     public GrpcTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
+    public IHttpContextAccessor? HttpContextAccessor { get; set; }
 }

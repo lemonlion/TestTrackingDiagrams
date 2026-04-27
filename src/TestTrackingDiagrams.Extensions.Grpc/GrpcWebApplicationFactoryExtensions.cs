@@ -51,7 +51,7 @@ public static class GrpcWebApplicationFactoryExtensions
         {
             HttpHandler = handler
         });
-        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options));
+        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options, options.HttpContextAccessor));
         return (TClient)Activator.CreateInstance(typeof(TClient), invoker)!;
     }
 
@@ -76,7 +76,7 @@ public static class GrpcWebApplicationFactoryExtensions
         {
             HttpHandler = handler
         });
-        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options));
+        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options, options.HttpContextAccessor));
         var client = (TClient)Activator.CreateInstance(typeof(TClient), invoker)!;
         return (client, channel);
     }

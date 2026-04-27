@@ -34,7 +34,7 @@ public static class GrpcTrackingChannel
         {
             HttpHandler = handler
         });
-        return channel.Intercept(new GrpcTrackingInterceptor(options));
+        return channel.Intercept(new GrpcTrackingInterceptor(options, options.HttpContextAccessor));
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ public static class GrpcTrackingChannel
         {
             HttpHandler = handler
         });
-        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options));
+        var invoker = channel.Intercept(new GrpcTrackingInterceptor(options, options.HttpContextAccessor));
         return (invoker, channel);
     }
 }

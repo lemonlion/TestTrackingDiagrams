@@ -10,6 +10,6 @@ public static class GrpcChannelExtensions
         this GrpcChannel channel,
         GrpcTrackingOptions options)
     {
-        return channel.Intercept(new GrpcTrackingInterceptor(options));
+        return channel.Intercept(new GrpcTrackingInterceptor(options, options.HttpContextAccessor));
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Extensions.Grpc;
 using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
@@ -753,6 +754,165 @@ public class GrpcTrackingInterceptorTests
         var parts = traceparent.Split('-');
         Assert.Equal(requestLog.ActivityTraceId, parts[1]);
         Assert.Equal(requestLog.ActivitySpanId, parts[2]);
+    }
+
+    // ─── HttpContextAccessor via Options ───────────────────
+
+    [Fact]
+    public async Task AsyncUnaryCall_resolves_test_info_from_HttpContextAccessor_on_options()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["test-tracking-current-test-name"] = "HTTP Context Test";
+        httpContext.Request.Headers["test-tracking-current-test-id"] = _testId;
+
+        var options = new GrpcTrackingOptions
+        {
+            ServiceName = "GrpcService",
+            CallingServiceName = "TestCaller",
+            HttpContextAccessor = new TestHttpContextAccessor(httpContext),
+            CurrentTestInfoFetcher = null // no delegate — must resolve from HTTP context
+        };
+
+        var interceptor = new GrpcTrackingInterceptor(options);
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal("HTTP Context Test", logs[0].TestName);
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_HttpContextAccessor_on_options_takes_priority_over_delegate()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["test-tracking-current-test-name"] = "From HTTP Context";
+        httpContext.Request.Headers["test-tracking-current-test-id"] = _testId;
+
+        var options = new GrpcTrackingOptions
+        {
+            ServiceName = "GrpcService",
+            CallingServiceName = "TestCaller",
+            HttpContextAccessor = new TestHttpContextAccessor(httpContext),
+            CurrentTestInfoFetcher = () => ("From Delegate", _testId)
+        };
+
+        var interceptor = new GrpcTrackingInterceptor(options);
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("From HTTP Context", log.TestName);
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_falls_back_to_delegate_when_HttpContextAccessor_has_no_headers()
+    {
+        var httpContext = new DefaultHttpContext(); // no test-tracking headers
+
+        var options = new GrpcTrackingOptions
+        {
+            ServiceName = "GrpcService",
+            CallingServiceName = "TestCaller",
+            HttpContextAccessor = new TestHttpContextAccessor(httpContext),
+            CurrentTestInfoFetcher = () => ("Delegate Fallback", _testId)
+        };
+
+        var interceptor = new GrpcTrackingInterceptor(options);
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Delegate Fallback", log.TestName);
+    }
+
+    [Fact]
+    public void BlockingUnaryCall_resolves_test_info_from_HttpContextAccessor_on_options()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["test-tracking-current-test-name"] = "Blocking HTTP Context";
+        httpContext.Request.Headers["test-tracking-current-test-id"] = _testId;
+
+        var options = new GrpcTrackingOptions
+        {
+            ServiceName = "GrpcService",
+            CallingServiceName = "TestCaller",
+            HttpContextAccessor = new TestHttpContextAccessor(httpContext),
+            CurrentTestInfoFetcher = null
+        };
+
+        var interceptor = new GrpcTrackingInterceptor(options);
+        var context = CreateContext();
+
+        interceptor.BlockingUnaryCall("Hello", context, (req, ctx) => "World");
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal("Blocking HTTP Context", logs[0].TestName);
+    }
+
+    [Fact]
+    public void ServerStreamingCall_resolves_test_info_from_HttpContextAccessor_on_options()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["test-tracking-current-test-name"] = "Streaming HTTP Context";
+        httpContext.Request.Headers["test-tracking-current-test-id"] = _testId;
+
+        var options = new GrpcTrackingOptions
+        {
+            ServiceName = "GrpcService",
+            CallingServiceName = "TestCaller",
+            HttpContextAccessor = new TestHttpContextAccessor(httpContext),
+            CurrentTestInfoFetcher = null
+        };
+
+        var interceptor = new GrpcTrackingInterceptor(options);
+        var method = CreateMethod(type: MethodType.ServerStreaming);
+        var context = CreateContext(method);
+
+        interceptor.AsyncServerStreamingCall(
+            "Hello", context,
+            (req, ctx) => TestHelpers.CreateServerStreamingCall<string>());
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal("Streaming HTTP Context", logs[0].TestName);
+    }
+
+    private class TestHttpContextAccessor : IHttpContextAccessor
+    {
+        public TestHttpContextAccessor(HttpContext? httpContext) => HttpContext = httpContext;
+        public HttpContext? HttpContext { get; set; }
     }
 }
 

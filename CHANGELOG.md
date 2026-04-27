@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.25.2] - 2026-04-27
+
+### Fixed
+- **gRPC dependency tracking not resolving test identity from HTTP context**: `GrpcTrackingInterceptor` accepts an `IHttpContextAccessor` for dual-resolution test identity (HTTP headers first, delegate fallback), but none of the public API entry points (`GrpcTrackingChannel.Create`, `AsGrpcTrackingCallInvoker`, `CreateTestTrackingGrpcClient`, `WithTestTracking`) forwarded it. When a gRPC client ran inside the SUT's request pipeline (e.g. API calling a downstream gRPC service during a test HTTP request), test identity could not be resolved from the propagated HTTP context headers — causing gRPC dependency calls to be logged with "Unknown" test identity and not appearing in per-test reports. Added `IHttpContextAccessor? HttpContextAccessor` property to `GrpcTrackingOptions`; all entry points and the interceptor constructor now read from this property. Consumers set it once on the options object (typically via `sp.GetRequiredService<IHttpContextAccessor>()`) and the interceptor automatically resolves test identity from HTTP context headers, falling back to `CurrentTestInfoFetcher` when no HTTP context is available.
+
 ## [2.25.1] - 2026-04-27
 
 ### Fixed
