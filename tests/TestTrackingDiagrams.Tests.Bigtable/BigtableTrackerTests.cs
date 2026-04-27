@@ -198,6 +198,48 @@ public class BigtableTrackerTests
         Assert.Equal("MyApi", log.CallerName);
     }
 
+    // ─── ExcludedOperations ───────────────────────────────
+
+    [Fact]
+    public void LogRequest_ExcludedOperation_NoLog()
+    {
+        var options = MakeOptions();
+        options.ExcludedOperations = [BigtableOperation.SampleRowKeys];
+        var tracker = new BigtableTracker(options);
+        var op = new BigtableOperationInfo(BigtableOperation.SampleRowKeys, "projects/p/instances/i/tables/t");
+
+        var (reqId, traceId) = tracker.LogRequest(op, "data");
+
+        Assert.Empty(GetLogsFromThisTest());
+        Assert.Equal(Guid.Empty, reqId);
+    }
+
+    [Fact]
+    public void LogResponse_ExcludedOperation_NoLog()
+    {
+        var options = MakeOptions();
+        options.ExcludedOperations = [BigtableOperation.ReadRows];
+        var tracker = new BigtableTracker(options);
+        var op = new BigtableOperationInfo(BigtableOperation.ReadRows, "projects/p/instances/i/tables/t");
+
+        tracker.LogResponse(op, Guid.NewGuid(), Guid.NewGuid(), "response");
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public void LogRequest_NonExcludedOperation_StillLogs()
+    {
+        var options = MakeOptions();
+        options.ExcludedOperations = [BigtableOperation.SampleRowKeys];
+        var tracker = new BigtableTracker(options);
+        var op = new BigtableOperationInfo(BigtableOperation.ReadRows, "projects/p/instances/i/tables/t");
+
+        tracker.LogRequest(op, null);
+
+        Assert.Single(GetLogsFromThisTest());
+    }
+
     // ─── ITrackingComponent ────────────────────────────────
 
     [Fact]

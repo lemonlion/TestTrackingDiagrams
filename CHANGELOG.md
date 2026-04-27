@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.24.1] - 2026-04-27
+
+### Added
+- **`BigtableTrackingOptions.ExcludedOperations`**: Added `HashSet<BigtableOperation>` property to suppress tracking of specific Bigtable operations, matching the pattern used by Spanner, Dapper, Elasticsearch, and EventBridge extensions.
+
 ## [2.24.0] - 2026-07-14
 
 ### Added

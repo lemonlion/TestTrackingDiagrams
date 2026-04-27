@@ -9,6 +9,7 @@ public record BigtableTrackingOptions
     public Func<string?>? CurrentStepTypeFetcher { get; set; }
     public BigtableTrackingVerbosity? SetupVerbosity { get; set; }
     public BigtableTrackingVerbosity? ActionVerbosity { get; set; }
+    public HashSet<BigtableOperation> ExcludedOperations { get; set; } = [];
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
 }

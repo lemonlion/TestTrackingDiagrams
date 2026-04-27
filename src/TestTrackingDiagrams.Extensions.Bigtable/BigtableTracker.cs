@@ -26,6 +26,9 @@ public class BigtableTracker : ITrackingComponent
         if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
             return (Guid.Empty, Guid.Empty);
 
+        if (_options.ExcludedOperations.Contains(operation.Operation))
+            return (Guid.Empty, Guid.Empty);
+
         Interlocked.Increment(ref _invocationCount);
 
         var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
@@ -60,6 +63,7 @@ public class BigtableTracker : ITrackingComponent
         Guid requestResponseId, Guid traceId, string? content)
     {
         if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
+        if (_options.ExcludedOperations.Contains(operation.Operation)) return;
 
         var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
         if (testInfo is null) return;
