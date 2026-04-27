@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.23.13] - 2026-04-27
+
+### Fixed
+- **SqlTrackingInterceptor**: Fixed `UriFormatException` when `Verbosity` is `Detailed` or `Raw` and the SQL Server connection uses comma-separated port notation (e.g. `127.0.0.1,33262` from Docker containers). The `DataSource` comma is now normalised to a colon for valid URI construction. ([#22](https://github.com/lemonlion/TestTrackingDiagrams/issues/22))
+
 ## [2.23.12] - 2026-04-27
 
 ### Added

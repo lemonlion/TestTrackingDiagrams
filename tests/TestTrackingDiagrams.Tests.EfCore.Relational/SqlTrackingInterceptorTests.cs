@@ -463,4 +463,44 @@ public class SqlTrackingInterceptorTests : IDisposable
         var components = TrackingComponentRegistry.GetRegisteredComponents();
         Assert.Contains(components, c => ReferenceEquals(c, interceptor));
     }
+
+    // ─── DataSource with comma-separated port (SQL Server Docker) ──
+
+    [Theory]
+    [InlineData(SqlTrackingVerbosity.Detailed)]
+    [InlineData(SqlTrackingVerbosity.Raw)]
+    public void DataSource_with_comma_port_does_not_throw(SqlTrackingVerbosity verbosity)
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions(verbosity));
+        var command = MakeSelectCommand("MyDb", "127.0.0.1,33262");
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Contains("127.0.0.1", log.Uri.Host);
+    }
+
+    [Fact]
+    public void Detailed_DataSource_with_comma_port_normalizes_to_colon()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions(SqlTrackingVerbosity.Detailed));
+        var command = MakeSelectCommand("MyDb", "127.0.0.1,33262");
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("sql://127.0.0.1:33262/MyDb/Users", log.Uri.ToString());
+    }
+
+    [Fact]
+    public void Raw_DataSource_with_comma_port_normalizes_to_colon()
+    {
+        var interceptor = new SqlTrackingInterceptor(MakeOptions(SqlTrackingVerbosity.Raw));
+        var command = MakeSelectCommand("MyDb", "127.0.0.1,33262");
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("sql://127.0.0.1:33262/MyDb", log.Uri.ToString());
+    }
 }

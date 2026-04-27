@@ -216,7 +216,9 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
     private static Uri BuildUri(DbCommand command, SqlOperationInfo op, SqlTrackingVerbosity verbosity)
     {
         var database = command.Connection?.Database ?? "unknown";
-        var dataSource = command.Connection?.DataSource ?? "localhost";
+        // SQL Server uses comma notation for ports (e.g. "127.0.0.1,1433")
+        // but Uri requires colon notation (e.g. "127.0.0.1:1433").
+        var dataSource = (command.Connection?.DataSource ?? "localhost").Replace(',', ':');
 
         return verbosity switch
         {
