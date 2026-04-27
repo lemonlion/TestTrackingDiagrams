@@ -9,12 +9,11 @@ public record BDDfyTestTrackingMessageHandlerOptions : TestTrackingMessageHandle
     /// Use this when configuring extension options (e.g. <c>SqlTrackingInterceptorOptions</c>)
     /// instead of writing the fetcher lambda inline.
     /// </summary>
-    public static readonly Func<(string Name, string Id)> TestInfoFetcher =
-        () => (Xunit.TestContext.Current.Test!.TestDisplayName, Xunit.TestContext.Current.Test.UniqueID);
+    public static readonly Func<(string Name, string Id)> TestInfoFetcher = CurrentTestInfo.Fetcher;
 
     public BDDfyTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = TestInfoFetcher;
+        CurrentTestInfoFetcher = CurrentTestInfo.Fetcher;
         CurrentStepTypeFetcher = () => BDDfyStepTrackingExecutor.CurrentStepType;
     }
 }

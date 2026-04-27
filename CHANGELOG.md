@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.26.2] - 2026-04-27
+
+### Added
+- **`CurrentTestInfo` static class in every framework package**: Each framework adapter package now provides a `static class CurrentTestInfo` with a get-only `Fetcher` property (`Func<(string Name, string Id)>`). This provides a uniform, discoverable API for setting `CurrentTestInfoFetcher` on any tracking options class — the syntax is identical regardless of framework:
+  ```csharp
+  CurrentTestInfoFetcher = CurrentTestInfo.Fetcher
+  ```
+  Available in: `TestTrackingDiagrams.xUnit3`, `TestTrackingDiagrams.xUnit2`, `TestTrackingDiagrams.NUnit4`, `TestTrackingDiagrams.MSTest`, `TestTrackingDiagrams.TUnit`, `TestTrackingDiagrams.LightBDD` (Core/xUnit2/xUnit3/TUnit), `TestTrackingDiagrams.ReqNRoll` (Core/xUnit2/xUnit3/TUnit), `TestTrackingDiagrams.BDDfy.xUnit3`.
+- **`XUnit2TestTrackingMessageHandlerOptions.TestInfoFetcher`**: xUnit v2 options class now exposes a static `TestInfoFetcher` field (previously the delegate was only set inline in the constructor), aligning it with all other framework adapters.
+
+### Documentation
+- **All wiki pages**: Replaced verbose framework-specific `CurrentTestInfoFetcher` lambda examples with the new `CurrentTestInfo.Fetcher` syntax. Simplified "CurrentTestInfoFetcher by Framework" sections to a single code snippet plus a using-directive table.
+
 ## [2.26.1] - 2026-07-14
 
 ### Added

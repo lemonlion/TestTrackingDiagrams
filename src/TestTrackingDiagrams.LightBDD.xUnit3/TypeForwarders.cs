@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using TestTrackingDiagrams.LightBDD;
 
+[assembly: TypeForwardedTo(typeof(CurrentTestInfo))]
 [assembly: TypeForwardedTo(typeof(HappyPathAttribute))]
 [assembly: TypeForwardedTo(typeof(LightBddDiagramsFetcher))]
 [assembly: TypeForwardedTo(typeof(LightBddTestTrackingMessageHandlerOptions))]

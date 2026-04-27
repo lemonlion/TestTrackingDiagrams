@@ -10,11 +10,10 @@ public record NUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandle
     /// Use this when configuring extension options (e.g. <c>SqlTrackingInterceptorOptions</c>)
     /// instead of writing the fetcher lambda inline.
     /// </summary>
-    public static readonly Func<(string Name, string Id)> TestInfoFetcher =
-        () => (TestContext.CurrentContext.Test!.DisplayName!, TestContext.CurrentContext.Test.ID);
+    public static readonly Func<(string Name, string Id)> TestInfoFetcher = CurrentTestInfo.Fetcher;
 
     public NUnitTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = TestInfoFetcher;
+        CurrentTestInfoFetcher = CurrentTestInfo.Fetcher;
     }
 }

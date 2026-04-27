@@ -11,12 +11,11 @@ public record LightBddTestTrackingMessageHandlerOptions : TestTrackingMessageHan
     /// Use this when configuring extension options (e.g. <c>SqlTrackingInterceptorOptions</c>)
     /// instead of writing the fetcher lambda inline.
     /// </summary>
-    public static readonly Func<(string Name, string Id)> TestInfoFetcher =
-        () => (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(), ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString());
+    public static readonly Func<(string Name, string Id)> TestInfoFetcher = CurrentTestInfo.Fetcher;
 
     public LightBddTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = TestInfoFetcher;
+        CurrentTestInfoFetcher = CurrentTestInfo.Fetcher;
         CurrentStepTypeFetcher = GetTopLevelStepType;
     }
 

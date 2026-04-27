@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using TestTrackingDiagrams.ReqNRoll;
 
+[assembly: TypeForwardedTo(typeof(CurrentTestInfo))]
 [assembly: TypeForwardedTo(typeof(ExecutionStatusExtensions))]
 [assembly: TypeForwardedTo(typeof(ReqNRollConstants))]
 [assembly: TypeForwardedTo(typeof(ReqNRollReportGenerator))]

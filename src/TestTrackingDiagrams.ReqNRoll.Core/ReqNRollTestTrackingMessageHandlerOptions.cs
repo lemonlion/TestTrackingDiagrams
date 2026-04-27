@@ -9,12 +9,11 @@ public record ReqNRollTestTrackingMessageHandlerOptions : TestTrackingMessageHan
     /// Use this when configuring extension options (e.g. <c>SqlTrackingInterceptorOptions</c>)
     /// instead of writing the fetcher lambda inline.
     /// </summary>
-    public static readonly Func<(string Name, string Id)> TestInfoFetcher = () => ReqNRollTestContext.CurrentTestInfo
-        ?? throw new InvalidOperationException("No ReqNRoll scenario is currently executing. Ensure ReqNRollTrackingHooks is registered as a [Binding].");
+    public static readonly Func<(string Name, string Id)> TestInfoFetcher = CurrentTestInfo.Fetcher;
 
     public ReqNRollTestTrackingMessageHandlerOptions()
     {
-        CurrentTestInfoFetcher = TestInfoFetcher;
+        CurrentTestInfoFetcher = CurrentTestInfo.Fetcher;
         CurrentStepTypeFetcher = () => ReqNRollTestContext.CurrentStepType;
     }
 }
