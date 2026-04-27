@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.3] - 2026-04-27
+
+### Fixed
+- **Spanner gRPC interceptor: test identity not resolved in WebApplicationFactory scenarios**: Added `IHttpContextAccessor` overload to `SpannerConnectionExtensions.WithTestTracking()` so the interceptor can read test identity from HTTP request headers (propagated by `TestTrackingMessageHandler`) instead of relying solely on `AsyncLocal`, which does not propagate through the TestServer's request pipeline.
+
 ## [2.27.2] - 2026-04-27
 
 ### Fixed

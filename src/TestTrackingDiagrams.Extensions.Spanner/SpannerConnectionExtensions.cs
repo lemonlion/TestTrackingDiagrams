@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Google.Cloud.Spanner.Data;
 using Google.Cloud.Spanner.V1;
+using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
@@ -29,7 +30,27 @@ public static class SpannerConnectionExtensions
         this SpannerConnectionStringBuilder builder,
         SpannerTrackingOptions options)
     {
-        var interceptor = new SpannerTrackingInterceptor(options);
+        return builder.WithTestTracking(options, httpContextAccessor: null);
+    }
+
+    /// <summary>
+    /// Configures gRPC-level interception on a <see cref="SpannerConnectionStringBuilder"/>
+    /// with access to the current HTTP context for test identity resolution.
+    /// <para>
+    /// When <paramref name="httpContextAccessor"/> is provided, the interceptor reads test
+    /// identity from HTTP request headers (propagated by <c>TestTrackingMessageHandler</c>)
+    /// before falling back to <see cref="SpannerTrackingOptions.CurrentTestInfoFetcher"/>.
+    /// This is essential in WebApplicationFactory scenarios where <c>AsyncLocal</c> test
+    /// identity does not propagate through the TestServer's request pipeline.
+    /// </para>
+    /// </summary>
+    /// <returns>The same builder instance, for chaining.</returns>
+    public static SpannerConnectionStringBuilder WithTestTracking(
+        this SpannerConnectionStringBuilder builder,
+        SpannerTrackingOptions options,
+        IHttpContextAccessor? httpContextAccessor)
+    {
+        var interceptor = new SpannerTrackingInterceptor(options, httpContextAccessor);
 
         var settings = new SpannerSettings
         {
