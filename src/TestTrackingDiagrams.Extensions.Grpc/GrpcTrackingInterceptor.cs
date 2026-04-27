@@ -54,8 +54,10 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         var requestResponseId = Guid.NewGuid();
 
         EnsureListenerStarted();
-        using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
+        var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
         var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
         LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
@@ -63,7 +65,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         var wrappedResponseAsync = WrapUnaryResponse(
             call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId, effectiveVerbosity,
-            activityTraceId, activitySpanId);
+            activityTraceId, activitySpanId, activity);
 
         return new AsyncUnaryCall<TResponse>(
             wrappedResponseAsync,
@@ -101,6 +103,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         EnsureListenerStarted();
         using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
         var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
         LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
@@ -148,6 +152,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
         var (activityTraceId, activitySpanId) = CaptureActivityContext();
 
+        context = InjectTraceParent(context, activityTraceId, activitySpanId);
+
         LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(request, context);
@@ -183,6 +189,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         EnsureListenerStarted();
         using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
         var (activityTraceId, activitySpanId) = CaptureActivityContext();
+
+        context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
         LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
@@ -220,6 +228,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         using var activity = GrpcActivitySource.StartActivity(opInfo.FullMethodName ?? "gRPC");
         var (activityTraceId, activitySpanId) = CaptureActivityContext();
 
+        context = InjectTraceParent(context, activityTraceId, activitySpanId);
+
         LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
 
         var call = continuation(context);
@@ -234,7 +244,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         (string Name, string Id) testInfo,
         string label, Uri uri, string serviceName,
         Guid traceId, Guid requestResponseId, GrpcTrackingVerbosity effectiveVerbosity,
-        string? activityTraceId, string? activitySpanId)
+        string? activityTraceId, string? activitySpanId,
+        Activity? activity)
     {
         try
         {
@@ -248,6 +259,10 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             LogResponse(testInfo, label, $"{ex.StatusCode}: {ex.Message}", uri, serviceName,
                 traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId);
             throw;
+        }
+        finally
+        {
+            InternalFlowSpanStore.Complete(activity);
         }
     }
 
@@ -305,6 +320,22 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             return (Activity.Current.TraceId.ToString(), Activity.Current.SpanId.ToString());
 
         return (ActivityTraceId.CreateRandom().ToString(), ActivitySpanId.CreateRandom().ToString());
+    }
+
+    private static ClientInterceptorContext<TRequest, TResponse> InjectTraceParent<TRequest, TResponse>(
+        ClientInterceptorContext<TRequest, TResponse> context,
+        string? activityTraceId, string? activitySpanId)
+        where TRequest : class
+        where TResponse : class
+    {
+        if (activityTraceId is null || activitySpanId is null)
+            return context;
+
+        var headers = context.Options.Headers ?? new Metadata();
+        headers.Add("traceparent", $"00-{activityTraceId}-{activitySpanId}-00");
+
+        var newOptions = context.Options.WithHeaders(headers);
+        return new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, newOptions);
     }
 
     private static GrpcOperationInfo Classify<TRequest, TResponse>(

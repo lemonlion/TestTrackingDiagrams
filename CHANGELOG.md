@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.23.10] - 2026-04-27
+
+### Fixed
+- **gRPC Activity spans not appearing in Activity Diagrams / Flamecharts**: Fixed three issues preventing gRPC calls from producing activity spans:
+  1. `InternalFlowSpanCollector.FilterByAutoInstrumentation()` excluded `"TestTrackingDiagrams.Grpc"` spans because the source was not in `WellKnownAutoInstrumentationSources`. Added `"TestTrackingDiagrams.Grpc"` and `"Grpc.Net.Client"` to the well-known list.
+  2. `AsyncUnaryCall` disposed its `Activity` immediately on method return (before the async response arrived), producing near-zero-duration spans. The Activity is now kept alive and stopped in `WrapUnaryResponse` after the response is logged, so spans cover the full call duration.
+  3. No trace context was propagated to the server. A `traceparent` metadata header is now injected into all outgoing gRPC calls, allowing server-side ASP.NET Core spans to share the same TraceId.
+
 ## [2.23.9] - 2026-04-27
 
 ### Fixed

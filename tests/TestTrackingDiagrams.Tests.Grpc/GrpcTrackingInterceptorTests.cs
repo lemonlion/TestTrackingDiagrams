@@ -2,6 +2,7 @@ using System.Net;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using TestTrackingDiagrams.Extensions.Grpc;
+using TestTrackingDiagrams.InternalFlow;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Grpc;
@@ -572,6 +573,186 @@ public class GrpcTrackingInterceptorTests
         var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.NotNull(requestLog.ActivityTraceId);
         Assert.Matches(@"^[0-9a-f]{32}$", requestLog.ActivityTraceId);
+    }
+
+    // ─── Activity Lifecycle & Store ────────────────────────
+
+    [Fact]
+    public async Task AsyncUnaryCall_activity_is_captured_in_SpanStore_with_nonzero_duration()
+    {
+        InternalFlowSpanStore.Clear();
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var tcs = new TaskCompletionSource<string>();
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                tcs.Task,
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        // Let some time elapse before completing the response
+        await Task.Delay(50);
+        tcs.SetResult("World");
+        await call.ResponseAsync;
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        var spans = InternalFlowSpanStore.GetSpans()
+            .Where(s => s.Source.Name == "TestTrackingDiagrams.Grpc"
+                     && s.TraceId.ToString() == requestLog.ActivityTraceId)
+            .ToArray();
+
+        Assert.Single(spans);
+        Assert.True(spans[0].Duration > TimeSpan.Zero,
+            $"Expected span duration > 0 but was {spans[0].Duration}");
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_activity_spans_from_request_to_response()
+    {
+        InternalFlowSpanStore.Clear();
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var tcs = new TaskCompletionSource<string>();
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                tcs.Task,
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await Task.Delay(30);
+        tcs.SetResult("World");
+        await call.ResponseAsync;
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        var responseLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        var span = InternalFlowSpanStore.GetSpans()
+            .First(s => s.TraceId.ToString() == requestLog.ActivityTraceId);
+
+        // Span should start before or at request time and end after or at response time
+        var spanStart = new DateTimeOffset(span.StartTimeUtc, TimeSpan.Zero);
+        var spanEnd = spanStart + span.Duration;
+
+        Assert.True(spanStart <= requestLog.Timestamp!.Value.AddMilliseconds(5),
+            $"Span start {spanStart} should be at or before request time {requestLog.Timestamp}");
+        Assert.True(spanEnd >= responseLog.Timestamp!.Value.AddMilliseconds(-5),
+            $"Span end {spanEnd} should be at or after response time {responseLog.Timestamp}");
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_gRPC_spans_pass_AutoInstrumentation_filter()
+    {
+        InternalFlowSpanStore.Clear();
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) => new AsyncUnaryCall<string>(
+                Task.FromResult("World"),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.OK, ""),
+                () => new Metadata(),
+                () => { }));
+
+        await call.ResponseAsync;
+
+        var collected = InternalFlowSpanCollector.CollectSpans(
+            InternalFlowSpanGranularity.AutoInstrumentation);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Contains(collected, s =>
+            s.Source.Name == "TestTrackingDiagrams.Grpc"
+            && s.TraceId.ToString() == requestLog.ActivityTraceId);
+    }
+
+    // ─── Traceparent Propagation ───────────────────────────
+
+    [Fact]
+    public async Task AsyncUnaryCall_injects_traceparent_metadata_header()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+        Metadata? capturedHeaders = null;
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) =>
+            {
+                capturedHeaders = ctx.Options.Headers;
+                return new AsyncUnaryCall<string>(
+                    Task.FromResult("World"),
+                    Task.FromResult(new Metadata()),
+                    () => new Status(StatusCode.OK, ""),
+                    () => new Metadata(),
+                    () => { });
+            });
+
+        await call.ResponseAsync;
+
+        Assert.NotNull(capturedHeaders);
+        var traceparent = capturedHeaders!.FirstOrDefault(h => h.Key == "traceparent");
+        Assert.NotNull(traceparent);
+        Assert.Matches(@"^00-[0-9a-f]{32}-[0-9a-f]{16}-00$", traceparent.Value);
+    }
+
+    [Fact]
+    public void BlockingUnaryCall_injects_traceparent_metadata_header()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+        Metadata? capturedHeaders = null;
+
+        interceptor.BlockingUnaryCall(
+            "Hello", context,
+            (req, ctx) =>
+            {
+                capturedHeaders = ctx.Options.Headers;
+                return "World";
+            });
+
+        Assert.NotNull(capturedHeaders);
+        var traceparent = capturedHeaders!.FirstOrDefault(h => h.Key == "traceparent");
+        Assert.NotNull(traceparent);
+        Assert.Matches(@"^00-[0-9a-f]{32}-[0-9a-f]{16}-00$", traceparent.Value);
+    }
+
+    [Fact]
+    public async Task AsyncUnaryCall_traceparent_matches_log_ActivityTraceId()
+    {
+        var interceptor = new GrpcTrackingInterceptor(MakeOptions());
+        var context = CreateContext();
+        Metadata? capturedHeaders = null;
+
+        var call = interceptor.AsyncUnaryCall(
+            "Hello", context,
+            (req, ctx) =>
+            {
+                capturedHeaders = ctx.Options.Headers;
+                return new AsyncUnaryCall<string>(
+                    Task.FromResult("World"),
+                    Task.FromResult(new Metadata()),
+                    () => new Status(StatusCode.OK, ""),
+                    () => new Metadata(),
+                    () => { });
+            });
+
+        await call.ResponseAsync;
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        var traceparent = capturedHeaders!.First(h => h.Key == "traceparent").Value;
+
+        // traceparent format: 00-{traceId}-{spanId}-00
+        var parts = traceparent.Split('-');
+        Assert.Equal(requestLog.ActivityTraceId, parts[1]);
+        Assert.Equal(requestLog.ActivitySpanId, parts[2]);
     }
 }
 

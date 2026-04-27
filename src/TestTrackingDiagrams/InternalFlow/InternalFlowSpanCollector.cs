@@ -21,7 +21,9 @@ public static class InternalFlowSpanCollector
         "OpenTelemetry.Instrumentation.Http",
         "OpenTelemetry.Instrumentation.AspNetCore",
         "OpenTelemetry.Instrumentation.SqlClient",
-        "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+        "OpenTelemetry.Instrumentation.EntityFrameworkCore",
+        "TestTrackingDiagrams.Grpc",
+        "Grpc.Net.Client"
     ];
 
     /// <summary>
