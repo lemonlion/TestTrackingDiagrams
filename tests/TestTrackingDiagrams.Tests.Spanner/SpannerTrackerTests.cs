@@ -87,7 +87,7 @@ public class SpannerTrackerTests
         tracker.LogRequest(op, "SELECT * FROM Users");
 
         var log = GetLogsFromThisTest().First();
-        Assert.Equal("Database", log.DependencyCategory);
+        Assert.Equal("Spanner", log.DependencyCategory);
     }
 
     // ─── LogResponse ────────────────────────────────────────

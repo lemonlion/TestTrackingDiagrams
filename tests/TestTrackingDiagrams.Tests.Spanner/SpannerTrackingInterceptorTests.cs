@@ -235,7 +235,7 @@ public class SpannerTrackingInterceptorTests
             (req, ctx) => FakeUnaryCall(new ResultSet()));
 
         var log = GetLogs().First();
-        Assert.Equal("Database", log.DependencyCategory);
+        Assert.Equal("Spanner", log.DependencyCategory);
     }
 
     [Fact]

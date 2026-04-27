@@ -54,7 +54,7 @@ public class SpannerTracker : ITrackingComponent
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "Database")
+            DependencyCategory: "Spanner")
         {
             Phase = TestPhaseContext.Current
         });
@@ -85,7 +85,7 @@ public class SpannerTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            DependencyCategory: "Database")
+            DependencyCategory: "Spanner")
         {
             Phase = TestPhaseContext.Current
         });

@@ -50,7 +50,7 @@ public class BigtableTracker : ITrackingComponent
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "Database")
+            DependencyCategory: "Bigtable")
         {
             Phase = TestPhaseContext.Current
         });
@@ -81,7 +81,7 @@ public class BigtableTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallingServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            DependencyCategory: "Database")
+            DependencyCategory: "Bigtable")
         {
             Phase = TestPhaseContext.Current
         });

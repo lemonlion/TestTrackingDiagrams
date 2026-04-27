@@ -131,7 +131,7 @@ public class SpannerTrackerServerObserverTests
         onRequest("ExecuteSql", new ExecuteSqlRequest { Sql = "SELECT 1" }, DateTimeOffset.UtcNow);
 
         var log = GetLogs().First();
-        Assert.Equal("Database", log.DependencyCategory);
+        Assert.Equal("Spanner", log.DependencyCategory);
     }
 
     [Fact]

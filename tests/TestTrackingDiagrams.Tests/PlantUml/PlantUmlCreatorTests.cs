@@ -2638,6 +2638,24 @@ public class PlantUmlCreatorTests
     }
 
     [Fact]
+    public void Spanner_service_uses_database_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("Spanner", serviceName: "Cloud Spanner") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("database \"Cloud Spanner\" as cloudSpanner", plantUml);
+    }
+
+    [Fact]
+    public void Bigtable_service_uses_database_shape()
+    {
+        var logs = new[] { MakeRequestWithCategory("Bigtable", serviceName: "Cloud Bigtable") };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("database \"Cloud Bigtable\" as cloudBigtable", plantUml);
+    }
+
+    [Fact]
     public void HTTP_service_uses_entity_shape()
     {
         var logs = new[] { MakeRequestWithCategory("HTTP", serviceName: "Payment API") };

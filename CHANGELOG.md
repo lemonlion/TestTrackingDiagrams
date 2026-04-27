@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.4] - 2026-04-27
+
+### Fixed
+- **Spanner and Bigtable services render as `participant` instead of `database` shape in diagrams**: Changed `DependencyCategory` from generic `"Database"` to `"Spanner"` and `"Bigtable"` respectively, and added both (plus generic `"Database"` fallback) to `DependencyPalette.CategoryToType`. These services now correctly render with the `database` shape and red color in sequence diagrams.
+
 ## [2.27.3] - 2026-04-27
 
 ### Fixed

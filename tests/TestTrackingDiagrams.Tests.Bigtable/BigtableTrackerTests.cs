@@ -87,7 +87,7 @@ public class BigtableTrackerTests
         tracker.LogRequest(op, null);
 
         var log = GetLogsFromThisTest().First();
-        Assert.Equal("Database", log.DependencyCategory);
+        Assert.Equal("Bigtable", log.DependencyCategory);
     }
 
     // ─── LogResponse ────────────────────────────────────────
