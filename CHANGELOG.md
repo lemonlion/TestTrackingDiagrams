@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.18] - 2026-04-28
+
+### Fixed
+- **Empty report overwrite during xUnit v3 test discovery**: `dotnet test` launches the test host twice — once for discovery, once for execution. Both invoke `ITestPipelineStartup.StartAsync`/`StopAsync`, and the discovery pass collected zero features, causing `CreateStandardReportsWithDiagrams` to overwrite the existing `TestRunReport.html` with a structurally complete but empty report (filters and buttons visible, but no scenarios). The report now skips generation entirely when there are zero scenarios across all features, preserving the previous report until the execution pass writes the real one.
+
 ## [2.27.17] - 2026-04-28
 
 ### Added

@@ -134,6 +134,30 @@ public class StandardPipelineFormatterTests : IDisposable
         Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
     }
 
+    [Fact]
+    public void Format_does_not_overwrite_existing_report_when_zero_features()
+    {
+        var formatter = new StandardPipelineFormatter
+        {
+            Options = new ReportConfigurationOptions
+            {
+                HtmlTestRunReportFileName = $"TestRunReport_{_suffix}",
+                HtmlSpecificationsFileName = $"Specifications_{_suffix}",
+                YamlSpecificationsFileName = $"Specifications_{_suffix}"
+            }
+        };
+
+        // Seed a pre-existing report
+        Directory.CreateDirectory(_reportsDir);
+        var preExisting = Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html");
+        File.WriteAllText(preExisting, "<html>previous</html>");
+
+        // Call with zero features (simulates xUnit3 discovery pass)
+        formatter.Format(Stream.Null);
+
+        Assert.Equal("<html>previous</html>", File.ReadAllText(preExisting));
+    }
+
     // ── Stubs ──
 
     private class StubFeatureResult : IFeatureResult

@@ -334,4 +334,58 @@ public class ReportToggleTests : IDisposable
         Assert.True(File.Exists(Path.Combine(_reportsDir, $"Specifications_{_suffix}.html")));
         Assert.True(File.Exists(Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html")));
     }
+
+    // --- Zero-scenario guard (discovery pass / empty run) ---
+
+    [Fact]
+    public void No_reports_generated_when_features_array_is_empty()
+    {
+        var options = MakeOptions();
+        // Seed a pre-existing report to prove it is NOT overwritten
+        Directory.CreateDirectory(_reportsDir);
+        var preExisting = Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html");
+        File.WriteAllText(preExisting, "<html>previous</html>");
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            [], DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        // Pre-existing report must still contain the original content
+        Assert.Equal("<html>previous</html>", File.ReadAllText(preExisting));
+    }
+
+    [Fact]
+    public void No_reports_generated_when_all_features_have_zero_scenarios()
+    {
+        var emptyFeatures = new Feature[]
+        {
+            new() { DisplayName = "Empty Feature 1" },
+            new() { DisplayName = "Empty Feature 2" }
+        };
+        var options = MakeOptions();
+        Directory.CreateDirectory(_reportsDir);
+        var preExisting = Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html");
+        File.WriteAllText(preExisting, "<html>previous</html>");
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            emptyFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        Assert.Equal("<html>previous</html>", File.ReadAllText(preExisting));
+    }
+
+    [Fact]
+    public void Reports_still_generated_when_features_have_scenarios()
+    {
+        var options = MakeOptions();
+        Directory.CreateDirectory(_reportsDir);
+        var preExisting = Path.Combine(_reportsDir, $"TestRunReport_{_suffix}.html");
+        File.WriteAllText(preExisting, "<html>previous</html>");
+
+        ReportGenerator.CreateStandardReportsWithDiagrams(
+            SimpleFeatures, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow, options);
+
+        // Report should have been overwritten with real content
+        var content = File.ReadAllText(preExisting);
+        Assert.NotEqual("<html>previous</html>", content);
+        Assert.Contains("Toggle scenario", content);
+    }
 }

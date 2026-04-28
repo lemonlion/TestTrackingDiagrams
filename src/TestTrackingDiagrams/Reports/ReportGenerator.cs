@@ -32,6 +32,13 @@ public static class ReportGenerator
 
     public static void CreateStandardReportsWithDiagrams(Feature[] features, DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)
     {
+        // Guard: skip report generation entirely when there are zero scenarios.
+        // This prevents the xUnit v3 test-discovery pass (which triggers
+        // ITestPipelineStartup but runs no tests) from overwriting a valid
+        // report from a previous run with an empty one.
+        if (features.Length == 0 || features.All(f => f.Scenarios is null || f.Scenarios.Length == 0))
+            return;
+
         if (options.ExpectedTestCount != null)
         {
             var scenarioCount = features.SelectMany(f => f.Scenarios).Count();
