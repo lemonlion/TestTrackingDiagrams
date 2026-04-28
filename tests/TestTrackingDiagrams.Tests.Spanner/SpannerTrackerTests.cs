@@ -244,6 +244,75 @@ public class SpannerTrackerTests
         Assert.Contains("MySpanner", tracker.ComponentName);
     }
 
+    // ─── Raw content variants ──────────────────────────────
+
+    [Fact]
+    public void LogRequest_RawContent_UsedForRawVariant()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Detailed);
+        options.SetupVerbosity = SpannerTrackingVerbosity.Raw;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        tracker.LogRequest(op, "SELECT * FROM Users", rawContent: "SELECT * FROM Users\n-- Parameters: @id=42");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("SELECT * FROM Users", log.Content); // Detailed content
+        Assert.NotNull(log.SetupVariant);
+        Assert.Contains("Parameters", log.SetupVariant!.Content!); // Raw content in setup variant
+    }
+
+    [Fact]
+    public void LogRequest_RawContent_NotUsedForDetailedVariant()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Detailed);
+        options.ActionVerbosity = SpannerTrackingVerbosity.Raw;
+        options.SetupVerbosity = SpannerTrackingVerbosity.Detailed;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        tracker.LogRequest(op, "SELECT * FROM Users", rawContent: "SELECT * FROM Users\n-- Parameters: @id=42");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.NotNull(log.SetupVariant);
+        Assert.Equal("SELECT * FROM Users", log.SetupVariant!.Content); // Detailed — no params
+        Assert.NotNull(log.ActionVariant);
+        Assert.Contains("Parameters", log.ActionVariant!.Content!); // Raw — has params
+    }
+
+    [Fact]
+    public void LogRequest_RawContent_SummarisedVariant_StillNull()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Raw);
+        options.SetupVerbosity = SpannerTrackingVerbosity.Summarised;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        tracker.LogRequest(op, "SELECT * FROM Users", rawContent: "SELECT * FROM Users\n-- Parameters: @id=42");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.NotNull(log.SetupVariant);
+        Assert.Null(log.SetupVariant!.Content); // Summarised always null
+    }
+
+    [Fact]
+    public void LogResponse_RawContent_UsedForRawVariant()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Detailed);
+        options.SetupVerbosity = SpannerTrackingVerbosity.Raw;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+        var (reqId, traceId) = tracker.LogRequest(op, "SELECT * FROM Users");
+
+        tracker.LogResponse(op, reqId, traceId, "2 rows affected", rawContent: "2 rows affected (full details)");
+
+        var logs = GetLogsFromThisTest();
+        var response = logs.Last();
+        Assert.Equal("2 rows affected", response.Content);
+        Assert.NotNull(response.SetupVariant);
+        Assert.Contains("full details", response.SetupVariant!.Content!);
+    }
+
     // ─── Excluded operations ────────────────────────────────
 
     [Fact]

@@ -25,7 +25,7 @@ public class SpannerTracker : ITrackingComponent
     internal SpannerTrackingOptions Options => _options;
 
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
-        SpannerOperationInfo operation, string? content)
+        SpannerOperationInfo operation, string? content, string? rawContent = null)
     {
         if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
             return (Guid.Empty, Guid.Empty);
@@ -46,7 +46,8 @@ public class SpannerTracker : ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null : content;
+        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null :
+            effectiveVerbosity == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -61,7 +62,8 @@ public class SpannerTracker : ITrackingComponent
             v => new PhaseVariant(
                 SpannerOperationClassifier.GetDiagramLabel(operation, v),
                 BuildUri(operation, v),
-                v == SpannerTrackingVerbosity.Summarised ? null : content,
+                v == SpannerTrackingVerbosity.Summarised ? null :
+                    v == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content,
                 [], false)));
 
         return (requestResponseId, traceId);
@@ -69,7 +71,7 @@ public class SpannerTracker : ITrackingComponent
 
     public void LogResponse(
         SpannerOperationInfo operation,
-        Guid requestResponseId, Guid traceId, string? content)
+        Guid requestResponseId, Guid traceId, string? content, string? rawContent = null)
     {
         if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction)) return;
         if (_options.ExcludedOperations.Contains(operation.Operation)) return;
@@ -83,7 +85,8 @@ public class SpannerTracker : ITrackingComponent
         var uri = BuildUri(operation, effectiveVerbosity);
         var label = SpannerOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
 
-        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null : content;
+        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null :
+            effectiveVerbosity == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -97,7 +100,8 @@ public class SpannerTracker : ITrackingComponent
             v => new PhaseVariant(
                 SpannerOperationClassifier.GetDiagramLabel(operation, v),
                 BuildUri(operation, v),
-                v == SpannerTrackingVerbosity.Summarised ? null : content,
+                v == SpannerTrackingVerbosity.Summarised ? null :
+                    v == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content,
                 [], false)));
     }
 

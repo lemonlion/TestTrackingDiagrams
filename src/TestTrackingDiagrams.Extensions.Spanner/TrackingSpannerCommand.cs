@@ -121,11 +121,14 @@ public class TrackingSpannerCommand : DbCommand
     {
         var op = SpannerOperationClassifier.ClassifySql(CommandText, CommandType);
 
-        var content = _options.Verbosity == SpannerTrackingVerbosity.Raw
-            ? BuildParameterizedContent()
-            : _options.LogSqlText ? CommandText : null;
+        var rawContent = BuildParameterizedContent();
+        var detailedContent = _options.LogSqlText ? CommandText : null;
 
-        var (reqId, traceId) = _connection.Tracker.LogRequest(op, content);
+        var content = _options.Verbosity == SpannerTrackingVerbosity.Raw
+            ? rawContent
+            : detailedContent;
+
+        var (reqId, traceId) = _connection.Tracker.LogRequest(op, content, rawContent);
         return reqId == Guid.Empty ? null : (traceId, reqId);
     }
 
@@ -145,7 +148,7 @@ public class TrackingSpannerCommand : DbCommand
 
     private string? BuildParameterizedContent()
     {
-        if (!_options.LogParameters || _inner.Parameters.Count == 0)
+        if (_inner.Parameters.Count == 0)
             return CommandText;
 
         var paramStr = string.Join(", ", _inner.Parameters

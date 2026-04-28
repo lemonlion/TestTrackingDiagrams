@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.6] - 2026-04-28
+
+### Fixed
+- **Spanner: Raw and Detailed verbosity now produce different content**: Previously, both Raw and Detailed verbosity levels showed identical SQL text in the content body (and in phase variants). Raw now always includes parameter values when parameters exist, regardless of the `LogParameters` setting. The `LogParameters` option is now marked `[Obsolete]`.
+- **Spanner: Phase variant content now correctly differentiates by verbosity level**: When using `SetupVerbosity`/`ActionVerbosity` overrides, the variant content now uses the appropriate content for each verbosity level (Raw includes parameters, Detailed shows plain SQL, Summarised omits content).
+
 ## [2.27.5] - 2026-04-27
 
 ### Fixed
