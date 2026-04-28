@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.16] - 2026-04-28
+
+### Added
+- **New package: `TestTrackingDiagrams.Extensions.Kafka.BuildInterception`** — Automatically intercepts `ConsumerBuilder<TKey,TValue>.Build()` and `ProducerBuilder<TKey,TValue>.Build()` via [Harmony](https://github.com/pardeike/Harmony) runtime patching, wrapping the result with `TrackingKafkaConsumer` / `TrackingKafkaProducer` when tracking is enabled. This enables **zero production code changes** — no `.BuildTracked()`, no package reference in the API project, no DI changes. The Harmony dependency is isolated in the addon package.
+- **`KafkaBuildInterceptor.EnableConsumerTracking<TKey,TValue>()`** — Enables consumer tracking and patches `ConsumerBuilder<TKey,TValue>.Build()` in a single call.
+- **`KafkaBuildInterceptor.EnableProducerTracking<TKey,TValue>()`** — Enables producer tracking and patches `ProducerBuilder<TKey,TValue>.Build()` in a single call.
+- **`KafkaBuildInterceptor.EnableTracking<TKey,TValue>()`** — Convenience method that enables both consumer and producer tracking and patches both `Build()` methods.
+- **`KafkaBuildInterceptor.DisableConsumerTracking<TKey,TValue>()`** / **`DisableProducerTracking<TKey,TValue>()`** — Disables tracking for a specific type pair (Harmony patch remains but becomes a no-op).
+- **`KafkaBuildInterceptor.Reset()`** — Clears all tracking state and removes all Harmony patches.
+
 ## [2.27.15] - 2026-04-28
 
 ### Fixed

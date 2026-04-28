@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams Kafka Build Interception</Title>
+    <Description>Automatic Kafka ConsumerBuilder/ProducerBuilder.Build() interception via Harmony. Enables zero-prod-change tracking of internally-built Kafka consumers and producers.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TestTrackingDiagrams.Extensions.Kafka\TestTrackingDiagrams.Extensions.Kafka.csproj" />
+  </ItemGroup>
+</Project>
