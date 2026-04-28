@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.11] - 2026-04-28
+
+### Fixed
+- **Eliminated all CI build warnings**: Fixed ~80 compiler and analyzer warnings across the solution, including nullability annotations (`CS8600`–`CS8625`), obsolete API usage (`CS0618`), xUnit analyzer rules (`xUnit2013`, `xUnit2017`, `xUnit2018`, `xUnit1051`), and unused field warnings (`CS0414`). No functional changes.
+
 ## [2.27.10] - 2026-04-28
 
 ### Fixed

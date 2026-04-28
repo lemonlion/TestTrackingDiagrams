@@ -78,7 +78,7 @@ public class TrackingKafkaProducerFactoryTests
         var factory = new TrackingKafkaProducerFactory<string, string>(inner, tracker, options);
 
         var producer = factory.Create(config => { });
-        await producer.ProduceAsync("test-topic", new Message<string, string> { Key = "k1", Value = "v1" });
+        await producer.ProduceAsync("test-topic", new Message<string, string> { Key = "k1", Value = "v1" }, TestContext.Current.CancellationToken);
 
         var logs = GetLogsFromThisTest();
         Assert.Equal(2, logs.Length);

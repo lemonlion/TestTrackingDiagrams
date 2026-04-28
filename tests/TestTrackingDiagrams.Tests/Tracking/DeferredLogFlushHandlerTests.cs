@@ -102,7 +102,7 @@ public class DeferredLogFlushHandlerTests
         };
 
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var response = await client.GetAsync("/test");
+        var response = await client.GetAsync("/test", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(PendingRequestResponseLogs.Count > 0, "Pending logs should NOT have been flushed");

@@ -1555,9 +1555,9 @@ public class TestTrackingMessageHandlerTests : IDisposable
         };
         using var invoker = CreateInvoker(options);
 
-        var response = await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+        var response = await invoker.SendAsync(MakeGetRequest(), TestContext.Current.CancellationToken);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal("expected-body", body);
     }
 }
