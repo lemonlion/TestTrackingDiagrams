@@ -272,4 +272,117 @@ public class KafkaTrackerTests
         var components = TrackingComponentRegistry.GetRegisteredComponents();
         Assert.Contains(components, c => ReferenceEquals(c, tracker));
     }
+
+    // ─── LogCommit ──────────────────────────────────────────
+
+    [Fact]
+    public void LogCommit_Skips_when_TrackCommit_false()
+    {
+        var options = MakeOptions();
+        options.TrackCommit = false; // default
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Commit);
+
+        tracker.LogCommit(op);
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public void LogCommit_Logs_when_TrackCommit_true()
+    {
+        var options = MakeOptions();
+        options.TrackCommit = true;
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Commit);
+
+        tracker.LogCommit(op);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    // ─── LogUnsubscribe ─────────────────────────────────────
+
+    [Fact]
+    public void LogUnsubscribe_Skips_when_TrackUnsubscribe_false()
+    {
+        var options = MakeOptions();
+        options.TrackUnsubscribe = false; // default
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Unsubscribe);
+
+        tracker.LogUnsubscribe(op);
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public void LogUnsubscribe_Logs_when_TrackUnsubscribe_true()
+    {
+        var options = MakeOptions();
+        options.TrackUnsubscribe = true;
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Unsubscribe);
+
+        tracker.LogUnsubscribe(op);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    // ─── LogFlush ───────────────────────────────────────────
+
+    [Fact]
+    public void LogFlush_Skips_when_TrackFlush_false()
+    {
+        var options = MakeOptions();
+        options.TrackFlush = false; // default
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Flush);
+
+        tracker.LogFlush(op);
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public void LogFlush_Logs_when_TrackFlush_true()
+    {
+        var options = MakeOptions();
+        options.TrackFlush = true;
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.Flush);
+
+        tracker.LogFlush(op);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    // ─── LogConsume content ─────────────────────────────────
+
+    [Fact]
+    public void LogConsume_Includes_content()
+    {
+        var tracker = new KafkaTracker(MakeOptions());
+        var op = new KafkaOperationInfo(KafkaOperation.Consume, "orders-topic", 0, 42);
+
+        tracker.LogConsume(op, "Key: k1, Value: v1");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Contains("k1", log.Content);
+    }
+
+    [Fact]
+    public void LogConsume_Omits_content_in_Summarised()
+    {
+        var tracker = new KafkaTracker(MakeOptions(KafkaTrackingVerbosity.Summarised));
+        var op = new KafkaOperationInfo(KafkaOperation.Consume, "orders-topic");
+
+        tracker.LogConsume(op, "Key: k1, Value: v1");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
 }

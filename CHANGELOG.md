@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.7] - 2026-04-28
+
+### Fixed
+- **Kafka: Consumer `Commit()` now tracked** (all 3 overloads): Previously, `KafkaOperation.Commit` was defined in the enum and the tracker had a `LogCommit()` method, but `TrackingKafkaConsumer` never called it. All three `Commit()` overloads now log when `TrackCommit = true`.
+- **Kafka: Consumer `Unsubscribe()` now tracked**: Previously just delegated without logging. Now logs when `TrackUnsubscribe = true`.
+- **Kafka: Producer `Flush()` now tracked** (both overloads): Previously just delegated without logging. Now logs when `TrackFlush = true`.
+- **Kafka: Consumer now logs message Key**: Previously, `TrackingKafkaConsumer` only logged the message Value. Now uses the same `BuildContent` pattern as the producer, logging both Key and Value (controlled by `LogMessageKey` / `LogMessageValue`). Content is also correctly suppressed in Summarised mode.
+- **CI: Split IKVM tests into own matrix job with disk cleanup**: The PlantUml.Ikvm test project copies hundreds of native runtime files per platform, exhausting disk space on GitHub Actions runners. IKVM tests now run in a dedicated job with pre-build cleanup of unused SDK/tooling directories.
+
+### Added
+- **`TrackFlush`** option on `KafkaTrackingOptions` (default `false`) — enables tracking of `IProducer.Flush()` calls.
+- **`TrackUnsubscribe`** option on `KafkaTrackingOptions` (default `false`) — enables tracking of `IConsumer.Unsubscribe()` calls.
+- **`LogFlush()`** and **`LogUnsubscribe()`** methods on `KafkaTracker`.
+
 ## [2.27.6] - 2026-04-28
 
 ### Fixed

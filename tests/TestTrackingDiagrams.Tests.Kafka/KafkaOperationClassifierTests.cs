@@ -150,4 +150,48 @@ public class KafkaOperationClassifierTests
 
         Assert.Equal("kafka:///", uri.ToString());
     }
+
+    // ──────────────────────────────────────────────────────────
+    //  Diagram labels — Commit / Unsubscribe
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Commit_ReturnsOperationName()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Commit);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Commit", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Detailed_Unsubscribe_ReturnsOperationName()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Unsubscribe);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal("Unsubscribe", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Summarised_Commit()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Commit);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal("Commit", label);
+    }
+
+    [Fact]
+    public void GetDiagramLabel_Summarised_Unsubscribe()
+    {
+        var op = new KafkaOperationInfo(KafkaOperation.Unsubscribe);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal("Unsubscribe", label);
+    }
 }

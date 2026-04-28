@@ -98,8 +98,27 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
     public int AddBrokers(string brokers) => _inner.AddBrokers(brokers);
     public void SetSaslCredentials(string username, string password) => _inner.SetSaslCredentials(username, password);
     public int Poll(TimeSpan timeout) => _inner.Poll(timeout);
-    public int Flush(TimeSpan timeout) => _inner.Flush(timeout);
-    public void Flush(CancellationToken cancellationToken = default) => _inner.Flush(cancellationToken);
+    public int Flush(TimeSpan timeout)
+    {
+        var result = _inner.Flush(timeout);
+        LogFlush();
+        return result;
+    }
+
+    public void Flush(CancellationToken cancellationToken = default)
+    {
+        _inner.Flush(cancellationToken);
+        LogFlush();
+    }
+
+    private void LogFlush()
+    {
+        if (_options.TrackFlush)
+        {
+            var op = new KafkaOperationInfo(KafkaOperation.Flush);
+            _tracker.LogFlush(op);
+        }
+    }
     public void InitTransactions(TimeSpan timeout) => _inner.InitTransactions(timeout);
     public void BeginTransaction() => _inner.BeginTransaction();
     public void CommitTransaction(TimeSpan timeout) => _inner.CommitTransaction(timeout);

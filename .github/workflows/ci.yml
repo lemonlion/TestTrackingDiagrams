@@ -30,7 +30,9 @@ jobs:
               tests/TestTrackingDiagrams.Tests.CosmosDB
               tests/TestTrackingDiagrams.Tests.EfCore.Relational
               tests/TestTrackingDiagrams.Tests.Redis
-              tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
+          - name: PlantUml IKVM Tests
+            projects: tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
+            needs-disk-cleanup: true
           - name: Selenium (Popups & Flows)
             projects: tests/TestTrackingDiagrams.Tests.Selenium
             filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
@@ -87,6 +89,16 @@ jobs:
             restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.ReqNRoll.xUnit3
     steps:
+      - name: Free disk space (IKVM)
+        if: matrix.needs-disk-cleanup
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/swift || true
+          sudo rm -rf /usr/share/dotnet/shared/Microsoft.NETCore.App/6.* || true
+          sudo rm -rf /usr/share/dotnet/shared/Microsoft.NETCore.App/7.* || true
+          sudo rm -rf /usr/share/dotnet/shared/Microsoft.AspNetCore.App/6.* || true
+          sudo rm -rf /usr/share/dotnet/shared/Microsoft.AspNetCore.App/7.* || true
+          df -h /
+
       - uses: actions/checkout@v5
 
       - name: Setup .NET

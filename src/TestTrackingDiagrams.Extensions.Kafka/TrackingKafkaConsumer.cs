@@ -68,11 +68,20 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         var op = new KafkaOperationInfo(KafkaOperation.Consume, result.Topic,
             result.Partition.Value, result.Offset.Value);
 
-        string? content = null;
-        if (_options.LogMessageValue && result.Message is not null && result.Message.Value is not null)
-            content = result.Message.Value.ToString();
+        _tracker.LogConsume(op, BuildContent(result.Message));
+    }
 
-        _tracker.LogConsume(op, content);
+    private string? BuildContent(Message<TKey, TValue>? message)
+    {
+        if (message is null) return null;
+        if (_options.Verbosity == KafkaTrackingVerbosity.Summarised) return null;
+
+        var parts = new List<string>();
+        if (_options.LogMessageKey && message.Key is not null)
+            parts.Add($"Key: {message.Key}");
+        if (_options.LogMessageValue && message.Value is not null)
+            parts.Add($"Value: {message.Value}");
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
     }
 
     // ─── IConsumer<TKey, TValue> delegation ───────────────────
@@ -85,7 +94,16 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     public IConsumerGroupMetadata ConsumerGroupMetadata => _inner.ConsumerGroupMetadata;
     public int AddBrokers(string brokers) => _inner.AddBrokers(brokers);
     public void SetSaslCredentials(string username, string password) => _inner.SetSaslCredentials(username, password);
-    public void Unsubscribe() => _inner.Unsubscribe();
+    public void Unsubscribe()
+    {
+        _inner.Unsubscribe();
+
+        if (_options.TrackUnsubscribe)
+        {
+            var op = new KafkaOperationInfo(KafkaOperation.Unsubscribe);
+            _tracker.LogUnsubscribe(op);
+        }
+    }
     public void Assign(TopicPartition partition) => _inner.Assign(partition);
     public void Assign(TopicPartitionOffset partition) => _inner.Assign(partition);
     public void Assign(IEnumerable<TopicPartition> partitions) => _inner.Assign(partitions);
@@ -96,9 +114,33 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     public void Unassign() => _inner.Unassign();
     public void StoreOffset(ConsumeResult<TKey, TValue> result) => _inner.StoreOffset(result);
     public void StoreOffset(TopicPartitionOffset offset) => _inner.StoreOffset(offset);
-    public List<TopicPartitionOffset> Commit() => _inner.Commit();
-    public void Commit(IEnumerable<TopicPartitionOffset> offsets) => _inner.Commit(offsets);
-    public void Commit(ConsumeResult<TKey, TValue> result) => _inner.Commit(result);
+    public List<TopicPartitionOffset> Commit()
+    {
+        var result = _inner.Commit();
+        LogCommit();
+        return result;
+    }
+
+    public void Commit(IEnumerable<TopicPartitionOffset> offsets)
+    {
+        _inner.Commit(offsets);
+        LogCommit();
+    }
+
+    public void Commit(ConsumeResult<TKey, TValue> result)
+    {
+        _inner.Commit(result);
+        LogCommit();
+    }
+
+    private void LogCommit()
+    {
+        if (_options.TrackCommit)
+        {
+            var op = new KafkaOperationInfo(KafkaOperation.Commit);
+            _tracker.LogCommit(op);
+        }
+    }
     public void Seek(TopicPartitionOffset tpo) => _inner.Seek(tpo);
     public void Pause(IEnumerable<TopicPartition> partitions) => _inner.Pause(partitions);
     public void Resume(IEnumerable<TopicPartition> partitions) => _inner.Resume(partitions);
