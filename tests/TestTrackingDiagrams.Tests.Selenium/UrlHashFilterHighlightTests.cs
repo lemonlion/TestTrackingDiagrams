@@ -125,7 +125,7 @@ public class UrlHashFilterHighlightTests : IDisposable
         _driver.Navigate().GoToUrl(url + "#hp=1");
 
         var hpBtn = WaitFor(By.CssSelector(".happy-path-toggle"));
-        Assert.True(hpBtn.GetAttribute("class").Contains("happy-path-active"),
+        Assert.True((hpBtn.GetAttribute("class") ?? "").Contains("happy-path-active"),
             "Happy path button should have happy-path-active class after URL hash restore");
         Assert.True(IsHighlighted(GetComputedBgColor(hpBtn)),
             $"Happy path button should be highlighted but got: {GetComputedBgColor(hpBtn)}");
@@ -155,7 +155,7 @@ public class UrlHashFilterHighlightTests : IDisposable
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
         var passedBtn = wait.Until(d => d.FindElement(By.CssSelector(".status-toggle[data-status='Passed']")));
 
-        var hasActiveClass = passedBtn.GetAttribute("class").Contains("status-active");
+        var hasActiveClass = (passedBtn.GetAttribute("class") ?? "").Contains("status-active");
         var bgColor = GetComputedBgColor(passedBtn);
 
         Assert.True(hasActiveClass,

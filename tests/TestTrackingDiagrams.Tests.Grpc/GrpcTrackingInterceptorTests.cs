@@ -596,7 +596,7 @@ public class GrpcTrackingInterceptorTests
                 () => { }));
 
         // Let some time elapse before completing the response
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
         tcs.SetResult("World");
         await call.ResponseAsync;
 
@@ -628,7 +628,7 @@ public class GrpcTrackingInterceptorTests
                 () => new Metadata(),
                 () => { }));
 
-        await Task.Delay(30);
+        await Task.Delay(30, TestContext.Current.CancellationToken);
         tcs.SetResult("World");
         await call.ResponseAsync;
 

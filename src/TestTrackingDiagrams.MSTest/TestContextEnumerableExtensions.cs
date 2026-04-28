@@ -44,7 +44,7 @@ internal static class TestContextEnumerableExtensions
     }
 
     internal static Dictionary<string, string>? RebindParameterNames(
-        Dictionary<string, string>? parsed, string[]? parameterNames)
+        Dictionary<string, string>? parsed, string?[]? parameterNames)
     {
         if (parsed is not { Count: > 0 } || parameterNames is not { Length: > 0 })
             return parsed;

@@ -60,7 +60,7 @@ public class TrackingDbCommandTests : IDisposable
     public async Task ExecuteReaderAsync_logs_request_and_response()
     {
         using var cmd = CreateCommand("SELECT * FROM Users");
-        await cmd.ExecuteReaderAsync();
+        await cmd.ExecuteReaderAsync(TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -86,7 +86,7 @@ public class TrackingDbCommandTests : IDisposable
     public async Task ExecuteNonQueryAsync_logs_correctly()
     {
         using var cmd = CreateCommand("UPDATE Users SET Name = 'test'");
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -106,7 +106,7 @@ public class TrackingDbCommandTests : IDisposable
     public async Task ExecuteScalarAsync_logs_correctly()
     {
         using var cmd = CreateCommand("SELECT COUNT(*) FROM Users");
-        await cmd.ExecuteScalarAsync();
+        await cmd.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);

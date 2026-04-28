@@ -51,7 +51,7 @@ public class TestPhaseContextTests
         {
             innerPhase = TestPhaseContext.Current;
             TestPhaseContext.Current = TestPhase.Action;
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Inner task inherits parent's value
         Assert.Equal(TestPhase.Setup, innerPhase);

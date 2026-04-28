@@ -30,7 +30,7 @@ public class FeatureResultExtensionsTests
             .WithScenario(new StubExecutionResult("s1", "Test"));
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(["api", "v2"], features[0].Labels);
+        Assert.Equal(["api", "v2"], features[0].Labels!);
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class FeatureResultExtensionsTests
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(["smoke"], features[0].Scenarios[0].Labels);
-        Assert.Equal(["Orders"], features[0].Scenarios[0].Categories);
+        Assert.Equal(["smoke"], features[0].Scenarios[0].Labels!);
+        Assert.Equal(["Orders"], features[0].Scenarios[0].Categories!);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class FeatureResultExtensionsTests
         var feature = new StubFeatureResult("F").WithScenario(scenario);
 
         var features = new[] { feature }.ToFeatures();
-        Assert.Equal(["Business rule XYZ"], features[0].Scenarios[0].Steps![0].Comments);
+        Assert.Equal(["Business rule XYZ"], features[0].Scenarios[0].Steps![0].Comments!);
     }
 
     [Fact]

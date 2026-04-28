@@ -58,11 +58,11 @@ internal static class TestContextEnumerableExtensions
         try
         {
             var args = context.Test.Arguments;
-            var methodParams = context.Test.Method?.GetParameters();
+            var methodParams = context.Test.MethodInfo?.GetParameters();
             if (args is not { Length: > 0 } || methodParams is not { Length: > 0 })
                 return null;
 
-            var paramNames = methodParams.Select(p => p.ParameterInfo.Name).ToArray();
+            var paramNames = methodParams.Select(p => p.Name).ToArray();
             return ParameterParser.ExtractStructuredParametersWithRaw(args, paramNames);
         }
         catch

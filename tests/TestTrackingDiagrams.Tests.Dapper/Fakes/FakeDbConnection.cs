@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace TestTrackingDiagrams.Tests.Dapper.Fakes;
 
@@ -7,6 +8,7 @@ public class FakeDbConnection : DbConnection
 {
     private ConnectionState _state = ConnectionState.Closed;
 
+    [AllowNull]
     public override string ConnectionString { get; set; } = "";
     public override string Database { get; } = "TestDb";
     public override string DataSource { get; } = "localhost";

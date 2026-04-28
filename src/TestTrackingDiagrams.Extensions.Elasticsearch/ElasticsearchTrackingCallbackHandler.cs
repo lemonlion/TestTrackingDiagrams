@@ -24,6 +24,9 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
 
     public void HandleApiCallDetails(ApiCallDetails details)
     {
+        if (details.Uri is null)
+            return;
+
         LogOperation(
             details.HttpMethod.ToString().ToUpperInvariant(),
             details.Uri,

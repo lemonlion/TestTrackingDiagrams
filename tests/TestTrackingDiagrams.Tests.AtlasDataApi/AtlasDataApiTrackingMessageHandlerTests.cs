@@ -29,7 +29,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
             "https://data.mongodb-api.com/app/myapp/endpoint/data/v1/action/find");
         request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -53,7 +53,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.All(logs, l => Assert.Equal("AtlasDataApi", l.DependencyCategory));
@@ -75,7 +75,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"orders_db","collection":"orders"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var log = GetLogsForTest().First();
         Assert.Equal(new Uri("atlas:///orders_db/orders"), log.Uri);
@@ -100,7 +100,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.All(logs, l => Assert.Null(l.Content));
@@ -122,7 +122,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
             "https://data.mongodb-api.com/app/myapp/endpoint/data/v1/action/unknownOp");
         request.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Empty(GetLogsForTest());
     }
@@ -144,7 +144,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var log = GetLogsForTest().First();
         Assert.IsType<HttpMethod>(log.Method.Value); // HttpMethod
@@ -169,7 +169,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Empty(GetLogsForTest());
     }
@@ -195,7 +195,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
         request.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
 
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var log = GetLogsForTest().First();
         Assert.DoesNotContain(log.Headers, h => h.Key == "api-key");
@@ -222,7 +222,7 @@ public class AtlasDataApiTrackingMessageHandlerTests
             "https://data.mongodb-api.com/app/myapp/endpoint/data/v1/action/find");
         request1.Content = new StringContent("""{"dataSource":"C","database":"db","collection":"col"}""",
             System.Text.Encoding.UTF8, "application/json");
-        await client.SendAsync(request1);
+        await client.SendAsync(request1, TestContext.Current.CancellationToken);
 
         Assert.True(handler.WasInvoked);
         Assert.Equal(1, handler.InvocationCount);

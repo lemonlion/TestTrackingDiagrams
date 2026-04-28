@@ -253,7 +253,7 @@ public class ParameterGrouperTests
         Assert.Contains("Currency", groups[0].ParameterNames);
         // ExampleValues should be flattened on the group's cloned scenarios
         Assert.Equal("UK", groups[0].Scenarios[0].ExampleValues!["Region"]);
-        Assert.Equal("100", groups[0].Scenarios[0].ExampleValues["Amount"]);
+        Assert.Equal("100", groups[0].Scenarios[0].ExampleValues!["Amount"]);
     }
 
     [Fact]

@@ -78,7 +78,7 @@ public class DependencyColoringTests : IDisposable
         var svg = WaitForDiagramSvg();
 
         // The SVG should contain arrow lines (rendered as polygon/line elements)
-        var svgHtml = svg.GetAttribute("outerHTML");
+        var svgHtml = svg.GetAttribute("outerHTML") ?? "";
         Assert.Contains("svg", svgHtml);
         Assert.True(svgHtml.Length > 100, "SVG should contain rendered diagram content");
     }
@@ -195,18 +195,18 @@ public class DependencyColoringTests : IDisposable
         var button = WaitFor(By.CssSelector("button[onclick*='toggle_component_diagram']"));
 
         // Initially no active class
-        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class"));
+        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class") ?? "");
 
         // Click to show
         button.Click();
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
-        wait.Until(_ => button.GetAttribute("class").Contains("timeline-toggle-active"));
-        Assert.Contains("timeline-toggle-active", button.GetAttribute("class"));
+        wait.Until(_ => (button.GetAttribute("class") ?? "").Contains("timeline-toggle-active"));
+        Assert.Contains("timeline-toggle-active", button.GetAttribute("class") ?? "");
 
         // Click to hide
         button.Click();
-        wait.Until(_ => !button.GetAttribute("class").Contains("timeline-toggle-active"));
-        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class"));
+        wait.Until(_ => !(button.GetAttribute("class") ?? "").Contains("timeline-toggle-active"));
+        Assert.DoesNotContain("timeline-toggle-active", button.GetAttribute("class") ?? "");
     }
 
     [Fact]

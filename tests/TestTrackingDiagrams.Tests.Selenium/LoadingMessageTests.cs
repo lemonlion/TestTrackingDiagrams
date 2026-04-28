@@ -70,7 +70,7 @@ public class LoadingMessageTests : IDisposable
         var message = wait.Until(d =>
         {
             // Get ::before content via JS
-            var content = (string)((IJavaScriptExecutor)d).ExecuteScript("""
+            var content = (string?)((IJavaScriptExecutor)d).ExecuteScript("""
                 var diagrams = document.querySelectorAll('.plantuml-browser:not([data-rendered])');
                 for (var i = 0; i < diagrams.length; i++) {
                     var before = window.getComputedStyle(diagrams[i], '::before').getPropertyValue('content');

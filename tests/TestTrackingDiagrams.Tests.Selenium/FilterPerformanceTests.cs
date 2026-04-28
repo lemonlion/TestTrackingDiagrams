@@ -232,7 +232,7 @@ public class FilterPerformanceTests : IDisposable
         // Measure filter time inside JavaScript to avoid Selenium IPC overhead
         var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
             "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
-            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);")!;
 
         // Verify the filter was applied (some scenarios should be hidden)
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
@@ -258,7 +258,7 @@ public class FilterPerformanceTests : IDisposable
 
         var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
             "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
-            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);")!;
 
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
         Assert.True(hiddenCount > 0, "Some scenarios should be hidden by the filter");
@@ -287,7 +287,7 @@ public class FilterPerformanceTests : IDisposable
         // Toggle off and measure inside JS
         var ms = (long)((IJavaScriptExecutor)_driver).ExecuteScript(
             "var btn = document.querySelector('.dependency-toggle[data-dependency=\"OrderService\"]');" +
-            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);");
+            "var t0 = performance.now(); btn.click(); return Math.round(performance.now() - t0);")!;
 
         var hiddenCount = _driver.FindElements(By.CssSelector(".scenario.dep-hidden")).Count;
         Assert.Equal(0, hiddenCount);
@@ -317,6 +317,6 @@ public class FilterPerformanceTests : IDisposable
         var visibleFeatures = _driver.FindElements(By.CssSelector(".feature:not(.dep-hidden)"));
 
         Assert.True(visibleFeatures.Count > 0, "Some features should be visible");
-        Assert.Equal(0, openedFeatures.Count);
+        Assert.Empty(openedFeatures);
     }
 }

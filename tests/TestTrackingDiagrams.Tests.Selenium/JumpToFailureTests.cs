@@ -62,7 +62,7 @@ public class JumpToFailureTests : IDisposable
             var el = arguments[0];
             var rect = el.getBoundingClientRect();
             return rect.top >= 0 && rect.top < window.innerHeight;
-            """, failedSummary);
+            """, failedSummary)!;
 
         Assert.True(isInViewport, "Failed scenario summary should be visible in viewport after jump-to-failure");
     }

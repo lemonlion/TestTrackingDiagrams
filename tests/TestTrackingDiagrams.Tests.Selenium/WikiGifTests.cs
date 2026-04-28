@@ -493,6 +493,7 @@ public class WikiGifTests : IDisposable
         @enduml
         """;
 
+    #pragma warning disable CS0414 // Field is assigned but never used
     private static readonly string FocusDiagramSource = """
         @startuml
         !pragma teoz true
@@ -543,6 +544,7 @@ public class WikiGifTests : IDisposable
         end note
         @enduml
         """;
+#pragma warning restore CS0414
 
     private (Feature[] Features, DiagramAsCode[] Diagrams) CreateRichShowcaseData()
     {

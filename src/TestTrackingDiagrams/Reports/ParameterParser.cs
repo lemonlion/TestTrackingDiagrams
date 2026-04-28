@@ -231,7 +231,7 @@ public static class ParameterParser
     /// Returns null if inputs are null, empty, or mismatched in length.
     /// </summary>
     public static (Dictionary<string, string> StringValues, Dictionary<string, object?> RawValues)?
-        ExtractStructuredParametersWithRaw(object[]? args, string?[]? paramNames)
+        ExtractStructuredParametersWithRaw(object?[]? args, string?[]? paramNames)
     {
         try
         {

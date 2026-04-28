@@ -1,6 +1,7 @@
 using Confluent.Kafka;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
@@ -55,6 +56,58 @@ public static class KafkaServiceCollectionExtensions
         {
             var tracker = new KafkaTracker(options, sp.GetService<IHttpContextAccessor>());
             return new TrackingKafkaConsumer<TKey, TValue>(inner, tracker, options);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Decorates all existing <see cref="IKafkaConsumerFactory{TKey,TValue}"/> registrations with
+    /// <see cref="TrackingKafkaConsumerFactory{TKey,TValue}"/> for test diagram tracking.
+    /// <para>
+    /// If no <see cref="IKafkaConsumerFactory{TKey,TValue}"/> is registered, a default
+    /// <see cref="KafkaConsumerFactory{TKey,TValue}"/> is added first.
+    /// </para>
+    /// </summary>
+    public static IServiceCollection AddKafkaConsumerFactoryTestTracking<TKey, TValue>(
+        this IServiceCollection services,
+        Action<KafkaTrackingOptions>? configure = null)
+    {
+        var options = new KafkaTrackingOptions();
+        configure?.Invoke(options);
+
+        services.TryAddSingleton<IKafkaConsumerFactory<TKey, TValue>, KafkaConsumerFactory<TKey, TValue>>();
+
+        services.DecorateAll<IKafkaConsumerFactory<TKey, TValue>>((sp, inner) =>
+        {
+            var tracker = new KafkaTracker(options, sp.GetService<IHttpContextAccessor>());
+            return new TrackingKafkaConsumerFactory<TKey, TValue>(inner, tracker, options);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Decorates all existing <see cref="IKafkaProducerFactory{TKey,TValue}"/> registrations with
+    /// <see cref="TrackingKafkaProducerFactory{TKey,TValue}"/> for test diagram tracking.
+    /// <para>
+    /// If no <see cref="IKafkaProducerFactory{TKey,TValue}"/> is registered, a default
+    /// <see cref="KafkaProducerFactory{TKey,TValue}"/> is added first.
+    /// </para>
+    /// </summary>
+    public static IServiceCollection AddKafkaProducerFactoryTestTracking<TKey, TValue>(
+        this IServiceCollection services,
+        Action<KafkaTrackingOptions>? configure = null)
+    {
+        var options = new KafkaTrackingOptions();
+        configure?.Invoke(options);
+
+        services.TryAddSingleton<IKafkaProducerFactory<TKey, TValue>, KafkaProducerFactory<TKey, TValue>>();
+
+        services.DecorateAll<IKafkaProducerFactory<TKey, TValue>>((sp, inner) =>
+        {
+            var tracker = new KafkaTracker(options, sp.GetService<IHttpContextAccessor>());
+            return new TrackingKafkaProducerFactory<TKey, TValue>(inner, tracker, options);
         });
 
         return services;

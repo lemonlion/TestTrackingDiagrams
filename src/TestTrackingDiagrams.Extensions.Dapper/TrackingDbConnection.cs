@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -29,6 +30,7 @@ public class TrackingDbConnection : DbConnection, ITrackingComponent
 
     internal void IncrementInvocationCount() => Interlocked.Increment(ref _invocationCount);
 
+    [AllowNull]
     public override string ConnectionString
     {
         get => _inner.ConnectionString!;

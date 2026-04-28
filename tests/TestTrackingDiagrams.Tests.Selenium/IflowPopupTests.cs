@@ -661,7 +661,7 @@ public class IflowPopupTests : IDisposable
         WaitFor(By.CssSelector(".plantuml-inline-svg svg"));
 
         var result = (string)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(
-            PngOpacityCheckScript(".plantuml-inline-svg svg"));
+            PngOpacityCheckScript(".plantuml-inline-svg svg"))!;
 
         var data = System.Text.Json.JsonDocument.Parse(result).RootElement;
         Assert.False(data.TryGetProperty("error", out _), $"Error: {result}");
@@ -686,7 +686,7 @@ public class IflowPopupTests : IDisposable
         });
 
         var result = (string)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(
-            PngOpacityCheckScript(".plantuml-browser svg"));
+            PngOpacityCheckScript(".plantuml-browser svg"))!;
 
         var data = System.Text.Json.JsonDocument.Parse(result).RootElement;
         Assert.False(data.TryGetProperty("error", out _), $"Error: {result}");

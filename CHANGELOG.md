@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.9] - 2026-04-28
+
+### Added
+- **Kafka: Static interceptor for internally-built consumers/producers** (`KafkaTrackingInterceptor`): Enables tracking for consumers and producers built via `new ConsumerBuilder<TKey,TValue>(...).Build()` inside `BackgroundService` or other non-DI code paths. Use `EnableConsumerTracking<TKey,TValue>()` / `EnableProducerTracking<TKey,TValue>()` in test setup, then replace `.Build()` with `.BuildTracked()` in production code (one-token change, no-op when not in test context). Also provides `.Tracked()` extension on existing `IConsumer` / `IProducer` instances.
+- **Kafka: Consumer and producer factory interfaces**: `IKafkaConsumerFactory<TKey,TValue>` and `IKafkaProducerFactory<TKey,TValue>` with default implementations (`KafkaConsumerFactory`, `KafkaProducerFactory`) and tracking decorators (`TrackingKafkaConsumerFactory`, `TrackingKafkaProducerFactory`). Inject the factory in services that build consumers/producers internally for clean DI-based tracking.
+- **`AddKafkaConsumerFactoryTestTracking<TKey,TValue>()`**: DI extension that registers a default consumer factory (if none exists) and decorates it with tracking.
+- **`AddKafkaProducerFactoryTestTracking<TKey,TValue>()`**: DI extension that registers a default producer factory (if none exists) and decorates it with tracking.
+- **`BuildTracked()` extension** on `ConsumerBuilder<TKey,TValue>` and `ProducerBuilder<TKey,TValue>` — builds and wraps with tracking if the static interceptor is active.
+- **`Tracked()` extension** on `IConsumer<TKey,TValue>` and `IProducer<TKey,TValue>` — wraps an existing instance with tracking if the static interceptor is active. Prevents double-wrapping.
+
 ## [2.27.8] - 2026-04-28
 
 ### Added

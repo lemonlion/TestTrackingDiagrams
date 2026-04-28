@@ -244,7 +244,7 @@ public class ContextMenuExtendedTests : IDisposable
 
         // Should still have exactly one menu
         var menus = _driver.FindElements(By.CssSelector(".diagram-ctx-menu"));
-        Assert.Equal(1, menus.Count);
+        Assert.Single(menus);
     }
 
     // ── Open in new tab items ──

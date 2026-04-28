@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -27,6 +28,7 @@ public class TrackingSpannerConnection : DbConnection, ITrackingComponent
     public bool WasInvoked => _tracker.WasInvoked;
     public int InvocationCount => _tracker.InvocationCount;
 
+    [AllowNull]
     public override string ConnectionString
     {
         get => _inner.ConnectionString!;

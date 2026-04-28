@@ -417,7 +417,7 @@ public class ScenarioInteractionTests : IDisposable
 
         // Passed scenarios should remain visible
         var passedScenarios = _driver.FindElements(By.CssSelector(".scenario[data-status='Passed']"));
-        Assert.True(passedScenarios.Any(s => s.GetCssValue("display") != "none"));
+        Assert.Contains(passedScenarios, s => s.GetCssValue("display") != "none");
     }
 
     [Fact]

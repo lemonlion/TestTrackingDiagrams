@@ -25,7 +25,7 @@ public class DeferredLogFlushHandlerTests
         };
 
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        await client.GetAsync("/test");
+        await client.GetAsync("/test", TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -44,7 +44,7 @@ public class DeferredLogFlushHandlerTests
         };
 
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        await client.GetAsync("/test");
+        await client.GetAsync("/test", TestContext.Current.CancellationToken);
 
         var countAfter = RequestResponseLogger.RequestAndResponseLogs
             .Count(l => l.TestId == _testId);
@@ -67,7 +67,7 @@ public class DeferredLogFlushHandlerTests
         };
 
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        await client.GetAsync("/test");
+        await client.GetAsync("/test", TestContext.Current.CancellationToken);
 
         var logs = GetLogsForTest();
         Assert.Equal(4, logs.Length);

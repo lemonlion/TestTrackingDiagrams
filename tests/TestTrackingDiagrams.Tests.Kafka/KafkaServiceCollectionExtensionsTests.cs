@@ -116,6 +116,106 @@ public class KafkaServiceCollectionExtensionsTests
         Assert.Empty(services);
     }
 
+    // ─── Consumer Factory DI ────────────────────────────────
+
+    [Fact]
+    public void AddKafkaConsumerFactoryTestTracking_decorates_registered_factory()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IKafkaConsumerFactory<string, string>>(new FakeConsumerFactory<string, string>());
+
+        services.AddKafkaConsumerFactoryTestTracking<string, string>(options =>
+        {
+            options.ServiceName = "TestKafka";
+        });
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaConsumerFactory<string, string>>();
+
+        Assert.IsType<TrackingKafkaConsumerFactory<string, string>>(factory);
+    }
+
+    [Fact]
+    public void AddKafkaConsumerFactoryTestTracking_registers_default_when_none_exists()
+    {
+        var services = new ServiceCollection();
+
+        services.AddKafkaConsumerFactoryTestTracking<string, string>();
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaConsumerFactory<string, string>>();
+
+        Assert.IsType<TrackingKafkaConsumerFactory<string, string>>(factory);
+    }
+
+    [Fact]
+    public void AddKafkaConsumerFactoryTestTracking_created_consumer_is_tracked()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IKafkaConsumerFactory<string, string>>(new FakeConsumerFactory<string, string>());
+
+        services.AddKafkaConsumerFactoryTestTracking<string, string>(options =>
+        {
+            options.ServiceName = "TestKafka";
+        });
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaConsumerFactory<string, string>>();
+        var consumer = factory.Create(config => { });
+
+        Assert.IsType<TrackingKafkaConsumer<string, string>>(consumer);
+    }
+
+    // ─── Producer Factory DI ────────────────────────────────
+
+    [Fact]
+    public void AddKafkaProducerFactoryTestTracking_decorates_registered_factory()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IKafkaProducerFactory<string, string>>(new FakeProducerFactory<string, string>());
+
+        services.AddKafkaProducerFactoryTestTracking<string, string>(options =>
+        {
+            options.ServiceName = "TestKafka";
+        });
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaProducerFactory<string, string>>();
+
+        Assert.IsType<TrackingKafkaProducerFactory<string, string>>(factory);
+    }
+
+    [Fact]
+    public void AddKafkaProducerFactoryTestTracking_registers_default_when_none_exists()
+    {
+        var services = new ServiceCollection();
+
+        services.AddKafkaProducerFactoryTestTracking<string, string>();
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaProducerFactory<string, string>>();
+
+        Assert.IsType<TrackingKafkaProducerFactory<string, string>>(factory);
+    }
+
+    [Fact]
+    public void AddKafkaProducerFactoryTestTracking_created_producer_is_tracked()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IKafkaProducerFactory<string, string>>(new FakeProducerFactory<string, string>());
+
+        services.AddKafkaProducerFactoryTestTracking<string, string>(options =>
+        {
+            options.ServiceName = "TestKafka";
+        });
+
+        var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IKafkaProducerFactory<string, string>>();
+        var producer = factory.Create(config => { });
+
+        Assert.IsType<TrackingKafkaProducer<string, string>>(producer);
+    }
+
     #region Test Doubles
 
     private class FakeProducer<TKey, TValue> : IProducer<TKey, TValue>
@@ -183,6 +283,26 @@ public class KafkaServiceCollectionExtensionsTests
         public WatermarkOffsets GetWatermarkOffsets(TopicPartition topicPartition) => new(Offset.Unset, Offset.Unset);
         public WatermarkOffsets QueryWatermarkOffsets(TopicPartition topicPartition, TimeSpan timeout) => new(Offset.Unset, Offset.Unset);
         public void Close() { }
+    }
+
+    private class FakeConsumerFactory<TKey, TValue> : IKafkaConsumerFactory<TKey, TValue>
+    {
+        public IConsumer<TKey, TValue> Create(Action<ConsumerConfig> configure)
+        {
+            var config = new ConsumerConfig();
+            configure(config);
+            return new FakeConsumer<TKey, TValue>();
+        }
+    }
+
+    private class FakeProducerFactory<TKey, TValue> : IKafkaProducerFactory<TKey, TValue>
+    {
+        public IProducer<TKey, TValue> Create(Action<ProducerConfig> configure)
+        {
+            var config = new ProducerConfig();
+            configure(config);
+            return new FakeProducer<TKey, TValue>();
+        }
     }
 
     #endregion

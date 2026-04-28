@@ -17,7 +17,7 @@ public class GrpcResponseVersionHandlerTests
             Version = new Version(2, 0)
         };
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(new Version(2, 0), response.Version);
     }
@@ -34,7 +34,7 @@ public class GrpcResponseVersionHandlerTests
             Version = new Version(2, 0)
         };
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -51,7 +51,7 @@ public class GrpcResponseVersionHandlerTests
             Version = new Version(2, 0)
         };
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(new Version(2, 0), response.Version);
     }

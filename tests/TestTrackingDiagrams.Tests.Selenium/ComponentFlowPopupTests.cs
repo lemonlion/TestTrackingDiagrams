@@ -150,7 +150,7 @@ public class ComponentFlowPopupTests : IDisposable
             var el = document.querySelector('.iflow-popup .plantuml-browser');
             if (!el) return 'element-not-found';
             return (el.dataset.queued || 'missing') + '|' + (el.dataset.rendered || 'missing');
-            """);
+            """)!;
 
         Assert.Equal("1|1", attrs);
     }

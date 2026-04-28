@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
@@ -21,6 +22,7 @@ public class TrackingDbCommand : DbCommand
         _httpContextAccessor = httpContextAccessor;
     }
 
+    [AllowNull]
     public override string CommandText
     {
         get => _inner.CommandText;

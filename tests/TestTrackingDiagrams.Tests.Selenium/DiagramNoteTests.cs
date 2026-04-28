@@ -281,7 +281,7 @@ public class DiagramNoteTests : IDisposable
         var plusBtns = scenario.FindElements(By.CssSelector("[data-note-btn='plus']"));
         var minusBtns = scenario.FindElements(By.CssSelector("[data-note-btn='minus']"));
         Assert.True(plusBtns.Count > 0, "Plus button should appear when note is collapsed");
-        Assert.Equal(0, minusBtns.Count);
+        Assert.Empty(minusBtns);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public class DiagramNoteTests : IDisposable
         var minusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='minus']"));
         var plusBtns = _driver.FindElements(By.CssSelector("[data-note-btn='plus']"));
         Assert.True(minusBtns.Count > 0, "Minus button should appear when note is truncated");
-        Assert.Equal(0, plusBtns.Count);
+        Assert.Empty(plusBtns);
     }
 
     [Fact]
@@ -412,7 +412,7 @@ public class DiagramNoteTests : IDisposable
 
     private string GetSvgHtml() =>
         _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"))
-               .GetAttribute("outerHTML");
+               .GetAttribute("outerHTML") ?? "";
 
     private void SetScenarioState(string state)
     {
@@ -986,7 +986,7 @@ public class DiagramNoteTests : IDisposable
             var svg = document.querySelector('[data-diagram-type=""plantuml""] svg');
             return window._findNoteGroups(svg).length;
         ");
-        Assert.Equal(3L, (long)noteGroupCount);
+        Assert.Equal(3L, (long)noteGroupCount!);
 
         // Check what parseNoteBlocks finds
         var container = _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml']"));
@@ -1009,7 +1009,7 @@ public class DiagramNoteTests : IDisposable
             })();
             return blocks.length;
         ", container);
-        Assert.Equal(3L, (long)noteBlockCount);
+        Assert.Equal(3L, (long)noteBlockCount!);
 
         // Dump mainG children structure
         var childrenInfo = (string)js.ExecuteScript(@"
@@ -1032,7 +1032,7 @@ public class DiagramNoteTests : IDisposable
                 }
             }
             return result;
-        ");
+        ")!;
 
         // Output structure for diagnostic purposes
         Assert.False(string.IsNullOrEmpty(childrenInfo), "SVG structure info should be available");
@@ -1177,7 +1177,7 @@ public class DiagramNoteTests : IDisposable
             var afterCount = window._findNoteGroups(svg).length;
 
             return { originalCount: originalCount, afterCount: afterCount };
-        ");
+        ")!;
 
         var originalCount = Convert.ToInt64(result["originalCount"]);
         var afterCount = Convert.ToInt64(result["afterCount"]);
@@ -1226,7 +1226,7 @@ public class DiagramNoteTests : IDisposable
             var afterCount = window._findNoteGroups(svg).length;
 
             return { originalCount: originalCount, afterCount: afterCount };
-        ");
+        ")!;
 
         var originalCount = Convert.ToInt64(result["originalCount"]);
         var afterCount = Convert.ToInt64(result["afterCount"]);
@@ -1254,7 +1254,7 @@ public class DiagramNoteTests : IDisposable
             var c = arguments[0];
             var source = c._noteOriginalSource || c.getAttribute('data-plantuml');
             return window._parseNoteBlocks(source).length;
-        ", container);
+        ", container)!;
 
         var hoverRectCount = _driver.FindElements(By.CssSelector(".note-hover-rect")).Count;
 
@@ -1509,7 +1509,7 @@ public class DiagramNoteTests : IDisposable
                 });
             });
             return JSON.stringify(results, null, 2);
-        """);
+        """)!;
 
         // Click scenario-level "Expanded" radio
         var expandBtn = _driver.FindElement(By.CssSelector(
@@ -1528,7 +1528,7 @@ public class DiagramNoteTests : IDisposable
                         if (containers[i].querySelectorAll('.note-hover-rect').length === 0) return false;
                     }
                     return true;
-                """);
+                """)!;
                 return done;
             }
             catch { return false; }
@@ -1549,7 +1549,7 @@ public class DiagramNoteTests : IDisposable
                 });
             });
             return JSON.stringify(results, null, 2);
-        """);
+        """)!;
 
         // Verify second diagram has buttons after state change
         var allContainers = _driver.FindElements(By.CssSelector("[data-diagram-type='plantuml']"));
@@ -1665,7 +1665,7 @@ public class DiagramNoteTests : IDisposable
 
         // Diagnostic: check how many containers exist and their state
         var containerCount = (long)js.ExecuteScript(
-            "return document.querySelectorAll('[data-diagram-type=\"plantuml\"]').length;");
+            "return document.querySelectorAll('[data-diagram-type=\"plantuml\"]').length;")!;
         Assert.True(containerCount >= 2,
             $"Expected at least 2 diagram containers, found {containerCount}");
 
@@ -1787,7 +1787,7 @@ public class DiagramNoteTests : IDisposable
                 return (bool)js.ExecuteScript("""
                     var svgs = document.querySelectorAll('[data-diagram-type="plantuml"] svg');
                     return svgs.length >= 3;
-                """);
+                """)!;
             }
             catch { return false; }
         });
@@ -1803,7 +1803,7 @@ public class DiagramNoteTests : IDisposable
                         if (containers[i]._noteRendering || window._plantumlRendering) return false;
                     }
                     return true;
-                """);
+                """)!;
             }
             catch { return false; }
         });
@@ -1823,7 +1823,7 @@ public class DiagramNoteTests : IDisposable
         var puml2HoverRects = (long)js.ExecuteScript("""
             var c = document.getElementById('puml-2');
             return c ? c.querySelectorAll('.note-hover-rect').length : -1;
-        """);
+        """)!;
 
         Assert.True(puml2HoverRects > 0,
             $"puml-2 (continuation diagram) should have hover rects, has {puml2HoverRects}");
@@ -1841,7 +1841,7 @@ public class DiagramNoteTests : IDisposable
         var puml2Icons = (long)js.ExecuteScript("""
             var c = document.getElementById('puml-2');
             return c ? c.querySelectorAll('.note-toggle-icon').length : -1;
-        """);
+        """)!;
 
         Assert.True(puml2Icons > 0,
             $"puml-2 (continuation diagram) should have toggle icons, has {puml2Icons}");
@@ -1867,7 +1867,7 @@ public class DiagramNoteTests : IDisposable
                 results.push({ id: c.id, noteBlocks: noteBlocks, noteGroups: noteGroups });
             });
             return JSON.stringify(results);
-        """);
+        """)!;
 
         // Parse and verify noteGroups >= noteBlocks for each diagram with notes
         var diagrams = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement[]>(result)!;
@@ -1898,7 +1898,7 @@ public class DiagramNoteTests : IDisposable
         var hoverRect = (IWebElement)js.ExecuteScript("""
             var c = document.getElementById('puml-2');
             return c ? c.querySelector('.note-hover-rect') : null;
-        """);
+        """)!;
         Assert.NotNull(hoverRect);
 
         js.ExecuteScript("arguments[0].scrollIntoView({block:'center'});", hoverRect);
@@ -1917,7 +1917,7 @@ public class DiagramNoteTests : IDisposable
                         if (icons[i].style.opacity !== '0') return true;
                     }
                     return false;
-                """);
+                """)!;
             }
             catch { return false; }
         });
@@ -1944,7 +1944,7 @@ public class DiagramNoteTests : IDisposable
                 results.push({ id: c.id, noteBlocks: noteBlocks, hoverRects: hoverRects });
             });
             return JSON.stringify(results);
-        """);
+        """)!;
 
         var diagrams = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement[]>(result)!;
         foreach (var diag in diagrams)
@@ -1975,7 +1975,7 @@ public class DiagramNoteTests : IDisposable
             var c = document.getElementById('puml-2');
             var svg = c ? c.querySelector('svg') : null;
             return svg ? svg.outerHTML : '';
-        """);
+        """)!;
         Assert.NotEmpty(svgBefore);
 
         // Double-click the note hover rect on puml-2
@@ -1995,7 +1995,7 @@ public class DiagramNoteTests : IDisposable
                     var c = document.getElementById('puml-2');
                     var svg = c ? c.querySelector('svg') : null;
                     return svg ? svg.outerHTML : '';
-                """);
+                """)!;
                 return svgAfter != svgBefore;
             }
             catch { return false; }
@@ -2006,7 +2006,7 @@ public class DiagramNoteTests : IDisposable
             var c = document.getElementById('puml-2');
             return c.querySelectorAll('.note-hover-rect').length > 0
                 && c.querySelectorAll('.note-toggle-icon').length > 0;
-        """);
+        """)!;
         Assert.True(hasButtons, "puml-2 should have hover rects and toggle icons after dblclick state cycle");
     }
 }
