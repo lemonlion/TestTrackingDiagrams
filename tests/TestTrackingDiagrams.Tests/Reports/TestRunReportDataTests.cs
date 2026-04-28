@@ -959,4 +959,104 @@ public class TestRunReportDataTests
         var content = File.ReadAllText(path);
         Assert.Contains("TtdVersion:", content);
     }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_stableId()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed },
+                    new Scenario { Id = "s2", DisplayName = "Cancel order", Result = ExecutionResult.Passed }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_stableId.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenarios = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios");
+
+        var s1StableId = scenarios[0].GetProperty("stableId").GetString();
+        var s2StableId = scenarios[1].GetProperty("stableId").GetString();
+
+        Assert.NotNull(s1StableId);
+        Assert.NotNull(s2StableId);
+        Assert.NotEqual(s1StableId, s2StableId);
+        Assert.Equal(16, s1StableId!.Length);
+        Assert.Matches("^[0-9a-f]{16}$", s1StableId);
+
+        // Verify it matches the standalone computation
+        Assert.Equal(ScenarioStableId.Compute("Orders", "Place order"), s1StableId);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_xml_includes_stableId()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed }]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_stableId.xml", DataFormat.Xml);
+        var doc = XDocument.Parse(File.ReadAllText(path));
+        var scenario = doc.Root!.Element("Features")!.Element("Feature")!.Element("Scenarios")!.Element("Scenario")!;
+        var stableId = scenario.Element("StableId")?.Value;
+
+        Assert.NotNull(stableId);
+        Assert.Equal(ScenarioStableId.Compute("Orders", "Place order"), stableId);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_yaml_includes_stableId()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Orders",
+                Scenarios = [new Scenario { Id = "s1", DisplayName = "Place order", Result = ExecutionResult.Passed }]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_stableId.yml", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("StableId: " + ScenarioStableId.Compute("Orders", "Place order"), content);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_stableId_uses_outlineId_for_parameterized_scenarios()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Checkout",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Pay with visa", Result = ExecutionResult.Passed, OutlineId = "Pay with card" },
+                    new Scenario { Id = "s2", DisplayName = "Pay with mastercard", Result = ExecutionResult.Passed, OutlineId = "Pay with card" }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_stableId_outline.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenarios = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios");
+
+        var s1StableId = scenarios[0].GetProperty("stableId").GetString();
+        var s2StableId = scenarios[1].GetProperty("stableId").GetString();
+
+        Assert.NotEqual(s1StableId, s2StableId);
+        Assert.Equal(ScenarioStableId.Compute("Checkout", "Pay with visa", "Pay with card"), s1StableId);
+        Assert.Equal(ScenarioStableId.Compute("Checkout", "Pay with mastercard", "Pay with card"), s2StableId);
+    }
 }

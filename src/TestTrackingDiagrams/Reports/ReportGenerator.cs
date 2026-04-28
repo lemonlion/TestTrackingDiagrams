@@ -2985,6 +2985,7 @@ public static class ReportGenerator
                     var scenario = new Dictionary<string, object?>
                     {
                         ["id"] = s.Id,
+                        ["stableId"] = ScenarioStableId.Compute(f.DisplayName, s.DisplayName, s.OutlineId),
                         ["name"] = s.DisplayName,
                         ["result"] = s.Result.ToString(),
                         ["durationSeconds"] = s.Duration?.TotalSeconds ?? 0.0,
@@ -3053,6 +3054,7 @@ public static class ReportGenerator
                                     var scenarioElements = new List<object?>
                                     {
                                         new XElement("Id", s.Id),
+                                        new XElement("StableId", ScenarioStableId.Compute(f.DisplayName, s.DisplayName, s.OutlineId)),
                                         new XElement("Name", s.DisplayName),
                                         new XElement("Result", s.Result.ToString()),
                                         new XElement("DurationSeconds", (s.Duration?.TotalSeconds ?? 0.0).ToString("F3")),
@@ -3142,6 +3144,7 @@ public static class ReportGenerator
             foreach (var scenario in feature.Scenarios)
             {
                 yml.Append("      - Name: " + scenario.DisplayName.SanitiseForYml() + "\n");
+                yml.Append("        StableId: " + ScenarioStableId.Compute(feature.DisplayName, scenario.DisplayName, scenario.OutlineId) + "\n");
                 yml.Append("        Result: " + scenario.Result + "\n");
                 yml.Append("        DurationSeconds: " + (scenario.Duration?.TotalSeconds ?? 0.0).ToString("F3") + "\n");
                 yml.Append("        IsHappyPath: " + scenario.IsHappyPath.ToString().ToLower() + "\n");
@@ -3504,10 +3507,11 @@ public static class ReportGenerator
                                 ["items"] = new Dictionary<string, object?>
                                 {
                                     ["type"] = "object",
-                                    ["required"] = new[] { "id", "name", "result", "durationSeconds", "isHappyPath", "labels", "categories", "steps" },
+                                    ["required"] = new[] { "id", "stableId", "name", "result", "durationSeconds", "isHappyPath", "labels", "categories", "steps" },
                                     ["properties"] = new Dictionary<string, object?>
                                     {
                                         ["id"] = new Dictionary<string, object?> { ["type"] = "string" },
+                                        ["stableId"] = new Dictionary<string, object?> { ["type"] = "string", ["description"] = "Deterministic cross-run identifier derived from feature name + scenario display name (+ outline ID for parameterized scenarios). Use this for matching the same test across runs." },
                                         ["name"] = new Dictionary<string, object?> { ["type"] = "string" },
                                         ["result"] = new Dictionary<string, object?> { ["type"] = "string", ["enum"] = resultEnumValues },
                                         ["durationSeconds"] = new Dictionary<string, object?> { ["type"] = "number" },
@@ -3654,6 +3658,7 @@ public static class ReportGenerator
             new XAttribute("name", "ScenarioType"),
             new XElement(xs + "sequence",
                 new XElement(xs + "element", new XAttribute("name", "Id"), new XAttribute("type", "xs:string")),
+                new XElement(xs + "element", new XAttribute("name", "StableId"), new XAttribute("type", "xs:string")),
                 new XElement(xs + "element", new XAttribute("name", "Name"), new XAttribute("type", "xs:string")),
                 new XElement(xs + "element", new XAttribute("name", "Result"), new XAttribute("type", "ExecutionResult")),
                 new XElement(xs + "element", new XAttribute("name", "DurationSeconds"), new XAttribute("type", "xs:decimal")),

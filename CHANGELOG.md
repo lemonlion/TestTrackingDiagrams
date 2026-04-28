@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.17] - 2026-04-28
+
+### Added
+- **Deterministic scenario stable IDs** (`ScenarioStableId.Compute()`): Each scenario in the JSON, XML, and YAML report output now includes a `stableId` field — a deterministic 16-character hex identifier derived from the feature name, scenario display name, and outline ID (for parameterized scenarios). Unlike the runtime `id` (which varies by test framework and can be random per run), the `stableId` is consistent across runs, making it suitable for cross-run matching (e.g., flaky test detection, trend tracking).
+- **Updated report schemas**: JSON Schema and XSD both include the new `stableId` field as a required property on scenarios.
+
 ## [2.27.16] - 2026-04-28
 
 ### Added
