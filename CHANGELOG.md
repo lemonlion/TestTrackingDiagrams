@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.13] - 2026-04-28
+
+### Changed
+- **Selenium tests: Shared ChromeDriver via IClassFixture** — All 19 Selenium test classes now share a Chrome browser instance at the class level using `IClassFixture<ChromeFixture>` / `IClassFixture<ChromeFixture1280X900>`, reducing Chrome process launches from ~207 (one per test) to ~19 (one per class). This lowers memory pressure and eliminates redundant browser startup/shutdown overhead.
+
 ## [2.27.12] - 2026-04-28
 
 ### Fixed
