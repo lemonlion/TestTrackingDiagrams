@@ -3,26 +3,33 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
 
-public class TrackingServiceBusSender
+/// <summary>
+/// A <see cref="ServiceBusSender"/> subclass that intercepts send operations
+/// for test diagram tracking.
+/// </summary>
+public class TrackingServiceBusSender : ServiceBusSender
 {
     private readonly ServiceBusSender _inner;
     private readonly ServiceBusTracker _tracker;
     private readonly ServiceBusTrackingOptions _options;
 
     public TrackingServiceBusSender(
-        ServiceBusSender inner, ServiceBusTracker tracker, ServiceBusTrackingOptions options)
+        ServiceBusSender inner, ServiceBusTracker tracker, ServiceBusTrackingOptions options) : base()
     {
         _inner = inner;
         _tracker = tracker;
         _options = options;
     }
 
-    public string EntityPath => _inner.EntityPath;
-    public string FullyQualifiedNamespace => _inner.FullyQualifiedNamespace;
-    public string Identifier => _inner.Identifier;
-    public bool IsClosed => _inner.IsClosed;
+    /// <summary>The underlying real <see cref="ServiceBusSender"/>.</summary>
+    public ServiceBusSender Inner => _inner;
 
-    public async Task SendMessageAsync(ServiceBusMessage message, CancellationToken cancellationToken = default)
+    public override string EntityPath => _inner.EntityPath;
+    public override string FullyQualifiedNamespace => _inner.FullyQualifiedNamespace;
+    public override string Identifier => _inner.Identifier;
+    public override bool IsClosed => _inner.IsClosed;
+
+    public override async Task SendMessageAsync(ServiceBusMessage message, CancellationToken cancellationToken = default)
     {
         var op = ServiceBusOperationClassifier.Classify("SendMessageAsync", EntityPath, null);
         var content = GetMessageContent(message);
@@ -39,7 +46,7 @@ public class TrackingServiceBusSender
         }
     }
 
-    public async Task SendMessagesAsync(
+    public override async Task SendMessagesAsync(
         IEnumerable<ServiceBusMessage> messages, CancellationToken cancellationToken = default)
     {
         var messageList = messages as IReadOnlyList<ServiceBusMessage> ?? messages.ToList();
@@ -63,7 +70,11 @@ public class TrackingServiceBusSender
         }
     }
 
-    public async Task<long> ScheduleMessageAsync(
+    public override async Task SendMessagesAsync(
+        ServiceBusMessageBatch messageBatch, CancellationToken cancellationToken = default)
+        => await _inner.SendMessagesAsync(messageBatch, cancellationToken);
+
+    public override async Task<long> ScheduleMessageAsync(
         ServiceBusMessage message, DateTimeOffset scheduledEnqueueTime, CancellationToken cancellationToken = default)
     {
         var op = ServiceBusOperationClassifier.Classify("ScheduleMessageAsync", EntityPath, null);
@@ -82,7 +93,12 @@ public class TrackingServiceBusSender
         }
     }
 
-    public async Task CancelScheduledMessageAsync(long sequenceNumber, CancellationToken cancellationToken = default)
+    public override async Task<IReadOnlyList<long>> ScheduleMessagesAsync(
+        IEnumerable<ServiceBusMessage> messages, DateTimeOffset scheduledEnqueueTime,
+        CancellationToken cancellationToken = default)
+        => await _inner.ScheduleMessagesAsync(messages, scheduledEnqueueTime, cancellationToken);
+
+    public override async Task CancelScheduledMessageAsync(long sequenceNumber, CancellationToken cancellationToken = default)
     {
         var op = ServiceBusOperationClassifier.Classify("CancelScheduledMessageAsync", EntityPath, null);
         var (reqId, traceId) = _tracker.LogRequest(op, $"SequenceNumber: {sequenceNumber}");
@@ -98,17 +114,19 @@ public class TrackingServiceBusSender
         }
     }
 
-    public async ValueTask<ServiceBusMessageBatch> CreateMessageBatchAsync(CancellationToken cancellationToken = default)
+    public override async Task CancelScheduledMessagesAsync(
+        IEnumerable<long> sequenceNumbers, CancellationToken cancellationToken = default)
+        => await _inner.CancelScheduledMessagesAsync(sequenceNumbers, cancellationToken);
+
+    public override async ValueTask<ServiceBusMessageBatch> CreateMessageBatchAsync(CancellationToken cancellationToken = default)
         => await _inner.CreateMessageBatchAsync(cancellationToken);
 
-    public async ValueTask<ServiceBusMessageBatch> CreateMessageBatchAsync(
+    public override async ValueTask<ServiceBusMessageBatch> CreateMessageBatchAsync(
         CreateMessageBatchOptions options, CancellationToken cancellationToken = default)
         => await _inner.CreateMessageBatchAsync(options, cancellationToken);
 
-    public async Task CloseAsync(CancellationToken cancellationToken = default)
+    public override async Task CloseAsync(CancellationToken cancellationToken = default)
         => await _inner.CloseAsync(cancellationToken);
-
-    public ServiceBusSender Inner => _inner;
 
     private string? GetMessageContent(ServiceBusMessage message)
     {

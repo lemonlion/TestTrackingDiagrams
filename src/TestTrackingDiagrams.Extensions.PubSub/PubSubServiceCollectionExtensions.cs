@@ -1,5 +1,7 @@
+using Google.Cloud.PubSub.V1;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
@@ -9,12 +11,11 @@ namespace TestTrackingDiagrams.Extensions.PubSub;
 public static class PubSubServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers a singleton <see cref="PubSubTracker"/> in DI, configured with the provided
-    /// options and an <see cref="IHttpContextAccessor"/> resolved from DI (if registered).
-    /// <para>
-    /// Consumers can then inject <see cref="PubSubTracker"/> when constructing
-    /// <see cref="TrackingPublisherClient"/> or <see cref="TrackingSubscriberClient"/> wrappers.
-    /// </para>
+    /// Decorates all existing <see cref="PublisherClient"/> registrations with
+    /// <see cref="TrackingPublisherClient"/> and all existing <see cref="SubscriberClient"/>
+    /// registrations with <see cref="TrackingSubscriberClient"/> for test diagram tracking.
+    /// Also registers a singleton <see cref="PubSubTracker"/>.
+    /// <para>No-op when no matching registrations exist.</para>
     /// </summary>
     public static IServiceCollection AddPubSubTestTracking(
         this IServiceCollection services,
@@ -24,6 +25,18 @@ public static class PubSubServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(sp => new PubSubTracker(options, sp.GetService<IHttpContextAccessor>()));
+
+        services.DecorateAll<PublisherClient>((sp, inner) =>
+        {
+            options.HttpContextAccessor ??= sp.GetService<IHttpContextAccessor>();
+            return new TrackingPublisherClient(inner, options, options.HttpContextAccessor);
+        });
+
+        services.DecorateAll<SubscriberClient>((sp, inner) =>
+        {
+            options.HttpContextAccessor ??= sp.GetService<IHttpContextAccessor>();
+            return new TrackingSubscriberClient(inner, options, options.HttpContextAccessor);
+        });
 
         return services;
     }

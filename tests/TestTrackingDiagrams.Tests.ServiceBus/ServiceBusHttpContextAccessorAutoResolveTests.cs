@@ -41,8 +41,9 @@ public class ServiceBusHttpContextAccessorAutoResolveTests : IDisposable
         services.AddServiceBusTestTracking(options);
 
         var sp = services.BuildServiceProvider();
-        // Resolving the tracked client triggers the factory lambda
-        var tracked = sp.GetRequiredService<TrackingServiceBusClient>();
+        // Resolving the decorated client triggers the factory lambda
+        var client = sp.GetRequiredService<ServiceBusClient>();
+        var tracked = Assert.IsType<TrackingServiceBusClient>(client);
 
         Assert.NotNull(tracked);
         Assert.Same(accessor, options.HttpContextAccessor);
@@ -64,7 +65,8 @@ public class ServiceBusHttpContextAccessorAutoResolveTests : IDisposable
         services.AddServiceBusTestTracking(options);
 
         var sp = services.BuildServiceProvider();
-        var tracked = sp.GetRequiredService<TrackingServiceBusClient>();
+        var client = sp.GetRequiredService<ServiceBusClient>();
+        var tracked = Assert.IsType<TrackingServiceBusClient>(client);
 
         Assert.NotNull(tracked);
         Assert.Same(explicitAccessor, options.HttpContextAccessor);
@@ -81,7 +83,8 @@ public class ServiceBusHttpContextAccessorAutoResolveTests : IDisposable
         services.AddServiceBusTestTracking(options);
 
         var sp = services.BuildServiceProvider();
-        var tracked = sp.GetRequiredService<TrackingServiceBusClient>();
+        var client = sp.GetRequiredService<ServiceBusClient>();
+        var tracked = Assert.IsType<TrackingServiceBusClient>(client);
 
         Assert.NotNull(tracked);
         Assert.Null(options.HttpContextAccessor);

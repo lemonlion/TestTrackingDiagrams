@@ -1,24 +1,34 @@
 using Google.Cloud.PubSub.V1;
 using Google.Protobuf;
+using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
-public class TrackingPublisherClient
+/// <summary>
+/// A <see cref="PublisherClient"/> subclass that intercepts publish operations
+/// for test diagram tracking.
+/// </summary>
+public class TrackingPublisherClient : PublisherClient
 {
     private readonly PublisherClient _inner;
     private readonly PubSubTracker _tracker;
     private readonly PubSubTrackingOptions _options;
 
-    public TrackingPublisherClient(PublisherClient inner, PubSubTrackingOptions options)
+    public TrackingPublisherClient(
+        PublisherClient inner, PubSubTrackingOptions options,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         _inner = inner;
-        _tracker = new PubSubTracker(options);
+        _tracker = new PubSubTracker(options, httpContextAccessor ?? options.HttpContextAccessor);
         _options = options;
     }
 
-    public TopicName TopicName => _inner.TopicName;
+    /// <summary>The underlying real <see cref="PublisherClient"/>.</summary>
+    public PublisherClient Inner => _inner;
 
-    public async Task<string> PublishAsync(PubsubMessage message)
+    public override TopicName TopicName => _inner.TopicName;
+
+    public override async Task<string> PublishAsync(PubsubMessage message)
     {
         var op = PubSubOperationClassifier.Classify(
             "PublishAsync", _inner.TopicName?.ToString(), null, 1);
@@ -40,18 +50,9 @@ public class TrackingPublisherClient
         }
     }
 
-    public async Task<string> PublishAsync(string text)
-    {
-        var message = new PubsubMessage { Data = ByteString.CopyFromUtf8(text) };
-        return await PublishAsync(message);
-    }
-
-    public async Task<string> PublishAsync(ByteString data)
-    {
-        var message = new PubsubMessage { Data = data };
-        return await PublishAsync(message);
-    }
-
+    /// <summary>
+    /// Publishes a batch of messages individually with aggregate tracking.
+    /// </summary>
     public async Task<IReadOnlyList<string>> PublishAsync(IEnumerable<PubsubMessage> messages)
     {
         var messageList = messages.ToList();
@@ -78,6 +79,8 @@ public class TrackingPublisherClient
         }
     }
 
-    public Task ShutdownAsync(TimeSpan timeout) => _inner.ShutdownAsync(timeout);
-    public PublisherClient Inner => _inner;
+    public override Task ShutdownAsync(TimeSpan timeout) => _inner.ShutdownAsync(timeout);
+    public override Task ShutdownAsync(CancellationToken cancellationToken) => _inner.ShutdownAsync(cancellationToken);
+    public override ValueTask DisposeAsync() => _inner.DisposeAsync();
+    public override void ResumePublish(string orderingKey) => _inner.ResumePublish(orderingKey);
 }

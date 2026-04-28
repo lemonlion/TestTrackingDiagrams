@@ -1,25 +1,35 @@
 using Google.Cloud.PubSub.V1;
+using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
-public class TrackingSubscriberClient
+/// <summary>
+/// A <see cref="SubscriberClient"/> subclass that intercepts message processing
+/// for test diagram tracking.
+/// </summary>
+public class TrackingSubscriberClient : SubscriberClient
 {
     private readonly SubscriberClient _inner;
     private readonly PubSubTracker _tracker;
     private readonly PubSubTrackingOptions _options;
 
-    public TrackingSubscriberClient(SubscriberClient inner, PubSubTrackingOptions options)
+    public TrackingSubscriberClient(
+        SubscriberClient inner, PubSubTrackingOptions options,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         _inner = inner;
-        _tracker = new PubSubTracker(options);
+        _tracker = new PubSubTracker(options, httpContextAccessor ?? options.HttpContextAccessor);
         _options = options;
     }
 
-    public SubscriptionName SubscriptionName => _inner.SubscriptionName;
+    /// <summary>The underlying real <see cref="SubscriberClient"/>.</summary>
+    public SubscriberClient Inner => _inner;
 
-    public Task StartAsync(Func<PubsubMessage, CancellationToken, Task<SubscriberClient.Reply>> messageHandler)
+    public override SubscriptionName SubscriptionName => _inner.SubscriptionName;
+
+    public override Task StartAsync(Func<PubsubMessage, CancellationToken, Task<Reply>> messageHandler)
     {
-        async Task<SubscriberClient.Reply> wrappedHandler(PubsubMessage msg, CancellationToken ct)
+        async Task<Reply> wrappedHandler(PubsubMessage msg, CancellationToken ct)
         {
             var op = PubSubOperationClassifier.Classify(
                 "Receive", null, _inner.SubscriptionName?.ToString(), 1);
@@ -29,7 +39,7 @@ public class TrackingSubscriberClient
 
             var reply = await messageHandler(msg, ct);
 
-            var replyLabel = reply == SubscriberClient.Reply.Ack ? "Ack" : "Nack";
+            var replyLabel = reply == Reply.Ack ? "Ack" : "Nack";
             _tracker.LogResponse(op, reqId, traceId,
                 _options.Verbosity == PubSubTrackingVerbosity.Raw ? replyLabel : null);
 
@@ -39,6 +49,6 @@ public class TrackingSubscriberClient
         return _inner.StartAsync(wrappedHandler);
     }
 
-    public Task StopAsync(CancellationToken ct = default) => _inner.StopAsync(ct);
-    public SubscriberClient Inner => _inner;
+    public override Task StopAsync(CancellationToken cancellationToken) => _inner.StopAsync(cancellationToken);
+    public override ValueTask DisposeAsync() => _inner.DisposeAsync();
 }

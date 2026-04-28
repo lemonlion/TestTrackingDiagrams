@@ -3,31 +3,45 @@ using Azure.Messaging.EventHubs.Producer;
 
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
-public class TrackingEventHubProducerClient
+/// <summary>
+/// An <see cref="EventHubProducerClient"/> subclass that intercepts send operations
+/// for test diagram tracking.
+/// <para>
+/// <b>Note:</b> The base class properties (<see cref="EventHubName"/>, <see cref="FullyQualifiedNamespace"/>,
+/// <see cref="IsClosed"/>) are not virtual in the Azure SDK and are shadowed with <c>new</c>.
+/// They work correctly when accessed through the <see cref="TrackingEventHubProducerClient"/> type,
+/// but accessing them through a polymorphic <see cref="EventHubProducerClient"/> reference will
+/// access the base implementation which may throw if no real connection was established.
+/// </para>
+/// </summary>
+public class TrackingEventHubProducerClient : EventHubProducerClient
 {
     private readonly EventHubProducerClient _inner;
     private readonly EventHubsTracker _tracker;
     private readonly EventHubsTrackingOptions _options;
 
     public TrackingEventHubProducerClient(
-        EventHubProducerClient inner, EventHubsTrackingOptions options)
+        EventHubProducerClient inner, EventHubsTrackingOptions options) : base()
     {
         _inner = inner;
         _tracker = new EventHubsTracker(options, options.HttpContextAccessor);
         _options = options;
     }
 
-    public string EventHubName => _inner.EventHubName;
-    public string FullyQualifiedNamespace => _inner.FullyQualifiedNamespace;
-    public bool IsClosed => _inner.IsClosed;
+    /// <summary>The underlying real <see cref="EventHubProducerClient"/>.</summary>
+    public EventHubProducerClient Inner => _inner;
 
-    public async Task SendAsync(
+    public new string EventHubName => _inner.EventHubName;
+    public new string FullyQualifiedNamespace => _inner.FullyQualifiedNamespace;
+    public new bool IsClosed => _inner.IsClosed;
+
+    public override async Task SendAsync(
         IEnumerable<EventData> eventBatch,
         CancellationToken cancellationToken = default)
     {
         var events = eventBatch.ToList();
         var op = EventHubsOperationClassifier.Classify(
-            "SendAsync", EventHubName, null, events.Count);
+            "SendAsync", _inner.EventHubName, null, events.Count);
         var content = _options.Verbosity != EventHubsTrackingVerbosity.Summarised
             ? SerializeEvents(events) : null;
         var (reqId, traceId) = _tracker.LogRequest(op, content);
@@ -44,7 +58,7 @@ public class TrackingEventHubProducerClient
         }
     }
 
-    public async Task SendAsync(
+    public override async Task SendAsync(
         IEnumerable<EventData> eventBatch,
         SendEventOptions sendOptions,
         CancellationToken cancellationToken = default)
@@ -52,7 +66,7 @@ public class TrackingEventHubProducerClient
         var events = eventBatch.ToList();
         var partitionId = sendOptions?.PartitionId;
         var op = EventHubsOperationClassifier.Classify(
-            "SendAsync", EventHubName, partitionId, events.Count);
+            "SendAsync", _inner.EventHubName, partitionId, events.Count);
         var content = _options.Verbosity != EventHubsTrackingVerbosity.Summarised
             ? SerializeEvents(events) : null;
         var (reqId, traceId) = _tracker.LogRequest(op, content);
@@ -69,12 +83,12 @@ public class TrackingEventHubProducerClient
         }
     }
 
-    public async Task SendAsync(
+    public override async Task SendAsync(
         EventDataBatch eventBatch,
         CancellationToken cancellationToken = default)
     {
         var op = EventHubsOperationClassifier.Classify(
-            "SendAsync", EventHubName, null, eventBatch.Count);
+            "SendAsync", _inner.EventHubName, null, eventBatch.Count);
         var (reqId, traceId) = _tracker.LogRequest(op, null);
 
         try
@@ -89,17 +103,29 @@ public class TrackingEventHubProducerClient
         }
     }
 
-    public async Task<EventDataBatch> CreateBatchAsync(
-        CreateBatchOptions? options = null,
+    public override async ValueTask<EventDataBatch> CreateBatchAsync(
         CancellationToken cancellationToken = default)
-    {
-        return await _inner.CreateBatchAsync(options, cancellationToken);
-    }
+        => await _inner.CreateBatchAsync(cancellationToken);
 
-    public async Task CloseAsync(CancellationToken cancellationToken = default) =>
-        await _inner.CloseAsync(cancellationToken);
+    public override async ValueTask<EventDataBatch> CreateBatchAsync(
+        CreateBatchOptions options,
+        CancellationToken cancellationToken = default)
+        => await _inner.CreateBatchAsync(options, cancellationToken);
 
-    public EventHubProducerClient Inner => _inner;
+    public override async Task<EventHubProperties> GetEventHubPropertiesAsync(
+        CancellationToken cancellationToken = default)
+        => await _inner.GetEventHubPropertiesAsync(cancellationToken);
+
+    public override async Task<string[]> GetPartitionIdsAsync(
+        CancellationToken cancellationToken = default)
+        => await _inner.GetPartitionIdsAsync(cancellationToken);
+
+    public override async Task<PartitionProperties> GetPartitionPropertiesAsync(
+        string partitionId, CancellationToken cancellationToken = default)
+        => await _inner.GetPartitionPropertiesAsync(partitionId, cancellationToken);
+
+    public override async Task CloseAsync(CancellationToken cancellationToken = default)
+        => await _inner.CloseAsync(cancellationToken);
 
     private static string? SerializeEvents(IList<EventData> events)
     {

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.14] - 2026-04-28
+
+### Added
+- **Redis DI extension** (`AddRedisTestTracking()`): Decorates all `IDatabase` registrations with `RedisTrackingDatabase` via `DecorateAll<IDatabase>`, enabling zero-prod-change Redis tracking through `ConfigureTestServices`.
+- **Dapper DI extension** (`AddDapperTestTracking()`): Decorates all `DbConnection` registrations with `TrackingDbConnection` via `DecorateAll<DbConnection>`, enabling zero-prod-change SQL tracking through `ConfigureTestServices`.
+- **EventHubs DI extensions** (`AddEventHubsProducerTestTracking()`, `AddEventHubsConsumerTestTracking()`, `AddEventHubsTestTracking()`): Decorates `EventHubProducerClient` and `EventHubConsumerClient` registrations for zero-prod-change tracking.
+- **ServiceBus `Action<>` overload** (`AddServiceBusTestTracking(Action<ServiceBusTrackingOptions>?)`): New configuration overload consistent with other extensions. The existing `ServiceBusTrackingOptions` parameter overload is preserved.
+
+### Changed
+- **ServiceBus tracking types now inherit from SDK classes**: `TrackingServiceBusClient : ServiceBusClient`, `TrackingServiceBusSender : ServiceBusSender`, `TrackingServiceBusReceiver : ServiceBusReceiver`. This enables `DecorateAll<ServiceBusClient>` to work transparently — production code typed as `ServiceBusClient` receives the tracking subclass without any code changes.
+- **EventHubs tracking types now inherit from SDK classes**: `TrackingEventHubProducerClient : EventHubProducerClient`, `TrackingEventHubConsumerClient : EventHubConsumerClient`. Non-virtual properties (`EventHubName`, `FullyQualifiedNamespace`, `IsClosed`) are shadowed with `new`.
+- **PubSub tracking types now inherit from SDK classes**: `TrackingPublisherClient : PublisherClient`, `TrackingSubscriberClient : SubscriberClient`. This enables `DecorateAll<PublisherClient>` / `DecorateAll<SubscriberClient>` in the updated `AddPubSubTestTracking()`.
+- **ServiceBus DI extension refactored**: Uses `DecorateAll<ServiceBusClient>` instead of manual descriptor replacement. Preserves original service lifetime. The `ServiceBusClient` registration is now decorated in-place rather than replaced with a separate `TrackingServiceBusClient` registration.
+- **PubSub DI extension enhanced**: `AddPubSubTestTracking()` now decorates `PublisherClient` and `SubscriberClient` registrations in addition to registering the `PubSubTracker` singleton.
+- **PubSub options**: Added `IHttpContextAccessor` property to `PubSubTrackingOptions` for consistency with other extension options.
+
 ## [2.27.13] - 2026-04-28
 
 ### Changed
