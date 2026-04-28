@@ -606,11 +606,14 @@ public class MessageTrackerTests
             CallingServiceName = "Svc",
             CurrentTestInfoFetcher = null
         });
-        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+        var idsBefore = RequestResponseLogger.RequestAndResponseLogs
+            .Select(l => l.RequestResponseId).ToHashSet();
 
         tracker.TrackSendEvent("Kafka", "Dest", new Uri("kafka://t"), new { });
 
-        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+        var newLogs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => !idsBefore.Contains(l.RequestResponseId)).ToArray();
+        Assert.Empty(newLogs);
     }
 
     // ─── ServiceName in options ─────────────────────────────────

@@ -387,6 +387,26 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
         wait.Until(d => d.FindElements(By.CssSelector(".note-hover-rect")).Count > 0);
     }
 
+    /// <summary>
+    /// Hover over a note hover rect by index, retrying if the element becomes stale
+    /// (can happen when the SVG is still being replaced after a state change).
+    /// </summary>
+    private void HoverNoteRect(int index, int timeoutSeconds = 5)
+    {
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
+        wait.Until(d =>
+        {
+            try
+            {
+                var rects = d.FindElements(By.CssSelector(".note-hover-rect"));
+                if (rects.Count <= index) return false;
+                new Actions(_driver).MoveToElement(rects[index]).Perform();
+                return true;
+            }
+            catch (StaleElementReferenceException) { return false; }
+        });
+    }
+
     private IWebElement WaitForReRender(string previousSvgHtml, int timeoutSeconds = 15)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
@@ -515,6 +535,11 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
     {
         ExpandAndRenderLongNoteDiagram("LongNoteDblClickCollToTrunc.html");
         SetScenarioState("collapsed");
+
+        // Wait for both notes to show plus buttons (collapsed state) —
+        // SetScenarioState only waits for count > 0 which may be too early.
+        var waitForPlus = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        waitForPlus.Until(d => d.FindElements(By.CssSelector("[data-note-btn='plus']")).Count >= 2);
 
         var plusBefore = _driver.FindElements(By.CssSelector("[data-note-btn='plus']")).Count;
         Assert.True(plusBefore >= 2, "Both notes collapsed should have plus buttons");
@@ -742,12 +767,8 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
         ExpandAndRenderLongNoteDiagram("ShortNoteNoUpArrow.html");
         SetScenarioState("expanded");
 
-        // Re-query after state change since SetScenarioState re-renders the SVG
-        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
-        Assert.True(hoverRects.Count >= 2);
-
-        // Hover second note (short)
-        new Actions(_driver).MoveToElement(hoverRects[1]).Perform();
+        // Hover second note (short) — uses retry to avoid stale element after re-render
+        HoverNoteRect(1);
 
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
         wait.Until(d =>
@@ -781,9 +802,8 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
         // Both notes now "long" at truncation=3. Set expanded to verify ▲ on second note.
         SetScenarioState("expanded");
 
-        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
-        Assert.True(hoverRects.Count >= 2);
-        new Actions(_driver).MoveToElement(hoverRects[1]).Perform();
+        // Hover second note — uses retry to avoid stale element after re-render
+        HoverNoteRect(1);
 
         // ▲ should now appear for second note (it's "long" at truncation=3)
         wait.Until(d =>
@@ -809,8 +829,8 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
 
         SetScenarioState("expanded");
 
-        var hoverRects = _driver.FindElements(By.CssSelector(".note-hover-rect"));
-        new Actions(_driver).MoveToElement(hoverRects[0]).Perform();
+        // Hover first note — uses retry to avoid stale element after re-render
+        HoverNoteRect(0);
 
         wait.Until(d =>
         {

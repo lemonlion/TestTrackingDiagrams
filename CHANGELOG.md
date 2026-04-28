@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.15] - 2026-04-28
+
+### Fixed
+- **Flaky MessageTracker test**: `TrackSendEvent_does_nothing_when_no_test_info` no longer races with parallel tests — replaced global `RequestAndResponseLogs.Length` assertion with ID-snapshot comparison.
+- **Selenium StaleElementReferenceException**: `Short_note_no_up_arrow_when_expanded`, `Scenario_truncation_change_respected_by_note_buttons`, and `Reducing_truncation_makes_short_note_become_long` now use a retry-based `HoverNoteRect` helper that re-queries elements after SVG re-renders.
+- **Selenium assertion failure**: `Long_note_dblclick_from_collapsed_goes_to_truncated_not_expanded` now waits for both plus buttons to appear before asserting count.
+
 ## [2.27.14] - 2026-04-28
 
 ### Added
