@@ -83,24 +83,160 @@ public class TrackingKafkaProducerTests
         Assert.True(inner.FlushCalled);
     }
 
+    // ─── Transactions ───────────────────────────────────────
+
+    [Fact]
+    public void InitTransactions_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.InitTransactions(TimeSpan.FromSeconds(5));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.True(inner.InitTransactionsCalled);
+    }
+
+    [Fact]
+    public void BeginTransaction_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.BeginTransaction();
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.True(inner.BeginTransactionCalled);
+    }
+
+    [Fact]
+    public void CommitTransaction_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.CommitTransaction();
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.True(inner.CommitTransactionCalled);
+    }
+
+    [Fact]
+    public void CommitTransaction_WithTimeout_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.CommitTransaction(TimeSpan.FromSeconds(5));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    [Fact]
+    public void AbortTransaction_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.AbortTransaction();
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.True(inner.AbortTransactionCalled);
+    }
+
+    [Fact]
+    public void AbortTransaction_WithTimeout_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.AbortTransaction(TimeSpan.FromSeconds(5));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    [Fact]
+    public void SendOffsetsToTransaction_Tracks_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.SendOffsetsToTransaction(
+            [new TopicPartitionOffset("orders-topic", 0, 42)],
+            null!, TimeSpan.FromSeconds(5));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.True(inner.SendOffsetsCalled);
+    }
+
+    [Fact]
+    public void Transactions_DoNotTrack_when_TrackTransactions_false()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = false;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+
+        producer.InitTransactions(TimeSpan.FromSeconds(5));
+        producer.BeginTransaction();
+        producer.CommitTransaction();
+        producer.AbortTransaction();
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
     #region Test Double
 
     private class FakeProducer<TKey, TValue> : IProducer<TKey, TValue>
     {
         public bool FlushCalled { get; private set; }
+        public bool InitTransactionsCalled { get; private set; }
+        public bool BeginTransactionCalled { get; private set; }
+        public bool CommitTransactionCalled { get; private set; }
+        public bool AbortTransactionCalled { get; private set; }
+        public bool SendOffsetsCalled { get; private set; }
 
         public Handle Handle => throw new NotImplementedException();
         public string Name => "fake";
         public void SetSaslCredentials(string username, string password) { }
         public void Dispose() { }
         public int AddBrokers(string brokers) => 0;
-        public void InitTransactions(TimeSpan timeout) { }
-        public void BeginTransaction() { }
-        public void CommitTransaction(TimeSpan timeout) { }
-        public void CommitTransaction() { }
-        public void AbortTransaction(TimeSpan timeout) { }
-        public void AbortTransaction() { }
-        public void SendOffsetsToTransaction(IEnumerable<TopicPartitionOffset> offsets, IConsumerGroupMetadata groupMetadata, TimeSpan timeout) { }
+        public void InitTransactions(TimeSpan timeout) { InitTransactionsCalled = true; }
+        public void BeginTransaction() { BeginTransactionCalled = true; }
+        public void CommitTransaction(TimeSpan timeout) { CommitTransactionCalled = true; }
+        public void CommitTransaction() { CommitTransactionCalled = true; }
+        public void AbortTransaction(TimeSpan timeout) { AbortTransactionCalled = true; }
+        public void AbortTransaction() { AbortTransactionCalled = true; }
+        public void SendOffsetsToTransaction(IEnumerable<TopicPartitionOffset> offsets, IConsumerGroupMetadata groupMetadata, TimeSpan timeout) { SendOffsetsCalled = true; }
         public int Flush(TimeSpan timeout) { FlushCalled = true; return 0; }
         public void Flush(CancellationToken cancellationToken = default) { FlushCalled = true; }
         public int Poll(TimeSpan timeout) => 0;

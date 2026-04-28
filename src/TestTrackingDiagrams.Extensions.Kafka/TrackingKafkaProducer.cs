@@ -119,13 +119,55 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
             _tracker.LogFlush(op);
         }
     }
-    public void InitTransactions(TimeSpan timeout) => _inner.InitTransactions(timeout);
-    public void BeginTransaction() => _inner.BeginTransaction();
-    public void CommitTransaction(TimeSpan timeout) => _inner.CommitTransaction(timeout);
-    public void CommitTransaction() => _inner.CommitTransaction();
-    public void AbortTransaction(TimeSpan timeout) => _inner.AbortTransaction(timeout);
-    public void AbortTransaction() => _inner.AbortTransaction();
+    public void InitTransactions(TimeSpan timeout)
+    {
+        _inner.InitTransactions(timeout);
+        LogTransaction(KafkaOperation.InitTransactions);
+    }
+
+    public void BeginTransaction()
+    {
+        _inner.BeginTransaction();
+        LogTransaction(KafkaOperation.BeginTransaction);
+    }
+
+    public void CommitTransaction(TimeSpan timeout)
+    {
+        _inner.CommitTransaction(timeout);
+        LogTransaction(KafkaOperation.CommitTransaction);
+    }
+
+    public void CommitTransaction()
+    {
+        _inner.CommitTransaction();
+        LogTransaction(KafkaOperation.CommitTransaction);
+    }
+
+    public void AbortTransaction(TimeSpan timeout)
+    {
+        _inner.AbortTransaction(timeout);
+        LogTransaction(KafkaOperation.AbortTransaction);
+    }
+
+    public void AbortTransaction()
+    {
+        _inner.AbortTransaction();
+        LogTransaction(KafkaOperation.AbortTransaction);
+    }
+
     public void SendOffsetsToTransaction(IEnumerable<TopicPartitionOffset> offsets, IConsumerGroupMetadata groupMetadata, TimeSpan timeout)
-        => _inner.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
+    {
+        _inner.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
+        LogTransaction(KafkaOperation.SendOffsetsToTransaction);
+    }
+
+    private void LogTransaction(KafkaOperation operation)
+    {
+        if (_options.TrackTransactions)
+        {
+            var op = new KafkaOperationInfo(operation);
+            _tracker.LogTransaction(op);
+        }
+    }
     public void Dispose() => _inner.Dispose();
 }

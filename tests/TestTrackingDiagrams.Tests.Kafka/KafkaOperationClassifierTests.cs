@@ -194,4 +194,38 @@ public class KafkaOperationClassifierTests
 
         Assert.Equal("Unsubscribe", label);
     }
+
+    // ──────────────────────────────────────────────────────────
+    //  Diagram labels — Transactions
+    // ──────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(KafkaOperation.InitTransactions, "InitTransactions")]
+    [InlineData(KafkaOperation.BeginTransaction, "BeginTransaction")]
+    [InlineData(KafkaOperation.CommitTransaction, "CommitTransaction")]
+    [InlineData(KafkaOperation.AbortTransaction, "AbortTransaction")]
+    [InlineData(KafkaOperation.SendOffsetsToTransaction, "SendOffsetsToTransaction")]
+    public void GetDiagramLabel_Detailed_Transactions(KafkaOperation operation, string expected)
+    {
+        var op = new KafkaOperationInfo(operation);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Detailed);
+
+        Assert.Equal(expected, label);
+    }
+
+    [Theory]
+    [InlineData(KafkaOperation.InitTransactions, "Init Txn")]
+    [InlineData(KafkaOperation.BeginTransaction, "Begin Txn")]
+    [InlineData(KafkaOperation.CommitTransaction, "Commit Txn")]
+    [InlineData(KafkaOperation.AbortTransaction, "Abort Txn")]
+    [InlineData(KafkaOperation.SendOffsetsToTransaction, "Send Offsets")]
+    public void GetDiagramLabel_Summarised_Transactions(KafkaOperation operation, string expected)
+    {
+        var op = new KafkaOperationInfo(operation);
+
+        var label = KafkaOperationClassifier.GetDiagramLabel(op, KafkaTrackingVerbosity.Summarised);
+
+        Assert.Equal(expected, label);
+    }
 }

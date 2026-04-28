@@ -9,5 +9,10 @@ public enum KafkaOperation
     Unsubscribe,
     Commit,
     Flush,
+    InitTransactions,
+    BeginTransaction,
+    CommitTransaction,
+    AbortTransaction,
+    SendOffsetsToTransaction,
     Other
 }

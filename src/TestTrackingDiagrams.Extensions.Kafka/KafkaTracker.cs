@@ -80,6 +80,16 @@ public class KafkaTracker : ITrackingComponent
         LogOutgoing(op, null);
     }
 
+    public void LogTransaction(KafkaOperationInfo op)
+    {
+        Interlocked.Increment(ref _invocationCount);
+
+        if (!_options.TrackTransactions) return;
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+        LogOutgoing(op, null);
+    }
+
     private void LogOutgoing(KafkaOperationInfo op, string? content)
     {
         var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);

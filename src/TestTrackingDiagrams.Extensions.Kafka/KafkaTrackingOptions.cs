@@ -15,6 +15,7 @@ public record KafkaTrackingOptions
     public bool TrackUnsubscribe { get; set; } = false;
     public bool TrackCommit { get; set; } = false;
     public bool TrackFlush { get; set; } = false;
+    public bool TrackTransactions { get; set; } = false;
     public KafkaTrackingVerbosity? SetupVerbosity { get; set; }
     public KafkaTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;

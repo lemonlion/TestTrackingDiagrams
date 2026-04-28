@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.8] - 2026-04-28
+
+### Added
+- **Kafka: Transactional producer tracking**: All five transactional producer methods (`InitTransactions`, `BeginTransaction`, `CommitTransaction`, `AbortTransaction`, `SendOffsetsToTransaction`) are now tracked when `TrackTransactions = true`. Each has its own `KafkaOperation` enum value and classifier labels (full names in Detailed/Raw, shortened `Init Txn`/`Begin Txn`/`Commit Txn`/`Abort Txn`/`Send Offsets` in Summarised).
+- **`TrackTransactions`** option on `KafkaTrackingOptions` (default `false`) — single flag to enable/disable tracking of all transactional producer operations.
+- **`LogTransaction()`** method on `KafkaTracker`.
+- **5 new `KafkaOperation` enum values**: `InitTransactions`, `BeginTransaction`, `CommitTransaction`, `AbortTransaction`, `SendOffsetsToTransaction`.
+
 ## [2.27.7] - 2026-04-28
 
 ### Fixed

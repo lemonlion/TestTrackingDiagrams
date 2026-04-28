@@ -360,6 +360,49 @@ public class KafkaTrackerTests
         Assert.Equal(2, logs.Length);
     }
 
+    // ─── LogTransaction ─────────────────────────────────────
+
+    [Fact]
+    public void LogTransaction_Skips_when_TrackTransactions_false()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = false; // default
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.InitTransactions);
+
+        tracker.LogTransaction(op);
+
+        Assert.Empty(GetLogsFromThisTest());
+    }
+
+    [Fact]
+    public void LogTransaction_Logs_when_TrackTransactions_true()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.BeginTransaction);
+
+        tracker.LogTransaction(op);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    [Fact]
+    public void LogTransaction_Uses_event_metatype()
+    {
+        var options = MakeOptions();
+        options.TrackTransactions = true;
+        var tracker = new KafkaTracker(options);
+        var op = new KafkaOperationInfo(KafkaOperation.CommitTransaction);
+
+        tracker.LogTransaction(op);
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal(RequestResponseMetaType.Event, log.MetaType);
+    }
+
     // ─── LogConsume content ─────────────────────────────────
 
     [Fact]

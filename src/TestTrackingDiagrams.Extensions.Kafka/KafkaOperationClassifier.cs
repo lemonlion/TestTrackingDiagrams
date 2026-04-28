@@ -23,6 +23,11 @@ public static class KafkaOperationClassifier
             {
                 KafkaOperation.Produce or KafkaOperation.ProduceAsync => "Produce",
                 KafkaOperation.Consume => "Consume",
+                KafkaOperation.InitTransactions => "Init Txn",
+                KafkaOperation.BeginTransaction => "Begin Txn",
+                KafkaOperation.CommitTransaction => "Commit Txn",
+                KafkaOperation.AbortTransaction => "Abort Txn",
+                KafkaOperation.SendOffsetsToTransaction => "Send Offsets",
                 _ => op.Operation.ToString()
             },
             _ => op.Operation.ToString()
