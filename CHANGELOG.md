@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.19] - 2026-04-28
+
+### Added
+- **`TrackConsumeEvent()` method on `MessageTracker`**: Models message consumption (broker → consumer) as a delivery + acknowledgement pair. Arrow direction is `CallingServiceName` → `consumerName`, with the payload on the delivery arrow and a customisable ack label (default: `"Ack"`). This is the consumption counterpart to `TrackSendEvent()`.
+- **`CallerDependencyCategory` property on `MessageTrackerOptions`**: Controls the PlantUML participant shape of the `CallingServiceName` participant independently of `DependencyCategory`. For consumption scenarios, set `CallerDependencyCategory = "MessageQueue"` so the broker renders as a `queue` without affecting the SUT's shape.
+- **`CallerDependencyCategory` field on `RequestResponseLog`**: Propagated through the rendering pipeline to `PlantUmlCreator`, enabling correct shape and colour resolution for caller participants.
+- **`IsCurrentRequestFromMyHost()` method on `MessageTracker`**: Returns `true` only when the current `HttpContext` belongs to the same DI container that created the tracker. Use in multi-`WebApplicationFactory` scenarios to prevent duplicate tracking from shared in-memory message stores.
+- **PlantUmlCreator caller shape rendering**: Caller participants with `CallerDependencyCategory` set are now rendered using `DependencyPalette` shapes and colours, rather than always defaulting to `actor`/`entity`. Arrow colours also fall back to the caller's category when the service has no category.
+- **Comprehensive wiki documentation**: DependencyCategory reference table with all 18+ recognised values, participant naming rules, arrow direction conventions, `TrackConsumeEvent` usage guide, and cross-host duplicate guard pattern.
+
 ## [2.27.18] - 2026-04-28
 
 ### Fixed

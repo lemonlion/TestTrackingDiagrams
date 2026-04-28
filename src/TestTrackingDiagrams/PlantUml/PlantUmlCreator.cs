@@ -211,7 +211,7 @@ public static partial class PlantUmlCreator
                     if (internalFlowTracking)
                         requestLabel = $"[[#iflow-{trace.RequestResponseId} {requestLabel}]]";
 
-                    var arrowColor = builder.GetArrowColor(trace.ServiceName, trace.DependencyCategory);
+                    var arrowColor = builder.GetArrowColor(trace.ServiceName, trace.DependencyCategory, trace.CallerName, trace.CallerDependencyCategory);
                     builder.AppendLine($"{callerShortName} -{arrowColor}> {serviceShortName}: {requestLabel}");
                     builder.AddArrowHeight();
 
@@ -304,7 +304,7 @@ public static partial class PlantUmlCreator
 
             var responseLabel = status ?? "";
 
-            var arrowColor = builder.GetArrowColor(trace!.ServiceName, trace.DependencyCategory);
+            var arrowColor = builder.GetArrowColor(trace!.ServiceName, trace.DependencyCategory, trace.CallerName, trace.CallerDependencyCategory);
             builder.AppendLine($"{serviceShortName} -{arrowColor}-> {callerShortName}: {responseLabel}");
             builder.AddArrowHeight();
 
@@ -377,14 +377,49 @@ public static partial class PlantUmlCreator
             .Select(t => t.CallerName)
             .FirstOrDefault(c => !allServiceNames.Contains(c));
 
+        // Build a lookup: callerName → CallerDependencyCategory (for caller participant shapes)
+        var callerCategories = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var trace in relevantTraces)
+        {
+            if (callerCategories.ContainsKey(trace.CallerName)) continue;
+            if (serviceTypeOverrides?.TryGetValue(trace.CallerName, out var callerOv) == true)
+            {
+                callerCategories[trace.CallerName] = callerOv;
+                continue;
+            }
+            callerCategories[trace.CallerName] = relevantTraces
+                .Where(t => t.CallerName == trace.CallerName && t.CallerDependencyCategory is not null)
+                .Select(t => t.CallerDependencyCategory)
+                .FirstOrDefault();
+        }
+
         if (pureCaller != null)
         {
             var pureCallerAlias = SanitizePlantUmlAlias(pureCaller);
             currentPlayers.Add(pureCallerAlias);
-            sb.Append("actor \"")
-                .Append(pureCaller)
-                .Append("\" as ")
-                .AppendLine(pureCallerAlias);
+            var pureCallerCategory = callerCategories.TryGetValue(pureCaller, out var pcc) ? pcc : null;
+            if (pureCallerCategory is not null)
+            {
+                var pureCallerType = DependencyPalette.Resolve(pureCallerCategory);
+                var pureCallerShape = DependencyPalette.GetSequenceShape(pureCallerType);
+                var pureCallerColor = "";
+                if (sequenceDiagramParticipantColors)
+                    pureCallerColor = " " + DependencyPalette.GetColor(pureCallerCategory, dependencyColors);
+
+                sb.Append(pureCallerShape)
+                    .Append(" \"")
+                    .Append(pureCaller)
+                    .Append("\" as ")
+                    .Append(pureCallerAlias)
+                    .AppendLine(pureCallerColor);
+            }
+            else
+            {
+                sb.Append("actor \"")
+                    .Append(pureCaller)
+                    .Append("\" as ")
+                    .AppendLine(pureCallerAlias);
+            }
             actorDefined = true;
         }
 
@@ -411,12 +446,32 @@ public static partial class PlantUmlCreator
 
             if (currentPlayers.Add(callerShortName))
             {
-                // Callers that aren't the first actor: use entity (they're HTTP services being tested)
-                sb.Append(actorDefined ? "entity" : "actor")
-                    .Append(" \"")
-                    .Append(trace.CallerName)
-                    .Append("\" as ")
-                    .AppendLine(callerShortName);
+                var callerCategory = callerCategories.TryGetValue(trace.CallerName, out var cc) ? cc : null;
+                if (callerCategory is not null)
+                {
+                    // Caller has an explicit category — use DependencyPalette for shape
+                    var callerType = DependencyPalette.Resolve(callerCategory);
+                    var callerShape = DependencyPalette.GetSequenceShape(callerType);
+                    var callerColorSuffix = "";
+                    if (sequenceDiagramParticipantColors)
+                        callerColorSuffix = " " + DependencyPalette.GetColor(callerCategory, dependencyColors);
+
+                    sb.Append(callerShape)
+                        .Append(" \"")
+                        .Append(trace.CallerName)
+                        .Append("\" as ")
+                        .Append(callerShortName)
+                        .AppendLine(callerColorSuffix);
+                }
+                else
+                {
+                    // Callers without a category: use actor (first) or entity (subsequent)
+                    sb.Append(actorDefined ? "entity" : "actor")
+                        .Append(" \"")
+                        .Append(trace.CallerName)
+                        .Append("\" as ")
+                        .AppendLine(callerShortName);
+                }
             }
 
             if (currentPlayers.Add(serviceShortName))
@@ -562,32 +617,56 @@ public static partial class PlantUmlCreator
             var cache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             foreach (var trace in traces)
             {
-                if (cache.ContainsKey(trace.ServiceName)) continue;
-
-                // User override takes priority
-                if (overrides?.TryGetValue(trace.ServiceName, out var overrideCategory) == true)
+                if (!cache.ContainsKey(trace.ServiceName))
                 {
-                    cache[trace.ServiceName] = overrideCategory;
-                    continue;
+                    // User override takes priority
+                    if (overrides?.TryGetValue(trace.ServiceName, out var overrideCategory) == true)
+                    {
+                        cache[trace.ServiceName] = overrideCategory;
+                    }
+                    else
+                    {
+                        // Auto-detect from DependencyCategory on first request targeting this service
+                        cache[trace.ServiceName] = traces
+                            .Where(t => t.ServiceName == trace.ServiceName && t.DependencyCategory is not null)
+                            .Select(t => t.DependencyCategory)
+                            .FirstOrDefault();
+                    }
                 }
 
-                // Auto-detect from DependencyCategory on first request targeting this service
-                var category = traces
-                    .Where(t => t.ServiceName == trace.ServiceName && t.DependencyCategory is not null)
-                    .Select(t => t.DependencyCategory)
-                    .FirstOrDefault();
-                cache[trace.ServiceName] = category;
+                // Also add CallerDependencyCategory entries for caller participants
+                if (!cache.ContainsKey(trace.CallerName))
+                {
+                    if (overrides?.TryGetValue(trace.CallerName, out var callerOverride) == true)
+                    {
+                        cache[trace.CallerName] = callerOverride;
+                    }
+                    else
+                    {
+                        var callerCat = traces
+                            .Where(t => t.CallerName == trace.CallerName && t.CallerDependencyCategory is not null)
+                            .Select(t => t.CallerDependencyCategory)
+                            .FirstOrDefault();
+                        if (callerCat is not null)
+                            cache[trace.CallerName] = callerCat;
+                    }
+                }
             }
             return cache;
         }
 
         /// <summary>Returns the arrow color syntax (e.g. <c>[#E74C3C]</c>) for a given service, or empty if coloring is off.</summary>
-        public string GetArrowColor(string serviceName, string? dependencyCategory)
+        public string GetArrowColor(string serviceName, string? dependencyCategory, string? callerName = null, string? callerDependencyCategory = null)
         {
             if (!sequenceDiagramArrowColors) return "";
 
             // Use cached category for the service (accounts for overrides and auto-detection)
             var category = _serviceCategoryCache.TryGetValue(serviceName, out var cached) ? cached : dependencyCategory;
+
+            // Fall back to caller's category when the service has no category (e.g. consume events)
+            if (string.IsNullOrEmpty(category) && callerName is not null)
+                category = _serviceCategoryCache.TryGetValue(callerName, out var callerCached) ? callerCached : callerDependencyCategory;
+
             var color = DependencyPalette.GetColor(category, dependencyColors);
             return $"[{color}]";
         }

@@ -26,6 +26,7 @@ public class MessageTracker : ITrackingComponent
     private readonly bool _trackDuringSetup;
     private readonly bool _trackDuringAction;
     private readonly string _dependencyCategory;
+    private readonly string? _callerDependencyCategory;
     private int _invocationCount;
 
     /// <summary>
@@ -56,6 +57,7 @@ public class MessageTracker : ITrackingComponent
         _trackDuringSetup = options.TrackDuringSetup;
         _trackDuringAction = options.TrackDuringAction;
         _dependencyCategory = options.DependencyCategory;
+        _callerDependencyCategory = options.CallerDependencyCategory;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -80,6 +82,7 @@ public class MessageTracker : ITrackingComponent
         _trackDuringSetup = true;
         _trackDuringAction = true;
         _dependencyCategory = "MessageQueue";
+        _callerDependencyCategory = null;
         TrackingComponentRegistry.Register(this);
     }
 
@@ -129,7 +132,8 @@ public class MessageTracker : ITrackingComponent
             requestResponseId,
             false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: _dependencyCategory
+            DependencyCategory: _dependencyCategory,
+            CallerDependencyCategory: _callerDependencyCategory
         )
         {
             Timestamp = DateTimeOffset.UtcNow,
@@ -154,7 +158,7 @@ public class MessageTracker : ITrackingComponent
     /// <param name="destinationUri">The destination URI (must match the value passed to <see cref="TrackMessageRequest"/>).</param>
     /// <param name="requestResponseId">The correlation ID returned by <see cref="TrackMessageRequest"/>.</param>
     /// <param name="responsePayload">Optional response payload (e.g. an acknowledgement). Will be JSON-serialised if provided.</param>
-    public void TrackMessageResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null)
+    public void TrackMessageResponse(string protocol, string destinationName, Uri destinationUri, Guid requestResponseId, object? responsePayload = null, string statusLabel = "Responded")
     {
         if (!PhaseConfiguration.ShouldTrack(_trackDuringSetup, _trackDuringAction))
             return;
@@ -183,9 +187,10 @@ public class MessageTracker : ITrackingComponent
             testInfo.Value.TraceId,
             requestResponseId,
             false,
-            "Responded",
+            statusLabel,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: _dependencyCategory
+            DependencyCategory: _dependencyCategory,
+            CallerDependencyCategory: _callerDependencyCategory
         )
         {
             Timestamp = DateTimeOffset.UtcNow,
@@ -218,6 +223,43 @@ public class MessageTracker : ITrackingComponent
         var id = TrackMessageRequest(protocol, destinationName, destinationUri, payload ?? new { });
         if (id != Guid.Empty)
             TrackMessageResponse(protocol, destinationName, destinationUri, id);
+    }
+
+    /// <summary>
+    /// Tracks consumption of an event from a message broker as a delivery + ack pair.
+    /// Arrow direction: <c>CallingServiceName</c> → <paramref name="consumerName"/> (broker → consumer).
+    /// Payload appears on the delivery arrow; response uses the <paramref name="ackLabel"/>.
+    /// </summary>
+    /// <param name="protocol">Protocol label shown in the diagram (e.g. "Consume (Kafka)", "Consume (Pub/Sub)").</param>
+    /// <param name="consumerName">The consuming service name (right side of arrow / arrow target).</param>
+    /// <param name="sourceUri">URI of the topic/subscription (e.g. <c>new Uri("kafka:///my_topic")</c>).</param>
+    /// <param name="payload">The consumed event payload. Will be JSON-serialised and shown in the diagram note.</param>
+    /// <param name="ackLabel">Label for the acknowledgement arrow (default: <c>"Ack"</c>).</param>
+    public void TrackConsumeEvent(string protocol, string consumerName, Uri sourceUri, object? payload = null, string ackLabel = "Ack")
+    {
+        var id = TrackMessageRequest(protocol, consumerName, sourceUri, payload ?? new { });
+        if (id != Guid.Empty)
+            TrackMessageResponse(protocol, consumerName, sourceUri, id, statusLabel: ackLabel);
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> only if the current <c>HttpContext</c> belongs to the same
+    /// DI container that created this <see cref="MessageTracker"/> instance.
+    /// Use in shared-store scenarios where multiple <c>WebApplicationFactory</c> hosts
+    /// subscribe to the same event source, to prevent duplicate tracking.
+    /// </summary>
+    /// <remarks>
+    /// Requires <see cref="MessageTrackerOptions.UseHttpContextCorrelation"/> to be <c>true</c>
+    /// and the tracker to have been created with an <see cref="IHttpContextAccessor"/>.
+    /// </remarks>
+    public bool IsCurrentRequestFromMyHost()
+    {
+        var httpContext = _httpContextAccessor?.HttpContext;
+        if (httpContext is null)
+            return false;
+
+        var requestTracker = httpContext.RequestServices.GetService(typeof(MessageTracker)) as MessageTracker;
+        return ReferenceEquals(requestTracker, this);
     }
 
     private (string TestName, string TestId, Guid TraceId)? GetTestInfo()

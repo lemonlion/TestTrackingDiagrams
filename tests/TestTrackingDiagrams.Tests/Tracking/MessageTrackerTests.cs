@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
@@ -843,5 +844,386 @@ public class MessageTrackerTests
         var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
 
         Assert.Equal(Guid.Empty, id);
+    }
+
+    // ─── TrackConsumeEvent ──────────────────────────────────────
+
+    [Fact]
+    public void TrackConsumeEvent_logs_request_and_response_pair()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///recipe_logs"), new { OrderId = "123" });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.Equal(2, logs.Length);
+        Assert.Contains(logs, l => l.Type == RequestResponseType.Request);
+        Assert.Contains(logs, l => l.Type == RequestResponseType.Response);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_sets_caller_as_arrow_source()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { });
+
+        var request = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.Equal("Kafka Broker", request.CallerName);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_sets_consumer_as_destination()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { });
+
+        var request = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.Equal("Breakfast Provider", request.ServiceName);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_puts_payload_on_request_arrow()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { OrderId = "abc" });
+
+        var request = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.Contains("abc", request.Content!);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_uses_Ack_as_default_response_label()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { });
+
+        var response = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Response);
+        Assert.Equal("Ack", response.StatusCode!.Value);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_uses_custom_ack_label()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { }, ackLabel: "Processed");
+
+        var response = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Response);
+        Assert.Equal("Processed", response.StatusCode!.Value);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_shares_same_requestResponseId()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_sets_meta_type_to_event()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            ServiceName = "Breakfast Provider",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Breakfast Provider", new Uri("kafka:///t"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Equal(RequestResponseMetaType.Event, l.MetaType));
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_increments_invocation_count()
+    {
+        var tracker = CreateOptionsTracker();
+        var before = tracker.InvocationCount;
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Svc", new Uri("kafka:///t"), new { });
+
+        Assert.Equal(before + 1, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_respects_summarised_verbosity()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Broker",
+            Verbosity = MessageTrackerVerbosity.Summarised,
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume", "Consumer", new Uri("kafka:///t"), new { Secret = "hidden" });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Null(l.Content));
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_does_nothing_when_no_test_info()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Broker",
+            CurrentTestInfoFetcher = null
+        });
+        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+
+        tracker.TrackConsumeEvent("Consume", "Consumer", new Uri("kafka:///t"), new { });
+
+        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_sets_DependencyCategory_from_options()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Broker",
+            DependencyCategory = "MessageQueue",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume", "Consumer", new Uri("kafka:///t"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Equal("MessageQueue", l.DependencyCategory));
+    }
+
+    // ─── CallerDependencyCategory ───────────────────────────────
+
+    [Fact]
+    public void CallerDependencyCategory_defaults_to_null()
+    {
+        var options = new MessageTrackerOptions();
+        Assert.Null(options.CallerDependencyCategory);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_sets_CallerDependencyCategory_on_log()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            CallerDependencyCategory = "MessageQueue",
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Equal("MessageQueue", log.CallerDependencyCategory);
+    }
+
+    [Fact]
+    public void TrackMessageResponse_sets_CallerDependencyCategory_on_log()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            CallerDependencyCategory = "MessageQueue",
+            CurrentTestInfoFetcher = () => ("T", "id")
+        });
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        tracker.TrackMessageResponse("Kafka", "Svc", new Uri("kafka://t"), id);
+
+        var responseLog = GetLogsById(id).Last();
+        Assert.Equal("MessageQueue", responseLog.CallerDependencyCategory);
+    }
+
+    [Fact]
+    public void TrackConsumeEvent_sets_CallerDependencyCategory_on_log()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            CallerDependencyCategory = "MessageQueue",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume", "Consumer", new Uri("kafka:///t"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId)
+            .ToArray();
+        Assert.All(logs, l => Assert.Equal("MessageQueue", l.CallerDependencyCategory));
+    }
+
+    [Fact]
+    public void CallerDependencyCategory_null_by_default_on_log()
+    {
+        var tracker = CreateOptionsTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Null(log.CallerDependencyCategory);
+    }
+
+    [Fact]
+    public void Legacy_constructor_sets_CallerDependencyCategory_to_null_on_log()
+    {
+        var tracker = CreateTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.Null(log.CallerDependencyCategory);
+    }
+
+    // ─── IsCurrentRequestFromMyHost ─────────────────────────────
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_false_when_no_HttpContext()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        }, new HttpContextAccessor { HttpContext = null });
+
+        Assert.False(tracker.IsCurrentRequestFromMyHost());
+    }
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_false_when_UseHttpContextCorrelation_is_false()
+    {
+        var accessor = CreateHttpContextAccessor();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            UseHttpContextCorrelation = false,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        }, accessor);
+
+        Assert.False(tracker.IsCurrentRequestFromMyHost());
+    }
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_true_when_same_tracker_is_in_request_services()
+    {
+        var services = new ServiceCollection();
+        var accessor = new HttpContextAccessor();
+
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        };
+
+        services.AddSingleton<IHttpContextAccessor>(accessor);
+        services.AddSingleton(sp => new MessageTracker(options, sp.GetRequiredService<IHttpContextAccessor>()));
+
+        var provider = services.BuildServiceProvider();
+        var tracker = provider.GetRequiredService<MessageTracker>();
+
+        var context = new DefaultHttpContext { RequestServices = provider };
+        accessor.HttpContext = context;
+
+        Assert.True(tracker.IsCurrentRequestFromMyHost());
+    }
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_false_when_different_tracker_in_request_services()
+    {
+        var accessor = new HttpContextAccessor();
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        };
+
+        // Create tracker from one DI container
+        var tracker = new MessageTracker(options, accessor);
+
+        // Create a different DI container with a different tracker
+        var otherServices = new ServiceCollection();
+        otherServices.AddSingleton(new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "OtherSvc",
+            CurrentTestInfoFetcher = () => ("T2", "id2")
+        }));
+        var otherProvider = otherServices.BuildServiceProvider();
+
+        var context = new DefaultHttpContext { RequestServices = otherProvider };
+        accessor.HttpContext = context;
+
+        Assert.False(tracker.IsCurrentRequestFromMyHost());
     }
 }

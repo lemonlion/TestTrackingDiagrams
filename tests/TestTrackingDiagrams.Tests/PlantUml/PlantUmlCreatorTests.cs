@@ -2975,4 +2975,171 @@ public class PlantUmlCreatorTests
         Assert.Contains("Select: /api/action-uri", plantUml);
         Assert.DoesNotContain("GET: /api/default", plantUml);
     }
+
+    // ─── CallerDependencyCategory rendering ─────────────────────
+
+    private static RequestResponseLog MakeRequestWithCallerCategory(
+        string callerDependencyCategory,
+        string? dependencyCategory = null,
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "OrderService",
+        string callerName = "Kafka Broker")
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: "Consume (Kafka)",
+            Content: null,
+            Uri: new Uri("kafka:///orders"),
+            Headers: [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Request,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            DependencyCategory: dependencyCategory,
+            CallerDependencyCategory: callerDependencyCategory);
+    }
+
+    private static RequestResponseLog MakeResponseWithCallerCategory(
+        string callerDependencyCategory,
+        string? dependencyCategory = null,
+        string testId = "test-1",
+        string testName = "My Test",
+        string serviceName = "OrderService",
+        string callerName = "Kafka Broker",
+        string statusCode = "Ack")
+    {
+        return new RequestResponseLog(
+            TestName: testName,
+            TestId: testId,
+            Method: "Consume (Kafka)",
+            Content: null,
+            Uri: new Uri("kafka:///orders"),
+            Headers: [],
+            ServiceName: serviceName,
+            CallerName: callerName,
+            Type: RequestResponseType.Response,
+            TraceId: Guid.NewGuid(),
+            RequestResponseId: Guid.NewGuid(),
+            TrackingIgnore: false,
+            StatusCode: statusCode,
+            DependencyCategory: dependencyCategory,
+            CallerDependencyCategory: callerDependencyCategory);
+    }
+
+    [Fact]
+    public void Caller_with_CallerDependencyCategory_MessageQueue_renders_as_queue()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Breakfast Provider"),
+            MakeResponseWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Breakfast Provider"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("queue \"Kafka Broker\" as kafkaBroker", plantUml);
+        Assert.Contains("entity \"Breakfast Provider\" as breakfastProvider", plantUml);
+    }
+
+    [Fact]
+    public void Caller_without_CallerDependencyCategory_renders_as_actor_or_entity()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "WebApp", serviceName: "Kafka Broker"),
+            MakeResponse(callerName: "WebApp", serviceName: "Kafka Broker"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("actor \"WebApp\" as webApp", plantUml);
+    }
+
+    [Fact]
+    public void CallerDependencyCategory_does_not_affect_ServiceName_shape()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCallerCategory("MessageQueue",
+                dependencyCategory: null,
+                callerName: "Kafka Broker",
+                serviceName: "Breakfast Provider"),
+            MakeResponseWithCallerCategory("MessageQueue",
+                dependencyCategory: null,
+                callerName: "Kafka Broker",
+                serviceName: "Breakfast Provider"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        // ServiceName with null DependencyCategory should remain entity
+        Assert.Contains("entity \"Breakfast Provider\" as breakfastProvider", plantUml);
+        // Caller should be queue
+        Assert.Contains("queue \"Kafka Broker\" as kafkaBroker", plantUml);
+    }
+
+    [Fact]
+    public void CallerDependencyCategory_with_participant_colors_adds_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Consumer Svc"),
+            MakeResponseWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Consumer Svc"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs, sequenceDiagramParticipantColors: true);
+
+        Assert.Contains("queue \"Kafka Broker\" as kafkaBroker #9B59B6", plantUml);
+    }
+
+    [Fact]
+    public void CallerDependencyCategory_affects_arrow_color()
+    {
+        var logs = new[]
+        {
+            MakeRequestWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Consumer Svc"),
+            MakeResponseWithCallerCategory("MessageQueue", callerName: "Kafka Broker", serviceName: "Consumer Svc"),
+        };
+        var plantUml = GetPlantUmlWithOptions(logs, sequenceDiagramArrowColors: true);
+
+        Assert.Contains("-[#9B59B6]>", plantUml);
+    }
+
+    [Fact]
+    public void Consume_and_produce_pattern_renders_correct_shapes()
+    {
+        // Simulate: consume from Kafka (broker→SUT) + produce to Kafka (SUT→broker) + DB insert
+        var consumeId = Guid.NewGuid();
+        var produceId = Guid.NewGuid();
+        var dbId = Guid.NewGuid();
+        var logs = new[]
+        {
+            // Consume: Kafka Broker → Breakfast Provider (no DependencyCategory on SUT, CallerDependencyCategory on broker)
+            new RequestResponseLog("T", "t1", "Consume (Kafka)", "{}", new Uri("kafka:///recipe_logs"), [],
+                "Breakfast Provider", "Kafka Broker", RequestResponseType.Request, Guid.NewGuid(), consumeId, false,
+                CallerDependencyCategory: "MessageQueue"),
+            new RequestResponseLog("T", "t1", "Consume (Kafka)", "", new Uri("kafka:///recipe_logs"), [],
+                "Breakfast Provider", "Kafka Broker", RequestResponseType.Response, Guid.NewGuid(), consumeId, false,
+                StatusCode: "Ack", CallerDependencyCategory: "MessageQueue"),
+            // DB insert: Breakfast Provider → Reporting DB
+            new RequestResponseLog("T", "t1", "Insert", "{}", new Uri("http://db/RecipeReports"), [],
+                "Reporting DB", "Breakfast Provider", RequestResponseType.Request, Guid.NewGuid(), dbId, false,
+                DependencyCategory: "Database"),
+            new RequestResponseLog("T", "t1", "Insert", "", new Uri("http://db/RecipeReports"), [],
+                "Reporting DB", "Breakfast Provider", RequestResponseType.Response, Guid.NewGuid(), dbId, false,
+                StatusCode: HttpStatusCode.OK, DependencyCategory: "Database"),
+            // Produce: Breakfast Provider → Kafka Broker
+            new RequestResponseLog("T", "t1", "Produce", "{}", new Uri("kafka:///recipe_logs"), [],
+                "Kafka Broker", "Breakfast Provider", RequestResponseType.Request, Guid.NewGuid(), produceId, false,
+                DependencyCategory: "MessageQueue"),
+            new RequestResponseLog("T", "t1", "Produce", "", new Uri("kafka:///recipe_logs"), [],
+                "Kafka Broker", "Breakfast Provider", RequestResponseType.Response, Guid.NewGuid(), produceId, false,
+                StatusCode: "Responded", DependencyCategory: "MessageQueue"),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("queue \"Kafka Broker\" as kafkaBroker", plantUml);
+        Assert.Contains("entity \"Breakfast Provider\" as breakfastProvider", plantUml);
+        Assert.Contains("database \"Reporting DB\" as reportingDB", plantUml);
+    }
 }

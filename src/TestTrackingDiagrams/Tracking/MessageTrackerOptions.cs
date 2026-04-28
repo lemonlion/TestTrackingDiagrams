@@ -57,6 +57,14 @@ public record MessageTrackerOptions
     public string DependencyCategory { get; set; } = "MessageQueue";
 
     /// <summary>
+    /// The dependency category for the <see cref="CallingServiceName"/> participant in PlantUML diagrams.
+    /// Use this to control the shape of the calling service independently of <see cref="DependencyCategory"/>.
+    /// For example, set to <c>"MessageQueue"</c> to render a broker caller as a queue.
+    /// Defaults to <c>null</c> (caller uses default entity/actor shape).
+    /// </summary>
+    public string? CallerDependencyCategory { get; set; }
+
+    /// <summary>
     /// When <c>true</c>, the <see cref="MessageTracker"/> will first attempt to resolve test info
     /// from <c>IHttpContextAccessor</c> request headers (the same dual-layer correlation used by
     /// the legacy constructor), falling back to <see cref="CurrentTestInfoFetcher"/> when
