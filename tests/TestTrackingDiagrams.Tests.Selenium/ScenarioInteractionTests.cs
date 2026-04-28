@@ -5,7 +5,7 @@ using OpenQA.Selenium.Support.UI;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class ScenarioInteractionTests : IDisposable
+public class ScenarioInteractionTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -13,9 +13,9 @@ public class ScenarioInteractionTests : IDisposable
         Path.GetDirectoryName(typeof(ScenarioInteractionTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public ScenarioInteractionTests()
+    public ScenarioInteractionTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-scenario-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -23,8 +23,6 @@ public class ScenarioInteractionTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

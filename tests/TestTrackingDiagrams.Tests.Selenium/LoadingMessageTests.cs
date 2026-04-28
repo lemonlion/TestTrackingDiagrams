@@ -4,7 +4,7 @@ using OpenQA.Selenium.Support.UI;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class LoadingMessageTests : IDisposable
+public class LoadingMessageTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -12,9 +12,9 @@ public class LoadingMessageTests : IDisposable
         Path.GetDirectoryName(typeof(LoadingMessageTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public LoadingMessageTests()
+    public LoadingMessageTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-loading-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -22,8 +22,6 @@ public class LoadingMessageTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

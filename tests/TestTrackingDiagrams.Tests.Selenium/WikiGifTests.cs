@@ -21,7 +21,7 @@ namespace TestTrackingDiagrams.Tests.Selenium;
 ///
 /// Requirements: Chrome, ImageMagick (magick on PATH)
 /// </summary>
-public class WikiGifTests : IDisposable
+public class WikiGifTests : IClassFixture<ChromeFixture1280X900>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -33,9 +33,9 @@ public class WikiGifTests : IDisposable
         Path.GetDirectoryName(typeof(WikiGifTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public WikiGifTests()
+    public WikiGifTests(ChromeFixture1280X900 chrome)
     {
-        _driver = ChromeDriverFactory.Create(1280, 900);
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-wiki-" + Guid.NewGuid().ToString("N")[..8]);
         _wikiGifDir = Path.Combine(OutputDir, "wiki-gifs");
         Directory.CreateDirectory(_tempDir);
@@ -44,8 +44,6 @@ public class WikiGifTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

@@ -4,7 +4,7 @@ using OpenQA.Selenium.Support.UI;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class ComponentFlowPopupTests : IDisposable
+public class ComponentFlowPopupTests : IClassFixture<ChromeFixture1280X900>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -12,9 +12,9 @@ public class ComponentFlowPopupTests : IDisposable
         Path.GetDirectoryName(typeof(ComponentFlowPopupTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public ComponentFlowPopupTests()
+    public ComponentFlowPopupTests(ChromeFixture1280X900 chrome)
     {
-        _driver = ChromeDriverFactory.Create(1280, 900);
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-selenium-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -22,8 +22,6 @@ public class ComponentFlowPopupTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

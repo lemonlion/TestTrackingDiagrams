@@ -9,7 +9,7 @@ namespace TestTrackingDiagrams.Tests.Selenium;
 /// Run: dotnet test TestTrackingDiagrams.Tests.Selenium --filter "WikiScreenshotTests"
 /// Output goes to bin/SeleniumOutput/wiki-screenshots/
 /// </summary>
-public class WikiScreenshotTests : IDisposable
+public class WikiScreenshotTests : IClassFixture<ChromeFixture1280X900>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _outputDir;
@@ -25,17 +25,15 @@ public class WikiScreenshotTests : IDisposable
     private static readonly string ShowcaseReportPath = Path.Combine(
         BaseOutputDir, "ShowcaseReport.html");
 
-    public WikiScreenshotTests()
+    public WikiScreenshotTests(ChromeFixture1280X900 chrome)
     {
-        _driver = ChromeDriverFactory.Create(1280, 900);
+        _driver = chrome.Driver;
         _outputDir = Path.Combine(BaseOutputDir, "wiki-screenshots");
         Directory.CreateDirectory(_outputDir);
     }
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
     }
 
     private void SaveScreenshot(string name)

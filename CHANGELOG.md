@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.12] - 2026-04-28
+
+### Fixed
+- **CI: Release workflow "No space left on device"**: Freed additional disk space (Swift, GraalVM, PowerShell, hostedtoolcache, Docker images) and changed build/pack to target only `src/` projects instead of the full 77-project solution. Test projects are no longer built during release — only the single core test project is built implicitly by `dotnet test`.
+
 ## [2.27.11] - 2026-04-28
 
 ### Fixed

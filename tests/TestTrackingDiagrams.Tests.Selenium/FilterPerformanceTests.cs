@@ -6,7 +6,7 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class FilterPerformanceTests : IDisposable
+public class FilterPerformanceTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -14,9 +14,9 @@ public class FilterPerformanceTests : IDisposable
         Path.GetDirectoryName(typeof(FilterPerformanceTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public FilterPerformanceTests()
+    public FilterPerformanceTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-perf-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -24,8 +24,6 @@ public class FilterPerformanceTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

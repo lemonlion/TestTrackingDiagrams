@@ -15,7 +15,7 @@ namespace TestTrackingDiagrams.Tests.Selenium;
 /// numbered PNGs into a GIF with ScreenToGif, ffmpeg, or ImageMagick:
 /// <code>magick -delay 15 -loop 0 SeleniumOutput/showcase-frames/*.png showcase.gif</code>
 /// </summary>
-public class ShowcaseReportTests : IDisposable
+public class ShowcaseReportTests : IClassFixture<ChromeFixture1280X900>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -28,13 +28,9 @@ public class ShowcaseReportTests : IDisposable
 
     private static bool Visible => Environment.GetEnvironmentVariable("SHOWCASE_VISIBLE") == "1";
 
-    public ShowcaseReportTests()
+    public ShowcaseReportTests(ChromeFixture1280X900 chrome)
     {
-        _driver = Visible
-            ? ChromeDriverFactory.Create(headless: false)
-            : ChromeDriverFactory.Create(1280, 900);
-        if (Visible)
-            _driver.Manage().Window.Maximize();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-showcase-" + Guid.NewGuid().ToString("N")[..8]);
         _framesDir = Path.Combine(OutputDir, "showcase-frames");
         Directory.CreateDirectory(_tempDir);
@@ -44,8 +40,6 @@ public class ShowcaseReportTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

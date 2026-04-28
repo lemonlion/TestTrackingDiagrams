@@ -5,7 +5,7 @@ using OpenQA.Selenium.Support.UI;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class DiagramZoomTests : IDisposable
+public class DiagramZoomTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -13,9 +13,9 @@ public class DiagramZoomTests : IDisposable
         Path.GetDirectoryName(typeof(DiagramZoomTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public DiagramZoomTests()
+    public DiagramZoomTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-zoom-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -23,8 +23,6 @@ public class DiagramZoomTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

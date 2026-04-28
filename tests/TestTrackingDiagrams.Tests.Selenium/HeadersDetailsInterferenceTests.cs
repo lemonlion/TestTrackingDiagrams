@@ -6,7 +6,7 @@ using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class HeadersDetailsInterferenceTests : IDisposable
+public class HeadersDetailsInterferenceTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -42,9 +42,9 @@ public class HeadersDetailsInterferenceTests : IDisposable
         @enduml
         """;
 
-    public HeadersDetailsInterferenceTests()
+    public HeadersDetailsInterferenceTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-hd-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -52,8 +52,6 @@ public class HeadersDetailsInterferenceTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 

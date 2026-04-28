@@ -5,7 +5,7 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Selenium;
 
-public class UrlHashFilterHighlightTests : IDisposable
+public class UrlHashFilterHighlightTests : IClassFixture<ChromeFixture>, IDisposable
 {
     private readonly ChromeDriver _driver;
     private readonly string _tempDir;
@@ -13,9 +13,9 @@ public class UrlHashFilterHighlightTests : IDisposable
         Path.GetDirectoryName(typeof(UrlHashFilterHighlightTests).Assembly.Location)!,
         "SeleniumOutput");
 
-    public UrlHashFilterHighlightTests()
+    public UrlHashFilterHighlightTests(ChromeFixture chrome)
     {
-        _driver = ChromeDriverFactory.Create();
+        _driver = chrome.Driver;
         _tempDir = Path.Combine(Path.GetTempPath(), "ttd-urlhash-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(OutputDir);
@@ -23,8 +23,6 @@ public class UrlHashFilterHighlightTests : IDisposable
 
     public void Dispose()
     {
-        _driver.Quit();
-        _driver.Dispose();
         try { Directory.Delete(_tempDir, true); } catch { /* best effort */ }
     }
 
