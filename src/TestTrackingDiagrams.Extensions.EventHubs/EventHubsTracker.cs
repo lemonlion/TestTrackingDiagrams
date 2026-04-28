@@ -49,7 +49,12 @@ public class EventHubsTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                EventHubsOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == EventHubsTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -78,7 +83,12 @@ public class EventHubsTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                EventHubsOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == EventHubsTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private Uri BuildUri(EventHubsOperationInfo op, EventHubsTrackingVerbosity effectiveVerbosity)

@@ -51,7 +51,12 @@ public class BigQueryTracker : ITrackingComponent
             DependencyCategory: "BigQuery")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                BigQueryOperationClassifier.GetDiagramLabel(operation, v) ?? operation.Operation.ToString(),
+                BuildUri(operation, v),
+                v == BigQueryTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -82,7 +87,12 @@ public class BigQueryTracker : ITrackingComponent
             DependencyCategory: "BigQuery")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                BigQueryOperationClassifier.GetDiagramLabel(operation, v) ?? operation.Operation.ToString(),
+                BuildUri(operation, v),
+                v == BigQueryTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private static Uri BuildUri(BigQueryOperationInfo op, BigQueryTrackingVerbosity effectiveVerbosity)

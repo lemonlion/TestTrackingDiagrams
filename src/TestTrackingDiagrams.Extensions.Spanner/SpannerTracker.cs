@@ -57,7 +57,12 @@ public class SpannerTracker : ITrackingComponent
             DependencyCategory: "Spanner")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                SpannerOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == SpannerTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -88,7 +93,12 @@ public class SpannerTracker : ITrackingComponent
             DependencyCategory: "Spanner")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                SpannerOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == SpannerTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private static Uri BuildUri(SpannerOperationInfo op, SpannerTrackingVerbosity effectiveVerbosity)

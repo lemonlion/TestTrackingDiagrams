@@ -61,7 +61,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
         var content = effectiveVerbosity == SqlTrackingVerbosity.Summarised ? null : command.CommandText;
 
-        RequestResponseLogger.Log(new RequestResponseLog(
+        var log = new RequestResponseLog(
             testInfo.Value.Name,
             testInfo.Value.Id,
             method,
@@ -78,7 +78,12 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        };
+
+        log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => BuildVariant(command, sqlOp, v));
+
+        RequestResponseLogger.Log(log);
     }
 
     public void LogCommandExecuted(DbCommand command, int? rowsAffected = null)
@@ -111,7 +116,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
-        RequestResponseLogger.Log(new RequestResponseLog(
+        var log = new RequestResponseLog(
             testInfo.Value.Name,
             testInfo.Value.Id,
             method,
@@ -129,7 +134,12 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        };
+
+        log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => BuildResponseVariant(command, sqlOp, v, rowsAffected));
+
+        RequestResponseLogger.Log(log);
     }
 
     // ─── EF Core DbCommandInterceptor overrides ────────────────
@@ -230,5 +240,35 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
                 ? new Uri($"sql://{dataSource}/{database}/{op.TableName}")
                 : new Uri($"sql://{dataSource}/{database}"),
         };
+    }
+
+    // ─── Phase variant helpers ──────────────────────────────────
+
+    private static PhaseVariant BuildVariant(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity)
+    {
+        var skip = verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other;
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, verbosity);
+        OneOf<HttpMethod, string> method = verbosity == SqlTrackingVerbosity.Raw
+            ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
+            : label!;
+        var uri = BuildUri(command, sqlOp, verbosity);
+        var content = verbosity == SqlTrackingVerbosity.Summarised ? null : command.CommandText;
+
+        return new PhaseVariant(method, uri, content, [], skip);
+    }
+
+    private static PhaseVariant BuildResponseVariant(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, int? rowsAffected)
+    {
+        var skip = verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other;
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, verbosity);
+        OneOf<HttpMethod, string> method = verbosity == SqlTrackingVerbosity.Raw
+            ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
+            : label!;
+        var uri = BuildUri(command, sqlOp, verbosity);
+        var content = verbosity == SqlTrackingVerbosity.Summarised
+            ? null
+            : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
+
+        return new PhaseVariant(method, uri, content, [], skip);
     }
 }

@@ -77,7 +77,13 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == CloudStorageTrackingVerbosity.Raw ? request.Method : CloudStorageOperationClassifier.GetDiagramLabel(gcsOp, v),
+                v == CloudStorageTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(gcsOp),
+                v == CloudStorageTrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == CloudStorageTrackingVerbosity.Summarised && gcsOp.Operation == CloudStorageOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -102,7 +108,13 @@ public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == CloudStorageTrackingVerbosity.Raw ? request.Method : CloudStorageOperationClassifier.GetDiagramLabel(gcsOp, v),
+                v == CloudStorageTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(gcsOp),
+                v == CloudStorageTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == CloudStorageTrackingVerbosity.Summarised && gcsOp.Operation == CloudStorageOperation.Other)));
 
         return response;
     }

@@ -95,7 +95,13 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == DynamoDbTrackingVerbosity.Raw ? request.Method : DynamoDbOperationClassifier.GetDiagramLabel(dynamoOp, v)!,
+                v == DynamoDbTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(dynamoOp, v),
+                v == DynamoDbTrackingVerbosity.Summarised ? null : requestBody,
+                GetFilteredHeaders(request, v),
+                v == DynamoDbTrackingVerbosity.Summarised && dynamoOp.Operation == DynamoDbOperation.Other)));
 
         // Reconstruct content before forwarding since ReadAsStringAsync consumed the stream
         ReconstructContent(request, requestBody);
@@ -126,7 +132,13 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == DynamoDbTrackingVerbosity.Raw ? request.Method : DynamoDbOperationClassifier.GetDiagramLabel(dynamoOp, v)!,
+                v == DynamoDbTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(dynamoOp, v),
+                v == DynamoDbTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == DynamoDbTrackingVerbosity.Summarised && dynamoOp.Operation == DynamoDbOperation.Other)));
 
         return response;
     }

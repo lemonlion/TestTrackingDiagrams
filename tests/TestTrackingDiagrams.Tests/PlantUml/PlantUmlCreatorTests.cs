@@ -2843,4 +2843,136 @@ public class PlantUmlCreatorTests
         Assert.Contains("-[#9B59B6]>", plantUml); // ServiceBus
         Assert.Contains("-[#438DD5]>", plantUml); // HTTP
     }
+
+    // ─── PhaseVariant rendering ─────────────────────────────────
+
+    private static PhaseVariant MakeVariant(
+        string method = "Op",
+        string uri = "http://example.com/api",
+        string? content = null,
+        bool skip = false)
+        => new(method, new Uri(uri), content, [], skip);
+
+    private static PhaseVariant MakeHttpVariant(
+        HttpMethod? method = null,
+        string uri = "http://example.com/api",
+        string? content = null,
+        bool skip = false)
+        => new(method ?? HttpMethod.Get, new Uri(uri), content, [], skip);
+
+    [Fact]
+    public void ActionVariant_used_when_no_IsActionStart_present()
+    {
+        var request = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default");
+        request.ActionVariant = MakeVariant("ActionOp", "http://example.com/api/action-variant", "action content");
+        var response = MakeResponse(callerName: "User", serviceName: "Api");
+        response.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/action-variant", content: "action response");
+
+        var plantUml = GetPlantUml([request, response]);
+
+        Assert.Contains("/api/action-variant", plantUml);
+        Assert.DoesNotContain("/api/default", plantUml);
+    }
+
+    [Fact]
+    public void SetupVariant_used_before_IsActionStart_and_ActionVariant_after()
+    {
+        var setupRequest = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default");
+        setupRequest.SetupVariant = MakeVariant("SetupOp", "http://example.com/api/setup-variant");
+        setupRequest.ActionVariant = MakeVariant("ActionOp", "http://example.com/api/action-variant");
+        var setupResponse = MakeResponse(callerName: "User", serviceName: "Api");
+        setupResponse.SetupVariant = MakeHttpVariant(uri: "http://example.com/api/setup-variant");
+        setupResponse.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/action-variant");
+
+        var actionStart = MakeActionStart();
+
+        var actionRequest = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default");
+        actionRequest.SetupVariant = MakeVariant("SetupOp", "http://example.com/api/setup-variant");
+        actionRequest.ActionVariant = MakeVariant("ActionOp", "http://example.com/api/action-variant");
+        var actionResponse = MakeResponse(callerName: "User", serviceName: "Api");
+        actionResponse.SetupVariant = MakeHttpVariant(uri: "http://example.com/api/setup-variant");
+        actionResponse.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/action-variant");
+
+        var plantUml = GetPlantUml([setupRequest, setupResponse, actionStart, actionRequest, actionResponse], separateSetup: true);
+
+        Assert.Contains("/api/setup-variant", plantUml);
+        Assert.Contains("/api/action-variant", plantUml);
+        Assert.DoesNotContain("/api/default", plantUml);
+    }
+
+    [Fact]
+    public void Skip_flag_on_ActionVariant_omits_entry_when_no_IsActionStart()
+    {
+        var request = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default");
+        request.ActionVariant = MakeVariant(uri: "http://example.com/api/skipped", skip: true);
+        var response = MakeResponse(callerName: "User", serviceName: "Api");
+        response.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/skipped", skip: true);
+
+        var plantUml = GetPlantUml([request, response]);
+
+        Assert.DoesNotContain("/api/skipped", plantUml);
+        Assert.DoesNotContain("/api/default", plantUml);
+    }
+
+    [Fact]
+    public void Skip_flag_on_SetupVariant_omits_entry_before_IsActionStart()
+    {
+        var skippedRequest = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/setup-default");
+        skippedRequest.SetupVariant = MakeVariant(uri: "http://example.com/api/setup", skip: true);
+        skippedRequest.ActionVariant = MakeVariant(uri: "http://example.com/api/action");
+        var skippedResponse = MakeResponse(callerName: "User", serviceName: "Api");
+        skippedResponse.SetupVariant = MakeHttpVariant(uri: "http://example.com/api/setup", skip: true);
+        skippedResponse.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/action");
+
+        var actionStart = MakeActionStart();
+
+        var actionRequest = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action-default");
+        actionRequest.SetupVariant = MakeVariant(uri: "http://example.com/api/setup", skip: true);
+        actionRequest.ActionVariant = MakeVariant(uri: "http://example.com/api/action");
+        var actionResponse = MakeResponse(callerName: "User", serviceName: "Api");
+        actionResponse.SetupVariant = MakeHttpVariant(uri: "http://example.com/api/setup", skip: true);
+        actionResponse.ActionVariant = MakeHttpVariant(uri: "http://example.com/api/action");
+
+        var plantUml = GetPlantUml([skippedRequest, skippedResponse, actionStart, actionRequest, actionResponse], separateSetup: true);
+
+        Assert.DoesNotContain("/api/setup", plantUml);
+        Assert.Contains("/api/action", plantUml);
+    }
+
+    [Fact]
+    public void No_variants_uses_primary_fields_unchanged()
+    {
+        var request = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/primary");
+        var response = MakeResponse(callerName: "User", serviceName: "Api");
+
+        var plantUml = GetPlantUml([request, response]);
+
+        Assert.Contains("/api/primary", plantUml);
+    }
+
+    [Fact]
+    public void ActionVariant_content_shown_in_note()
+    {
+        var request = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default", content: "default body");
+        request.ActionVariant = MakeVariant("ActionOp", "http://example.com/api/action", "action body content");
+        var response = MakeResponse(callerName: "User", serviceName: "Api");
+
+        var plantUml = GetPlantUml([request, response]);
+
+        Assert.Contains("action body content", plantUml);
+        Assert.DoesNotContain("default body", plantUml);
+    }
+
+    [Fact]
+    public void Variant_method_used_in_request_label()
+    {
+        var request = MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/default", method: "GET");
+        request.ActionVariant = MakeVariant("Select", "http://example.com/api/action-uri");
+        var response = MakeResponse(callerName: "User", serviceName: "Api");
+
+        var plantUml = GetPlantUml([request, response]);
+
+        Assert.Contains("Select: /api/action-uri", plantUml);
+        Assert.DoesNotContain("GET: /api/default", plantUml);
+    }
 }

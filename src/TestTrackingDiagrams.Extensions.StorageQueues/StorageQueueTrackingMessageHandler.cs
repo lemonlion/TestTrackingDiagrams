@@ -77,7 +77,13 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == StorageQueueTrackingVerbosity.Raw ? request.Method : StorageQueueOperationClassifier.GetDiagramLabel(queueOp, v),
+                v == StorageQueueTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(queueOp),
+                v == StorageQueueTrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == StorageQueueTrackingVerbosity.Summarised && queueOp.Operation == StorageQueueOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -102,7 +108,13 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == StorageQueueTrackingVerbosity.Raw ? request.Method : StorageQueueOperationClassifier.GetDiagramLabel(queueOp, v),
+                v == StorageQueueTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(queueOp),
+                v == StorageQueueTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == StorageQueueTrackingVerbosity.Summarised && queueOp.Operation == StorageQueueOperation.Other)));
 
         return response;
     }

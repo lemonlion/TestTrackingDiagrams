@@ -59,13 +59,13 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId, opInfo);
 
         var call = continuation(request, context);
 
         var wrappedResponseAsync = WrapUnaryResponse(
             call.ResponseAsync, testInfo.Value, label, uri, serviceName, traceId, requestResponseId, effectiveVerbosity,
-            activityTraceId, activitySpanId, activity);
+            activityTraceId, activitySpanId, activity, opInfo);
 
         return new AsyncUnaryCall<TResponse>(
             wrappedResponseAsync,
@@ -106,19 +106,19 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId, opInfo);
 
         try
         {
             var response = continuation(request, context);
             var responseContent = SerializeMessage(response, effectiveVerbosity);
-            LogResponse(testInfo.Value, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
+            LogResponse(testInfo.Value, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId, opInfo);
             return response;
         }
         catch (RpcException ex)
         {
             LogResponse(testInfo.Value, label, $"{ex.StatusCode}: {ex.Message}", uri, serviceName,
-                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId);
+                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId, opInfo);
             throw;
         }
     }
@@ -154,11 +154,11 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
-        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
+        LogRequest(testInfo.Value, label, requestContent, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId, opInfo);
 
         var call = continuation(request, context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId, opInfo);
 
         return call;
     }
@@ -192,11 +192,11 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
-        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
+        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId, opInfo);
 
         var call = continuation(context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId, opInfo);
 
         return call;
     }
@@ -230,11 +230,11 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 
         context = InjectTraceParent(context, activityTraceId, activitySpanId);
 
-        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId);
+        LogRequest(testInfo.Value, label, null, uri, headers, serviceName, traceId, requestResponseId, activityTraceId, activitySpanId, opInfo);
 
         var call = continuation(context);
 
-        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
+        LogResponse(testInfo.Value, label, null, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId, opInfo);
 
         return call;
     }
@@ -245,19 +245,19 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         string label, Uri uri, string serviceName,
         Guid traceId, Guid requestResponseId, GrpcTrackingVerbosity effectiveVerbosity,
         string? activityTraceId, string? activitySpanId,
-        Activity? activity)
+        Activity? activity, GrpcOperationInfo? opInfo = null)
     {
         try
         {
             var response = await responseTask;
             var responseContent = SerializeMessage(response, effectiveVerbosity);
-            LogResponse(testInfo, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId);
+            LogResponse(testInfo, label, responseContent, uri, serviceName, traceId, requestResponseId, HttpStatusCode.OK, activityTraceId, activitySpanId, opInfo);
             return response;
         }
         catch (RpcException ex)
         {
             LogResponse(testInfo, label, $"{ex.StatusCode}: {ex.Message}", uri, serviceName,
-                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId);
+                traceId, requestResponseId, MapGrpcStatusToHttp(ex.StatusCode), activityTraceId, activitySpanId, opInfo);
             throw;
         }
         finally
@@ -270,7 +270,8 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         (string Name, string Id) testInfo, string label, string? content,
         Uri uri, (string Key, string? Value)[] headers, string serviceName,
         Guid traceId, Guid requestResponseId,
-        string? activityTraceId, string? activitySpanId)
+        string? activityTraceId, string? activitySpanId,
+        GrpcOperationInfo? opInfo = null)
     {
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
@@ -283,14 +284,20 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             Timestamp = DateTimeOffset.UtcNow,
             ActivityTraceId = activityTraceId,
             ActivitySpanId = activitySpanId
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                GrpcOperationClassifier.GetDiagramLabel(opInfo!, v),
+                BuildUri(opInfo!, v),
+                v == GrpcTrackingVerbosity.Summarised ? null : content,
+                headers, false)));
     }
 
     private void LogResponse(
         (string Name, string Id) testInfo, string label, string? content,
         Uri uri, string serviceName,
         Guid traceId, Guid requestResponseId, HttpStatusCode statusCode,
-        string? activityTraceId, string? activitySpanId)
+        string? activityTraceId, string? activitySpanId,
+        GrpcOperationInfo? opInfo = null)
     {
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
@@ -304,7 +311,12 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             Timestamp = DateTimeOffset.UtcNow,
             ActivityTraceId = activityTraceId,
             ActivitySpanId = activitySpanId
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                GrpcOperationClassifier.GetDiagramLabel(opInfo!, v),
+                BuildUri(opInfo!, v),
+                v == GrpcTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private void EnsureListenerStarted()

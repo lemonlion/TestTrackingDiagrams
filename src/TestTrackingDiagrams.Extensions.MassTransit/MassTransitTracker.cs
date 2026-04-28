@@ -106,7 +106,13 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                _options.LogMessageBody && v != MassTransitTrackingVerbosity.Summarised && message is not null
+                    ? JsonSerializer.Serialize(message, message.GetType()) : null,
+                [], false)));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -117,7 +123,11 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                null, [], false)));
     }
 
     private void LogIncoming(MassTransitOperationInfo op, object? message)
@@ -146,7 +156,13 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                _options.LogMessageBody && v != MassTransitTrackingVerbosity.Summarised && message is not null
+                    ? JsonSerializer.Serialize(message, message.GetType()) : null,
+                [], false)));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -157,7 +173,11 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                null, [], false)));
     }
 
     private void LogFault(MassTransitOperationInfo op, Exception exception, bool outgoing)
@@ -184,7 +204,11 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                exception.Message, [], false)));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -196,6 +220,10 @@ public class MassTransitTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MassTransitOperationClassifier.GetDiagramLabel(op, v),
+                MassTransitOperationClassifier.BuildUri(op, v),
+                null, [], false)));
     }
 }

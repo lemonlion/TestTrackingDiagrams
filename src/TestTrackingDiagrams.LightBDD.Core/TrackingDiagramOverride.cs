@@ -29,5 +29,10 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.StartAction(GetTestId());
     }
 
+    public static void StartSetup()
+    {
+        DefaultTrackingDiagramOverride.StartSetup(GetTestId());
+    }
+
     private static string GetTestId() => ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString();
 }

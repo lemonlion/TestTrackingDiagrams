@@ -83,7 +83,12 @@ public class KafkaTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                KafkaOperationClassifier.GetDiagramLabel(op, v),
+                KafkaOperationClassifier.BuildUri(op, v),
+                v == KafkaTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -94,7 +99,11 @@ public class KafkaTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                KafkaOperationClassifier.GetDiagramLabel(op, v),
+                KafkaOperationClassifier.BuildUri(op, v),
+                null, [], false)));
     }
 
     private void LogIncoming(KafkaOperationInfo op, string? content)
@@ -121,7 +130,12 @@ public class KafkaTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                KafkaOperationClassifier.GetDiagramLabel(op, v),
+                KafkaOperationClassifier.BuildUri(op, v),
+                v == KafkaTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -132,6 +146,10 @@ public class KafkaTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                KafkaOperationClassifier.GetDiagramLabel(op, v),
+                KafkaOperationClassifier.BuildUri(op, v),
+                null, [], false)));
     }
 }

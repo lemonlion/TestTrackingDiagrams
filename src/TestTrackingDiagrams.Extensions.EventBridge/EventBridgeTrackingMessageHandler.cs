@@ -100,7 +100,13 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == EventBridgeTrackingVerbosity.Raw ? request.Method : EventBridgeOperationClassifier.GetDiagramLabel(ebOp, v),
+                v == EventBridgeTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(ebOp),
+                v == EventBridgeTrackingVerbosity.Summarised ? null : requestBody,
+                GetFilteredHeaders(request, v),
+                v == EventBridgeTrackingVerbosity.Summarised && ebOp.Operation == EventBridgeOperation.Other)));
 
         ReconstructContent(request, requestBody);
 
@@ -130,7 +136,13 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == EventBridgeTrackingVerbosity.Raw ? request.Method : EventBridgeOperationClassifier.GetDiagramLabel(ebOp, v),
+                v == EventBridgeTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(ebOp),
+                v == EventBridgeTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == EventBridgeTrackingVerbosity.Summarised && ebOp.Operation == EventBridgeOperation.Other)));
 
         return response;
     }

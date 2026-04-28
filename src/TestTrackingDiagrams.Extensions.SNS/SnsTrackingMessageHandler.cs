@@ -94,7 +94,13 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == SnsTrackingVerbosity.Raw ? request.Method : SnsOperationClassifier.GetDiagramLabel(snsOp, v)!,
+                v == SnsTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(snsOp),
+                v == SnsTrackingVerbosity.Summarised ? null : requestBody,
+                GetFilteredHeaders(request, v),
+                v == SnsTrackingVerbosity.Summarised && snsOp.Operation == SnsOperation.Other)));
 
         ReconstructContent(request, requestBody);
 
@@ -124,7 +130,13 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == SnsTrackingVerbosity.Raw ? request.Method : SnsOperationClassifier.GetDiagramLabel(snsOp, v)!,
+                v == SnsTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(snsOp),
+                v == SnsTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == SnsTrackingVerbosity.Summarised && snsOp.Operation == SnsOperation.Other)));
 
         return response;
     }

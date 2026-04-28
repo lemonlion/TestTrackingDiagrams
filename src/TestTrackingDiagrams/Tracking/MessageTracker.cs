@@ -136,7 +136,12 @@ public class MessageTracker : ITrackingComponent
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
             ActivityTraceId = Activity.Current?.TraceId.ToString(),
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_verbosity, _setupVerbosity, _actionVerbosity,
+            v => new PhaseVariant(
+                protocol,
+                destinationUri,
+                v == MessageTrackerVerbosity.Summarised ? null : JsonSerializer.Serialize(payload, _serializerOptions),
+                [], false)));
 
         return requestResponseId;
     }
@@ -187,7 +192,16 @@ public class MessageTracker : ITrackingComponent
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
             ActivityTraceId = Activity.Current?.TraceId.ToString(),
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_verbosity, _setupVerbosity, _actionVerbosity,
+            v => new PhaseVariant(
+                protocol,
+                destinationUri,
+                v == MessageTrackerVerbosity.Summarised
+                    ? null
+                    : responsePayload is not null
+                        ? JsonSerializer.Serialize(responsePayload, _serializerOptions)
+                        : string.Empty,
+                [], false)));
     }
 
     /// <summary>

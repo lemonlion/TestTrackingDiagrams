@@ -51,6 +51,7 @@ public class SqlTrackingInterceptorTests : IDisposable
 
     public void Dispose()
     {
+        TestPhaseContext.Reset();
     }
 
     // ─── Basic logging ─────────────────────────────────────────
@@ -502,5 +503,174 @@ public class SqlTrackingInterceptorTests : IDisposable
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Equal("sql://127.0.0.1:33262/MyDb", log.Uri.ToString());
+    }
+
+    // ─── Phase-aware verbosity variants ─────────────────────────
+
+    [Fact]
+    public void Unknown_phase_with_both_overrides_populates_both_variants()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Raw;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(log.SetupVariant);
+        Assert.NotNull(log.ActionVariant);
+    }
+
+    [Fact]
+    public void Unknown_phase_with_no_overrides_has_no_variants()
+    {
+        TestPhaseContext.Reset();
+        var interceptor = new SqlTrackingInterceptor(MakeOptions());
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.SetupVariant);
+        Assert.Null(log.ActionVariant);
+    }
+
+    [Fact]
+    public void Known_Setup_phase_with_overrides_has_no_variants()
+    {
+        TestPhaseContext.Current = TestPhase.Setup;
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Raw;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.SetupVariant);
+        Assert.Null(log.ActionVariant);
+    }
+
+    [Fact]
+    public void Known_Action_phase_with_overrides_has_no_variants()
+    {
+        TestPhaseContext.Current = TestPhase.Action;
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Raw;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.SetupVariant);
+        Assert.Null(log.ActionVariant);
+    }
+
+    [Fact]
+    public void Known_Setup_phase_uses_SetupVerbosity_directly()
+    {
+        TestPhaseContext.Current = TestPhase.Setup;
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        // Summarised = no content
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Known_Action_phase_uses_ActionVerbosity_directly()
+    {
+        TestPhaseContext.Current = TestPhase.Action;
+        var options = MakeOptions();
+        options.ActionVerbosity = SqlTrackingVerbosity.Summarised;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void SetupVariant_with_Summarised_has_skip_for_Other_operations()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Detailed;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeOtherCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(log.SetupVariant);
+        Assert.True(log.SetupVariant!.Skip);
+        Assert.NotNull(log.ActionVariant);
+        Assert.False(log.ActionVariant!.Skip);
+    }
+
+    [Fact]
+    public void SetupVariant_Summarised_has_null_content()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Detailed;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.SetupVariant!.Content);
+        Assert.NotNull(log.ActionVariant!.Content);
+    }
+
+    [Fact]
+    public void ActionVariant_Raw_uses_raw_keyword_as_method()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Detailed;
+        options.ActionVerbosity = SqlTrackingVerbosity.Raw;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Select", log.SetupVariant!.Method.Value?.ToString());
+        Assert.Equal("SELECT", log.ActionVariant!.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void Response_also_gets_variants_when_phase_unknown_with_overrides()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Detailed;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 5);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.SetupVariant);
+        Assert.NotNull(log.ActionVariant);
     }
 }

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.5] - 2026-04-27
+
+### Fixed
+- **Phase-aware verbosity overrides (`SetupVerbosity`/`ActionVerbosity`) now work for non-BDD test frameworks** (fixes #23): When the test phase is `Unknown` at capture time (i.e. no BDD framework sets the phase automatically) and verbosity overrides are configured, all extension trackers now pre-compute both Setup and Action rendering variants (`PhaseVariant`). The PlantUML renderer selects the correct variant based on `IsActionStart` marker position, so `SetupVerbosity = Summarised` / `ActionVerbosity = Detailed` (or any combination) works without requiring `StartSetup()`.
+
+### Added
+- **`PhaseVariant` record type** on `RequestResponseLog` — holds pre-computed `Method`, `Uri`, `Content`, `Headers`, and `Skip` for a specific verbosity level, allowing the renderer to pick the right variant per phase.
+- **`PhaseVariantExtensions.AttachVariants<T>()` / `WithVariants<T>()`** — shared generic helper that all extension trackers use to attach variants when phase is `Unknown` and overrides are configured. Avoids duplicating variant logic across 24 extensions.
+- **`StartSetup()` on all 8 framework `TrackingDiagramOverride` wrappers** (xUnit3, xUnit2, NUnit4, MSTest, TUnit, LightBDD, ReqNRoll, BDDfy) — delegates to `DefaultTrackingDiagramOverride.StartSetup()`. Users who prefer explicit phase boundaries can now call `StartSetup()` before setup code, though it is not required for verbosity overrides to work.
+
 ## [2.27.4] - 2026-04-27
 
 ### Fixed

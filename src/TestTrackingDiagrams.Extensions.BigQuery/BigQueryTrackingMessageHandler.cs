@@ -78,7 +78,13 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == BigQueryTrackingVerbosity.Raw ? request.Method : BigQueryOperationClassifier.GetDiagramLabel(bqOp, v)!,
+                v == BigQueryTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, bqOp, v),
+                v == BigQueryTrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == BigQueryTrackingVerbosity.Summarised && bqOp.Operation == BigQueryOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -103,7 +109,13 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == BigQueryTrackingVerbosity.Raw ? request.Method : BigQueryOperationClassifier.GetDiagramLabel(bqOp, v)!,
+                v == BigQueryTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, bqOp, v),
+                v == BigQueryTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == BigQueryTrackingVerbosity.Summarised && bqOp.Operation == BigQueryOperation.Other)));
 
         return response;
     }

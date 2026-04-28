@@ -157,7 +157,16 @@ public class TrackingDbCommand : DbCommand
             DependencyCategory: "SQL")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vLabel = DapperOperationClassifier.GetDiagramLabel(op, v);
+                var vContent = v == DapperTrackingVerbosity.Raw
+                    ? BuildParameterizedContent()
+                    : _options.LogSqlText ? CommandText : null;
+                return new PhaseVariant(
+                    vLabel, BuildUri(op, v), vContent, [], false);
+            }));
 
         return (traceId, requestResponseId);
     }
@@ -195,7 +204,16 @@ public class TrackingDbCommand : DbCommand
             DependencyCategory: "SQL")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vLabel = DapperOperationClassifier.GetDiagramLabel(op, v);
+                var vContent = v == DapperTrackingVerbosity.Summarised
+                    ? null
+                    : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
+                return new PhaseVariant(
+                    vLabel, BuildUri(op, v), vContent, [], false);
+            }));
     }
 
     private Uri BuildUri(DapperOperationInfo op, DapperTrackingVerbosity verbosity)

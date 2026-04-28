@@ -87,7 +87,16 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             DependencyCategory: "Elasticsearch")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vRequestBody = v != ElasticsearchTrackingVerbosity.Summarised && requestBodyBytes is not null
+                    ? Encoding.UTF8.GetString(requestBodyBytes) : null;
+                return new PhaseVariant(
+                    ElasticsearchOperationClassifier.GetDiagramLabel(op, v),
+                    ElasticsearchOperationClassifier.BuildUri(op, v, requestUri),
+                    vRequestBody, [], false);
+            }));
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
@@ -103,6 +112,15 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             DependencyCategory: "Elasticsearch")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vResponseBody = v == ElasticsearchTrackingVerbosity.Raw && responseBodyBytes is not null
+                    ? Encoding.UTF8.GetString(responseBodyBytes) : null;
+                return new PhaseVariant(
+                    ElasticsearchOperationClassifier.GetDiagramLabel(op, v),
+                    ElasticsearchOperationClassifier.BuildUri(op, v, requestUri),
+                    vResponseBody, [], false);
+            }));
     }
 }

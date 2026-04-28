@@ -87,7 +87,21 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vContent = v switch
+                {
+                    MongoDbTrackingVerbosity.Summarised => null,
+                    MongoDbTrackingVerbosity.Raw => e.Command?.ToString(),
+                    _ => _options.LogFilterText ? opInfo.FilterText : null
+                };
+                return new PhaseVariant(
+                    MongoDbOperationClassifier.GetDiagramLabel(opInfo, v),
+                    BuildUri(opInfo, v),
+                    vContent, [],
+                    v == MongoDbTrackingVerbosity.Summarised && opInfo.Operation == MongoDbOperation.Other);
+            }));
     }
 
     public void OnCommandSucceeded(CommandSucceededEvent e)
@@ -113,7 +127,21 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vContent = v switch
+                {
+                    MongoDbTrackingVerbosity.Summarised => null,
+                    MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
+                    _ => ExtractResponseMetadata(e.Reply)
+                };
+                return new PhaseVariant(
+                    MongoDbOperationClassifier.GetDiagramLabel(pending.OpInfo, v),
+                    BuildUri(pending.OpInfo, v),
+                    vContent, [],
+                    v == MongoDbTrackingVerbosity.Summarised && pending.OpInfo.Operation == MongoDbOperation.Other);
+            }));
     }
 
     public void OnCommandFailed(CommandFailedEvent e)
@@ -130,7 +158,12 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             DependencyCategory: "MongoDB")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                MongoDbOperationClassifier.GetDiagramLabel(pending.OpInfo, v),
+                BuildUri(pending.OpInfo, v),
+                e.Failure?.Message, [],
+                v == MongoDbTrackingVerbosity.Summarised && pending.OpInfo.Operation == MongoDbOperation.Other)));
     }
 
     private static string? ExtractResponseMetadata(BsonDocument? reply)

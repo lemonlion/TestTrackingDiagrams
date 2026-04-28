@@ -77,7 +77,13 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == S3TrackingVerbosity.Raw ? request.Method : S3OperationClassifier.GetDiagramLabel(s3Op, v)!,
+                v == S3TrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(s3Op, v),
+                v == S3TrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == S3TrackingVerbosity.Summarised && s3Op.Operation == S3Operation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -102,7 +108,13 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == S3TrackingVerbosity.Raw ? request.Method : S3OperationClassifier.GetDiagramLabel(s3Op, v)!,
+                v == S3TrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(s3Op, v),
+                v == S3TrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == S3TrackingVerbosity.Summarised && s3Op.Operation == S3Operation.Other)));
 
         return response;
     }

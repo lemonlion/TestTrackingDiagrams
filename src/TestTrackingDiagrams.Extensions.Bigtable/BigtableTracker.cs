@@ -53,7 +53,12 @@ public class BigtableTracker : ITrackingComponent
             DependencyCategory: "Bigtable")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                BigtableOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == BigtableTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -84,7 +89,12 @@ public class BigtableTracker : ITrackingComponent
             DependencyCategory: "Bigtable")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                BigtableOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == BigtableTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private static Uri BuildUri(BigtableOperationInfo op, BigtableTrackingVerbosity effectiveVerbosity)

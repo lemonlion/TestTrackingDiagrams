@@ -71,7 +71,17 @@ public class RedisTracker : ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vLabel = RedisOperationClassifier.GetDiagramLabel(requestOp, v);
+                return new PhaseVariant(
+                    v == RedisTrackingVerbosity.Raw ? command.ToUpperInvariant() : vLabel ?? op.Operation.ToString(),
+                    BuildUri(key, db, v),
+                    v == RedisTrackingVerbosity.Summarised ? null : content,
+                    [],
+                    v == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other);
+            }));
 
         return (requestResponseId, traceId);
     }
@@ -118,7 +128,17 @@ public class RedisTracker : ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vLabel = RedisOperationClassifier.GetDiagramLabel(op, v);
+                return new PhaseVariant(
+                    v == RedisTrackingVerbosity.Raw ? command.ToUpperInvariant() : vLabel ?? op.Operation.ToString(),
+                    BuildUri(key, db, v),
+                    v == RedisTrackingVerbosity.Summarised ? null : content,
+                    [],
+                    v == RedisTrackingVerbosity.Summarised && op.Operation == RedisOperation.Other);
+            }));
     }
 
     private Uri BuildUri(string? key, int db, RedisTrackingVerbosity verbosity)

@@ -78,7 +78,13 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == CosmosTrackingVerbosity.Raw ? request.Method : CosmosOperationClassifier.GetDiagramLabel(cosmosOp, v),
+                v == CosmosTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, cosmosOp, v),
+                v == CosmosTrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -103,7 +109,13 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == CosmosTrackingVerbosity.Raw ? request.Method : CosmosOperationClassifier.GetDiagramLabel(cosmosOp, v),
+                v == CosmosTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, cosmosOp, v),
+                v == CosmosTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)));
 
         return response;
     }

@@ -28,7 +28,31 @@ public record RequestResponseLog(
     public string? ActivitySpanId { get; set; }
     public string? ActivityTraceId { get; set; }
     public TestPhase Phase { get; set; }
+
+    /// <summary>
+    /// Pre-computed rendering fields for the Setup phase. Populated when phase-specific
+    /// verbosity overrides are configured and the phase is unknown at capture time.
+    /// </summary>
+    public PhaseVariant? SetupVariant { get; set; }
+
+    /// <summary>
+    /// Pre-computed rendering fields for the Action phase. Populated when phase-specific
+    /// verbosity overrides are configured and the phase is unknown at capture time.
+    /// </summary>
+    public PhaseVariant? ActionVariant { get; set; }
 };
+
+/// <summary>
+/// Pre-computed rendering fields for a specific test phase (Setup or Action).
+/// Allows the renderer to select the correct verbosity variant without knowing
+/// extension-specific verbosity enums.
+/// </summary>
+public record PhaseVariant(
+    OneOf<HttpMethod, string> Method,
+    Uri Uri,
+    string? Content,
+    (string Key, string? Value)[] Headers,
+    bool Skip);
 
 public enum RequestResponseType
 {

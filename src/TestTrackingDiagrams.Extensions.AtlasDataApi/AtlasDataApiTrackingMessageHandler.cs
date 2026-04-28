@@ -94,7 +94,13 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == AtlasDataApiTrackingVerbosity.Raw ? request.Method : AtlasDataApiOperationClassifier.GetDiagramLabel(apiOp, v),
+                v == AtlasDataApiTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(apiOp),
+                GetRequestContent(bodyJson, v),
+                GetFilteredHeaders(request, v),
+                v == AtlasDataApiTrackingVerbosity.Summarised && apiOp.Operation == AtlasDataApiOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -119,7 +125,13 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == AtlasDataApiTrackingVerbosity.Raw ? request.Method : AtlasDataApiOperationClassifier.GetDiagramLabel(apiOp, v),
+                v == AtlasDataApiTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(apiOp),
+                v == AtlasDataApiTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == AtlasDataApiTrackingVerbosity.Summarised && apiOp.Operation == AtlasDataApiOperation.Other)));
 
         return response;
     }

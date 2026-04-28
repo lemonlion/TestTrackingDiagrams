@@ -94,7 +94,13 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == SqsTrackingVerbosity.Raw ? request.Method : SqsOperationClassifier.GetDiagramLabel(sqsOp, v)!,
+                v == SqsTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(sqsOp),
+                v == SqsTrackingVerbosity.Summarised ? null : requestBody,
+                GetFilteredHeaders(request, v),
+                v == SqsTrackingVerbosity.Summarised && sqsOp.Operation == SqsOperation.Other)));
 
         ReconstructContent(request, requestBody);
 
@@ -124,7 +130,13 @@ public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == SqsTrackingVerbosity.Raw ? request.Method : SqsOperationClassifier.GetDiagramLabel(sqsOp, v)!,
+                v == SqsTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(sqsOp),
+                v == SqsTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == SqsTrackingVerbosity.Summarised && sqsOp.Operation == SqsOperation.Other)));
 
         return response;
     }

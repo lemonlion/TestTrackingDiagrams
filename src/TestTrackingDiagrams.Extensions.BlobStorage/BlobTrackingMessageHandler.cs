@@ -78,7 +78,13 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == BlobTrackingVerbosity.Raw ? request.Method : BlobOperationClassifier.GetDiagramLabel(blobOp, v),
+                v == BlobTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, blobOp, v),
+                v == BlobTrackingVerbosity.Summarised ? null : requestContent,
+                GetFilteredHeaders(request, v),
+                v == BlobTrackingVerbosity.Summarised && blobOp.Operation == BlobOperation.Other)));
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -103,7 +109,13 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                v == BlobTrackingVerbosity.Raw ? request.Method : BlobOperationClassifier.GetDiagramLabel(blobOp, v),
+                v == BlobTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, blobOp, v),
+                v == BlobTrackingVerbosity.Summarised ? null : responseContent,
+                GetFilteredHeaders(response, v),
+                v == BlobTrackingVerbosity.Summarised && blobOp.Operation == BlobOperation.Other)));
 
         return response;
     }

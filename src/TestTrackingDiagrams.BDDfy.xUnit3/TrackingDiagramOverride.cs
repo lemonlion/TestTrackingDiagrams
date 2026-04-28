@@ -27,5 +27,10 @@ public static class TrackingDiagramOverride
         DefaultTrackingDiagramOverride.StartAction(GetTestId());
     }
 
+    public static void StartSetup()
+    {
+        DefaultTrackingDiagramOverride.StartSetup(GetTestId());
+    }
+
     private static string GetTestId() => Xunit.TestContext.Current.Test!.UniqueID;
 }

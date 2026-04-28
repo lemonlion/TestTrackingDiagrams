@@ -129,6 +129,7 @@ public static partial class PlantUmlCreator
             .Any(t => !t.IsOverrideStart && !t.IsOverrideEnd && !t.IsActionStart);
         var setupPartitionClosed = false;
         var partitionLine = highlightSetup ? "partition #E2E2F0 Setup" : "partition Setup";
+        var isInActionPhase = actionStartIndex < 0; // no IsActionStart marker → everything is action
 
         foreach (var trace in tracesForTest)
         {
@@ -136,6 +137,7 @@ public static partial class PlantUmlCreator
             {
                 builder.ClosePartition();
                 setupPartitionClosed = true;
+                isInActionPhase = true;
                 continue;
             }
 
@@ -170,9 +172,19 @@ public static partial class PlantUmlCreator
             if (hasSetupTraces && !builder.HasOpenPartition && !setupPartitionClosed)
                 builder.OpenPartition(partitionLine);
 
+            // Resolve phase variant: pick Setup or Action variant based on position relative to IsActionStart
+            var activeVariant = isInActionPhase ? trace.ActionVariant : trace.SetupVariant;
+            if (activeVariant is { Skip: true })
+                continue;
+
+            var effectiveMethod = activeVariant?.Method ?? trace.Method;
+            var effectiveUri = activeVariant?.Uri ?? trace.Uri;
+            var effectiveContent = activeVariant is not null ? activeVariant.Content : trace.Content;
+            var effectiveHeaders = activeVariant?.Headers ?? trace.Headers;
+
             var serviceShortName = SanitizePlantUmlAlias(trace.ServiceName);
             var callerShortName = SanitizePlantUmlAlias(trace.CallerName);
-            var content = trace.Content ?? string.Empty;
+            var content = effectiveContent ?? string.Empty;
 
             switch (trace.Type)
             {
@@ -181,18 +193,18 @@ public static partial class PlantUmlCreator
                     if (requestPreFormattingProcessor is not null)
                         content = requestPreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis, graphQlBodyFormat);
+                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : effectiveHeaders, content, excludedHeaders, RequestResponseType.Request, requestMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis, graphQlBodyFormat);
 
                     if (requestPostFormattingProcessor is not null)
                         noteContent = requestPostFormattingProcessor(noteContent);
 
-                    var pathAndQuery = trace.Uri.PathAndQuery;
+                    var pathAndQuery = effectiveUri.PathAndQuery;
                     if (pathAndQuery.Length > maxUrlLength)
                         pathAndQuery = string.Join("\\n        ", pathAndQuery.ChunksUpTo(maxUrlLength));
 
-                    var requestLabel = $"{trace.Method.Value}: {pathAndQuery}";
+                    var requestLabel = $"{effectiveMethod.Value}: {pathAndQuery}";
 
-                    var graphQlLabel = GraphQlOperationDetector.TryExtractLabel(trace.Content);
+                    var graphQlLabel = GraphQlOperationDetector.TryExtractLabel(effectiveContent);
                     if (graphQlLabel is not null)
                         requestLabel = $"{requestLabel}\\n({graphQlLabel})";
 
@@ -219,7 +231,7 @@ public static partial class PlantUmlCreator
                     if (responsePreFormattingProcessor is not null)
                         content = responsePreFormattingProcessor(content);
 
-                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : trace.Headers, content, excludedHeaders, RequestResponseType.Response, responseMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
+                    var noteContent = FormatNoteContent(excludeAllHeaders ? [] : effectiveHeaders, content, excludedHeaders, RequestResponseType.Response, responseMidFormattingProcessor, trace.FocusFields, focusEmphasis, focusDeEmphasis);
 
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);

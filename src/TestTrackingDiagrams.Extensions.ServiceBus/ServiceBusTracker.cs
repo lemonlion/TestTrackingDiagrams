@@ -66,7 +66,12 @@ public class ServiceBusTracker : ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                ServiceBusOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == ServiceBusTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -116,7 +121,12 @@ public class ServiceBusTracker : ITrackingComponent
         )
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                ServiceBusOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == ServiceBusTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private Uri BuildUri(ServiceBusOperationInfo op, ServiceBusTrackingVerbosity effectiveVerbosity)

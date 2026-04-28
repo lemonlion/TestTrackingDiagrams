@@ -48,7 +48,12 @@ public class PubSubTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                PubSubOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == PubSubTrackingVerbosity.Summarised ? null : content,
+                [], false)));
 
         return (requestResponseId, traceId);
     }
@@ -77,7 +82,12 @@ public class PubSubTracker : ITrackingComponent
             DependencyCategory: "MessageQueue")
         {
             Phase = TestPhaseContext.Current
-        });
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => new PhaseVariant(
+                PubSubOperationClassifier.GetDiagramLabel(operation, v),
+                BuildUri(operation, v),
+                v == PubSubTrackingVerbosity.Summarised ? null : content,
+                [], false)));
     }
 
     private Uri BuildUri(PubSubOperationInfo op, PubSubTrackingVerbosity effectiveVerbosity)
