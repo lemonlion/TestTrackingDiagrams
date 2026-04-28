@@ -11,5 +11,5 @@ public static class CurrentTestInfo
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () => ReqNRollTestContext.CurrentTestInfo
-            ?? throw new InvalidOperationException("No ReqNRoll scenario is currently executing. Ensure ReqNRollTrackingHooks is registered as a [Binding].");
+            ?? ("Unknown", "unknown");
 }

@@ -12,7 +12,14 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            var (name, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
-            return (name, id);
+            try
+            {
+                var (name, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
+                return (name, id);
+            }
+            catch
+            {
+                return ("Unknown", "unknown");
+            }
         };
 }

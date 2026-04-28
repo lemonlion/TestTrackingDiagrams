@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.10] - 2026-04-28
+
+### Fixed
+- **`CurrentTestInfo.Fetcher` no longer throws `NullReferenceException` outside test context**: All 8 framework `CurrentTestInfo.Fetcher` implementations (xUnit3, xUnit2, NUnit4, TUnit, MSTest, LightBDD, ReqNRoll, BDDfy) now return `("Unknown", "unknown")` when the test context is unavailable (e.g. during hosted service processing, background threads, Service Bus message handlers). Previously, the delegates accessed the test context without null checks, causing `NullReferenceException` when invoked outside of test execution.
+- **`MessageTracker.GetTestInfo()` now catches delegate exceptions**: `MessageTracker` was the only tracking component that invoked `CurrentTestInfoFetcher` without exception handling. All other extensions route through `TestInfoResolver.Resolve()`, which wraps the call in a try-catch. `MessageTracker.GetTestInfo()` now matches this behaviour — a throwing delegate returns `null` (tracking silently skipped) instead of propagating the exception to callers.
+- **NUnit4: `TestContextEnumerableExtensions` build error on `IEnumerable<ParameterInfo>.Length`**: Fixed pre-existing compilation error caused by NUnit 4.5.1's `IMethodInfo.GetParameters()` returning `IEnumerable<ParameterInfo>` (which lacks a `Length` property). The result is now materialised to an array before pattern matching.
+
 ## [2.27.9] - 2026-04-28
 
 ### Added

@@ -12,5 +12,16 @@ public static class CurrentTestInfo
     /// Assign to <c>CurrentTestInfoFetcher</c> on any tracking options class.
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
-        () => (ScenarioExecutionContext.CurrentScenario.Info.Name.ToString(), ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString());
+        () =>
+        {
+            try
+            {
+                var scenario = ScenarioExecutionContext.CurrentScenario;
+                return (scenario.Info.Name.ToString(), scenario.Info.RuntimeId.ToString());
+            }
+            catch
+            {
+                return ("Unknown", "unknown");
+            }
+        };
 }

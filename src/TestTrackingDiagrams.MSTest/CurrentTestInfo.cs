@@ -13,6 +13,8 @@ public static class CurrentTestInfo
         () =>
         {
             var ctx = DiagrammedComponentTest.GetCurrentTestContext();
-            return (ctx!.TestName!, $"{ctx.FullyQualifiedTestClassName}.{ctx.TestName}");
+            return ctx is not null
+                ? (ctx.TestName!, $"{ctx.FullyQualifiedTestClassName}.{ctx.TestName}")
+                : ("Unknown", "unknown");
         };
 }

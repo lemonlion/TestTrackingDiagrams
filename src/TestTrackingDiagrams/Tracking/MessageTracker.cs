@@ -244,8 +244,15 @@ public class MessageTracker : ITrackingComponent
 
         if (_testInfoFallback is not null)
         {
-            var info = _testInfoFallback();
-            return (info.Name, info.Id, Guid.NewGuid());
+            try
+            {
+                var info = _testInfoFallback();
+                return (info.Name, info.Id, Guid.NewGuid());
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         return null;

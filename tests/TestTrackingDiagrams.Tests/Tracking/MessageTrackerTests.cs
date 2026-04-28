@@ -763,4 +763,82 @@ public class MessageTrackerTests
             .ToArray();
         Assert.All(logs, l => Assert.Equal("MessageQueue", l.DependencyCategory));
     }
+
+    // ─── Throwing delegate safety ───────────────────────────────
+
+    [Fact]
+    public void TrackMessageRequest_returns_empty_guid_when_fetcher_throws()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
+        });
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(Guid.Empty, id);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_does_not_log_when_fetcher_throws()
+    {
+        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
+        });
+
+        tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+    }
+
+    [Fact]
+    public void TrackSendEvent_does_not_throw_when_fetcher_throws()
+    {
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => throw new InvalidOperationException("No scenario context")
+        });
+
+        var exception = Record.Exception(() =>
+            tracker.TrackSendEvent("Kafka", "Dest", new Uri("kafka://t"), new { }));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_with_UseHttpContextCorrelation_returns_empty_guid_when_no_context_and_fetcher_throws()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var tracker = new MessageTracker(
+            new MessageTrackerOptions
+            {
+                CallingServiceName = "Svc",
+                UseHttpContextCorrelation = true,
+                CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
+            },
+            accessor);
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(Guid.Empty, id);
+    }
+
+    [Fact]
+    public void Legacy_constructor_returns_empty_guid_when_no_http_context_and_fallback_throws()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = null };
+        var tracker = new MessageTracker(
+            accessor,
+            "Svc",
+            testInfoFallback: () => throw new NullReferenceException("TestContext.Current.Test is null"));
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        Assert.Equal(Guid.Empty, id);
+    }
 }

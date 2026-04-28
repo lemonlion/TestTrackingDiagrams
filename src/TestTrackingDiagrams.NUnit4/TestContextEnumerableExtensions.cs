@@ -58,7 +58,7 @@ internal static class TestContextEnumerableExtensions
         try
         {
             var args = context.Test.Arguments;
-            var methodParams = context.Test.MethodInfo?.GetParameters();
+            var methodParams = context.Test.MethodInfo?.GetParameters()?.ToArray();
             if (args is not { Length: > 0 } || methodParams is not { Length: > 0 })
                 return null;
 

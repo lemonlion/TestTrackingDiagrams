@@ -10,5 +10,11 @@ public static class CurrentTestInfo
     /// Assign to <c>CurrentTestInfoFetcher</c> on any tracking options class.
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
-        () => (Xunit.TestContext.Current.Test!.TestDisplayName, Xunit.TestContext.Current.Test.UniqueID);
+        () =>
+        {
+            var test = Xunit.TestContext.Current.Test;
+            return test is not null
+                ? (test.TestDisplayName, test.UniqueID)
+                : ("Unknown", "unknown");
+        };
 }
