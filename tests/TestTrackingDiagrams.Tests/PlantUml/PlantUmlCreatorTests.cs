@@ -3142,4 +3142,43 @@ public class PlantUmlCreatorTests
         Assert.Contains("entity \"Breakfast Provider\" as breakfastProvider", plantUml);
         Assert.Contains("database \"Reporting DB\" as reportingDB", plantUml);
     }
+
+    [Fact]
+    public void Consume_event_note_renders_on_right_side()
+    {
+        var consumeId = Guid.NewGuid();
+        var logs = new[]
+        {
+            new RequestResponseLog("T", "t1", "Consume (Kafka)", "{\"OrderId\":\"123\"}", new Uri("kafka:///orders"), [],
+                "Consumer Svc", "Kafka Broker", RequestResponseType.Request, Guid.NewGuid(), consumeId, false,
+                CallerDependencyCategory: "MessageQueue", MetaType: RequestResponseMetaType.Event)
+            { NoteOnRight = true },
+            new RequestResponseLog("T", "t1", "Consume (Kafka)", "", new Uri("kafka:///orders"), [],
+                "Consumer Svc", "Kafka Broker", RequestResponseType.Response, Guid.NewGuid(), consumeId, false,
+                StatusCode: "Ack", CallerDependencyCategory: "MessageQueue", MetaType: RequestResponseMetaType.Event),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note<<eventNote>> right", plantUml);
+        Assert.DoesNotContain("note<<eventNote>> left", plantUml);
+    }
+
+    [Fact]
+    public void Send_event_note_renders_on_left_side()
+    {
+        var sendId = Guid.NewGuid();
+        var logs = new[]
+        {
+            new RequestResponseLog("T", "t1", "Produce", "{\"OrderId\":\"123\"}", new Uri("kafka:///orders"), [],
+                "Kafka Broker", "My Svc", RequestResponseType.Request, Guid.NewGuid(), sendId, false,
+                DependencyCategory: "MessageQueue", MetaType: RequestResponseMetaType.Event),
+            new RequestResponseLog("T", "t1", "Produce", "", new Uri("kafka:///orders"), [],
+                "Kafka Broker", "My Svc", RequestResponseType.Response, Guid.NewGuid(), sendId, false,
+                StatusCode: "Responded", DependencyCategory: "MessageQueue", MetaType: RequestResponseMetaType.Event),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("note<<eventNote>> left", plantUml);
+        Assert.DoesNotContain("note<<eventNote>> right", plantUml);
+    }
 }

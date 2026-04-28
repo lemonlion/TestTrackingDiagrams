@@ -20,6 +20,7 @@ public record RequestResponseLog(
     string? DependencyCategory = null,
     string? CallerDependencyCategory = null)
 {
+    public bool NoteOnRight { get; set; }
     public bool IsOverrideStart { get; set; }
     public bool IsOverrideEnd { get; set; }
     public bool IsActionStart { get; set; }

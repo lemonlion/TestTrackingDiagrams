@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.27.20] - 2026-04-28
+
+### Fixed
+- **`TrackConsumeEvent()` payload note placement**: The request payload note was rendered on the left (`note left`), which placed it outside the diagram when the broker was the leftmost participant. Consume event notes now render on the right (`note right`), correctly placing the payload between the broker and consumer participants. A new `NoteOnRight` property on `RequestResponseLog` controls this; `TrackConsumeEvent` sets it automatically.
+- **`IsCurrentRequestFromMyHost()` fails for keyed/manually constructed trackers**: The method resolved `MessageTracker` from `HttpContext.RequestServices` via `GetService(typeof(MessageTracker))`, which returned `null` for keyed singletons (`AddKeyedSingleton("Kafka", ...)`) and manually constructed trackers. Now compares `IHttpContextAccessor` references instead — each DI container has its own singleton accessor, so the comparison works for keyed, non-keyed, and manually constructed trackers alike.
+
 ## [2.27.19] - 2026-04-28
 
 ### Added

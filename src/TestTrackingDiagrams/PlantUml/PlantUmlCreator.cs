@@ -218,7 +218,8 @@ public static partial class PlantUmlCreator
                     if (!string.IsNullOrEmpty(noteContent))
                     {
                         var truncatedContent = EscapeForPlantUmlNote(TruncateNoteContent(noteContent, truncateNotesAfterLines));
-                        builder.AppendLine($"note{GetNoteClass(trace.MetaType)} left");
+                        var noteSide = trace.NoteOnRight ? "right" : "left";
+                        builder.AppendLine($"note{GetNoteClass(trace.MetaType)} {noteSide}");
                         builder.AppendLine(truncatedContent);
                         builder.AppendLine("end note");
                         builder.AddNoteHeight(truncatedContent);

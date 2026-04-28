@@ -101,7 +101,7 @@ public class MessageTracker : ITrackingComponent
     /// <param name="destinationUri">A URI representing the destination (e.g. <c>new Uri("kafka://orders-topic")</c>).</param>
     /// <param name="payload">The message payload. Will be JSON-serialised and shown in the diagram note.</param>
     /// <returns>A correlation ID that must be passed to <see cref="TrackMessageResponse"/> to pair the request and response.</returns>
-    public Guid TrackMessageRequest(string protocol, string destinationName, Uri destinationUri, object payload)
+    public Guid TrackMessageRequest(string protocol, string destinationName, Uri destinationUri, object payload, bool noteOnRight = false)
     {
         Interlocked.Increment(ref _invocationCount);
 
@@ -137,6 +137,7 @@ public class MessageTracker : ITrackingComponent
         )
         {
             Timestamp = DateTimeOffset.UtcNow,
+            NoteOnRight = noteOnRight,
             ActivitySpanId = Activity.Current?.SpanId.ToString(),
             ActivityTraceId = Activity.Current?.TraceId.ToString(),
             Phase = TestPhaseContext.Current
@@ -237,7 +238,7 @@ public class MessageTracker : ITrackingComponent
     /// <param name="ackLabel">Label for the acknowledgement arrow (default: <c>"Ack"</c>).</param>
     public void TrackConsumeEvent(string protocol, string consumerName, Uri sourceUri, object? payload = null, string ackLabel = "Ack")
     {
-        var id = TrackMessageRequest(protocol, consumerName, sourceUri, payload ?? new { });
+        var id = TrackMessageRequest(protocol, consumerName, sourceUri, payload ?? new { }, noteOnRight: true);
         if (id != Guid.Empty)
             TrackMessageResponse(protocol, consumerName, sourceUri, id, statusLabel: ackLabel);
     }
@@ -258,8 +259,8 @@ public class MessageTracker : ITrackingComponent
         if (httpContext is null)
             return false;
 
-        var requestTracker = httpContext.RequestServices.GetService(typeof(MessageTracker)) as MessageTracker;
-        return ReferenceEquals(requestTracker, this);
+        var requestAccessor = httpContext.RequestServices.GetService(typeof(IHttpContextAccessor));
+        return ReferenceEquals(requestAccessor, _httpContextAccessor);
     }
 
     private (string TestName, string TestId, Guid TraceId)? GetTestInfo()

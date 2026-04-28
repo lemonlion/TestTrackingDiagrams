@@ -1199,7 +1199,7 @@ public class MessageTrackerTests
     }
 
     [Fact]
-    public void IsCurrentRequestFromMyHost_returns_false_when_different_tracker_in_request_services()
+    public void IsCurrentRequestFromMyHost_returns_false_when_different_host_in_request_services()
     {
         var accessor = new HttpContextAccessor();
         var options = new MessageTrackerOptions
@@ -1212,18 +1212,125 @@ public class MessageTrackerTests
         // Create tracker from one DI container
         var tracker = new MessageTracker(options, accessor);
 
-        // Create a different DI container with a different tracker
+        // Create a different DI container with a different IHttpContextAccessor
         var otherServices = new ServiceCollection();
-        otherServices.AddSingleton(new MessageTracker(new MessageTrackerOptions
-        {
-            CallingServiceName = "OtherSvc",
-            CurrentTestInfoFetcher = () => ("T2", "id2")
-        }));
+        otherServices.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor());
         var otherProvider = otherServices.BuildServiceProvider();
 
         var context = new DefaultHttpContext { RequestServices = otherProvider };
         accessor.HttpContext = context;
 
         Assert.False(tracker.IsCurrentRequestFromMyHost());
+    }
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_true_for_keyed_singleton_tracker()
+    {
+        var services = new ServiceCollection();
+        var accessor = new HttpContextAccessor();
+        var options = new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            UseHttpContextCorrelation = true,
+            CurrentTestInfoFetcher = () => ("T", "id")
+        };
+
+        services.AddSingleton<IHttpContextAccessor>(accessor);
+        services.AddKeyedSingleton("Kafka", (sp, _) => new MessageTracker(options, sp.GetRequiredService<IHttpContextAccessor>()));
+
+        var provider = services.BuildServiceProvider();
+        var tracker = provider.GetRequiredKeyedService<MessageTracker>("Kafka");
+
+        var context = new DefaultHttpContext { RequestServices = provider };
+        accessor.HttpContext = context;
+
+        Assert.True(tracker.IsCurrentRequestFromMyHost());
+    }
+
+    [Fact]
+    public void IsCurrentRequestFromMyHost_returns_false_for_keyed_tracker_from_different_host()
+    {
+        // Host A: creates tracker and accessor
+        var servicesA = new ServiceCollection();
+        var accessorA = new HttpContextAccessor();
+        servicesA.AddSingleton<IHttpContextAccessor>(accessorA);
+        servicesA.AddKeyedSingleton("Kafka", (sp, _) => new MessageTracker(
+            new MessageTrackerOptions
+            {
+                CallingServiceName = "Kafka Broker",
+                UseHttpContextCorrelation = true,
+                CurrentTestInfoFetcher = () => ("T", "id")
+            },
+            sp.GetRequiredService<IHttpContextAccessor>()));
+        var providerA = servicesA.BuildServiceProvider();
+        var trackerA = providerA.GetRequiredKeyedService<MessageTracker>("Kafka");
+
+        // Host B: different DI container
+        var servicesB = new ServiceCollection();
+        var accessorB = new HttpContextAccessor();
+        servicesB.AddSingleton<IHttpContextAccessor>(accessorB);
+        servicesB.AddKeyedSingleton("Kafka", (sp, _) => new MessageTracker(
+            new MessageTrackerOptions
+            {
+                CallingServiceName = "Kafka Broker",
+                UseHttpContextCorrelation = true,
+                CurrentTestInfoFetcher = () => ("T2", "id2")
+            },
+            sp.GetRequiredService<IHttpContextAccessor>()));
+        var providerB = servicesB.BuildServiceProvider();
+
+        // Request comes from Host B
+        var context = new DefaultHttpContext { RequestServices = providerB };
+        accessorA.HttpContext = context;
+
+        // Tracker A should NOT match Host B's request
+        Assert.False(trackerA.IsCurrentRequestFromMyHost());
+    }
+
+    // ─── TrackConsumeEvent note placement ───────────────────────
+
+    [Fact]
+    public void TrackConsumeEvent_sets_NoteOnRight_on_request_log()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Kafka Broker",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackConsumeEvent("Consume (Kafka)", "Consumer", new Uri("kafka:///t"), new { OrderId = "123" });
+
+        var request = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.True(request.NoteOnRight);
+    }
+
+    [Fact]
+    public void TrackSendEvent_does_not_set_NoteOnRight()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallingServiceName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        tracker.TrackSendEvent("Kafka", "Broker", new Uri("kafka:///t"), new { OrderId = "123" });
+
+        var request = RequestResponseLogger.RequestAndResponseLogs
+            .First(l => l.TestId == testId && l.Type == RequestResponseType.Request);
+        Assert.False(request.NoteOnRight);
+    }
+
+    [Fact]
+    public void TrackMessageRequest_does_not_set_NoteOnRight()
+    {
+        var tracker = CreateOptionsTracker();
+
+        var id = tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
+
+        var log = GetLogsById(id).Single();
+        Assert.False(log.NoteOnRight);
     }
 }
