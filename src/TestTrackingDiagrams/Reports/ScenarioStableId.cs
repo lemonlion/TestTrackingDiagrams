@@ -3,6 +3,10 @@ using System.Text;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Computes deterministic stable IDs for scenarios. Unlike runtime <see cref="Scenario.Id"/>
+/// (which varies by test framework and can be randomised), stable IDs are consistent across runs.
+/// </summary>
 public static class ScenarioStableId
 {
     public static string Compute(string featureName, string scenarioDisplayName, string? outlineId = null)

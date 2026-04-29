@@ -6,6 +6,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// An EF Core <see cref="DbCommandInterceptor"/> that logs SQL operations for inclusion in test diagrams.
+/// </summary>
 public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 {
     private readonly SqlTrackingInterceptorOptions _options;

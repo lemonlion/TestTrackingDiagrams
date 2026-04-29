@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.SQS;
 
+/// <summary>
+/// Classified SQS operation types.
+/// </summary>
 public enum SqsOperation
 {
     SendMessage,

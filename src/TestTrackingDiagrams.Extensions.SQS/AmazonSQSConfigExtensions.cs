@@ -2,6 +2,9 @@ using Amazon.SQS;
 
 namespace TestTrackingDiagrams.Extensions.SQS;
 
+/// <summary>
+/// Provides extension methods for configuring Amazon SQS client options to enable test tracking.
+/// </summary>
 public static class AmazonSQSConfigExtensions
 {
     public static AmazonSQSConfig WithTestTracking(

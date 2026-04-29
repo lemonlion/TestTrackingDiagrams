@@ -2,6 +2,10 @@ using System.Diagnostics;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Groups parameterized test scenarios and determines the optimal display rule
+/// (scalar columns, flattened object, or fallback) for the parameter table.
+/// </summary>
 public static class ParameterGrouper
 {
     /// <summary>

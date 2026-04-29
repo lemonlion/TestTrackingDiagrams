@@ -2,6 +2,9 @@ using Amazon.S3;
 
 namespace TestTrackingDiagrams.Extensions.S3;
 
+/// <summary>
+/// Provides extension methods for configuring Amazon S3 client options to enable test tracking.
+/// </summary>
 public static class AmazonS3ConfigExtensions
 {
     public static AmazonS3Config WithTestTracking(

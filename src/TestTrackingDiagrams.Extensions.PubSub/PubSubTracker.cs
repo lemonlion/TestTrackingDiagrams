@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
+/// <summary>
+/// Central logging component for PubSub operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class PubSubTracker : ITrackingComponent
 {
     private readonly PubSubTrackingOptions _options;

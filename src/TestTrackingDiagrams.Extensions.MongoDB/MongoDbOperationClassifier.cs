@@ -2,6 +2,9 @@ using global::MongoDB.Bson;
 
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// Classifies MongoDB HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class MongoDbOperationClassifier
 {
     public static MongoDbOperationInfo Classify(

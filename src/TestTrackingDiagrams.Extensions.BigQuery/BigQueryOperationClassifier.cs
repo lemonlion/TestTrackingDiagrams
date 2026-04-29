@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Classifies Google BigQuery HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class BigQueryOperationClassifier
 {
     // Matches BigQuery REST API paths, including the optional /upload/ prefix.

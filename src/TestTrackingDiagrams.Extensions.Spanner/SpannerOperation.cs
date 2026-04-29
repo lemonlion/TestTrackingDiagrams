@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Classified Spanner operation types.
+/// </summary>
 public enum SpannerOperation
 {
     Query,

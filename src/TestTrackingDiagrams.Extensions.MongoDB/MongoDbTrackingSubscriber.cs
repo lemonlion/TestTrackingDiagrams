@@ -7,6 +7,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// Implements the MongoDB event subscriber interface to track MongoDB operations for test visualization.
+/// </summary>
 public class MongoDbTrackingSubscriber : ITrackingComponent
 {
     private readonly MongoDbTrackingOptions _options;

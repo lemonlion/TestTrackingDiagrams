@@ -2,6 +2,9 @@ using System.Text;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Pretty-prints GraphQL query strings with proper indentation for display in diagram notes.
+/// </summary>
 public static class GraphQlQueryFormatter
 {
     private const int IndentSize = 2;

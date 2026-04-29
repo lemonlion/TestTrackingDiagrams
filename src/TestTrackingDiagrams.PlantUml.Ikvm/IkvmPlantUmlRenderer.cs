@@ -3,6 +3,9 @@ using net.sourceforge.plantuml;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Provides local PlantUML rendering using the IKVM Java bridge, converting PlantUML source text to PNG or SVG images.
+/// </summary>
 public static class IkvmPlantUmlRenderer
 {
     public static byte[] Render(string plantUml, PlantUmlImageFormat format)

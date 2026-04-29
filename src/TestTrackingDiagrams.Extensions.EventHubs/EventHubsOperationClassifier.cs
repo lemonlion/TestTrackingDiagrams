@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
+/// <summary>
+/// Classifies Azure Event Hubs HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class EventHubsOperationClassifier
 {
     public static EventHubsOperationInfo Classify(

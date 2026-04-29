@@ -2,6 +2,9 @@ using MassTransit;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// Classifies MassTransit HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class MassTransitOperationClassifier
 {
     public static MassTransitOperationInfo ClassifySend<T>(SendContext<T> context) where T : class

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Configuration options for the Google BigQuery test tracking message handler.
+/// </summary>
 public record BigQueryTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "BigQuery";

@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// BDDfy-specific configuration options for the test tracking message handler.
+/// </summary>
 public record BDDfyTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

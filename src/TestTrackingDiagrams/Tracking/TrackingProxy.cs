@@ -7,6 +7,10 @@ using TestTrackingDiagrams.InternalFlow;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// Configuration for <see cref="TrackingProxy{T}"/>, controlling how proxied method calls
+/// are logged as request/response pairs in sequence diagrams.
+/// </summary>
 public record TrackingProxyOptions
 {
     public required string ServiceName { get; init; }
@@ -31,12 +35,24 @@ public record TrackingProxyOptions
     public bool TrackDuringAction { get; init; } = true;
 }
 
+/// <summary>
+/// Controls when <see cref="TrackingProxy{T}"/> logs request/response pairs.
+/// </summary>
 public enum TrackingLogMode
 {
+    /// <summary>Logs are written immediately when the proxied method completes.</summary>
     Immediate,
+
+    /// <summary>Logs are queued and flushed later by <see cref="DeferredLogFlushHandler"/>.</summary>
     Deferred
 }
 
+/// <summary>
+/// A <see cref="DispatchProxy"/>-based tracking proxy that intercepts all method calls on
+/// interface <typeparamref name="T"/>, logging each invocation as a request/response pair for
+/// inclusion in sequence diagrams. Used by MediatR, DispatchProxy, and custom tracking extensions.
+/// </summary>
+/// <typeparam name="T">The interface type being proxied.</typeparam>
 public partial class TrackingProxy<T> : DispatchProxy where T : class
 {
     private T _target = null!;

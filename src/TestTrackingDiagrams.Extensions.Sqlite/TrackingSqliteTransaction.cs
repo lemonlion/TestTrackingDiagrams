@@ -4,6 +4,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Sqlite;
 
+/// <summary>
+/// Tracking decorator for SQLite <see cref="DbTransaction"/> that logs BEGIN, COMMIT,
+/// and ROLLBACK operations for inclusion in test diagrams.
+/// </summary>
 public class TrackingSqliteTransaction : DbTransaction
 {
     private readonly DbTransaction _inner;

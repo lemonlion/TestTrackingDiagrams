@@ -5,6 +5,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 
+/// <summary>
+/// Callback handler for Elasticsearch that classifies and logs operations for test diagrams.
+/// </summary>
 public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
 {
     private readonly ElasticsearchTrackingOptions _options;

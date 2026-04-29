@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.DispatchProxy;
 
+/// <summary>
+/// Provides extension methods for enabling DispatchProxy integration with test tracking.
+/// </summary>
 public static class ServiceCollectionTrackingExtensions
 {
     /// <summary>

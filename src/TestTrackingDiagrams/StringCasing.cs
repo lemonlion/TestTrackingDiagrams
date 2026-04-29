@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// String casing utilities for formatting scenario and feature display names.
+/// </summary>
 public static partial class StringCasing
 {
     // From Humanizer's StringHumanizeExtensions

@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
 
+/// <summary>
+/// Classifies Azure Storage Queues HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class StorageQueueOperationClassifier
 {
     [GeneratedRegex(@"^/(?<queue>[^/?]+)(?:/messages(?:/(?<msgId>[^/?]+))?)?$", RegexOptions.Compiled)]

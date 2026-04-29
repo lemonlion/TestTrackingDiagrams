@@ -2,6 +2,9 @@ using System.Collections.Concurrent;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// Thread-safe collector that accumulates BDDfy scenario execution information for report generation.
+/// </summary>
 public static class BDDfyScenarioCollector
 {
     private static readonly ConcurrentQueue<BDDfyScenarioInfo> Scenarios = new();

@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
+/// <summary>
+/// Classifies Azure Cosmos DB HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class CosmosOperationClassifier
 {
     // Matches both named paths and _rid-encoded paths.

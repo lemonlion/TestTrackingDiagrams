@@ -2,6 +2,9 @@ using Grpc.Core;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
+/// <summary>
+/// Classifies gRPC HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class GrpcOperationClassifier
 {
     public static GrpcOperationInfo Classify(

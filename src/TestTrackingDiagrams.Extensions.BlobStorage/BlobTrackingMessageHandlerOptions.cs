@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.BlobStorage;
 
+/// <summary>
+/// Configuration options for the Azure Blob Storage test tracking message handler.
+/// </summary>
 public record BlobTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "BlobStorage";

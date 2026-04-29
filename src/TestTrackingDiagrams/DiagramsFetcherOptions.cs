@@ -1,5 +1,9 @@
 ﻿namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Configuration options for diagram fetching and PlantUML rendering.
+/// Controls image format, rendering method, focus field styling, and diagram customisation.
+/// </summary>
 public record DiagramsFetcherOptions
 {
     public string PlantUmlServerBaseUrl { get; set; } = "https://plantuml.com/plantuml";

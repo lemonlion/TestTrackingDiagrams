@@ -3,6 +3,9 @@ using NUnit.Framework.Interfaces;
 
 namespace TestTrackingDiagrams.NUnit4;
 
+/// <summary>
+/// Provides extension methods for converting NUnit <c>TestStatus</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
 public static class TestStatusExtensions
 {
     public static ExecutionResult ToExecutionResult(this TestStatus result)

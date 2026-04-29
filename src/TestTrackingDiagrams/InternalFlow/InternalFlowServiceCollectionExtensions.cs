@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.InternalFlow;
 
+/// <summary>
+/// Provides extension methods for configuring internal flow tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class InternalFlowServiceCollectionExtensions
 {
     /// <summary>

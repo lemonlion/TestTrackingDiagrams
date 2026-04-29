@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// Configuration options for MongoDB test tracking.
+/// </summary>
 public record MongoDbTrackingOptions
 {
     public string ServiceName { get; set; } = "MongoDB";

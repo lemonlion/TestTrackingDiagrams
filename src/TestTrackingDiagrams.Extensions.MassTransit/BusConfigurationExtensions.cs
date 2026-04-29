@@ -2,6 +2,9 @@ using MassTransit;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// Provides extension methods for configuring MassTransit bus instances to enable test tracking.
+/// </summary>
 public static class BusConfigurationExtensions
 {
     public static MassTransitTracker WithTestTracking(

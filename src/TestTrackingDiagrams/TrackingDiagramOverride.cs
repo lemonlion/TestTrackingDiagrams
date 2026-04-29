@@ -1,6 +1,10 @@
 ﻿using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
+/// <summary>
+/// Provides methods to inject custom PlantUML fragments into a test's sequence diagram,
+/// and to mark the boundary between Setup and Action test phases.
+/// </summary>
 public static class DefaultTrackingDiagramOverride
 {
     public static void StartOverride(string testId, string? plantUml = null)

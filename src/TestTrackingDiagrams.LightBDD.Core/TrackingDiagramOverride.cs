@@ -2,6 +2,9 @@ using LightBDD.Core.ExecutionContext;
 
 namespace TestTrackingDiagrams.LightBDD;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific LightBDD tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

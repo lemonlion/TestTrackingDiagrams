@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// The result of classifying a MongoDB operation, containing the operation type and metadata.
+/// </summary>
 public record MongoDbOperationInfo(
     MongoDbOperation Operation,
     string? DatabaseName,

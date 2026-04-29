@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.SNS;
 
+/// <summary>
+/// Configuration options for the Amazon SNS test tracking message handler.
+/// </summary>
 public record SnsTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "SNS";

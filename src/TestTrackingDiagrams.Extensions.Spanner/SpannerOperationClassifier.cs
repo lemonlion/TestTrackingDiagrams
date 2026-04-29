@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Classifies Google Cloud Spanner HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class SpannerOperationClassifier
 {
     [GeneratedRegex(@"\bFROM\s+`?(\w+)`?", RegexOptions.IgnoreCase)]

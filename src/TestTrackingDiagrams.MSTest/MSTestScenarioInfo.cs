@@ -2,6 +2,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace TestTrackingDiagrams.MSTest;
 
+/// <summary>
+/// Captures metadata for an MSTest scenario execution, including class name, method name, outcome, and error details.
+/// </summary>
 public record MSTestScenarioInfo
 {
     public required string TestClassSimpleName { get; init; }

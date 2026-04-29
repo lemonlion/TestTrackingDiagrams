@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.BlobStorage;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies BlobStorage HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly BlobTrackingMessageHandlerOptions _options;

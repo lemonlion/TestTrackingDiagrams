@@ -1,5 +1,9 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Parses parameter name-value pairs from test display names.
+/// Supports named, positional, and bracketed formats.
+/// </summary>
 public static class ParameterParser
 {
     /// <summary>

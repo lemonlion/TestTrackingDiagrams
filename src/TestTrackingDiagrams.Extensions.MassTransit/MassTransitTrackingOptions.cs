@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// Configuration options for MassTransit test tracking.
+/// </summary>
 public record MassTransitTrackingOptions
 {
     public string ServiceName { get; set; } = "MassTransit";

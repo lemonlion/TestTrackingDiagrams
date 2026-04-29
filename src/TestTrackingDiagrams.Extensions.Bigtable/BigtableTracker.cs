@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Bigtable;
 
+/// <summary>
+/// Central logging component for Bigtable operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class BigtableTracker : ITrackingComponent
 {
     private readonly BigtableTrackingOptions _options;

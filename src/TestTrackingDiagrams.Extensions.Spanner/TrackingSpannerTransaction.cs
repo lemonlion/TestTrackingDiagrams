@@ -3,6 +3,9 @@ using System.Data.Common;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Tracking wrapper for Spanner operations.
+/// </summary>
 public class TrackingSpannerTransaction : DbTransaction
 {
     private readonly DbTransaction _inner;

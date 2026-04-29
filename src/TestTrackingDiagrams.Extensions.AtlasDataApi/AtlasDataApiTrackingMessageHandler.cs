@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.AtlasDataApi;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies AtlasDataApi HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly AtlasDataApiTrackingMessageHandlerOptions _options;

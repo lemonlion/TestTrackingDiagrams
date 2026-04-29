@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.xUnit2;
 
+/// <summary>
+/// Generates test tracking reports from xUnit v2 test scenario execution data.
+/// </summary>
 public static class XUnit2ReportGenerator
 {
     public static void CreateStandardReportsWithDiagrams(DateTime startRunTime, DateTime endRunTime, ReportConfigurationOptions options)

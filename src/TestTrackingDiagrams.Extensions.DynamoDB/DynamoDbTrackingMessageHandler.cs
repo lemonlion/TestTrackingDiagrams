@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies DynamoDB HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly DynamoDbTrackingMessageHandlerOptions _options;

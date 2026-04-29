@@ -3,6 +3,9 @@ using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
 
+/// <summary>
+/// Tracks test run lifecycle for TUnit, collecting test contexts and timing information for report generation.
+/// </summary>
 public class DiagrammedTestRun
 {
     public static ConcurrentQueue<TestContext> TestContexts { get; } = new();

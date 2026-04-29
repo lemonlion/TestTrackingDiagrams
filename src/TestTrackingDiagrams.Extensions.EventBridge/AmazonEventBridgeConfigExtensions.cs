@@ -2,6 +2,9 @@ using Amazon.EventBridge;
 
 namespace TestTrackingDiagrams.Extensions.EventBridge;
 
+/// <summary>
+/// Provides extension methods for configuring Amazon EventBridge client options to enable test tracking.
+/// </summary>
 public static class AmazonEventBridgeConfigExtensions
 {
     public static AmazonEventBridgeConfig WithTestTracking(

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// The result of classifying a MassTransit operation, containing the operation type and metadata.
+/// </summary>
 public record MassTransitOperationInfo(
     MassTransitOperation Operation,
     string? MessageType,

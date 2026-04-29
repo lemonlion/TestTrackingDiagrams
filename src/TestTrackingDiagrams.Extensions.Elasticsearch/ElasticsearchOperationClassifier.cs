@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 
+/// <summary>
+/// Classifies Elasticsearch HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class ElasticsearchOperationClassifier
 {
     [GeneratedRegex(@"^/(?<index>[^/_][^/]*)/_doc/(?<id>[^/?]+)")]

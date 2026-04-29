@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific Reqnroll tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

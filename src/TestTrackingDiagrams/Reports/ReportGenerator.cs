@@ -10,6 +10,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Generates HTML, JSON, XML, YAML, and CI summary reports from test features and diagrams.
+/// This is the primary report generation entry point called by framework adapters.
+/// </summary>
 public static class ReportGenerator
 {
     internal static string TtdVersion { get; } =

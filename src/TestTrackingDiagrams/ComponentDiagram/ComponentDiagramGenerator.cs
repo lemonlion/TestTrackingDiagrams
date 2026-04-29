@@ -4,6 +4,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ComponentDiagram;
 
+/// <summary>
+/// Generates PlantUML component diagram source from extracted service relationships.
+/// Supports both plain PlantUML and C4 diagram styles.
+/// </summary>
 public static partial class ComponentDiagramGenerator
 {
     [GeneratedRegex(@"[^a-zA-Z0-9_]")]

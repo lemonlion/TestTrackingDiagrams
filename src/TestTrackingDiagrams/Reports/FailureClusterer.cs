@@ -2,8 +2,14 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Groups failed scenarios by normalised error message to surface common failure patterns.
+/// </summary>
 public static class FailureClusterer
 {
+    /// <summary>
+    /// A group of scenarios sharing the same normalised error message.
+    /// </summary>
     public record FailureCluster(string ClusterKey, Scenario[] Scenarios);
 
     public static FailureCluster[] Cluster(Scenario[] scenarios)

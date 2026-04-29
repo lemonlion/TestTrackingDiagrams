@@ -2,6 +2,9 @@ using Microsoft.Data.Sqlite;
 
 namespace TestTrackingDiagrams.Extensions.Sqlite;
 
+/// <summary>
+/// Provides extension methods for configuring SQLite client options to enable test tracking.
+/// </summary>
 public static class SqliteConnectionExtensions
 {
     /// <summary>

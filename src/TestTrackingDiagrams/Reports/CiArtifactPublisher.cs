@@ -1,5 +1,9 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Publishes generated report files as CI artifacts using platform-specific mechanisms
+/// (GitHub Actions artifact upload commands or Azure DevOps artifact publishing).
+/// </summary>
 public static class CiArtifactPublisher
 {
     public static void Publish(

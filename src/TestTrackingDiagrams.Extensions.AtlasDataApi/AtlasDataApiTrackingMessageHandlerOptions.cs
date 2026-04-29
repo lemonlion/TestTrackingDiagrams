@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.AtlasDataApi;
 
+/// <summary>
+/// Configuration options for the MongoDB Atlas Data API test tracking message handler.
+/// </summary>
 public record AtlasDataApiTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "AtlasDataApi";

@@ -3,6 +3,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace TestTrackingDiagrams.MSTest;
 
+/// <summary>
+/// MSTest-specific configuration options for the test tracking message handler.
+/// </summary>
 public record MSTestTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

@@ -3,6 +3,9 @@ using Reqnroll;
 namespace TestTrackingDiagrams.ReqNRoll;
 
 [Binding]
+/// <summary>
+/// Reqnroll binding hooks that track overall test run start and end times for report generation.
+/// </summary>
 public class ReqNRollTestRunHooks
 {
     [BeforeTestRun(Order = int.MinValue)]

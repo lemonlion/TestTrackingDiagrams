@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Classified BigQuery operation types.
+/// </summary>
 public enum BigQueryOperation
 {
     Query,

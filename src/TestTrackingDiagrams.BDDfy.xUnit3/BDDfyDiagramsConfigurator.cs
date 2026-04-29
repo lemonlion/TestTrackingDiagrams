@@ -2,6 +2,9 @@ using TestStack.BDDfy.Configuration;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// Configures BDDfy to integrate with TestTrackingDiagrams by disabling built-in HTML reporting and registering diagram-capturing processors.
+/// </summary>
 public static class BDDfyDiagramsConfigurator
 {
     private static bool _configured;

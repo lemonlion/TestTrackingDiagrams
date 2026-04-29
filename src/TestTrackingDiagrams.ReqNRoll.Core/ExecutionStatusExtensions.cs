@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Provides extension methods for converting Reqnroll <c>ScenarioExecutionStatus</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
 public static class ExecutionStatusExtensions
 {
     public static ExecutionResult ToExecutionResult(this ScenarioExecutionStatus status)

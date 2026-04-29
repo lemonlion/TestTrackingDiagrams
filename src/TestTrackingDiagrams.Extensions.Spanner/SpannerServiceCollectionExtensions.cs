@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Provides extension methods for configuring Google Cloud Spanner dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class SpannerServiceCollectionExtensions
 {
     public static IServiceCollection AddSpannerTestTracking(

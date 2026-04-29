@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
+/// <summary>
+/// Configuration options for Google Cloud Pub/Sub test tracking.
+/// </summary>
 public record PubSubTrackingOptions
 {
     public string ServiceName { get; set; } = "PubSub";

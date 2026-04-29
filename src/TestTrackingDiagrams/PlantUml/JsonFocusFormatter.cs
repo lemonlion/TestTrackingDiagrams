@@ -3,6 +3,10 @@ using System.Text.Json;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Applies focus emphasis/de-emphasis PlantUML markup to specific JSON fields
+/// within diagram note content.
+/// </summary>
 public static class JsonFocusFormatter
 {
     public static string FormatWithFocus(

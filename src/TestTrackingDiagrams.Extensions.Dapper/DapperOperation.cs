@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Classified Dapper operation types.
+/// </summary>
 public enum DapperOperation
 {
     Query,

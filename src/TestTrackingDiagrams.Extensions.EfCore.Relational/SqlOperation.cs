@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// Classified EfCore.Relational operation types.
+/// </summary>
 public enum SqlOperation
 {
     Select,

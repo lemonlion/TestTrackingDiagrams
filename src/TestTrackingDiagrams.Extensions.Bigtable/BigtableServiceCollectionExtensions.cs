@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.Bigtable;
 
+/// <summary>
+/// Provides extension methods for configuring Google Cloud Bigtable dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class BigtableServiceCollectionExtensions
 {
     public static IServiceCollection AddBigtableTestTracking(

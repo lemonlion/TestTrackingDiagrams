@@ -3,6 +3,9 @@ using System.Data.Common;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Tracking decorator for Dapper database operations.
+/// </summary>
 public class TrackingDbTransaction : DbTransaction
 {
     private readonly DbTransaction _inner;

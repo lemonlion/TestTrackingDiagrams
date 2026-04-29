@@ -4,11 +4,22 @@ using System.Text.Json;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Extension methods to create a <see cref="FocusedHttpClient"/> from an <see cref="HttpClient"/>.
+/// </summary>
 public static class HttpClientDiagramFocusExtensions
 {
+    /// <summary>
+    /// Wraps the <paramref name="httpClient"/> to enable field-level diagram focus.
+    /// </summary>
     public static FocusedHttpClient WithDiagramFocus(this HttpClient httpClient) => new(httpClient);
 }
 
+/// <summary>
+/// An <see cref="HttpClient"/> wrapper that annotates request/response fields for
+/// emphasis in sequence diagram notes. Fields are specified fluently via
+/// <c>.OnRequest&lt;T&gt;()</c> and <c>.OnResponse&lt;T&gt;()</c>.
+/// </summary>
 public sealed class FocusedHttpClient
 {
     private readonly HttpClient _httpClient;

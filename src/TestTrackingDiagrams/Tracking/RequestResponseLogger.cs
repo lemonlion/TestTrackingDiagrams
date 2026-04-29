@@ -3,6 +3,11 @@ using System.Net;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// Central static store for all tracked request/response log entries.
+/// All tracking extensions ultimately write to this static collection, which is consumed
+/// by report generators to produce sequence diagrams and other visualisations.
+/// </summary>
 public static class RequestResponseLogger
 {
     private static readonly ConcurrentQueue<RequestResponseLog> RequestsAndResponses = new();

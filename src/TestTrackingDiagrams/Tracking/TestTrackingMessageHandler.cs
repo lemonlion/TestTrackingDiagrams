@@ -5,6 +5,11 @@ using TestTrackingDiagrams.Constants;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// A <see cref="DelegatingHandler"/> that intercepts HTTP requests and responses,
+/// logging them as <see cref="RequestResponseLog"/> entries for inclusion in test sequence diagrams.
+/// This is the primary mechanism for tracking HTTP dependencies in tests.
+/// </summary>
 public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly string? _fixedServiceName;

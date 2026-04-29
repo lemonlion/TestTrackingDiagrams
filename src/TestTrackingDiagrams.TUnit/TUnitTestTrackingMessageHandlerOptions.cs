@@ -3,6 +3,9 @@ using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
 
+/// <summary>
+/// TUnit-specific configuration options for the test tracking message handler.
+/// </summary>
 public record TUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

@@ -7,6 +7,9 @@ using TestStack.BDDfy.Reporters.Html;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// BDDfy batch processor that generates test tracking diagrams after all scenarios in a batch have completed.
+/// </summary>
 public class DiagramEnhancingBatchProcessor : IBatchProcessor
 {
     private static readonly FieldInfo? ScenarioTitleField =

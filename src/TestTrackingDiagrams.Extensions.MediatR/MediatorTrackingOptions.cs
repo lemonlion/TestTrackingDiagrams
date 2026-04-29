@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MediatR;
 
+/// <summary>
+/// Configuration options for MediatR test tracking.
+/// </summary>
 public record MediatorTrackingOptions
 {
     public string ServiceName { get; init; } = "Application";

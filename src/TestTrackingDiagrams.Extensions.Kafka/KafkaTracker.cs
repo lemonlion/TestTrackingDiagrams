@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
+/// <summary>
+/// Central logging component for Kafka operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class KafkaTracker : ITrackingComponent
 {
     private readonly KafkaTrackingOptions _options;

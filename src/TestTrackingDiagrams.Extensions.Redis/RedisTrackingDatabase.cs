@@ -3,6 +3,9 @@ using StackExchange.Redis;
 
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Tracking decorator for Redis <c>IDatabase</c> that logs operations for test diagrams.
+/// </summary>
 public class RedisTrackingDatabase : DispatchProxy
 {
     private IDatabase _inner = null!;

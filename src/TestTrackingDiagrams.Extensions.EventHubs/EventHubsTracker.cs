@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
+/// <summary>
+/// Central logging component for EventHubs operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class EventHubsTracker : ITrackingComponent
 {
     private readonly EventHubsTrackingOptions _options;

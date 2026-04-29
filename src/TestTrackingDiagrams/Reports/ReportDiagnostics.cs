@@ -3,6 +3,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Analyses captured log entries and features to produce diagnostic warnings
+/// (e.g. unpaired requests, orphan logs, unused tracking components).
+/// </summary>
 public static class ReportDiagnostics
 {
     public static string[] Analyse(RequestResponseLog[] logs, Feature[] features,

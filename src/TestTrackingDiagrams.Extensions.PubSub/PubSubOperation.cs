@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
+/// <summary>
+/// Classified PubSub operation types.
+/// </summary>
 public enum PubSubOperation
 {
     Publish,

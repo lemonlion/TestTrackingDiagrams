@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.SQS;
 
+/// <summary>
+/// Classifies Amazon SQS HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class SqsOperationClassifier
 {
     [GeneratedRegex(@"AmazonSQS\.(?<op>\w+)", RegexOptions.Compiled)]

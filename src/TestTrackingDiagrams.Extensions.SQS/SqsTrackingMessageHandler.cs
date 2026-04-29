@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.SQS;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies SQS HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class SqsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly SqsTrackingMessageHandlerOptions _options;

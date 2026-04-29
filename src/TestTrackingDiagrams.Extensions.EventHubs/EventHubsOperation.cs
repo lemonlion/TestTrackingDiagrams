@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
+/// <summary>
+/// Classified EventHubs operation types.
+/// </summary>
 public enum EventHubsOperation
 {
     Send,

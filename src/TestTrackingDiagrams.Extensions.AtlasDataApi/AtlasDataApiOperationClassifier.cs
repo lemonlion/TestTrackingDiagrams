@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.AtlasDataApi;
 
+/// <summary>
+/// Classifies MongoDB Atlas Data API HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class AtlasDataApiOperationClassifier
 {
     // Matches Atlas Data API action endpoint:

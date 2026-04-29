@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EventBridge;
 
+/// <summary>
+/// Configuration options for the Amazon EventBridge test tracking message handler.
+/// </summary>
 public record EventBridgeTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "EventBridge";

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
+/// <summary>
+/// Classified Kafka operation types.
+/// </summary>
 public enum KafkaOperation
 {
     Produce,

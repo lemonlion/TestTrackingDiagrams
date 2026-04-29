@@ -1,5 +1,8 @@
-﻿namespace TestTrackingDiagrams.Extensions;
+namespace TestTrackingDiagrams.Extensions;
 
+/// <summary>
+/// Provides common string manipulation extension methods used throughout the library.
+/// </summary>
 public static class StringExtensions
 {
     public static IEnumerable<string> ChunksUpTo(this string value, int chunkLength)

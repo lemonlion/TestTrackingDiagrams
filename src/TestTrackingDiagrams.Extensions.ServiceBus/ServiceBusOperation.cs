@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
 
+/// <summary>
+/// Classified ServiceBus operation types.
+/// </summary>
 public enum ServiceBusOperation
 {
     Send,

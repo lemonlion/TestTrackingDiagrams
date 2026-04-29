@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Metadata about the CI environment where the test run executed.
+/// </summary>
 public record CiMetadata(
     CiEnvironment Provider,
     string? BuildNumber,
@@ -9,6 +12,9 @@ public record CiMetadata(
     string? Repository,
     string? RunId);
 
+/// <summary>
+/// Detects CI metadata (build number, branch, commit SHA, etc.) from environment variables.
+/// </summary>
 public static class CiMetadataDetector
 {
     public static CiMetadata? Detect() => Detect(Environment.GetEnvironmentVariable);

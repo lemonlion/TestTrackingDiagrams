@@ -2,6 +2,9 @@ using MassTransit;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// MassTransit observer that logs operations to the tracking system.
+/// </summary>
 public class TrackingConsumeObserver(MassTransitTracker tracker) : IConsumeObserver
 {
     public Task PreConsume<T>(ConsumeContext<T> context) where T : class => Task.CompletedTask;

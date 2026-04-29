@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Sql;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// Classifies Entity Framework Core HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class SqlOperationClassifier
 {
     private static readonly Dictionary<UnifiedSqlOperation, SqlOperation> OperationMap = new()

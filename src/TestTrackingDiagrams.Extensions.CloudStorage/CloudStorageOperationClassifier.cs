@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.CloudStorage;
 
+/// <summary>
+/// Classifies Google Cloud Storage HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class CloudStorageOperationClassifier
 {
     // Match /storage/v1/b/{bucket}/o/{object} or /upload/storage/v1/b/{bucket}/o

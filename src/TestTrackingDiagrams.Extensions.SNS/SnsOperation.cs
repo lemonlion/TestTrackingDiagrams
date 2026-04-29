@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.SNS;
 
+/// <summary>
+/// Classified SNS operation types.
+/// </summary>
 public enum SnsOperation
 {
     Publish,

@@ -1,10 +1,14 @@
-﻿using System.Text;
+using System.Text;
 using TestTrackingDiagrams.PlantUml;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
 
-public static class DefaultDiagramsFetcher 
+/// <summary>
+/// Provides factory methods that create diagram fetchers from captured <see cref="RequestResponseLog"/> entries.
+/// Used by report generators to obtain rendered PlantUML diagrams per test ID.
+/// </summary>
+public static class DefaultDiagramsFetcher
 {
     private static DiagramAsCode[]? _diagrams;
 
@@ -236,5 +240,8 @@ public static class DefaultDiagramsFetcher
         return svg;
     }
 
+    /// <summary>
+    /// Represents a diagram rendered as code, containing the test runtime ID, image source, and the PlantUML code behind it.
+    /// </summary>
     public record DiagramAsCode(string TestRuntimeId, string ImgSrc, string CodeBehind);
 }

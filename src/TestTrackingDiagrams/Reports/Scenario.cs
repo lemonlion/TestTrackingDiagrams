@@ -1,5 +1,9 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Represents a single test scenario in the report, including execution result,
+/// steps, labels, categories, and parameterized example values.
+/// </summary>
 public record Scenario
 {
     public required string Id { get; set; }

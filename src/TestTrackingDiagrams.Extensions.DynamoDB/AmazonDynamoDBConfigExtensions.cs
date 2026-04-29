@@ -2,6 +2,9 @@ using Amazon.DynamoDBv2;
 
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
 
+/// <summary>
+/// Provides extension methods for configuring Amazon DynamoDB client options to enable test tracking.
+/// </summary>
 public static class AmazonDynamoDBConfigExtensions
 {
     public static AmazonDynamoDBConfig WithTestTracking(

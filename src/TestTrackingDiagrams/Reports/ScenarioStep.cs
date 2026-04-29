@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Represents a single step within a test scenario (e.g. Given, When, Then).
+/// </summary>
 public record ScenarioStep
 {
     public string? Keyword { get; set; }

@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Central logging component for Redis operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class RedisTracker : ITrackingComponent
 {
     private readonly RedisTrackingDatabaseOptions _options;

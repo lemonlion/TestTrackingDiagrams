@@ -3,6 +3,11 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Extracts expected/actual value pairs from assertion failure messages
+/// for side-by-side diff display in the report. Supports xUnit, NUnit,
+/// FluentAssertions, and Shouldly assertion formats.
+/// </summary>
 public static class ErrorDiffParser
 {
     public record DiffResult(string Expected, string Actual);

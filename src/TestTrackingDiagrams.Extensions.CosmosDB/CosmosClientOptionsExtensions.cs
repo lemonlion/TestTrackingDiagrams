@@ -2,6 +2,9 @@ using Microsoft.Azure.Cosmos;
 
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
+/// <summary>
+/// Provides extension methods for configuring Azure Cosmos DB client options to enable test tracking.
+/// </summary>
 public static class CosmosClientOptionsExtensions
 {
     /// <summary>

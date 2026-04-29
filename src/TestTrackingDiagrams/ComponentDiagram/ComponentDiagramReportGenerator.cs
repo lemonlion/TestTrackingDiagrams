@@ -5,6 +5,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ComponentDiagram;
 
+/// <summary>
+/// Generates a standalone HTML page containing the component/architecture diagram
+/// derived from captured test interactions.
+/// </summary>
 public static class ComponentDiagramReportGenerator
 {
     public record ComponentDiagramResult(string HtmlFilePath, string PlantUml);

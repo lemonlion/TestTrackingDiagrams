@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// Generates test tracking reports from collected BDDfy scenario execution data.
+/// </summary>
 public static class BDDfyReportGenerator
 {
     public static void CreateStandardReportsWithDiagrams(ReportConfigurationOptions options)

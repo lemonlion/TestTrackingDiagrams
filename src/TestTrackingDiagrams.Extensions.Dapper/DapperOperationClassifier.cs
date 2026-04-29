@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Sql;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Classifies Dapper HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class DapperOperationClassifier
 {
     private static readonly Dictionary<UnifiedSqlOperation, DapperOperation> OperationMap = new()

@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies BigQuery HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly BigQueryTrackingMessageHandlerOptions _options;

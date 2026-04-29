@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
+/// <summary>
+/// Classifies Apache Kafka HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class KafkaOperationClassifier
 {
     public static string GetDiagramLabel(KafkaOperationInfo op, KafkaTrackingVerbosity verbosity)

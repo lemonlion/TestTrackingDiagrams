@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.S3;
 
+/// <summary>
+/// Configuration options for the Amazon S3 test tracking message handler.
+/// </summary>
 public record S3TrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "S3";

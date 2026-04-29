@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies CosmosDB HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly CosmosTrackingMessageHandlerOptions _options;

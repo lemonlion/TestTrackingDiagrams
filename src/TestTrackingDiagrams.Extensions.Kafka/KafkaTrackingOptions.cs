@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
+/// <summary>
+/// Configuration options for Apache Kafka test tracking.
+/// </summary>
 public record KafkaTrackingOptions
 {
     public string ServiceName { get; set; } = "Kafka";

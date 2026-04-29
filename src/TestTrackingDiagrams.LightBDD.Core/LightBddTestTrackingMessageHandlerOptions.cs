@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD;
 
+/// <summary>
+/// LightBDD-specific configuration options for the test tracking message handler.
+/// </summary>
 public record LightBddTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

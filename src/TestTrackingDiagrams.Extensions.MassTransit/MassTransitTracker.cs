@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
+/// <summary>
+/// Central logging component for MassTransit operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class MassTransitTracker : ITrackingComponent
 {
     private readonly MassTransitTrackingOptions _options;

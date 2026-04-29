@@ -2,6 +2,10 @@ using System.Text.Json;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// Configuration options for <see cref="MessageTracker"/>, controlling service names,
+/// verbosity levels, phase-aware tracking, and dependency category rendering.
+/// </summary>
 public record MessageTrackerOptions
 {
     /// <summary>

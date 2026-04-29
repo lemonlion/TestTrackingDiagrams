@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 namespace TestTrackingDiagrams.LightBDD;
 
 [Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
+/// <summary>
+/// Provides extension methods for creating test-tracking HTTP clients from <c>WebApplicationFactory</c> in LightBDD tests.
+/// </summary>
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, LightBddTestTrackingMessageHandlerOptions options) where T : class

@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
+/// <summary>
+/// Configuration options for the Azure Cosmos DB test tracking message handler.
+/// </summary>
 public record CosmosTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "CosmosDB";

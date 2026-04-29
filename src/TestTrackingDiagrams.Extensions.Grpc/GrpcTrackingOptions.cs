@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
+/// <summary>
+/// Configuration options for gRPC test tracking.
+/// </summary>
 public record GrpcTrackingOptions
 {
     public string ServiceName { get; set; } = "GrpcService";

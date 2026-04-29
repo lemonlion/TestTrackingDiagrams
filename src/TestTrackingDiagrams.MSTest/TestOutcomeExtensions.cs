@@ -3,6 +3,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace TestTrackingDiagrams.MSTest;
 
+/// <summary>
+/// Provides extension methods for converting MSTest <c>UnitTestOutcome</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
 public static class TestOutcomeExtensions
 {
     public static ExecutionResult ToExecutionResult(this UnitTestOutcome outcome)

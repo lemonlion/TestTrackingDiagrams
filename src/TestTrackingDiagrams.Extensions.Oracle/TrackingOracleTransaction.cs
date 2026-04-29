@@ -2,6 +2,10 @@ using System.Data.Common;
 
 namespace TestTrackingDiagrams.Extensions.Oracle;
 
+/// <summary>
+/// Tracking decorator for Oracle <see cref="DbTransaction"/> that logs BEGIN, COMMIT,
+/// and ROLLBACK operations for inclusion in test diagrams.
+/// </summary>
 public class TrackingOracleTransaction : DbTransaction
 {
     private readonly DbTransaction _inner;

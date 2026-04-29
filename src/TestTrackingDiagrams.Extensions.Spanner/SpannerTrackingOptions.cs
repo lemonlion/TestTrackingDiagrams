@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Configuration options for Google Cloud Spanner test tracking.
+/// </summary>
 public record SpannerTrackingOptions
 {
     public string ServiceName { get; set; } = "Spanner";

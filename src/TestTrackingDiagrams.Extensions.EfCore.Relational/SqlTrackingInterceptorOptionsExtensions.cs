@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// Provides extension methods for configuring Entity Framework Core client options to enable test tracking.
+/// </summary>
 public static class SqlTrackingInterceptorOptionsExtensions
 {
     /// <summary>

@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// Provides extension methods for configuring Entity Framework Core dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>

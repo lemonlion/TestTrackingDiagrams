@@ -2,6 +2,9 @@ using Amazon.SimpleNotificationService;
 
 namespace TestTrackingDiagrams.Extensions.SNS;
 
+/// <summary>
+/// Provides extension methods for configuring Amazon SNS client options to enable test tracking.
+/// </summary>
 public static class AmazonSNSConfigExtensions
 {
     public static AmazonSimpleNotificationServiceConfig WithTestTracking(

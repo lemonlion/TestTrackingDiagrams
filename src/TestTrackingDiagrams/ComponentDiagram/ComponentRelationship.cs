@@ -1,5 +1,9 @@
 namespace TestTrackingDiagrams.ComponentDiagram;
 
+/// <summary>
+/// Represents a dependency relationship between a calling service and a target service,
+/// with aggregated call statistics and protocol information.
+/// </summary>
 public record ComponentRelationship(
     string Caller,
     string Service,

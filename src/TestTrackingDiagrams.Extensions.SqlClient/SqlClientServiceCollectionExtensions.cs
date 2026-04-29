@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.SqlClient;
 
+/// <summary>
+/// Provides extension methods for configuring SQL Server (SqlClient) dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class SqlClientServiceCollectionExtensions
 {
     public static IServiceCollection AddSqlServerTestTracking(

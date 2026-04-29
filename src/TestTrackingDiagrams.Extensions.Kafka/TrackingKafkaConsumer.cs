@@ -2,6 +2,9 @@ using Confluent.Kafka;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
+/// <summary>
+/// Tracking wrapper for Kafka operations. Intercepts calls and logs them for test diagrams.
+/// </summary>
 public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
     private readonly IConsumer<TKey, TValue> _inner;

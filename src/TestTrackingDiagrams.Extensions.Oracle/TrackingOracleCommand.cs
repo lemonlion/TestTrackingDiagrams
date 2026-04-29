@@ -4,6 +4,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace TestTrackingDiagrams.Extensions.Oracle;
 
+/// <summary>
+/// Tracking decorator for Oracle <see cref="DbCommand"/> that intercepts SQL execution
+/// and logs operations for inclusion in test diagrams.
+/// </summary>
 public class TrackingOracleCommand : DbCommand
 {
     private readonly DbCommand _inner;

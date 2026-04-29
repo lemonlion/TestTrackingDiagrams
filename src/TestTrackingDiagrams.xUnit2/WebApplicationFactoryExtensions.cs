@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 namespace TestTrackingDiagrams.xUnit2;
 
 [Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
+/// <summary>
+/// Provides extension methods for creating test-tracking HTTP clients from <c>WebApplicationFactory</c> in xUnit v2 tests.
+/// </summary>
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, XUnit2TestTrackingMessageHandlerOptions options) where T : class

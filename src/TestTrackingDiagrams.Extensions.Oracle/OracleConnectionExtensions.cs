@@ -2,6 +2,9 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace TestTrackingDiagrams.Extensions.Oracle;
 
+/// <summary>
+/// Provides extension methods for configuring Oracle client options to enable test tracking.
+/// </summary>
 public static class OracleConnectionExtensions
 {
     public static TrackingOracleConnection WithTestTracking(

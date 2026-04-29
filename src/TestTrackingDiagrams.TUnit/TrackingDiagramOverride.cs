@@ -2,6 +2,9 @@ using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific TUnit tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

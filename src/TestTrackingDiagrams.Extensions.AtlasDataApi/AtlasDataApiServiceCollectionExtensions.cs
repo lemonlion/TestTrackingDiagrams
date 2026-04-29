@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.AtlasDataApi;
 
+/// <summary>
+/// Provides extension methods for configuring MongoDB Atlas Data API dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class AtlasDataApiServiceCollectionExtensions
 {
     public static IServiceCollection AddAtlasDataApiTestTracking(

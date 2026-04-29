@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// Provides extension methods for configuring MongoDB dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class MongoDbServiceCollectionExtensions
 {
     public static IServiceCollection AddMongoDbTestTracking(

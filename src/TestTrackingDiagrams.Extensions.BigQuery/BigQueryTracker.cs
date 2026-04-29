@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Central logging component for BigQuery operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class BigQueryTracker : ITrackingComponent
 {
     private readonly BigQueryTrackingMessageHandlerOptions _options;

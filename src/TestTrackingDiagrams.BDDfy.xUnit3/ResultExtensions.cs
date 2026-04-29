@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// Provides extension methods for converting BDDfy <c>Result</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
 public static class ResultExtensions
 {
     public static ExecutionResult ToExecutionResult(this TestStack.BDDfy.Result result)

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
@@ -9,6 +9,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Generates PlantUML sequence diagram source from <see cref="RequestResponseLog"/> entries.
+/// Groups log entries by test ID and produces one or more PlantUML diagram fragments per test.
+/// </summary>
 public static partial class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
@@ -752,6 +756,9 @@ public static partial class PlantUmlCreator
             $"<img{(lazyLoad ? " loading=\"lazy\"" : "")} src=\"{plantUmlServerRendererUrl.TrimEnd('/')}/{PlantUmlEncoded}\">";
     }
 
+    /// <summary>
+    /// Contains the generated PlantUML source text for a specific test execution.
+    /// </summary>
     public record PlantUmlForTest(
         string TestId,
         string TestName,

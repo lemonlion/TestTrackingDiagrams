@@ -2,6 +2,9 @@ using global::MongoDB.Driver;
 
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
+/// <summary>
+/// Provides extension methods for configuring MongoDB client options to enable test tracking.
+/// </summary>
 public static class MongoClientSettingsExtensions
 {
     /// <summary>

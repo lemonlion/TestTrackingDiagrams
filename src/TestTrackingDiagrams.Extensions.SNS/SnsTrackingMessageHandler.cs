@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.SNS;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies SNS HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly SnsTrackingMessageHandlerOptions _options;

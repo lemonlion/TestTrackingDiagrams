@@ -3,6 +3,9 @@ using System.Text;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Encodes PlantUML source text into the compressed format used by PlantUML server URLs.
+/// </summary>
 public static class PlantUmlTextEncoder
 {
     public static string Encode(string plantUml)

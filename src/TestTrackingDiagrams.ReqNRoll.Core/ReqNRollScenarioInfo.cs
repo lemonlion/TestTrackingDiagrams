@@ -2,6 +2,9 @@ using Reqnroll;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Contains complete metadata for a Reqnroll scenario execution, including feature context, tags, steps, status, and example data.
+/// </summary>
 public record ReqNRollScenarioInfo
 {
     public required string ScenarioId { get; init; }

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Classifies Redis HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class RedisOperationClassifier
 {
     private static readonly HashSet<string> ReadOperations = new(StringComparer.OrdinalIgnoreCase)

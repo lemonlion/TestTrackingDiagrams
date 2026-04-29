@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
 
+/// <summary>
+/// Classified DynamoDB operation types.
+/// </summary>
 public enum DynamoDbOperation
 {
     PutItem,

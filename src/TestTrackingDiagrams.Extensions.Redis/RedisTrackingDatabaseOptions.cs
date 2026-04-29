@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Configuration options for Redis test tracking, including service naming and verbosity settings.
+/// </summary>
 public record RedisTrackingDatabaseOptions
 {
     public string ServiceName { get; set; } = "Redis";

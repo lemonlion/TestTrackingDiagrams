@@ -2,6 +2,9 @@ using Azure.Storage.Blobs;
 
 namespace TestTrackingDiagrams.Extensions.BlobStorage;
 
+/// <summary>
+/// Provides extension methods for configuring Azure Blob Storage client options to enable test tracking.
+/// </summary>
 public static class BlobClientOptionsExtensions
 {
     /// <summary>

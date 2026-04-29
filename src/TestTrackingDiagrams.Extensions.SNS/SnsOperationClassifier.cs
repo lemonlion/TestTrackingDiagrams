@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.SNS;
 
+/// <summary>
+/// Classifies Amazon SNS HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class SnsOperationClassifier
 {
     [GeneratedRegex(@"AmazonSimpleNotificationService\.(?<op>\w+)", RegexOptions.Compiled)]

@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies StorageQueues HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly StorageQueueTrackingMessageHandlerOptions _options;

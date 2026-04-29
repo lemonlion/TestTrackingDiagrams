@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Configuration options for Dapper test tracking.
+/// </summary>
 public record DapperTrackingOptions
 {
     public string ServiceName { get; set; } = "Database";

@@ -3,11 +3,18 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.ComponentDiagram;
 
+/// <summary>
+/// Compares two sets of component relationships to identify added, removed, and changed
+/// dependencies between test runs. Useful for detecting architecture drift.
+/// </summary>
 public static partial class ComponentDiagramDiffer
 {
     [GeneratedRegex(@"[^a-zA-Z0-9_]")]
     private static partial Regex SanitizeAliasRegex();
 
+    /// <summary>
+    /// Contains the result of comparing two component diagrams, including added, removed, and changed relationships.
+    /// </summary>
     public record DiffResult(
         ComponentRelationship[] Added,
         ComponentRelationship[] Removed,
@@ -17,6 +24,9 @@ public static partial class ComponentDiagramDiffer
         StatsChange[] Regressions,
         StatsChange[] Improvements);
 
+    /// <summary>
+    /// Represents a statistical change between two diagram snapshots for a specific relationship.
+    /// </summary>
     public record StatsChange(
         ComponentRelationship Relationship,
         RelationshipStats Baseline,

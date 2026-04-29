@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.MySqlConnector;
 
+/// <summary>
+/// Provides methods for enabling MySQL (MySqlConnector) test tracking on database connections.
+/// </summary>
 public static class MySqlTestTracking
 {
     private static MySqlDiagnosticTracker? _tracker;

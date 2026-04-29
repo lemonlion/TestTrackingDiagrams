@@ -3,6 +3,9 @@ using TestStack.BDDfy;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// BDDfy processor that intercepts scenario execution to capture diagram data for test tracking.
+/// </summary>
 public class DiagramCapturingProcessor : IProcessor
 {
     private static readonly FieldInfo? ScenarioTitleField =

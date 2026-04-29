@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.2] - 2026-04-30
+
+### Added
+- **Comprehensive XML documentation**: Added `/// <summary>` XML doc comments to every public type across all 49 packages — core library, 25 extension packages, and 15 framework adapter packages. This enables full IntelliSense support for NuGet consumers.
+- **XML documentation file generation**: Enabled `<GenerateDocumentationFile>` in `Directory.Build.props` for all src projects, so `.xml` doc files are included in NuGet packages automatically.
+
 ## [2.28.1] - 2026-04-29
 
 ### Deprecated

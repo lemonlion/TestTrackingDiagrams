@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.xUnit2;
 
+/// <summary>
+/// xUnit v2-specific configuration options for the test tracking message handler.
+/// </summary>
 public record XUnit2TestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

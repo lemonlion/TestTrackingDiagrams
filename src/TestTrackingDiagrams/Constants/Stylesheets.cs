@@ -1,5 +1,8 @@
-﻿namespace TestTrackingDiagrams;
+namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Provides embedded CSS stylesheets used in generated HTML reports and diagrams.
+/// </summary>
 public class Stylesheets
 {
     public const string HtmlReportStyleSheet =

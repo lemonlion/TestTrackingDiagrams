@@ -4,6 +4,10 @@ using TestTrackingDiagrams.PlantUml;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Generates a markdown summary of the test run including pass/fail counts,
+/// failure details with diagrams, and execution timing.
+/// </summary>
 public static partial class CiSummaryGenerator
 {
 

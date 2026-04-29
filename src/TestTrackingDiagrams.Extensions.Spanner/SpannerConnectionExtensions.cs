@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Provides extension methods for configuring Google Cloud Spanner client options to enable test tracking.
+/// </summary>
 public static class SpannerConnectionExtensions
 {
     /// <summary>

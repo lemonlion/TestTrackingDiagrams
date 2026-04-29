@@ -2,6 +2,9 @@ using Azure.Storage.Queues;
 
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
 
+/// <summary>
+/// Provides extension methods for configuring Azure Storage Queues client options to enable test tracking.
+/// </summary>
 public static class QueueClientOptionsExtensions
 {
     public static QueueClientOptions WithTestTracking(

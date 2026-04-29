@@ -3,6 +3,10 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Formats GraphQL request bodies for display in diagram notes, applying the configured
+/// <see cref="GraphQlBodyFormat"/> mode.
+/// </summary>
 public static partial class GraphQlBodyFormatter
 {
     private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };

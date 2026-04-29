@@ -2,6 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Detects GraphQL operations (query, mutation, subscription) from HTTP request bodies
+/// and extracts operation type and name for diagram arrow labels.
+/// </summary>
 public static partial class GraphQlOperationDetector
 {
     /// <summary>

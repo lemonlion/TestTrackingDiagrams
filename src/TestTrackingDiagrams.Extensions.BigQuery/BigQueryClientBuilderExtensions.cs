@@ -2,6 +2,9 @@ using Google.Cloud.BigQuery.V2;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Provides extension methods for configuring Google BigQuery client options to enable test tracking.
+/// </summary>
 public static class BigQueryClientBuilderExtensions
 {
     /// <summary>

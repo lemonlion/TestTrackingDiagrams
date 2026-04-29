@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific BDDfy tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

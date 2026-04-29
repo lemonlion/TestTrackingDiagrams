@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.BlobStorage;
 
+/// <summary>
+/// Classifies Azure Blob Storage HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class BlobOperationClassifier
 {
     // Azure Blob Storage REST API paths:

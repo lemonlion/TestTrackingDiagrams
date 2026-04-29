@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.28.1</Version>
+    <Version>2.28.2</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -16,6 +16,11 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>nuget-readme.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <!-- Generate XML documentation for all src projects (enables IntelliSense in NuGet consumers) -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsPackable)' != 'false'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <!-- Include LICENSE, README, and icon in all NuGet packages -->

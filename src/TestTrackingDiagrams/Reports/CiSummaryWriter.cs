@@ -1,5 +1,9 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Writes CI summary markdown to the appropriate CI platform mechanism
+/// (GitHub Actions step summary or Azure DevOps build output).
+/// </summary>
 public static class CiSummaryWriter
 {
     public static void Write(string markdown, CiEnvironment environment)

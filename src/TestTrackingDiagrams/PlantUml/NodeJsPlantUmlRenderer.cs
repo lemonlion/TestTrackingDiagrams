@@ -4,6 +4,10 @@ using System.Text;
 
 namespace TestTrackingDiagrams.PlantUml;
 
+/// <summary>
+/// Renders PlantUML diagrams locally using a bundled Node.js PlantUML renderer.
+/// Downloads the required JavaScript files on first use and caches them locally.
+/// </summary>
 public static class NodeJsPlantUmlRenderer
 {
     private const string CdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched";

@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Mvc.Testing;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.xUnit3;
 
 [Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
+/// <summary>
+/// Provides extension methods for creating test-tracking HTTP clients from <c>WebApplicationFactory</c> in xUnit v3 tests.
+/// </summary>
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, XUnitTestTrackingMessageHandlerOptions options) where T : class

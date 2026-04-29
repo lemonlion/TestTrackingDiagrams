@@ -4,6 +4,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace TestTrackingDiagrams.Extensions.Sqlite;
 
+/// <summary>
+/// Tracking decorator for SQLite <see cref="DbCommand"/> that intercepts SQL execution
+/// and logs operations for inclusion in test diagrams.
+/// </summary>
 public class TrackingSqliteCommand : DbCommand
 {
     private readonly DbCommand _inner;

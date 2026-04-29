@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
 
+/// <summary>
+/// Classified StorageQueues operation types.
+/// </summary>
 public enum StorageQueueOperation
 {
     SendMessage,

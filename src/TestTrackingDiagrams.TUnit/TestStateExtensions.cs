@@ -3,6 +3,9 @@ using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
 
+/// <summary>
+/// Provides extension methods for converting TUnit <c>TestState</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
 public static class TestStateExtensions
 {
     public static ExecutionResult ToExecutionResult(this TestState state)

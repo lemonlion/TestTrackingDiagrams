@@ -2,6 +2,9 @@ using StackExchange.Redis;
 
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Provides extension methods for wrapping Redis database instances with test tracking.
+/// </summary>
 public static class DatabaseExtensions
 {
     public static IDatabase WithRedisTestTracking(this IDatabase database, RedisTrackingDatabaseOptions options)

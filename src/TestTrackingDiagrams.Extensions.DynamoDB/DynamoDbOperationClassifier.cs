@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
 
+/// <summary>
+/// Classifies Amazon DynamoDB HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class DynamoDbOperationClassifier
 {
     [GeneratedRegex(

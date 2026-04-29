@@ -1,7 +1,10 @@
-﻿using Xunit;
+using Xunit;
 
 namespace TestTrackingDiagrams.xUnit3;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific xUnit v3 tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

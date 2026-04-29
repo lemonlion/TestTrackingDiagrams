@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EventBridge;
 
+/// <summary>
+/// Classified EventBridge operation types.
+/// </summary>
 public enum EventBridgeOperation
 {
     // Events

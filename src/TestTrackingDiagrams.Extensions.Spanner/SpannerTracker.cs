@@ -6,6 +6,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Tracks Google Cloud Spanner operations by intercepting client interactions for test visualization.
+/// </summary>
 public class SpannerTracker : ITrackingComponent
 {
     private readonly SpannerTrackingOptions _options;

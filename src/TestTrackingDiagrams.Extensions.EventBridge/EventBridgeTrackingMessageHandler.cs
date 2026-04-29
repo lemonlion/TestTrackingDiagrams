@@ -4,6 +4,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EventBridge;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies EventBridge HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly EventBridgeTrackingMessageHandlerOptions _options;

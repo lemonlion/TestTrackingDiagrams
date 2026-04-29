@@ -9,6 +9,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Grpc;
 
+/// <summary>
+/// A gRPC <see cref="Interceptor"/> that logs all gRPC calls for inclusion in test diagrams.
+/// </summary>
 public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
 {
     private static readonly ActivitySource GrpcActivitySource = new("TestTrackingDiagrams.Grpc");

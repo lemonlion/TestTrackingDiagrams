@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Bigtable;
 
+/// <summary>
+/// Configuration options for Google Cloud Bigtable test tracking.
+/// </summary>
 public record BigtableTrackingOptions
 {
     public string ServiceName { get; set; } = "Bigtable";

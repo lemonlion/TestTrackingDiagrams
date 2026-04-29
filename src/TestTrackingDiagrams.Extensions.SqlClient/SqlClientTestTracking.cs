@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.SqlClient;
 
+/// <summary>
+/// Provides methods for enabling SQL Server (SqlClient) test tracking on database connections.
+/// </summary>
 public static class SqlClientTestTracking
 {
     private static SqlClientDiagnosticTracker? _tracker;

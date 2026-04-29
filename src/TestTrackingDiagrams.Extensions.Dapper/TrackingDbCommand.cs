@@ -7,6 +7,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Tracking decorator for Dapper database operations.
+/// </summary>
 public class TrackingDbCommand : DbCommand
 {
     private readonly DbCommand _inner;

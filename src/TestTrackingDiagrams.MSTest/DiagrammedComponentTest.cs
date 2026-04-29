@@ -4,6 +4,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace TestTrackingDiagrams.MSTest;
 
+/// <summary>
+/// Abstract base class for MSTest component tests that integrates with the test tracking diagram system to capture test execution context and timing.
+/// </summary>
 public abstract class DiagrammedComponentTest
 {
     private static readonly AsyncLocal<TestContext?> CurrentContext = new();

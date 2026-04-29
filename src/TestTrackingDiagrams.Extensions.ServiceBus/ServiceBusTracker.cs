@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
 
+/// <summary>
+/// Central logging component for ServiceBus operations. Implements <see cref="ITrackingComponent" /> with auto-registration.
+/// </summary>
 public class ServiceBusTracker : ITrackingComponent
 {
     private readonly ServiceBusTrackingOptions _options;

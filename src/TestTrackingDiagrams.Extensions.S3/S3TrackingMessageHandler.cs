@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.S3;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies S3 HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly S3TrackingMessageHandlerOptions _options;

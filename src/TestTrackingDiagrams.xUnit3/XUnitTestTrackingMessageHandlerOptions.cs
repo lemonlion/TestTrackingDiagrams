@@ -1,8 +1,11 @@
-﻿using TestTrackingDiagrams.Tracking;
+using TestTrackingDiagrams.Tracking;
 using Xunit;
 
 namespace TestTrackingDiagrams.xUnit3;
 
+/// <summary>
+/// xUnit v3-specific configuration options for the test tracking message handler.
+/// </summary>
 public record XUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

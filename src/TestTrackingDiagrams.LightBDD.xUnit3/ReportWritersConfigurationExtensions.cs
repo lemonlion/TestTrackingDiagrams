@@ -5,6 +5,9 @@ using LightBDD.Framework.Configuration;
 
 namespace TestTrackingDiagrams.LightBDD.xUnit3;
 
+/// <summary>
+/// Provides xUnit v3-specific extension methods for configuring LightBDD report writers with test tracking diagram generation.
+/// </summary>
 public static class ReportWritersConfigurationExtensions
 {
     [MethodImpl(MethodImplOptions.NoInlining)]

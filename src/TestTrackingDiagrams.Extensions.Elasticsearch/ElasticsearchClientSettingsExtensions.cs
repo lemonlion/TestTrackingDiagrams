@@ -2,6 +2,9 @@ using Elastic.Clients.Elasticsearch;
 
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 
+/// <summary>
+/// Provides extension methods for configuring Elasticsearch client options to enable test tracking.
+/// </summary>
 public static class ElasticsearchClientSettingsExtensions
 {
     public static ElasticsearchClientSettings WithTestTracking(

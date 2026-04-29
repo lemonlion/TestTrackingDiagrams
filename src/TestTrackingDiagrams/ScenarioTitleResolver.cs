@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Resolves human-readable scenario and feature titles from test method names and display names.
+/// </summary>
 public static partial class ScenarioTitleResolver
 {
     /// <summary>

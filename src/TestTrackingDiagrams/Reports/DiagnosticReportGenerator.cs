@@ -4,6 +4,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Generates a standalone HTML diagnostic report containing tracking health information,
+/// warnings, and statistics from the test run.
+/// </summary>
 public static class DiagnosticReportGenerator
 {
     public static void Generate(

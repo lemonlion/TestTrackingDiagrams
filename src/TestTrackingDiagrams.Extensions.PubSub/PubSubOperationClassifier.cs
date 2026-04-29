@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
+/// <summary>
+/// Classifies Google Cloud Pub/Sub HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class PubSubOperationClassifier
 {
     public static PubSubOperationInfo Classify(

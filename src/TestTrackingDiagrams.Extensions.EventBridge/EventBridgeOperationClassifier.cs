@@ -2,6 +2,9 @@ using System.Text.Json;
 
 namespace TestTrackingDiagrams.Extensions.EventBridge;
 
+/// <summary>
+/// Classifies Amazon EventBridge HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class EventBridgeOperationClassifier
 {
     private static readonly Dictionary<string, EventBridgeOperation> TargetMapping = new(StringComparer.OrdinalIgnoreCase)

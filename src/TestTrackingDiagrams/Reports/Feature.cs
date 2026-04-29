@@ -1,5 +1,8 @@
 ﻿namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Represents a test feature (a logical group of scenarios) in the report.
+/// </summary>
 public record Feature
 {
     public required string DisplayName { get; set; }

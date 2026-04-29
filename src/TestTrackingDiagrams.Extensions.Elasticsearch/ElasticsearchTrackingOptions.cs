@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 
+/// <summary>
+/// Configuration options for Elasticsearch test tracking.
+/// </summary>
 public class ElasticsearchTrackingOptions
 {
     public string ServiceName { get; set; } = "Elasticsearch";

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Redis;
 
+/// <summary>
+/// Classified Redis operation types.
+/// </summary>
 public enum RedisOperation
 {
     Get,

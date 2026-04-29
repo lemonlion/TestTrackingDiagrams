@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace TestTrackingDiagrams.NUnit4;
 
+/// <summary>
+/// Abstract base class for NUnit tests that integrates with the test tracking diagram system to capture test execution context and timing.
+/// </summary>
 public abstract class DiagrammedComponentTest
 {
     private Stopwatch? _stopwatch;

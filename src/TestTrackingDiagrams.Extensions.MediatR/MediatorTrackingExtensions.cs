@@ -5,6 +5,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MediatR;
 
+/// <summary>
+/// Provides extension methods for enabling MediatR integration with test tracking.
+/// </summary>
 public static class MediatorTrackingExtensions
 {
     /// <summary>

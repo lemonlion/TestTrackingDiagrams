@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Bigtable;
 
+/// <summary>
+/// Classifies Google Cloud Bigtable HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class BigtableOperationClassifier
 {
     public static BigtableOperationInfo Classify(

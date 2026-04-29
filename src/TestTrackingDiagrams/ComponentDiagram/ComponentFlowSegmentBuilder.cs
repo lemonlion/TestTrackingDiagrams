@@ -6,16 +6,27 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ComponentDiagram;
 
+/// <summary>
+/// Flow data for a single component relationship, containing the aggregated span segment
+/// and per-test summaries.
+/// </summary>
 public record RelationshipFlowData(
     InternalFlowSegment AggregatedSegment,
     RelationshipTestSummary[] TestSummaries);
 
+/// <summary>
+/// Summary of a single test's contribution to a component relationship.
+/// </summary>
 public record RelationshipTestSummary(
     string TestId,
     string TestName,
     int SpanCount,
     double DurationMs);
 
+/// <summary>
+/// Builds aggregated internal-flow segment data per component relationship
+/// from the spans collected during test execution.
+/// </summary>
 public static class ComponentFlowSegmentBuilder
 {
     /// <summary>

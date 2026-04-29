@@ -6,6 +6,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.LightBDD
 {
+    /// <summary>
+    /// Provides extension methods for configuring LightBDD report writers to generate test tracking diagrams and reports.
+    /// </summary>
     public static class ReportWritersConfigurationExtensions
     {
         [MethodImpl(MethodImplOptions.NoInlining)]

@@ -3,6 +3,10 @@ using System.Net;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// A log entry queued for deferred flushing. Used with <see cref="DeferredLogFlushHandler"/>
+/// when request/response logging must be delayed until test identity is available.
+/// </summary>
 public record PendingLogEntry(
     string ServiceName,
     string CallerName,
@@ -17,6 +21,10 @@ public record PendingLogEntry(
     internal DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>
+/// Thread-safe queue for deferring request/response log entries until test identity is available.
+/// Used with <see cref="DeferredLogFlushHandler"/>.
+/// </summary>
 public static class PendingRequestResponseLogs
 {
     private static readonly ConcurrentQueue<PendingLogEntry> Pending = new();

@@ -3,6 +3,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.CloudStorage;
 
+/// <summary>
+/// A <see cref="DelegatingHandler" /> that intercepts and classifies CloudStorage HTTP operations for inclusion in test diagrams.
+/// </summary>
 public class CloudStorageTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 {
     private readonly CloudStorageTrackingMessageHandlerOptions _options;

@@ -2,6 +2,10 @@ using System.Linq.Expressions;
 
 namespace TestTrackingDiagrams;
 
+/// <summary>
+/// Ambient focus configuration for diagram notes. Allows marking specific request/response
+/// JSON fields for emphasis (bold, colour) in sequence diagrams, making key data stand out.
+/// </summary>
 public static class DiagramFocus
 {
     private static readonly AsyncLocal<FocusHolder> PendingRequestFocus = new();

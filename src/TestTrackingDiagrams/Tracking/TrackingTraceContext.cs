@@ -2,6 +2,10 @@ using System.Diagnostics;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// AsyncLocal-based ambient trace context that correlates request/response pairs
+/// produced by different tracking components within the same logical operation.
+/// </summary>
 public static class TrackingTraceContext
 {
     private static readonly AsyncLocal<Guid?> Current = new();

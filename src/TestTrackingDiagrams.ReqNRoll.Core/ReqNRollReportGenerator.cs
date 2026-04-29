@@ -2,6 +2,9 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Generates test tracking reports from collected Reqnroll scenario execution data.
+/// </summary>
 public static class ReqNRollReportGenerator
 {
     public static void CreateStandardReportsWithDiagrams(ReportConfigurationOptions options)

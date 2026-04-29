@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.StorageQueues;
 
+/// <summary>
+/// Configuration options for the Azure Storage Queues test tracking message handler.
+/// </summary>
 public record StorageQueueTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "StorageQueue";

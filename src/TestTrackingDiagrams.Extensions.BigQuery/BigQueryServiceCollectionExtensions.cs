@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.BigQuery;
 
+/// <summary>
+/// Provides extension methods for configuring Google BigQuery dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class BigQueryServiceCollectionExtensions
 {
     public static IServiceCollection AddBigQueryTestTracking(

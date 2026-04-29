@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
 
+/// <summary>
+/// Configuration options for Azure Service Bus test tracking.
+/// </summary>
 public record ServiceBusTrackingOptions
 {
     public string ServiceName { get; set; } = "ServiceBus";

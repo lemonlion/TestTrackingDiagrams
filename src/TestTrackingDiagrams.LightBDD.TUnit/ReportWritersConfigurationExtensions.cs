@@ -4,6 +4,9 @@ using LightBDD.Framework.Configuration;
 
 namespace TestTrackingDiagrams.LightBDD.TUnit;
 
+/// <summary>
+/// Provides TUnit-specific extension methods for configuring LightBDD report writers with test tracking diagram generation.
+/// </summary>
 public static class ReportWritersConfigurationExtensions
 {
     [MethodImpl(MethodImplOptions.NoInlining)]

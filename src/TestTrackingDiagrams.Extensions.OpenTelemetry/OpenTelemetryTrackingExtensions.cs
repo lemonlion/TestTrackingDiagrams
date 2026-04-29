@@ -3,6 +3,9 @@ using OpenTelemetry.Trace;
 
 namespace TestTrackingDiagrams.Extensions.OpenTelemetry;
 
+/// <summary>
+/// Provides extension methods for enabling OpenTelemetry integration with test tracking.
+/// </summary>
 public static class OpenTelemetryTrackingExtensions
 {
     /// <summary>

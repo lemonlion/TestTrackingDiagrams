@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Provides constants used by the Reqnroll integration for scenario identification and tag-based classification.
+/// </summary>
 public static class ReqNRollConstants
 {
     public const string ScenarioRuntimeIdKey = "TestTrackingDiagrams.RuntimeId";

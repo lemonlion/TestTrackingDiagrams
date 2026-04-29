@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.SQS;
 
+/// <summary>
+/// Configuration options for the Amazon SQS test tracking message handler.
+/// </summary>
 public record SqsTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "SQS";

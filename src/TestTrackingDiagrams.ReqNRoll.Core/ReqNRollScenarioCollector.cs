@@ -2,6 +2,9 @@ using System.Collections.Concurrent;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
+/// <summary>
+/// Thread-safe collector that accumulates Reqnroll scenario execution information for report generation.
+/// </summary>
 public static class ReqNRollScenarioCollector
 {
     private static readonly ConcurrentQueue<ReqNRollScenarioInfo> Scenarios = new();

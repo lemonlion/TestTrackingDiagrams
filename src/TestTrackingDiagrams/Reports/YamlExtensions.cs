@@ -1,5 +1,8 @@
 ﻿namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Extension methods for sanitising strings for safe inclusion in YAML output.
+/// </summary>
 public static class YamlExtensions
 {
     public static string SanitiseForYml(this string value)

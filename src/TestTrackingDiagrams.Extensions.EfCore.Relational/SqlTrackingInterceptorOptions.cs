@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
 
+/// <summary>
+/// Configuration options for the Entity Framework Core SQL tracking interceptor.
+/// </summary>
 public record SqlTrackingInterceptorOptions
 {
     public string ServiceName { get; set; } = "Database";

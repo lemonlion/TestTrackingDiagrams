@@ -3,6 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// Safely serialises objects to JSON for diagram note content, handling edge cases
+/// such as mock proxies, completed/pending tasks, cancellation tokens, and circular references.
+/// </summary>
 public static class TrackingSafeSerializer
 {
     private static readonly TrackingSerializerOptions DefaultOptions = new();
@@ -76,6 +80,10 @@ public static class TrackingSafeSerializer
     }
 }
 
+/// <summary>
+/// Configuration for <see cref="TrackingSafeSerializer"/> controlling serialisation depth,
+/// formatting, and filtering of special types.
+/// </summary>
 public class TrackingSerializerOptions
 {
     public int MaxDepth { get; set; } = 10;

@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace TestTrackingDiagrams.Extensions.S3;
 
+/// <summary>
+/// Classifies Amazon S3 HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static partial class S3OperationClassifier
 {
     // Path-style: https://s3.region.amazonaws.com/{bucket}/{key}

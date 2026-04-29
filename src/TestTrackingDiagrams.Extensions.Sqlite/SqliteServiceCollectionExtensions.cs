@@ -6,6 +6,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Sqlite;
 
+/// <summary>
+/// Provides extension methods for configuring SQLite dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class SqliteServiceCollectionExtensions
 {
     /// <summary>

@@ -2,6 +2,11 @@
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// A single tracked interaction (request or response) captured during test execution.
+/// Pairs of entries sharing the same <see cref="TraceId"/> and <see cref="RequestResponseId"/>
+/// form a request/response pair that produces one arrow in sequence diagrams.
+/// </summary>
 public record RequestResponseLog(
     string TestName,
     string TestId,
@@ -56,14 +61,26 @@ public record PhaseVariant(
     (string Key, string? Value)[] Headers,
     bool Skip);
 
+/// <summary>
+/// Identifies whether a tracked HTTP message is a request or a response.
+/// </summary>
 public enum RequestResponseType
 {
+    /// <summary>An outgoing or incoming request.</summary>
     Request,
+
+    /// <summary>A response to a request.</summary>
     Response
 }
 
+/// <summary>
+/// Categorises the interaction style of a tracked request/response pair.
+/// </summary>
 public enum RequestResponseMetaType
 {
+    /// <summary>A standard request/response exchange (HTTP call, database query, etc.).</summary>
     Default,
+
+    /// <summary>A fire-and-forget event (e.g. message publish, event send).</summary>
     Event
 }

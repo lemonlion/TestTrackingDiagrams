@@ -6,6 +6,9 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
 
+/// <summary>
+/// Tracking wrapper for Spanner operations.
+/// </summary>
 public class TrackingSpannerConnection : DbConnection, ITrackingComponent
 {
     private readonly DbConnection _inner;

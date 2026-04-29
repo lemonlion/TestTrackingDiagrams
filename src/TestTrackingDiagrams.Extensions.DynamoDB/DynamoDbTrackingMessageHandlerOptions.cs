@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.DynamoDB;
 
+/// <summary>
+/// Configuration options for the Amazon DynamoDB test tracking message handler.
+/// </summary>
 public record DynamoDbTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "DynamoDB";

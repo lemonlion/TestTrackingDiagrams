@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
 
+/// <summary>
+/// Classifies Azure Service Bus HTTP requests into specific operations based on URL patterns and HTTP methods.
+/// </summary>
 public static class ServiceBusOperationClassifier
 {
     public static ServiceBusOperationInfo Classify(string methodName, string? entityPath, object?[]? args)

@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Extensions.MySqlConnector;
 
+/// <summary>
+/// Provides extension methods for configuring MySQL (MySqlConnector) dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
 public static class MySqlServiceCollectionExtensions
 {
     public static IServiceCollection AddMySqlTestTracking(

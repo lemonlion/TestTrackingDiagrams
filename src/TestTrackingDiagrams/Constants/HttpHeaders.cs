@@ -1,5 +1,8 @@
-﻿namespace TestTrackingDiagrams.Constants;
+namespace TestTrackingDiagrams.Constants;
 
+/// <summary>
+/// Defines HTTP header names used by TestTrackingDiagrams for correlating requests across services.
+/// </summary>
 public static class TestTrackingHttpHeaders
 {
     public const string Ignore = "test-tracking-ignore"; 

@@ -2,6 +2,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace TestTrackingDiagrams.MSTest;
 
+/// <summary>
+/// Allows manual override of diagram generation settings for specific MSTest tests.
+/// </summary>
 public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)

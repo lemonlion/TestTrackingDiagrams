@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.CloudStorage;
 
+/// <summary>
+/// Configuration options for the Google Cloud Storage test tracking message handler.
+/// </summary>
 public record CloudStorageTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "CloudStorage";

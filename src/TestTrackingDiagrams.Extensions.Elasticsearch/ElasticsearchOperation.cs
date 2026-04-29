@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.Elasticsearch;
 
+/// <summary>
+/// Classified Elasticsearch operation types.
+/// </summary>
 public enum ElasticsearchOperation
 {
     IndexDocument,

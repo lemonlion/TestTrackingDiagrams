@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace TestTrackingDiagrams.NUnit4;
 
+/// <summary>
+/// NUnit-specific configuration options for the test tracking message handler.
+/// </summary>
 public record NUnitTestTrackingMessageHandlerOptions : TestTrackingMessageHandlerOptions
 {
     /// <summary>

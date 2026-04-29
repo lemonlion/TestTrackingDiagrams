@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.CosmosDB;
 
+/// <summary>
+/// Classified CosmosDB operation types.
+/// </summary>
 public enum CosmosOperation
 {
     Create,

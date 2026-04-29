@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.CloudStorage;
 
+/// <summary>
+/// Classified CloudStorage operation types.
+/// </summary>
 public enum CloudStorageOperation
 {
     Upload,

@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Reports;
 
+/// <summary>
+/// Generates the context menu HTML and JavaScript for diagram interactions in the report viewer.
+/// </summary>
 public static class DiagramContextMenu
 {
     public static string GetStyles() => """

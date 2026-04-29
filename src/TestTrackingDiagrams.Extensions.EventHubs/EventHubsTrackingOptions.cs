@@ -1,5 +1,8 @@
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
+/// <summary>
+/// Configuration options for Azure Event Hubs test tracking.
+/// </summary>
 public record EventHubsTrackingOptions
 {
     public string ServiceName { get; set; } = "EventHubs";

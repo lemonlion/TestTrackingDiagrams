@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestTrackingDiagrams.Tracking;
 
+/// <summary>
+/// DI extension methods for registering HTTP and message tracking in the service collection.
+/// </summary>
 public static class ServiceCollectionHelper
 {
     public static IServiceCollection TrackDependenciesForDiagrams(IServiceCollection services, TestTrackingMessageHandlerOptions options)
