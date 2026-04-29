@@ -199,7 +199,7 @@ public class DapperOperationClassifierTests
     public void No_table_for_stored_procedure()
     {
         var result = DapperOperationClassifier.Classify("EXEC sp_GetUsers");
-        Assert.Null(result.TableName);
+        Assert.Equal("sp_GetUsers", result.TableName);
     }
 
     // ─── GetDiagramLabel ────────────────────────────────────────

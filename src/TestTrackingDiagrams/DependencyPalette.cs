@@ -30,6 +30,11 @@ public static class DependencyPalette
             ["S3"] = DependencyType.Storage,
             ["CloudStorage"] = DependencyType.Storage,
             ["gRPC"] = DependencyType.HttpApi,
+            ["PostgreSQL"] = DependencyType.Database,
+            ["SqlServer"] = DependencyType.Database,
+            ["MySQL"] = DependencyType.Database,
+            ["SQLite"] = DependencyType.Database,
+            ["Oracle"] = DependencyType.Database,
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Default hex colors for each <see cref="DependencyType"/>. Palette A (Vivid).</summary>

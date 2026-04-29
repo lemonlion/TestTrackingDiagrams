@@ -1,0 +1,109 @@
+using System.Data;
+using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Data.Sqlite;
+using TestTrackingDiagrams.Sql;
+using TestTrackingDiagrams.Tracking;
+
+namespace TestTrackingDiagrams.Extensions.Sqlite;
+
+/// <summary>
+/// Decorator wrapping a <see cref="SqliteConnection"/> to intercept and track
+/// all SQL operations for test diagram generation.
+/// </summary>
+public class TrackingSqliteConnection : DbConnection, ITrackingComponent
+{
+    private readonly SqliteConnection _inner;
+    private readonly SqliteTrackingOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly SqlDiagnosticTrackerForWrapping _tracker;
+    private int _invocationCount;
+
+    public TrackingSqliteConnection(SqliteConnection inner, SqliteTrackingOptions options, IHttpContextAccessor? httpContextAccessor = null)
+    {
+        _inner = inner;
+        _options = options;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
+        _tracker = new SqlDiagnosticTrackerForWrapping(options, _httpContextAccessor);
+        TrackingComponentRegistry.Register(this);
+    }
+
+    public SqliteConnection InnerConnection => _inner;
+
+    public string ComponentName => $"TrackingSqliteConnection ({_options.ServiceName})";
+    public bool WasInvoked => _invocationCount > 0;
+    public int InvocationCount => _invocationCount;
+
+    internal void IncrementInvocationCount() => Interlocked.Increment(ref _invocationCount);
+    internal SqlDiagnosticTrackerForWrapping Tracker => _tracker;
+    internal SqliteTrackingOptions Options => _options;
+    internal IHttpContextAccessor? HttpContextAccessor => _httpContextAccessor;
+
+    [AllowNull]
+    public override string ConnectionString
+    {
+        get => _inner.ConnectionString!;
+        set => _inner.ConnectionString = value;
+    }
+
+    public override string Database => _inner.Database;
+    public override string DataSource => _inner.DataSource!;
+    public override string ServerVersion => _inner.ServerVersion;
+    public override ConnectionState State => _inner.State;
+
+    public override void Open() => _inner.Open();
+    public override Task OpenAsync(CancellationToken cancellationToken) => _inner.OpenAsync(cancellationToken);
+    public override void Close() => _inner.Close();
+    public override Task CloseAsync() => _inner.CloseAsync();
+    public override void ChangeDatabase(string databaseName) => _inner.ChangeDatabase(databaseName);
+
+    protected override DbCommand CreateDbCommand()
+    {
+        var innerCommand = _inner.CreateCommand();
+        return new TrackingSqliteCommand(innerCommand, this);
+    }
+
+    protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+    {
+        var innerTx = _inner.BeginTransaction(isolationLevel);
+        return new TrackingSqliteTransaction(innerTx, this);
+    }
+
+    protected override async ValueTask<DbTransaction> BeginDbTransactionAsync(
+        IsolationLevel isolationLevel, CancellationToken cancellationToken)
+    {
+        var innerTx = await _inner.BeginTransactionAsync(isolationLevel, cancellationToken);
+        return new TrackingSqliteTransaction(innerTx, this);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _inner.Dispose();
+        base.Dispose(disposing);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await _inner.DisposeAsync();
+        await base.DisposeAsync();
+    }
+}
+
+/// <summary>
+/// Wrapper exposing LogRequest/LogResponse for use by TrackingSqliteCommand.
+/// </summary>
+internal sealed class SqlDiagnosticTrackerForWrapping : SqlDiagnosticTracker
+{
+    public SqlDiagnosticTrackerForWrapping(SqlTrackingOptionsBase options, IHttpContextAccessor? httpContextAccessor = null)
+        : base(options, httpContextAccessor) { }
+
+    public override string ComponentName => "SqlDiagnosticTrackerForWrapping";
+
+    public (Guid TraceId, Guid RequestResponseId)? DoLogRequest(string? commandText, string? dataSource, string? database,
+        CommandType commandType = CommandType.Text, string? parameters = null)
+        => LogRequest(commandText, dataSource, database, commandType, parameters);
+
+    public void DoLogResponse(Guid traceId, Guid requestResponseId, int? rowsAffected = null, Exception? exception = null)
+        => LogResponse(traceId, requestResponseId, rowsAffected, exception);
+}

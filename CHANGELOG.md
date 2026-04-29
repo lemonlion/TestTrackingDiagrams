@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.0] - 2026-04-28
+
+### Added
+- **Direct database tracking extensions for 5 popular databases**: New NuGet packages providing first-class SQL operation tracking without depending on EF Core or Dapper:
+  - **`TestTrackingDiagrams.Extensions.Npgsql`** — PostgreSQL tracking via Npgsql's built-in `DiagnosticSource` instrumentation. Subscribes to the `"Npgsql"` diagnostic listener and correlates `BeforeExecuteCommand`/`AfterExecuteCommand` events.
+  - **`TestTrackingDiagrams.Extensions.SqlClient`** — SQL Server tracking via `Microsoft.Data.SqlClient`'s `DiagnosticSource`. Subscribes to `"SqlClientDiagnosticListener"` and handles both `WriteCommand*` and legacy `Execute*` event patterns.
+  - **`TestTrackingDiagrams.Extensions.MySqlConnector`** — MySQL tracking via MySqlConnector's `DiagnosticSource`. Subscribes to the `"MySqlConnector"` diagnostic listener.
+  - **`TestTrackingDiagrams.Extensions.Sqlite`** — SQLite tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Intercepts all 6 execution paths (ExecuteReader/NonQuery/Scalar × sync/async), plus transaction begin/commit/rollback.
+  - **`TestTrackingDiagrams.Extensions.Oracle`** — Oracle tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Same 6-method interception + transaction tracking as SQLite.
+- **`UnifiedSqlClassifier`** in core package: Shared SQL operation parser supporting all major dialects (SQL Server brackets, PostgreSQL/MySQL quotes, MySQL backticks, Spanner hints). Classifies 16 operation types including DDL, upserts (5 patterns), stored procedures, and transactions.
+- **`SqlDiagnosticTracker` base class** in core package: Abstract tracker with command correlation (ConcurrentDictionary-based), phase-aware tracking, test info resolution, and variant attachment. Shared by all 5 database extensions.
+- **`SqlTrackingOptionsBase`** in core package: Common configuration for all SQL trackers (service name, verbosity, parameter logging, phase-aware setup/action tracking, excluded operations).
+- **DI integration**: Each DiagnosticSource extension provides `AddXxxTestTracking(options?)` for dependency injection. Each wrapping extension provides `DecorateAll<DbConnection>` with type-check guards. All extensions also support static `EnsureTracking()` or `connection.WithTestTracking()` for non-DI usage.
+- **`DependencyPalette`**: Added category mappings for `"PostgreSQL"`, `"SqlServer"`, `"MySQL"`, `"SQLite"`, and `"Oracle"` — all resolve to the `Database` participant shape.
+
+### Changed
+- **`SqlOperationClassifier` (EfCore.Relational)**: Refactored to delegate to `UnifiedSqlClassifier` internally. Same public API, no breaking changes. Benefits from unified improvements (e.g., CALL proc name parenthesis stripping).
+- **`DapperOperationClassifier`**: Refactored to delegate to `UnifiedSqlClassifier` internally. Same public API, no breaking changes. Now correctly classifies `COMMIT` and `ROLLBACK` operations (previously returned `Other`). Stored procedures invoked via `EXEC` now populate `TableName` with the proc name.
+- **`UnifiedSqlClassifier.ExtractProcName`**: Now strips parenthesised arguments from CALL syntax (e.g., `CALL my_proc(1)` → `my_proc`).
+
 ## [2.27.20] - 2026-04-28
 
 ### Fixed
