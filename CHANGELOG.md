@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.4] - 2026-04-30
+
+### Changed
+- **Selenium DiagramNoteTests split into 4 parallel classes**: The monolithic `DiagramNoteTests` class (59 tests) has been split into `DiagramNoteBasicTests` (16 tests), `DiagramNoteLongNoteTests` (15 tests), `DiagramNotePartitionTests` (12 tests), and `DiagramNoteSplitTests` (16 tests), all extending a shared `DiagramNoteTestBase` base class. Each class gets its own `IClassFixture<ChromeFixture>` instance, enabling xUnit to run them in parallel with 4 Chrome browsers instead of 1. Reduces Selenium wall-clock time from ~2m37s to ~37s locally.
+
 ## [2.28.3] - 2026-04-30
 
 ### Fixed
