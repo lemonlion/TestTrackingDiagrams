@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.3] - 2026-04-30
+
+### Fixed
+- **Selenium `StaleElementReferenceException` in DiagramNoteTests**: `GetSvgHtml()`, `DoubleClickFirstNoteAndWait()`, `ClickNoteButton()`, `ClickDownArrowAndWait()`, and `Long_note_up_arrow_click_goes_to_truncated` now use retry-based `WebDriverWait` loops that catch `StaleElementReferenceException` when the SVG DOM is replaced between element lookup and attribute/interaction. `ClickNoteButton()` and `ClickDownArrowAndWait()` also use `HoverNoteRect(0)` (existing retry helper) instead of raw `FindElement` + `MoveToElement`, and JS-dispatched clicks instead of native `.Click()` to avoid SVG path element interception.
+
 ## [2.28.2] - 2026-04-30
 
 ### Added

@@ -428,9 +428,19 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
         }) ?? throw new TimeoutException("SVG did not re-render with note toggle icons");
     }
 
-    private string GetSvgHtml() =>
-        _driver.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"))
-               .GetAttribute("outerHTML") ?? "";
+    private string GetSvgHtml()
+    {
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        return wait.Until(d =>
+        {
+            try
+            {
+                return d.FindElement(By.CssSelector("[data-diagram-type='plantuml'] svg"))
+                        .GetAttribute("outerHTML") ?? "";
+            }
+            catch (StaleElementReferenceException) { return null; }
+        }) ?? "";
+    }
 
     private void SetScenarioState(string state)
     {
@@ -448,53 +458,90 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
     private void DoubleClickFirstNoteAndWait()
     {
         var htmlBefore = GetSvgHtml();
-        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
-        // Use JS to dispatch dblclick directly on hover rect — Selenium's Actions.DoubleClick
-        // can miss the hover rect when SVG text elements rendered on top intercept the event.
-        ((IJavaScriptExecutor)_driver).ExecuteScript(
-            "arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));",
-            hoverRect);
+        // Retry hoverRect lookup — SVG may still be replacing after a state change.
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        wait.Until(d =>
+        {
+            try
+            {
+                var hoverRect = d.FindElement(By.CssSelector(".note-hover-rect"));
+                ((IJavaScriptExecutor)_driver).ExecuteScript(
+                    "arguments[0].dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));",
+                    hoverRect);
+                return true;
+            }
+            catch (StaleElementReferenceException) { return false; }
+        });
         WaitForReRender(htmlBefore);
     }
 
     private void ClickNoteButton(string cssSelector)
     {
         var htmlBefore = GetSvgHtml();
-        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
-        new Actions(_driver).MoveToElement(hoverRect).Perform();
+        HoverNoteRect(0);
 
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
         wait.Until(d =>
         {
-            var btn = d.FindElement(By.CssSelector(cssSelector));
-            return btn.GetCssValue("opacity") != "0";
+            try
+            {
+                var btn = d.FindElement(By.CssSelector(cssSelector));
+                return btn.GetCssValue("opacity") != "0";
+            }
+            catch (StaleElementReferenceException) { return false; }
         });
 
-        var btn = _driver.FindElement(By.CssSelector(cssSelector + " rect"));
-        btn.Click();
+        // Use JS-dispatched click — native .Click() can be intercepted by SVG path elements.
+        wait.Until(d =>
+        {
+            try
+            {
+                var btn = d.FindElement(By.CssSelector(cssSelector + " rect"));
+                ((IJavaScriptExecutor)_driver).ExecuteScript(
+                    "arguments[0].dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));",
+                    btn);
+                return true;
+            }
+            catch (StaleElementReferenceException) { return false; }
+        });
         WaitForReRender(htmlBefore);
     }
 
     private void ClickDownArrowAndWait()
     {
         var htmlBefore = GetSvgHtml();
-        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
-        new Actions(_driver).MoveToElement(hoverRect).Perform();
+        HoverNoteRect(0);
 
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
         wait.Until(d =>
         {
-            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
-            return icons.Any(i =>
+            try
             {
-                var texts = i.FindElements(By.TagName("text"));
-                return texts.Any(t => t.Text.Contains("\u25BC")) && i.GetCssValue("opacity") != "0";
-            });
+                var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+                return icons.Any(i =>
+                {
+                    var texts = i.FindElements(By.TagName("text"));
+                    return texts.Any(t => t.Text.Contains("\u25BC")) && i.GetCssValue("opacity") != "0";
+                });
+            }
+            catch (StaleElementReferenceException) { return false; }
         });
 
-        var downArrowGroup = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
-            .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25BC")));
-        downArrowGroup.FindElement(By.TagName("rect")).Click();
+        // Use JS-dispatched click — native .Click() can be intercepted by SVG path elements.
+        wait.Until(d =>
+        {
+            try
+            {
+                var downArrowGroup = d.FindElements(By.CssSelector(".note-toggle-icon"))
+                    .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25BC")));
+                var rect = downArrowGroup.FindElement(By.TagName("rect"));
+                ((IJavaScriptExecutor)_driver).ExecuteScript(
+                    "arguments[0].dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));",
+                    rect);
+                return true;
+            }
+            catch (StaleElementReferenceException) { return false; }
+        });
         WaitForReRender(htmlBefore);
     }
 
@@ -691,21 +738,36 @@ public class DiagramNoteTests : IClassFixture<ChromeFixture>, IDisposable
         SetScenarioState("expanded");
 
         var htmlBefore = GetSvgHtml();
-        var hoverRect = _driver.FindElement(By.CssSelector(".note-hover-rect"));
-        new Actions(_driver).MoveToElement(hoverRect).Perform();
+        HoverNoteRect(0);
 
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
         wait.Until(d =>
         {
-            var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
-            return icons.Any(i =>
-                i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
-                && i.GetCssValue("opacity") != "0");
+            try
+            {
+                var icons = d.FindElements(By.CssSelector(".note-toggle-icon"));
+                return icons.Any(i =>
+                    i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2"))
+                    && i.GetCssValue("opacity") != "0");
+            }
+            catch (StaleElementReferenceException) { return false; }
         });
 
-        var upArrowGroup = _driver.FindElements(By.CssSelector(".note-toggle-icon"))
-            .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")));
-        upArrowGroup.FindElement(By.TagName("rect")).Click();
+        // Use JS-dispatched click — native .Click() can be intercepted by SVG path elements.
+        wait.Until(d =>
+        {
+            try
+            {
+                var upArrowGroup = d.FindElements(By.CssSelector(".note-toggle-icon"))
+                    .First(i => i.FindElements(By.TagName("text")).Any(t => t.Text.Contains("\u25B2")));
+                var rect = upArrowGroup.FindElement(By.TagName("rect"));
+                ((IJavaScriptExecutor)_driver).ExecuteScript(
+                    "arguments[0].dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));",
+                    rect);
+                return true;
+            }
+            catch (StaleElementReferenceException) { return false; }
+        });
         WaitForReRender(htmlBefore);
 
         // After clicking ▲, note went to truncated — ▲ should disappear
