@@ -13,7 +13,7 @@ public class KafkaTrackingInterceptorTests : IDisposable
     private KafkaTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Kafka",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Interceptor Test", _testId),
     };
 

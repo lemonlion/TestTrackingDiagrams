@@ -22,7 +22,7 @@ public class TrackingDbCommandTests : IDisposable
         {
             CurrentTestInfoFetcher = () => ("TestMethod", _testId),
             ServiceName = "TestDB",
-            CallingServiceName = "TestCaller"
+            CallerName = "TestCaller"
         };
 
         _trackingConnection = new TrackingDbConnection(_fakeConnection, _options);

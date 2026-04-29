@@ -10,7 +10,13 @@ namespace TestTrackingDiagrams.Tracking;
 public record TrackingProxyOptions
 {
     public required string ServiceName { get; init; }
-    public string CallingServiceName { get; init; } = "Caller";
+
+    /// <summary>The participant name for the calling service in diagrams.</summary>
+    public string CallerName { get; init; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; init => CallerName = value; }
     public string? ActivitySourceName { get; init; }
     public string UriScheme { get; init; } = "mock";
     public TrackingSerializerOptions? SerializerOptions { get; init; }
@@ -170,7 +176,7 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
         if (_options.LogMode == TrackingLogMode.Deferred)
         {
             PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
-                _options.ServiceName, _options.CallingServiceName,
+                _options.ServiceName, _options.CallerName,
                 methodName, requestContent, responseContent, uri, statusCode,
                 activity?.TraceId.ToString(), activity?.SpanId.ToString()));
             return;
@@ -184,7 +190,7 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
             (OneOf<HttpMethod, string>)methodName,
             uri,
             _options.ServiceName,
-            _options.CallingServiceName,
+            _options.CallerName,
             requestContent,
             responseContent,
             statusCode,

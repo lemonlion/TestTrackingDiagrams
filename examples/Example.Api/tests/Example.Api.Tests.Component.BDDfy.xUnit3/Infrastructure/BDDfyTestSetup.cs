@@ -43,7 +43,7 @@ public class BDDfyTestSetup : IAsyncLifetime
             {
                 services.TrackDependenciesForDiagrams(new BDDfyTestTrackingMessageHandlerOptions
                 {
-                    CallingServiceName = ServiceUnderTestName,
+                    CallerName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(_settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
                 services.TrackMessagesForDiagrams(ServiceUnderTestName);

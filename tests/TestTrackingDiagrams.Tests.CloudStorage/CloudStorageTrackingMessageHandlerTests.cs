@@ -43,7 +43,7 @@ public class CloudStorageTrackingMessageHandlerTests : IDisposable
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My Test", _testId),
     };

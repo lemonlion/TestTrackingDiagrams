@@ -82,7 +82,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             requestBody,
             uri,
             [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
@@ -107,7 +107,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             responseBody,
             uri,
             [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value

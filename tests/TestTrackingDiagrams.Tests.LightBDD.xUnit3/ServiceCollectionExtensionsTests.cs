@@ -13,7 +13,7 @@ public class ServiceCollectionExtensionsTests
         var options = new LightBddTestTrackingMessageHandlerOptions
         {
             PortsToServiceNames = new Dictionary<int, string> { { 5001, "TestService" } },
-            CallingServiceName = "Caller"
+            CallerName = "Caller"
         };
 
         var result = services.TrackDependenciesForDiagrams(options);
@@ -28,7 +28,7 @@ public class ServiceCollectionExtensionsTests
         var options = new LightBddTestTrackingMessageHandlerOptions
         {
             PortsToServiceNames = new Dictionary<int, string> { { 5001, "TestService" } },
-            CallingServiceName = "Caller"
+            CallerName = "Caller"
         };
 
         services.TrackDependenciesForDiagrams(options);

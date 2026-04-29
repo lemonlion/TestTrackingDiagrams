@@ -20,7 +20,7 @@ public class BigtableTrackerTests
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My Bigtable Test", _testId),
     };

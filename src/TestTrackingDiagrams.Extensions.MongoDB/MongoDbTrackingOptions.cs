@@ -3,7 +3,14 @@ namespace TestTrackingDiagrams.Extensions.MongoDB;
 public record MongoDbTrackingOptions
 {
     public string ServiceName { get; set; } = "MongoDB";
-    public string CallingServiceName { get; set; } = "Caller";
+
+    /// <summary>The participant name for the calling service in diagrams.</summary>
+    public string CallerName { get; set; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; set => CallerName = value; }
+
     public MongoDbTrackingVerbosity Verbosity { get; set; } = MongoDbTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }

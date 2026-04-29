@@ -66,7 +66,7 @@ public class KafkaServiceCollectionExtensionsTests
         services.AddKafkaProducerTestTracking<string, string>(options =>
         {
             options.ServiceName = "CustomKafka";
-            options.CallingServiceName = "MySvc";
+            options.CallerName = "MySvc";
             options.Verbosity = KafkaTrackingVerbosity.Summarised;
         });
 

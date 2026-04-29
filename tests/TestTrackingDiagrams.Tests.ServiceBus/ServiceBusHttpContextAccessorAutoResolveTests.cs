@@ -22,7 +22,7 @@ public class ServiceBusHttpContextAccessorAutoResolveTests : IDisposable
     private static ServiceBusTrackingOptions MakeOptions() => new()
     {
         ServiceName = "TestBus",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Test", Guid.NewGuid().ToString()),
     };
 

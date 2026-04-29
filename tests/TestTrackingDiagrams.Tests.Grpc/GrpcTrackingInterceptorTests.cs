@@ -26,7 +26,7 @@ public class GrpcTrackingInterceptorTests
         bool useProtoServiceName = false) => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My gRPC Test", _testId),
         UseProtoServiceNameInDiagram = useProtoServiceName
@@ -768,7 +768,7 @@ public class GrpcTrackingInterceptorTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "GrpcService",
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             HttpContextAccessor = new TestHttpContextAccessor(httpContext),
             CurrentTestInfoFetcher = null // no delegate — must resolve from HTTP context
         };
@@ -802,7 +802,7 @@ public class GrpcTrackingInterceptorTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "GrpcService",
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             HttpContextAccessor = new TestHttpContextAccessor(httpContext),
             CurrentTestInfoFetcher = () => ("From Delegate", _testId)
         };
@@ -833,7 +833,7 @@ public class GrpcTrackingInterceptorTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "GrpcService",
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             HttpContextAccessor = new TestHttpContextAccessor(httpContext),
             CurrentTestInfoFetcher = () => ("Delegate Fallback", _testId)
         };
@@ -866,7 +866,7 @@ public class GrpcTrackingInterceptorTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "GrpcService",
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             HttpContextAccessor = new TestHttpContextAccessor(httpContext),
             CurrentTestInfoFetcher = null
         };
@@ -891,7 +891,7 @@ public class GrpcTrackingInterceptorTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "GrpcService",
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             HttpContextAccessor = new TestHttpContextAccessor(httpContext),
             CurrentTestInfoFetcher = null
         };

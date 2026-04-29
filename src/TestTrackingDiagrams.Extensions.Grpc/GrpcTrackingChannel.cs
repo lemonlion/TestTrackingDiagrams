@@ -20,7 +20,7 @@ public static class GrpcTrackingChannel
     /// var invoker = GrpcTrackingChannel.Create(
     ///     factory.Server.CreateHandler(),
     ///     factory.Server.BaseAddress,
-    ///     new GrpcTrackingOptions { ServiceName = "My API", CallingServiceName = "Test" });
+    ///     new GrpcTrackingOptions { ServiceName = "My API", CallerName = "Test" });
     /// var client = new MyService.MyServiceClient(invoker);
     /// </code>
     /// </summary>

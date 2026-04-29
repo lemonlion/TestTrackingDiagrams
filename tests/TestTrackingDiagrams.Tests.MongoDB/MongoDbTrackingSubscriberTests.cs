@@ -27,7 +27,7 @@ public class MongoDbTrackingSubscriberTests : IDisposable
     private MongoDbTrackingOptions MakeOptions(MongoDbTrackingVerbosity verbosity = MongoDbTrackingVerbosity.Detailed) => new()
     {
         ServiceName = "MongoDB",
-        CallingServiceName = "MyService",
+        CallerName = "MyService",
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My Test", _testId),
     };

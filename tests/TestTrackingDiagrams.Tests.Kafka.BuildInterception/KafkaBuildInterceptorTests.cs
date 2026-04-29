@@ -14,7 +14,7 @@ public class KafkaBuildInterceptorTests : IDisposable
     private KafkaTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Kafka",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("BuildInterception Test", _testId),
     };
 
@@ -98,7 +98,7 @@ public class KafkaBuildInterceptorTests : IDisposable
         KafkaBuildInterceptor.EnableTracking<string, string>(opts =>
         {
             opts.ServiceName = "Kafka";
-            opts.CallingServiceName = "TestCaller";
+            opts.CallerName = "TestCaller";
             opts.CurrentTestInfoFetcher = () => ("BuildInterception Test", _testId);
         });
 

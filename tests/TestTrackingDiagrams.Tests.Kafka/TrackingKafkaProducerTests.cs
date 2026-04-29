@@ -18,7 +18,7 @@ public class TrackingKafkaProducerTests
     private KafkaTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Kafka",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = KafkaTrackingVerbosity.Detailed,
         CurrentTestInfoFetcher = () => ("My Kafka Test", _testId),
     };

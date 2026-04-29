@@ -18,7 +18,7 @@ public class TrackingKafkaProducerFactoryTests
     private KafkaTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Kafka",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Factory Test", _testId),
     };
 

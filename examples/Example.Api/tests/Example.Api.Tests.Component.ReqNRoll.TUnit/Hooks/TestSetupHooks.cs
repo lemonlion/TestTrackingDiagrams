@@ -38,7 +38,7 @@ public class TestSetupHooks
             {
                 services.TrackDependenciesForDiagrams(new ReqNRollTestTrackingMessageHandlerOptions
                 {
-                    CallingServiceName = ServiceUnderTestName,
+                    CallerName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(_settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
                 services.TrackMessagesForDiagrams(ServiceUnderTestName);

@@ -29,7 +29,7 @@ public class PubSubServiceCollectionExtensionsTests
         services.AddPubSubTestTracking(options =>
         {
             options.ServiceName = "CustomPubSub";
-            options.CallingServiceName = "MySvc";
+            options.CallerName = "MySvc";
             options.Verbosity = PubSubTrackingVerbosity.Summarised;
         });
 

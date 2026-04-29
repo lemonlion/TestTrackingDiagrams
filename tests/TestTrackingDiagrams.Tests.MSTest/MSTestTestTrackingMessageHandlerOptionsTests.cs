@@ -24,14 +24,14 @@ public class MSTestTestTrackingMessageHandlerOptionsTests
     }
 
     [TestMethod]
-    public void ShouldAllowSettingCallingServiceName()
+    public void ShouldAllowSettingCallerName()
     {
         var options = new MSTestTestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "My API"
+            CallerName = "My API"
         };
 
-        Assert.AreEqual("My API", options.CallingServiceName);
+        Assert.AreEqual("My API", options.CallerName);
     }
 
     [TestMethod]

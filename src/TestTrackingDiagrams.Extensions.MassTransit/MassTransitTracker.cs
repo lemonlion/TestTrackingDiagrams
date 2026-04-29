@@ -100,7 +100,7 @@ public class MassTransitTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, body, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -117,7 +117,7 @@ public class MassTransitTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -150,7 +150,7 @@ public class MassTransitTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, body, uri, [],
-            _options.CallingServiceName, _options.ServiceName,
+            _options.CallerName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -167,7 +167,7 @@ public class MassTransitTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
-            _options.CallingServiceName, _options.ServiceName,
+            _options.CallerName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -192,8 +192,8 @@ public class MassTransitTracker : ITrackingComponent
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
-        var svc = outgoing ? _options.ServiceName : _options.CallingServiceName;
-        var caller = outgoing ? _options.CallingServiceName : _options.ServiceName;
+        var svc = outgoing ? _options.ServiceName : _options.CallerName;
+        var caller = outgoing ? _options.CallerName : _options.ServiceName;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,

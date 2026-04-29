@@ -16,7 +16,7 @@ namespace TestTrackingDiagrams.Tracking;
 public class MessageTracker : ITrackingComponent
 {
     private readonly IHttpContextAccessor? _httpContextAccessor;
-    private readonly string _callingServiceName;
+    private readonly string _callerName;
     private readonly string _serviceName;
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly Func<(string Name, string Id)>? _testInfoFallback;
@@ -47,7 +47,7 @@ public class MessageTracker : ITrackingComponent
     public MessageTracker(MessageTrackerOptions options, IHttpContextAccessor? httpContextAccessor)
     {
         _httpContextAccessor = options.UseHttpContextCorrelation ? httpContextAccessor : null;
-        _callingServiceName = options.CallingServiceName;
+        _callerName = options.CallerName;
         _serviceName = options.ServiceName;
         _serializerOptions = options.SerializerOptions ?? new JsonSerializerOptions();
         _testInfoFallback = options.CurrentTestInfoFetcher;
@@ -74,7 +74,7 @@ public class MessageTracker : ITrackingComponent
         Func<(string Name, string Id)>? testInfoFallback = null)
     {
         _httpContextAccessor = httpContextAccessor;
-        _callingServiceName = callingServiceName;
+        _callerName = callingServiceName;
         _serviceName = "MessageBus";
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions();
         _testInfoFallback = testInfoFallback;
@@ -126,7 +126,7 @@ public class MessageTracker : ITrackingComponent
             destinationUri,
             [],
             destinationName,
-            _callingServiceName,
+            _callerName,
             RequestResponseType.Request,
             testInfo.Value.TraceId,
             requestResponseId,
@@ -183,7 +183,7 @@ public class MessageTracker : ITrackingComponent
             destinationUri,
             [],
             destinationName,
-            _callingServiceName,
+            _callerName,
             RequestResponseType.Response,
             testInfo.Value.TraceId,
             requestResponseId,
@@ -228,7 +228,7 @@ public class MessageTracker : ITrackingComponent
 
     /// <summary>
     /// Tracks consumption of an event from a message broker as a delivery + ack pair.
-    /// Arrow direction: <c>CallingServiceName</c> → <paramref name="consumerName"/> (broker → consumer).
+    /// Arrow direction: <c>CallerName</c> → <paramref name="consumerName"/> (broker → consumer).
     /// Payload appears on the delivery arrow; response uses the <paramref name="ackLabel"/>.
     /// </summary>
     /// <param name="protocol">Protocol label shown in the diagram (e.g. "Consume (Kafka)", "Consume (Pub/Sub)").</param>

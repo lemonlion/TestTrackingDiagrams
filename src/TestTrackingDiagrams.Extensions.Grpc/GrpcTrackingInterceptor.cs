@@ -276,7 +276,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
             label, content, uri,
-            headers, serviceName, _options.CallingServiceName,
+            headers, serviceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             DependencyCategory: "gRPC")
         {
@@ -302,7 +302,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Name, testInfo.Id,
             label, content, uri,
-            [], serviceName, _options.CallingServiceName,
+            [], serviceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             statusCode,
             DependencyCategory: "gRPC")

@@ -20,7 +20,7 @@ public class MassTransitTrackerTests
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My MassTransit Test", _testId),
     };

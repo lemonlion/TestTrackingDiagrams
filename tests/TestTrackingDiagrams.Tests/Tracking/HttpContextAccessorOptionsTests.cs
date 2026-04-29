@@ -11,7 +11,7 @@ public class HttpContextAccessorOptionsTests
         var accessor = new TestHttpContextAccessor(new DefaultHttpContext());
         var options = new TestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "Test",
+            CallerName = "Test",
             HttpContextAccessor = accessor
         };
 
@@ -28,7 +28,7 @@ public class HttpContextAccessorOptionsTests
         var explicitAccessor = new TestHttpContextAccessor(new DefaultHttpContext());
         var options = new TestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "Test",
+            CallerName = "Test",
             HttpContextAccessor = optionsAccessor
         };
 

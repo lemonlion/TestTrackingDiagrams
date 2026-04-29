@@ -107,7 +107,7 @@ public class KafkaTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, body, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -123,7 +123,7 @@ public class KafkaTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -154,7 +154,7 @@ public class KafkaTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, body, uri, [],
-            _options.CallingServiceName, _options.ServiceName,
+            _options.CallerName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -170,7 +170,7 @@ public class KafkaTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, null, uri, [],
-            _options.CallingServiceName, _options.ServiceName,
+            _options.CallerName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")

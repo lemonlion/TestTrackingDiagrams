@@ -20,7 +20,7 @@ public class PubSubTrackerTests
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My PubSub Test", _testId),
     };

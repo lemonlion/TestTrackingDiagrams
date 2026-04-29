@@ -50,7 +50,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         string callerName = "TestCaller",
         string? fixedServiceName = "TargetService") => new()
     {
-        CallingServiceName = callerName,
+        CallerName = callerName,
         FixedNameForReceivingService = fixedServiceName,
         CurrentTestInfoFetcher = () => ("My Test", _testId),
     };
@@ -173,7 +173,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Fetched Test Name", _testId),
         };
         using var invoker = CreateInvoker(options);
@@ -205,7 +205,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             PortsToServiceNames = new Dictionary<int, string> { { 5000, "MappedService" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options);
@@ -222,7 +222,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             PortsToServiceNames = new Dictionary<int, string> { { 9999, "Other" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options);
@@ -239,7 +239,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             ClientNamesToServiceNames = new Dictionary<string, string> { { "AccountClient", "Account Service" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options, clientName: "AccountClient");
@@ -257,7 +257,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             ClientNamesToServiceNames = new Dictionary<string, string> { { "PaymentClient", "Payment Service" } },
             PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port-Based Service" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options, clientName: "PaymentClient");
@@ -275,7 +275,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             ClientNamesToServiceNames = new Dictionary<string, string> { { "OtherClient", "Other" } },
             PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port Service" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options, clientName: "UnknownClient");
@@ -293,7 +293,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         {
             FixedNameForReceivingService = "Fixed Service",
             ClientNamesToServiceNames = new Dictionary<string, string> { { "MyClient", "Client Service" } },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
         using var invoker = CreateInvoker(options, clientName: "MyClient");
@@ -360,7 +360,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test Name Here", "id-42"),
         };
         using var invoker = CreateInvoker(options);
@@ -377,7 +377,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "my-test-id-99"),
         };
         using var invoker = CreateInvoker(options);
@@ -555,7 +555,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Fetcher Test", _testId),
         };
         using var invoker = CreateInvoker(options, httpContextAccessor: null);
@@ -580,7 +580,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "id-1"),
             HeadersToForward = ["X-Correlation-Id"],
         };
@@ -601,7 +601,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "id-1"),
             HeadersToForward = ["X-Missing-Header"],
         };
@@ -618,7 +618,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "id-1"),
             HeadersToForward = ["X-Forward-Me"],
         };
@@ -639,7 +639,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "id-1"),
             HeadersToForward = [],
         };
@@ -736,7 +736,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
                 { 5001, "ServiceA" },
                 { 5002, "ServiceB" },
             },
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
         };
 
@@ -794,7 +794,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", "id-1"),
             HeadersToForward = ["X-Header-A", "X-Header-B"],
         };
@@ -815,7 +815,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Test", _testId),
             HeadersToForward = ["X-Something"],
         };
@@ -944,7 +944,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => ("Fetcher Name", _testId),
         };
         using var invoker = CreateInvoker(options, accessor);
@@ -976,7 +976,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
 
     private TestTrackingMessageHandlerOptions OptionsWithStepFetcher(Func<string?> stepTypeFetcher) => new()
     {
-        CallingServiceName = "Caller",
+        CallerName = "Caller",
         FixedNameForReceivingService = "Svc",
         CurrentTestInfoFetcher = () => ("Test", _testId),
         CurrentStepTypeFetcher = stepTypeFetcher,
@@ -1238,7 +1238,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var stepFetcherCalled = false;
         var options = new TestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             FixedNameForReceivingService = "Svc",
             CurrentTestInfoFetcher = () => ("Test", _testId),
             CurrentStepTypeFetcher = () =>
@@ -1263,7 +1263,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     {
         var options = new TestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             FixedNameForReceivingService = "Svc",
             CurrentTestInfoFetcher = () => ("Test", _testId),
             CurrentStepTypeFetcher = () => throw new InvalidOperationException("Not in scenario context"),
@@ -1528,7 +1528,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => throw new InvalidOperationException("No test context"),
         };
         using var invoker = CreateInvoker(options);
@@ -1550,7 +1550,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var options = new TestTrackingMessageHandlerOptions
         {
             FixedNameForReceivingService = "Svc",
-            CallingServiceName = "Caller",
+            CallerName = "Caller",
             CurrentTestInfoFetcher = () => throw new InvalidOperationException("No test context"),
         };
         using var invoker = CreateInvoker(options);

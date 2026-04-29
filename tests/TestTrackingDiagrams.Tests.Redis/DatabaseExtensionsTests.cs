@@ -50,7 +50,7 @@ public class RedisTrackingDatabaseProxyTests : IDisposable
         RedisTrackingVerbosity verbosity = RedisTrackingVerbosity.Detailed) => new()
     {
         ServiceName = "Redis",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My Test", _testId),
     };

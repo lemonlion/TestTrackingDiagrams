@@ -78,7 +78,7 @@ public class DapperServiceCollectionExtensionsTests : IDisposable
         services.AddDapperTestTracking(options =>
         {
             options.ServiceName = "CustomDb";
-            options.CallingServiceName = "MySvc";
+            options.CallerName = "MySvc";
             options.Verbosity = DapperTrackingVerbosity.Summarised;
         });
 

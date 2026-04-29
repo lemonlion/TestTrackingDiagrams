@@ -27,7 +27,7 @@ public class TrackingServiceBusClientTests : IDisposable
     private static ServiceBusTrackingOptions MakeOptions() => new()
     {
         ServiceName = "TestBus",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Test", Guid.NewGuid().ToString()),
     };
 

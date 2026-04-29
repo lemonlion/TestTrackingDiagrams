@@ -265,7 +265,7 @@ public class MessageTrackerTests
     {
         return new MessageTracker(options ?? new MessageTrackerOptions
         {
-            CallingServiceName = "TestCaller",
+            CallerName = "TestCaller",
             CurrentTestInfoFetcher = () => ("Options Test", "opts-id-1")
         });
     }
@@ -286,7 +286,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "MySvc",
+            CallerName = "MySvc",
             CurrentTestInfoFetcher = () => ("OptionTest", testId)
         });
 
@@ -303,7 +303,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "MySvc",
+            CallerName = "MySvc",
             CurrentTestInfoFetcher = null
         });
 
@@ -313,11 +313,11 @@ public class MessageTrackerTests
     }
 
     [Fact]
-    public void Options_constructor_uses_CallingServiceName()
+    public void Options_constructor_uses_CallerName()
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "BillingService",
+            CallerName = "BillingService",
             CurrentTestInfoFetcher = () => ("T", "id")
         });
 
@@ -437,7 +437,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             Verbosity = MessageTrackerVerbosity.Summarised,
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -454,7 +454,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             Verbosity = MessageTrackerVerbosity.Summarised,
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -472,7 +472,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             Verbosity = MessageTrackerVerbosity.Detailed,
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -489,7 +489,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             Verbosity = MessageTrackerVerbosity.Raw,
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -538,7 +538,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 
@@ -557,7 +557,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 
@@ -586,7 +586,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             Verbosity = MessageTrackerVerbosity.Summarised,
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -604,7 +604,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = null
         });
         var idsBefore = RequestResponseLogger.RequestAndResponseLogs
@@ -626,7 +626,7 @@ public class MessageTrackerTests
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             ServiceName = "My Custom Bus",
-            CallingServiceName = "OrderService",
+            CallerName = "OrderService",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 
@@ -645,7 +645,7 @@ public class MessageTrackerTests
         var accessor = CreateHttpContextAccessor(testName: "HeaderTest", testId: "header-id-1");
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "MySvc",
+            CallerName = "MySvc",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("FallbackTest", "fallback-id")
         };
@@ -665,7 +665,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "MySvc",
+            CallerName = "MySvc",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("FallbackTest", testId)
         };
@@ -685,7 +685,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "MySvc",
+            CallerName = "MySvc",
             UseHttpContextCorrelation = false,
             CurrentTestInfoFetcher = () => ("FetcherTest", testId)
         };
@@ -728,7 +728,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             DependencyCategory = "CustomCategory",
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -756,7 +756,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 
@@ -775,7 +775,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
         });
 
@@ -790,7 +790,7 @@ public class MessageTrackerTests
         var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
         });
 
@@ -804,7 +804,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => throw new InvalidOperationException("No scenario context")
         });
 
@@ -821,7 +821,7 @@ public class MessageTrackerTests
         var tracker = new MessageTracker(
             new MessageTrackerOptions
             {
-                CallingServiceName = "Svc",
+                CallerName = "Svc",
                 UseHttpContextCorrelation = true,
                 CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
             },
@@ -854,7 +854,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -875,7 +875,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -893,7 +893,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -911,7 +911,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -929,7 +929,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -947,7 +947,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -965,7 +965,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -984,7 +984,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             ServiceName = "Breakfast Provider",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -1014,7 +1014,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Broker",
+            CallerName = "Broker",
             Verbosity = MessageTrackerVerbosity.Summarised,
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -1032,7 +1032,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Broker",
+            CallerName = "Broker",
             CurrentTestInfoFetcher = null
         });
         var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
@@ -1048,7 +1048,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Broker",
+            CallerName = "Broker",
             DependencyCategory = "MessageQueue",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -1075,7 +1075,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             CallerDependencyCategory = "MessageQueue",
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -1091,7 +1091,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             CallerDependencyCategory = "MessageQueue",
             CurrentTestInfoFetcher = () => ("T", "id")
         });
@@ -1109,7 +1109,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             CallerDependencyCategory = "MessageQueue",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
@@ -1151,7 +1151,7 @@ public class MessageTrackerTests
     {
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("T", "id")
         }, new HttpContextAccessor { HttpContext = null });
@@ -1165,7 +1165,7 @@ public class MessageTrackerTests
         var accessor = CreateHttpContextAccessor();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             UseHttpContextCorrelation = false,
             CurrentTestInfoFetcher = () => ("T", "id")
         }, accessor);
@@ -1181,7 +1181,7 @@ public class MessageTrackerTests
 
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("T", "id")
         };
@@ -1204,7 +1204,7 @@ public class MessageTrackerTests
         var accessor = new HttpContextAccessor();
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("T", "id")
         };
@@ -1230,7 +1230,7 @@ public class MessageTrackerTests
         var accessor = new HttpContextAccessor();
         var options = new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             UseHttpContextCorrelation = true,
             CurrentTestInfoFetcher = () => ("T", "id")
         };
@@ -1257,7 +1257,7 @@ public class MessageTrackerTests
         servicesA.AddKeyedSingleton("Kafka", (sp, _) => new MessageTracker(
             new MessageTrackerOptions
             {
-                CallingServiceName = "Kafka Broker",
+                CallerName = "Kafka Broker",
                 UseHttpContextCorrelation = true,
                 CurrentTestInfoFetcher = () => ("T", "id")
             },
@@ -1272,7 +1272,7 @@ public class MessageTrackerTests
         servicesB.AddKeyedSingleton("Kafka", (sp, _) => new MessageTracker(
             new MessageTrackerOptions
             {
-                CallingServiceName = "Kafka Broker",
+                CallerName = "Kafka Broker",
                 UseHttpContextCorrelation = true,
                 CurrentTestInfoFetcher = () => ("T2", "id2")
             },
@@ -1295,7 +1295,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Kafka Broker",
+            CallerName = "Kafka Broker",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 
@@ -1312,7 +1312,7 @@ public class MessageTrackerTests
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallingServiceName = "Svc",
+            CallerName = "Svc",
             CurrentTestInfoFetcher = () => ("T", testId)
         });
 

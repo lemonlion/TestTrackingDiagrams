@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.1] - 2026-04-29
+
+### Deprecated
+- **`CallingServiceName` → `CallerName`**: The `CallingServiceName` property on all 29 options classes (`TestTrackingMessageHandlerOptions`, `MessageTrackerOptions`, `TrackingProxyOptions`, `MediatorTrackingOptions`, `SqlTrackingOptionsBase`, and all 24 extension options) has been deprecated with an `[Obsolete]` attribute. Use `CallerName` instead — it is functionally identical. The deprecated property proxies to `CallerName` via `get => CallerName; set => CallerName = value;`, so existing code continues to work with a compile-time `CS0618` warning. `CallingServiceName` will be removed in a future major version.
+
+### Changed
+- All internal code, tests, examples, and documentation now use `CallerName` exclusively.
+- All 49 wiki pages updated to reference `CallerName`.
+
 ## [2.28.0] - 2026-04-28
 
 ### Added

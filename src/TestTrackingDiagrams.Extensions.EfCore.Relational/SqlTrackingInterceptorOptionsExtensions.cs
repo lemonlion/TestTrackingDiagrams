@@ -7,7 +7,7 @@ public static class SqlTrackingInterceptorOptionsExtensions
     /// <summary>
     /// Copies <see cref="TestTrackingMessageHandlerOptions.CurrentTestInfoFetcher"/>,
     /// <see cref="TestTrackingMessageHandlerOptions.CurrentStepTypeFetcher"/>, and
-    /// <see cref="TestTrackingMessageHandlerOptions.CallingServiceName"/> from an existing
+    /// <see cref="TestTrackingMessageHandlerOptions.CallerName"/> from an existing
     /// HTTP tracking options instance so that SQL and HTTP tracking share the same test context.
     /// </summary>
     public static SqlTrackingInterceptorOptions WithTestInfoFrom(
@@ -16,7 +16,7 @@ public static class SqlTrackingInterceptorOptionsExtensions
     {
         sqlOptions.CurrentTestInfoFetcher = httpOptions.CurrentTestInfoFetcher;
         sqlOptions.CurrentStepTypeFetcher = httpOptions.CurrentStepTypeFetcher;
-        sqlOptions.CallingServiceName = httpOptions.CallingServiceName;
+        sqlOptions.CallerName = httpOptions.CallerName;
         return sqlOptions;
     }
 }

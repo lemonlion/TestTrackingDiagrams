@@ -22,7 +22,11 @@ public record TestTrackingMessageHandlerOptions
     public string? FixedNameForReceivingService { get; set; }
 
     /// <summary>Display name of the calling service in diagrams. Default: <c>"Caller"</c>.</summary>
-    public string CallingServiceName { get; set; } = "Caller";
+    public string CallerName { get; set; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; set => CallerName = value; }
 
     /// <summary>HTTP headers to forward from the test context to outgoing requests.</summary>
     public IEnumerable<string> HeadersToForward { get; set; } = [];

@@ -29,7 +29,7 @@ public abstract class BaseFixture : DiagrammedComponentTest
             {
                 services.TrackDependenciesForDiagrams(new XUnitTestTrackingMessageHandlerOptions
                 {
-                    CallingServiceName = ServiceUnderTestName,
+                    CallerName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
                 services.TrackMessagesForDiagrams(ServiceUnderTestName);

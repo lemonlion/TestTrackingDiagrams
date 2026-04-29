@@ -20,7 +20,7 @@ public class BigQueryTrackerTests
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My BigQuery Test", _testId),
     };

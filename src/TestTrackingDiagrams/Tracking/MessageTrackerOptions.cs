@@ -13,7 +13,11 @@ public record MessageTrackerOptions
     /// <summary>
     /// The participant name for the service sending/receiving messages.
     /// </summary>
-    public string CallingServiceName { get; set; } = "Caller";
+    public string CallerName { get; set; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; set => CallerName = value; }
 
     /// <summary>
     /// Controls how much detail is logged. <see cref="MessageTrackerVerbosity.Summarised"/>
@@ -57,7 +61,7 @@ public record MessageTrackerOptions
     public string DependencyCategory { get; set; } = "MessageQueue";
 
     /// <summary>
-    /// The dependency category for the <see cref="CallingServiceName"/> participant in PlantUML diagrams.
+    /// The dependency category for the <see cref="CallerName"/> participant in PlantUML diagrams.
     /// Use this to control the shape of the calling service independently of <see cref="DependencyCategory"/>.
     /// For example, set to <c>"MessageQueue"</c> to render a broker caller as a queue.
     /// Defaults to <c>null</c> (caller uses default entity/actor shape).

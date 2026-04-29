@@ -3,7 +3,14 @@ namespace TestTrackingDiagrams.Extensions.AtlasDataApi;
 public record AtlasDataApiTrackingMessageHandlerOptions
 {
     public string ServiceName { get; set; } = "AtlasDataApi";
-    public string CallingServiceName { get; set; } = "Caller";
+
+    /// <summary>The participant name for the calling service in diagrams.</summary>
+    public string CallerName { get; set; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; set => CallerName = value; }
+
     public AtlasDataApiTrackingVerbosity Verbosity { get; set; } = AtlasDataApiTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)>? CurrentTestInfoFetcher { get; set; }
     public Func<string?>? CurrentStepTypeFetcher { get; set; }

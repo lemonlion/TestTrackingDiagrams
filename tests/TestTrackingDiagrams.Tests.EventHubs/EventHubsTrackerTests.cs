@@ -20,7 +20,7 @@ public class EventHubsTrackerTests
         string callerName = "TestCaller") => new()
     {
         ServiceName = serviceName,
-        CallingServiceName = callerName,
+        CallerName = callerName,
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My EventHubs Test", _testId),
     };

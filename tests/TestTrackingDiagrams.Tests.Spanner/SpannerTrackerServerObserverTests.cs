@@ -18,7 +18,7 @@ public class SpannerTrackerServerObserverTests
     private SpannerTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Spanner",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = SpannerTrackingVerbosity.Detailed,
         CurrentTestInfoFetcher = () => ("Observer Test", _testId),
     };

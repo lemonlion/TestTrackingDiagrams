@@ -12,7 +12,7 @@ public class GrpcTrackingChannelTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "My API",
-            CallingServiceName = "Test"
+            CallerName = "Test"
         };
 
         var invoker = GrpcTrackingChannel.Create(handler, new Uri("http://localhost"), options);
@@ -27,7 +27,7 @@ public class GrpcTrackingChannelTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "My API",
-            CallingServiceName = "Test"
+            CallerName = "Test"
         };
 
         var (invoker, channel) = GrpcTrackingChannel.CreateWithChannel(
@@ -45,7 +45,7 @@ public class GrpcTrackingChannelTests
         var options = new GrpcTrackingOptions
         {
             ServiceName = "My API",
-            CallingServiceName = "Test"
+            CallerName = "Test"
         };
 
         var invoker = handler.AsGrpcTrackingCallInvoker(new Uri("http://localhost"), options);

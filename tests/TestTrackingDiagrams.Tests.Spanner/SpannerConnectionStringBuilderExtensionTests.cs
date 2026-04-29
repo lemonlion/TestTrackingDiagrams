@@ -8,7 +8,7 @@ public class SpannerConnectionStringBuilderExtensionTests
     private SpannerTrackingOptions MakeOptions() => new()
     {
         ServiceName = "Spanner",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Test", Guid.NewGuid().ToString()),
     };
 

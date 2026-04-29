@@ -19,7 +19,7 @@ public class TrackingKafkaConsumerTests
         KafkaTrackingVerbosity verbosity = KafkaTrackingVerbosity.Detailed) => new()
     {
         ServiceName = "Kafka",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("My Kafka Test", _testId),
     };

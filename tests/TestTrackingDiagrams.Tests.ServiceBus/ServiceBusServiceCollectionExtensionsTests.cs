@@ -22,7 +22,7 @@ public class ServiceBusServiceCollectionExtensionsTests : IDisposable
     private static ServiceBusTrackingOptions MakeOptions() => new()
     {
         ServiceName = "TestBus",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         CurrentTestInfoFetcher = () => ("Test", Guid.NewGuid().ToString()),
     };
 
@@ -91,7 +91,7 @@ public class ServiceBusServiceCollectionExtensionsTests : IDisposable
         services.AddServiceBusTestTracking(options =>
         {
             options.ServiceName = "CustomBus";
-            options.CallingServiceName = "MySvc";
+            options.CallerName = "MySvc";
             options.Verbosity = ServiceBusTrackingVerbosity.Summarised;
         });
 

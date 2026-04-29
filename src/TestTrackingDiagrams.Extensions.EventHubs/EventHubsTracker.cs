@@ -43,7 +43,7 @@ public class EventHubsTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
             DependencyCategory: "MessageQueue")
@@ -78,7 +78,7 @@ public class EventHubsTracker : ITrackingComponent
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
             label, logContent, uri, [],
-            _options.ServiceName, _options.CallingServiceName,
+            _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             DependencyCategory: "MessageQueue")
         {

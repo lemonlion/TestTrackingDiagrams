@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using TestTrackingDiagrams.Constants;
@@ -11,7 +11,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private readonly Func<int, string> _getServiceNameFromPortTranslator;
     private readonly Dictionary<string, string> _clientNamesToServiceNames;
     private readonly string? _clientName;
-    private readonly string? _callingServiceName;
+    private readonly string? _callerName;
     private readonly Func<(string Name, string Id)>? _currentTestInfoFetcher;
     private readonly Func<string?>? _currentStepTypeFetcher;
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -33,7 +33,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _clientName = clientName;
         _currentTestInfoFetcher = options.CurrentTestInfoFetcher;
         _currentStepTypeFetcher = options.CurrentStepTypeFetcher;
-        _callingServiceName = options.CallingServiceName;
+        _callerName = options.CallerName;
         _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         _headersToForward = options.HeadersToForward;
         _internalFlowActivitySources = options.InternalFlowActivitySources;
@@ -44,7 +44,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         TrackingComponentRegistry.Register(this);
     }
 
-    public string ComponentName => $"TestTrackingMessageHandler ({_callingServiceName})";
+    public string ComponentName => $"TestTrackingMessageHandler ({_callerName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
 
@@ -166,7 +166,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             request.Headers.Add(TestTrackingHttpHeaders.CurrentTestIdHeader, new[] { currentTestInfo.Id.ToString() });
 
         if (!hasCallerNameHeader)
-            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callingServiceName! });
+            request.Headers.Add(TestTrackingHttpHeaders.CallerNameHeader, new[] { _callerName! });
 
         var serviceName = ResolveServiceName(request.RequestUri!.Port);
 
@@ -188,7 +188,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             request.RequestUri!,
             requestHeaders,
             serviceName,
-            _callingServiceName!,
+            _callerName!,
             RequestResponseType.Request,
             traceId,
             requestResponseId,
@@ -215,7 +215,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             request.RequestUri!,
             responseHeaders,
             serviceName,
-            _callingServiceName!,
+            _callerName!,
             RequestResponseType.Response,
             traceId,
             requestResponseId,

@@ -30,14 +30,14 @@ public class SqlTrackingInterceptorOptionsExtensionsTests
     }
 
     [Fact]
-    public void WithTestInfoFrom_CopiesCallingServiceName()
+    public void WithTestInfoFrom_CopiesCallerName()
     {
-        var httpOptions = new TestTrackingMessageHandlerOptions { CallingServiceName = "My API" };
+        var httpOptions = new TestTrackingMessageHandlerOptions { CallerName = "My API" };
         var sqlOptions = new SqlTrackingInterceptorOptions();
 
         sqlOptions.WithTestInfoFrom(httpOptions);
 
-        Assert.Equal("My API", sqlOptions.CallingServiceName);
+        Assert.Equal("My API", sqlOptions.CallerName);
     }
 
     [Fact]

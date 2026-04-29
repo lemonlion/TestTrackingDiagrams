@@ -31,7 +31,7 @@ public abstract class BaseFixture : FeatureFixture, IDisposable
             {
                 services.TrackDependenciesForDiagrams(new LightBddTestTrackingMessageHandlerOptions
                 {
-                    CallingServiceName = ServiceUnderTestName,
+                    CallerName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
                 services.TrackMessagesForDiagrams(ServiceUnderTestName);

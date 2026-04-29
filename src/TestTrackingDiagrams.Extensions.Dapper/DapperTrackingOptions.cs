@@ -3,7 +3,14 @@ namespace TestTrackingDiagrams;
 public record DapperTrackingOptions
 {
     public string ServiceName { get; set; } = "Database";
-    public string CallingServiceName { get; set; } = "Caller";
+
+    /// <summary>The participant name for the calling service in diagrams.</summary>
+    public string CallerName { get; set; } = "Caller";
+
+    /// <summary>Use <see cref="CallerName"/> instead.</summary>
+    [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
+    public string CallingServiceName { get => CallerName; set => CallerName = value; }
+
     public DapperTrackingVerbosity Verbosity { get; set; } = DapperTrackingVerbosity.Detailed;
     public Func<(string Name, string Id)?>? CurrentTestInfoFetcher { get; set; }
     public bool LogParameters { get; set; }

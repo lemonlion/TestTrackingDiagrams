@@ -31,7 +31,7 @@ public static class GrpcWebApplicationFactoryExtensions
     ///     new GrpcTrackingOptions
     ///     {
     ///         ServiceName = "My API",
-    ///         CallingServiceName = "Caller",
+    ///         CallerName = "Caller",
     ///         CurrentTestInfoFetcher = () => (testName, testId)
     ///     });
     /// </code>

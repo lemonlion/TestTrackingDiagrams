@@ -29,7 +29,7 @@ public static class GrpcServiceCollectionExtensions
     ///     opts =&gt;
     ///     {
     ///         opts.ServiceName = "Notification Service";
-    ///         opts.CallingServiceName = "My API";
+    ///         opts.CallerName = "My API";
     ///     });
     /// </code>
     /// </para>

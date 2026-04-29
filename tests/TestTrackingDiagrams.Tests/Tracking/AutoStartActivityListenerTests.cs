@@ -33,7 +33,7 @@ public class AutoStartActivityListenerTests
 
     private static TestTrackingMessageHandlerOptions DefaultOptions() => new()
     {
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         FixedNameForReceivingService = "Target",
         CurrentTestInfoFetcher = () => ("AutoStartTest", Guid.NewGuid().ToString()),
     };

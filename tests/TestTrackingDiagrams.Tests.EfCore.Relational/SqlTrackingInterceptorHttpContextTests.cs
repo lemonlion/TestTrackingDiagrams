@@ -32,7 +32,7 @@ public class SqlTrackingInterceptorHttpContextTests : IDisposable
         Func<(string Name, string Id)>? fetcher = null) => new()
     {
         ServiceName = "Database",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = SqlTrackingVerbosity.Detailed,
         CurrentTestInfoFetcher = fetcher ?? (() => ("My Test", _testId)),
     };

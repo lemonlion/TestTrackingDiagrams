@@ -52,13 +52,13 @@ public class LightBddTestTrackingMessageHandlerOptionsTests
     }
 
     [Fact]
-    public void ShouldAllowSettingCallingServiceName()
+    public void ShouldAllowSettingCallerName()
     {
         var options = new LightBddTestTrackingMessageHandlerOptions
         {
-            CallingServiceName = "TestCaller"
+            CallerName = "TestCaller"
         };
 
-        Assert.Equal("TestCaller", options.CallingServiceName);
+        Assert.Equal("TestCaller", options.CallerName);
     }
 }

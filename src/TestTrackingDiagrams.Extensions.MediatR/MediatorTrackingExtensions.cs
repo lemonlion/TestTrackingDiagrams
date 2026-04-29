@@ -18,7 +18,7 @@ public static class MediatorTrackingExtensions
         var proxyOptions = new TrackingProxyOptions
         {
             ServiceName = options.ServiceName,
-            CallingServiceName = options.CallingServiceName,
+            CallerName = options.CallerName,
             ActivitySourceName = options.ActivitySourceName,
             LogMode = options.LogMode,
             CurrentTestInfoFetcher = options.CurrentTestInfoFetcher,

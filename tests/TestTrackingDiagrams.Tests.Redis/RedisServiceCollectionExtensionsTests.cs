@@ -66,7 +66,7 @@ public class RedisServiceCollectionExtensionsTests
         services.AddRedisTestTracking(options =>
         {
             options.ServiceName = "CustomRedis";
-            options.CallingServiceName = "MySvc";
+            options.CallerName = "MySvc";
             options.Verbosity = RedisTrackingVerbosity.Summarised;
         });
 

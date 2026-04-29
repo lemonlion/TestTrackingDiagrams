@@ -1,4 +1,4 @@
-﻿using Example.Api.Events;
+using Example.Api.Events;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.Shared.Fakes;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -29,7 +29,7 @@ public abstract class BaseFixture : DiagrammedComponentTest
             {
                 services.TrackDependenciesForDiagrams(new XUnitTestTrackingMessageHandlerOptions
                 {
-                    CallingServiceName = ServiceUnderTestName,
+                    CallerName = ServiceUnderTestName,
                     PortsToServiceNames = { { new Uri(Settings.CowServiceBaseUrl!).Port, "Cow Service" } }
                 });
                 services.TrackMessagesForDiagrams(ServiceUnderTestName);

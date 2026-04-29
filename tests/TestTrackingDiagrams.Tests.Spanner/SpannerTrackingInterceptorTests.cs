@@ -21,7 +21,7 @@ public class SpannerTrackingInterceptorTests
         SpannerTrackingVerbosity verbosity = SpannerTrackingVerbosity.Detailed) => new()
     {
         ServiceName = "Spanner",
-        CallingServiceName = "TestCaller",
+        CallerName = "TestCaller",
         Verbosity = verbosity,
         CurrentTestInfoFetcher = () => ("Interceptor Test", _testId),
     };
