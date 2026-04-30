@@ -101,6 +101,41 @@ public class ReportDiagnosticsTests : IDisposable
         Assert.Empty(warnings);
     }
 
+    // ─── Empty features with logs warnings ─────────────────────
+
+    [Fact]
+    public void Warns_when_logs_exist_but_no_features()
+    {
+        var logs = new[]
+        {
+            MakeLog("t1", RequestResponseType.Request, Guid.NewGuid()),
+            MakeLog("t1", RequestResponseType.Response, Guid.NewGuid())
+        };
+
+        var warnings = ReportDiagnostics.Analyse(logs, []);
+
+        Assert.Contains(warnings, w =>
+            w.Contains("no test contexts were provided") &&
+            w.Contains("TestContexts.Enqueue"));
+    }
+
+    [Fact]
+    public void No_empty_features_warning_when_features_exist()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var pairId = Guid.NewGuid();
+        var logs = new[]
+        {
+            MakeLog(testId, RequestResponseType.Request, pairId),
+            MakeLog(testId, RequestResponseType.Response, pairId)
+        };
+        var features = new[] { MakeFeature(testId) };
+
+        var warnings = ReportDiagnostics.Analyse(logs, features);
+
+        Assert.DoesNotContain(warnings, w => w.Contains("no test contexts were provided"));
+    }
+
     // ─── Unused tracking component warnings ────────────────────
 
     [Fact]

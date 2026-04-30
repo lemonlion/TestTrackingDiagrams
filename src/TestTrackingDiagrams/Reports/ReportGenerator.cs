@@ -41,7 +41,19 @@ public static class ReportGenerator
         // ITestPipelineStartup but runs no tests) from overwriting a valid
         // report from a previous run with an empty one.
         if (features.Length == 0 || features.All(f => f.Scenarios is null || f.Scenarios.Length == 0))
+        {
+            if (RequestResponseLogger.RequestAndResponseLogs.Length > 0)
+            {
+                Console.WriteLine("⚠ WARNING: No test contexts were enqueued, but tracking logs exist. " +
+                    "Reports will be empty. Ensure DiagrammedTestRun.TestContexts.Enqueue(TestContext.Current) " +
+                    "is called in every test's DisposeAsync().");
+
+                if (options.DiagnosticMode)
+                    DiagnosticReportGenerator.Generate(RequestResponseLogger.RequestAndResponseLogs, features, options);
+            }
+
             return;
+        }
 
         if (options.ExpectedTestCount != null)
         {

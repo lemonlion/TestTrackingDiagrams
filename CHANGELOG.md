@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.13] - 2026-04-30
+
+### Added
+- **Empty TestContexts warning**: `ReportDiagnostics.Analyse()` now emits a warning when log entries exist but no test contexts (features) were provided. `ReportGenerator` also outputs a console warning and still generates the diagnostic report (when `DiagnosticMode=true`) even when features are empty. This surfaces the most common cause of empty reports: forgetting `DiagrammedTestRun.TestContexts.Enqueue(TestContext.Current)` in `DisposeAsync()`.
+
+### Documentation
+- **New wiki page: Background Thread Correlation** — covers `TestIdentityScope`, instance-scoped `ActiveTestTracker`, understanding Unknown entries, `LazyHttpContextAccessor` pattern
+- **New wiki page: Service Bus Tracking Patterns** — MessageTracker setup, BeforePublish/AfterPublish bridging, atomic tracking, dual-caller attribution, function trigger correlation
+- **HTTP Tracking Setup: Handler Pipeline Ordering** — handler chain diagrams, `PrimaryHandler` vs `AdditionalHandlers`, `IHttpContextAccessor` timing, `CreateTestTrackingClient` behaviour, `_ =>` vs `sp =>` gotcha
+- **Multi-Host Test Architectures** — added sections on consistent test identity, HttpContextAccessor wiring order, LazyHttpContextAccessor, initialization order summary
+- **Diagnostics and Debugging: Troubleshooting** — 8 new troubleshooting entries for empty reports, Unknown entries, missing Service Bus, function trigger attribution, CosmosDB Unknown, wrong service names
+- **Quick Start (xUnit)** — added callout warning about TestContexts.Enqueue for custom fixtures
+- **Integration CosmosDB Extension** — added fault injection code example with fixture pattern, background thread correlation link
+- **What's New in 2.0** — added "Upgrading from 2.27.x to 2.28.x" migration section (CallerName rename, package alignment)
+- **Tracking Custom Dependencies** — added interface-based blob tracking example using auto-resolving `LogPair`
+- **Home and Sidebar** — added links to new Service Bus Tracking Patterns and Background Thread Correlation pages
+
 ## [2.28.12] - 2026-04-30
 
 ### Fixed

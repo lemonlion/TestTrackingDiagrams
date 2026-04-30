@@ -21,6 +21,10 @@ public static class ReportDiagnostics
 
         warnings.Add($"Report diagnostics: {logs.Length} log entries across {distinctTestIds.Length} test(s).");
 
+        if (features.Length == 0 && logs.Length > 0)
+            warnings.Add("Warning: Logs were recorded but no test contexts were provided — reports will be empty. " +
+                "Ensure DiagrammedTestRun.TestContexts.Enqueue(TestContext.Current) is called in every test's DisposeAsync().");
+
         var unpairedCount = CountUnpairedRequests(logs);
         if (unpairedCount > 0)
             warnings.Add($"Warning: {unpairedCount} unpaired request(s) detected (no matching response with same RequestResponseId).");
