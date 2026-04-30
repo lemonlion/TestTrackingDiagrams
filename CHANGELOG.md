@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.19] - 2026-04-30
+
+### Fixed
+- **Eliminated all CI build warnings**: Fixed 10,879 compiler warnings across the solution:
+  - Suppressed CS1591 (missing XML doc comment) in `Directory.Build.props` for all src projects — these are informational warnings for undocumented members that don't affect functionality.
+  - Fixed CS0419 (ambiguous cref) in `TestPhaseContext.cs`, `KafkaTrackingInterceptor.cs`, and `DiagrammedTestRun.cs` by qualifying overloaded method references with parameter types.
+  - Fixed CS1573 (missing param tag) in `MessageTracker.TrackMessageRequest` and `TrackMessageResponse` by adding `<param>` tags for `noteOnRight` and `statusLabel`.
+  - Fixed CS1574 (unresolved cref) in `BlobClientOptionsExtensions.cs` by replacing invalid `BlobClientOptions.Transport` cref with inline code reference.
+  - Fixed CS1587 (XML comment not on valid element) across 23 files in 8 framework adapter packages by moving XML doc comments before attributes instead of after.
+  - Suppressed NU1902/NU1904 (NuGet package vulnerability audit) in SqlClient extension — transitive deps from `Microsoft.Data.SqlClient 2.x` have known vulnerabilities but cannot be updated without breaking consumer compatibility.
+
 ## [2.28.18] - 2026-04-30
 
 ### Fixed

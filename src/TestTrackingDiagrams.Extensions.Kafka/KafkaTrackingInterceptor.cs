@@ -9,8 +9,8 @@ namespace TestTrackingDiagrams.Extensions.Kafka;
 /// built internally (e.g. via <c>new ConsumerBuilder&lt;TKey, TValue&gt;(...).Build()</c>)
 /// rather than resolved from DI.
 /// <para>
-/// Call <see cref="EnableConsumerTracking{TKey,TValue}"/> or
-/// <see cref="EnableProducerTracking{TKey,TValue}"/> in your test setup to activate
+/// Call <see cref="EnableConsumerTracking{TKey,TValue}(KafkaTrackingOptions, IHttpContextAccessor?)"/> or
+/// <see cref="EnableProducerTracking{TKey,TValue}(KafkaTrackingOptions, IHttpContextAccessor?)"/> in your test setup to activate
 /// interception, then use the <c>.Tracked()</c> or <c>.BuildTracked()</c> extension
 /// methods in production code.
 /// </para>

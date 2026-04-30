@@ -3,7 +3,7 @@ namespace TestTrackingDiagrams.Tracking;
 /// <summary>
 /// Ambient context that holds the current test phase (Setup or Action).
 /// BDD framework adapters set this automatically; non-BDD tests can set it
-/// manually via <see cref="DefaultTrackingDiagramOverride.StartSetup"/> and
+/// manually via <see cref="DefaultTrackingDiagramOverride.StartSetup(string)"/> and
 /// <see cref="DefaultTrackingDiagramOverride.StartAction(string)"/>.
 /// </summary>
 public static class TestPhaseContext

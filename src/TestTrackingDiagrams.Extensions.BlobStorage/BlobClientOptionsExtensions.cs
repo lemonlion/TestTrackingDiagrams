@@ -13,7 +13,7 @@ public static class BlobClientOptionsExtensions
     /// </summary>
     /// <remarks>
     /// The Azure SDK allows overriding the HTTP transport. This method sets
-    /// <see cref="BlobClientOptions.Transport"/> to an <see cref="Azure.Core.Pipeline.HttpClientTransport"/>
+    /// <c>Transport</c> to an <see cref="Azure.Core.Pipeline.HttpClientTransport"/>
     /// backed by an <see cref="HttpClient"/> that wraps a <see cref="BlobTrackingMessageHandler"/>.
     /// </remarks>
     public static BlobClientOptions WithTestTracking(

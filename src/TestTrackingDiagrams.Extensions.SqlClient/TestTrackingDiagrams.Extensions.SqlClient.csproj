@@ -5,6 +5,9 @@
     <Title>Test Tracking Diagrams SQL Server (SqlClient) Extension</Title>
     <Description>SQL Server tracking for test diagrams via DiagnosticSource. Automatically intercepts all Microsoft.Data.SqlClient SQL operations with zero production code changes. Classifies queries with configurable verbosity.</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <!-- Microsoft.Data.SqlClient 2.x has vulnerable transitive deps (IdentityModel, System.Drawing.Common).
+         We use 2.x to support consumers on older versions. These are test-time only packages. -->
+    <NoWarn>$(NoWarn);NU1902;NU1904</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.SqlClient" />

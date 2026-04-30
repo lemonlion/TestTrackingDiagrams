@@ -4,10 +4,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
-[Binding]
 /// <summary>
 /// Reqnroll binding hooks that collect scenario and step execution information for test tracking diagrams and reports.
 /// </summary>
+[Binding]
 public class ReqNRollTrackingHooks
 {
     private readonly ScenarioContext _scenarioContext;

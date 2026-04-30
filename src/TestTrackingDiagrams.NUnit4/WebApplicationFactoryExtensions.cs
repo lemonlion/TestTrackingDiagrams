@@ -3,10 +3,10 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.NUnit4;
 
-[Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
 /// <summary>
 /// Provides extension methods for creating test-tracking HTTP clients from <c>WebApplicationFactory</c> in NUnit tests.
 /// </summary>
+[Obsolete("Use TestTrackingDiagrams.WebApplicationFactoryExtensions instead. This wrapper will be removed in a future version.")]
 public static class WebApplicationFactoryExtensions
 {
     public static HttpClient CreateTestTrackingClient<T>(this WebApplicationFactory<T> factory, NUnitTestTrackingMessageHandlerOptions options) where T : class

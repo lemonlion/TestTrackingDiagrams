@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.28.18</Version>
+    <Version>2.28.19</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -21,6 +21,7 @@
   <!-- Generate XML documentation for all src projects (enables IntelliSense in NuGet consumers) -->
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsPackable)' != 'false'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <!-- Include LICENSE, README, and icon in all NuGet packages -->

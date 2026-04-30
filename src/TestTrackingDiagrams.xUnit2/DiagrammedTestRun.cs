@@ -4,7 +4,7 @@ namespace TestTrackingDiagrams.xUnit2;
 /// Base class for a collection fixture that captures the test run start time.
 /// Create a subclass and register it with <c>ICollectionFixture&lt;YourTestRun&gt;</c>.
 /// Generate reports in your subclass's <c>Dispose()</c> method using
-/// <see cref="XUnit2ReportGenerator.CreateStandardReportsWithDiagrams"/>.
+/// <see cref="XUnit2ReportGenerator.CreateStandardReportsWithDiagrams(DateTime, DateTime, ReportConfigurationOptions)"/>.
 /// <para>
 /// <b>Note:</b> When using the <see cref="ReportingTestFramework"/> (recommended),
 /// reports are generated automatically after all tests complete, and this class
