@@ -153,6 +153,7 @@ public static class DiagramContextMenu
             .headers-radio { margin-left: 0; flex-wrap: wrap; }
             .diagram-toggle { flex-wrap: wrap; gap: 0.3em; }
             .diagram-toggle-spacer { display: none; }
+            .diagram-toggle-btn { max-width: 5.5em; text-align: center; }
         }
         """;
 

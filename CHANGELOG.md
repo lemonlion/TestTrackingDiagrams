@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.10] - 2026-04-30
+
+### Changed
+- **Mobile: Diagram toggle buttons render as compact squares**: The "Sequence Diagrams", "Activity Diagrams", and "Flame Chart" buttons now have `max-width: 5.5em; text-align: center` at ≤768px, causing the two-word labels to wrap vertically into square-shaped buttons (e.g. "Sequence\nDiagrams"). Desktop layout is unaffected — the rule is entirely inside a media query.
+
 ## [2.28.9] - 2026-04-30
 
 ### Fixed

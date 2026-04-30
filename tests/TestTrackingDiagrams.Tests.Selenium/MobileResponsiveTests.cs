@@ -273,4 +273,31 @@ public class MobileResponsiveTests : IClassFixture<ChromeFixtureMobile>, IDispos
             Assert.Equal("0px", marginLeft);
         }
     }
+
+    // ── Diagram toggle buttons are square (text wraps) on mobile ──
+
+    [Fact]
+    public void Diagram_toggle_buttons_have_max_width_on_mobile()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("MobileDiagramBtns.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        // Open feature, scenario, and diagrams section
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.feature')[0].setAttribute('open','');");
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.scenario')[0].setAttribute('open','');");
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.example-diagrams')[0]?.setAttribute('open','');");
+
+        var btns = _driver.FindElements(By.CssSelector(".diagram-toggle-btn"));
+        if (btns.Count > 0)
+        {
+            var maxWidth = GetComputedStyle(btns[0], "max-width");
+            Assert.NotEqual("none", maxWidth); // Should have a max-width constraint
+
+            var textAlign = GetComputedStyle(btns[0], "text-align");
+            Assert.Equal("center", textAlign);
+        }
+    }
 }
