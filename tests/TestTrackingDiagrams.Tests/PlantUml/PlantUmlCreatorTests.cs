@@ -1339,9 +1339,36 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs);
 
-        // Each chunk gets its own <color:gray> prefix, so >100 chars means multiple lines
+        // Each chunk gets its own <color:gray> prefix, so >80 chars means multiple lines
         var colorGrayCount = plantUml.Split("<color:gray>").Length - 1;
         Assert.True(colorGrayCount >= 2, $"Expected at least 2 <color:gray> lines for long header, got {colorGrayCount}");
+    }
+
+    [Fact]
+    public void Header_chunks_do_not_exceed_safe_width_for_wrap()
+    {
+        // A header value that is 200 chars — well beyond a single chunk
+        var longValue = new string('A', 200);
+        var logs = new[]
+        {
+            MakeRequest(headers: [("Authorization", longValue)]),
+        };
+        var plantUml = GetPlantUml(logs);
+
+        // Each <color:gray> line visible content must be ≤80 chars to avoid PlantUML wrapWidth overflow.
+        // wrapWidth is 800px; at ~9px/char worst case, 80 chars = 720px which is safely under.
+        var grayLines = plantUml.Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => l.StartsWith("<color:gray>"))
+            .Select(l => l["<color:gray>".Length..])
+            .ToList();
+
+        Assert.NotEmpty(grayLines);
+        foreach (var content in grayLines)
+        {
+            Assert.True(content.Length <= 80,
+                $"Header chunk exceeds safe width (80 chars): '{content}' ({content.Length} chars)");
+        }
     }
 
     // ─── Null header value ──────────────────────────────────────
@@ -1439,10 +1466,10 @@ public class PlantUmlCreatorTests
         var logs = new[] { MakeRequest(content: longParam) };
         var plantUml = GetPlantUml(logs);
 
-        // The value exceeds 100 chars, so ChunksUpTo(100) should split it
+        // The value exceeds 80 chars, so ChunksUpTo(80) should split it
         // Each chunk appears on its own line, which means multiple lines in the note
         Assert.Contains("key=", plantUml);
-        Assert.Contains(new string('v', 100), plantUml);
+        Assert.Contains(new string('v', 80), plantUml);
     }
 
     // ─── ImageTags count matches PlantUmls count ────────────────

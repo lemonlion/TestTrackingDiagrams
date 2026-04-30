@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.9] - 2026-04-30
+
+### Fixed
+- **Gray header color lost on wrap overflow**: Reduced the header chunk size from 100 to 80 characters in `BatchGray` and `FormatFormUrlEncodedContent`. At the previous 100-char chunk size, PlantUML's `wrapWidth 800` (set by the library) would wrap lines at the pixel boundary, and the continuation text lost its `<color:gray>` color tag — rendering overflow header text in black instead of gray.
+
 ## [2.28.8] - 2026-04-30
 
 ### Fixed

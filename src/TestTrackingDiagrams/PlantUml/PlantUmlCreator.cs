@@ -16,6 +16,7 @@ namespace TestTrackingDiagrams.PlantUml;
 public static partial class PlantUmlCreator
 {
     private const int MaxLineWidth = 800;
+    private const int MaxNoteChunkChars = 80; // Must stay under MaxLineWidth at ~9px/char to avoid PlantUML wrapWidth overflow losing color tags
     private const string EventNoteClass = "eventNote";
     public const int DefaultMaxEncodedDiagramLength = 2000;
     private const int MaxResponseNoteChunkLength = 15_000;
@@ -579,7 +580,7 @@ public static partial class PlantUmlCreator
             .Split("&")
             .SelectMany(x =>
             {
-                var chunks = x.ChunksUpTo(100).ToArray();
+                var chunks = x.ChunksUpTo(MaxNoteChunkChars).ToArray();
                 if (chunks.Length == 0)
                     return chunks;
                 chunks[^1] += divider;
@@ -591,7 +592,7 @@ public static partial class PlantUmlCreator
 
     private static IEnumerable<string> BatchGray(string value)
     {
-        return value.ChunksUpTo(100).Select(x => "<color:gray>" + x);
+        return value.ChunksUpTo(MaxNoteChunkChars).Select(x => "<color:gray>" + x);
     }
 
     private sealed class DiagramBuilder(
