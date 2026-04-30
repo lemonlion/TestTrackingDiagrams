@@ -101,4 +101,24 @@ public class TestIdentityScopeTests
             Assert.Equal("TaskRunTest", result.Value.Name);
         }
     }
+
+    [Fact]
+    public void UnknownTestName_is_Unknown()
+    {
+        Assert.Equal("Unknown", TestIdentityScope.UnknownTestName);
+    }
+
+    [Fact]
+    public void UnknownTestId_is_unknown()
+    {
+        Assert.Equal("unknown", TestIdentityScope.UnknownTestId);
+    }
+
+    [Fact]
+    public void UnknownIdentity_tuple_matches_individual_constants()
+    {
+        var (name, id) = TestIdentityScope.UnknownIdentity;
+        Assert.Equal(TestIdentityScope.UnknownTestName, name);
+        Assert.Equal(TestIdentityScope.UnknownTestId, id);
+    }
 }

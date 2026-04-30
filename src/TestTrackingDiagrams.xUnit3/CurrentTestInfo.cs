@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Tracking;
 using Xunit;
 
 namespace TestTrackingDiagrams.xUnit3;
@@ -17,6 +18,6 @@ public static class CurrentTestInfo
             var test = TestContext.Current.Test;
             return test is not null
                 ? (test.TestDisplayName, test.UniqueID)
-                : ("Unknown", "unknown");
+                : TestIdentityScope.UnknownIdentity;
         };
 }

@@ -1,3 +1,5 @@
+using TestTrackingDiagrams.Tracking;
+
 namespace TestTrackingDiagrams.ReqNRoll;
 
 /// <summary>
@@ -11,5 +13,5 @@ public static class CurrentTestInfo
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () => ReqNRollTestContext.CurrentTestInfo
-            ?? ("Unknown", "unknown");
+            ?? TestIdentityScope.UnknownIdentity;
 }

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Tracking;
 using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
@@ -17,6 +18,6 @@ public static class CurrentTestInfo
             var ctx = TestContext.Current;
             return ctx is not null
                 ? (ctx.Metadata.DisplayName, ctx.Id)
-                : ("Unknown", "unknown");
+                : TestIdentityScope.UnknownIdentity;
         };
 }

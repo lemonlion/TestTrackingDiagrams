@@ -24,6 +24,21 @@ namespace TestTrackingDiagrams.Tracking;
 /// </summary>
 public static class TestIdentityScope
 {
+    /// <summary>
+    /// The sentinel test name used when no test context is available (e.g. background threads, hosted services).
+    /// </summary>
+    public const string UnknownTestName = "Unknown";
+
+    /// <summary>
+    /// The sentinel test ID used when no test context is available (e.g. background threads, hosted services).
+    /// </summary>
+    public const string UnknownTestId = "unknown";
+
+    /// <summary>
+    /// Convenience tuple combining <see cref="UnknownTestName"/> and <see cref="UnknownTestId"/>.
+    /// </summary>
+    public static readonly (string Name, string Id) UnknownIdentity = (UnknownTestName, UnknownTestId);
+
     private static readonly AsyncLocal<(string Name, string Id)?> CurrentIdentity = new();
 
     /// <summary>

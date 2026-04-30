@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.14] - 2026-04-30
+
+### Added
+- **`TestIdentityScope.UnknownTestName`, `UnknownTestId`, `UnknownIdentity`**: New public constants for the sentinel test identity values (`"Unknown"` / `"unknown"`) used when no test context is available. All 8 framework adapter `CurrentTestInfo.Fetcher` implementations, `DiagnosticReportGenerator`, and `TestTrackingAttribute` (xUnit v2) now use these constants instead of magic strings. Consumers can reference `TestIdentityScope.UnknownTestId` when filtering diagnostic logs or implementing custom fallback logic.
+
 ## [2.28.13] - 2026-04-30
 
 ### Added

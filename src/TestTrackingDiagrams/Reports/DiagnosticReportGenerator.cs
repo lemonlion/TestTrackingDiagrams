@@ -74,7 +74,7 @@ public static class DiagnosticReportGenerator
         }
 
         // Unknown entries breakdown
-        var unknownLogs = logs.Where(l => l.TestId == "unknown").ToArray();
+        var unknownLogs = logs.Where(l => l.TestId == TestIdentityScope.UnknownTestId).ToArray();
         if (unknownLogs.Length > 0)
         {
             var byServiceMethod = unknownLogs

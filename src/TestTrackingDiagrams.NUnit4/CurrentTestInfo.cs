@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.NUnit4;
 
@@ -17,6 +18,6 @@ public static class CurrentTestInfo
             var test = TestContext.CurrentContext?.Test;
             return test is not null
                 ? (test.DisplayName!, test.ID)
-                : ("Unknown", "unknown");
+                : TestIdentityScope.UnknownIdentity;
         };
 }

@@ -1,3 +1,5 @@
+using TestTrackingDiagrams.Tracking;
+
 namespace TestTrackingDiagrams.xUnit2;
 
 /// <summary>
@@ -19,7 +21,7 @@ public static class CurrentTestInfo
             }
             catch
             {
-                return ("Unknown", "unknown");
+                return TestIdentityScope.UnknownIdentity;
             }
         };
 }

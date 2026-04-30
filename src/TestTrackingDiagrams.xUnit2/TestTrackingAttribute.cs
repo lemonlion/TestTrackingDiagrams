@@ -1,4 +1,5 @@
 using System.Reflection;
+using TestTrackingDiagrams.Tracking;
 using Xunit.Sdk;
 
 namespace TestTrackingDiagrams.xUnit2;
@@ -21,7 +22,7 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
     public override void Before(MethodInfo methodUnderTest)
     {
         var testId = Guid.NewGuid().ToString();
-        var className = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?.Name ?? "Unknown";
+        var className = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?.Name ?? TestIdentityScope.UnknownTestName;
         var methodName = methodUnderTest.Name;
 
         var featureName = ScenarioTitleResolver.FormatFeatureName(className);

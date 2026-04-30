@@ -85,10 +85,10 @@ public class DiagnosticReportGeneratorTests : IDisposable
 
         var html = DiagnosticReportGenerator.BuildHtml(
             [
-                MakeLog("unknown", RequestResponseType.Request, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
-                MakeLog("unknown", RequestResponseType.Response, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
-                MakeLog("unknown", RequestResponseType.Request, rrId2, serviceName: "Service Bus", method: "Publish"),
-                MakeLog("unknown", RequestResponseType.Response, rrId2, serviceName: "Service Bus", method: "Publish"),
+                MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Request, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
+                MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Response, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
+                MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Request, rrId2, serviceName: "Service Bus", method: "Publish"),
+                MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Response, rrId2, serviceName: "Service Bus", method: "Publish"),
             ],
             [],
             new ReportConfigurationOptions());
@@ -121,14 +121,14 @@ public class DiagnosticReportGeneratorTests : IDisposable
         for (var i = 0; i < 10; i++)
         {
             var rrId = Guid.NewGuid();
-            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "GET"));
-            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "GET"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "GET"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "GET"));
         }
         for (var i = 0; i < 4; i++)
         {
             var rrId = Guid.NewGuid();
-            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "POST"));
-            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "POST"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "POST"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "POST"));
         }
 
         var html = DiagnosticReportGenerator.BuildHtml(
@@ -148,8 +148,8 @@ public class DiagnosticReportGeneratorTests : IDisposable
         for (var i = 0; i < 5; i++)
         {
             var rrId = Guid.NewGuid();
-            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "Redis", method: "GET"));
-            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "Redis", method: "GET"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Request, rrId, serviceName: "Redis", method: "GET"));
+            logs.Add(MakeLog(TestIdentityScope.UnknownTestId, RequestResponseType.Response, rrId, serviceName: "Redis", method: "GET"));
         }
 
         var html = DiagnosticReportGenerator.BuildHtml(

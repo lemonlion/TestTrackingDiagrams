@@ -1,4 +1,5 @@
 using LightBDD.Core.ExecutionContext;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD;
 
@@ -21,7 +22,7 @@ public static class CurrentTestInfo
             }
             catch
             {
-                return ("Unknown", "unknown");
+                return TestIdentityScope.UnknownIdentity;
             }
         };
 }
