@@ -27,6 +27,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+    <ProjectReference Include="..\..\src\TestTrackingDiagrams.Extensions.AtlasDataApi\TestTrackingDiagrams.Extensions.AtlasDataApi.csproj" />
+    <ProjectReference Include="..\..\src\TestTrackingDiagrams.Extensions.BigQuery\TestTrackingDiagrams.Extensions.BigQuery.csproj" />
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj" />
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.BDDfy.xUnit3\TestTrackingDiagrams.BDDfy.xUnit3.csproj" />
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj" />

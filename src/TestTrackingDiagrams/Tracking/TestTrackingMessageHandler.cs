@@ -52,6 +52,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     public string ComponentName => $"TestTrackingMessageHandler ({_callerName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     private static Func<int, string> GetPortTranslator(Dictionary<int, string> serviceNamesForEachPort)
     {
@@ -67,6 +68,10 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         // 2. Client name mapping (set via constructor clientName parameter)
         if (_clientName is not null && _clientNamesToServiceNames.TryGetValue(_clientName, out var mapped))
             return mapped;
+
+        // Record unmatched client name for diagnostic reporting
+        if (_clientName is not null && _clientNamesToServiceNames.Count > 0)
+            UnmatchedClientNameRegistry.Record(_clientName);
 
         // 3. Port-based mapping or fallback to localhost:port
         return _getServiceNameFromPortTranslator(port);

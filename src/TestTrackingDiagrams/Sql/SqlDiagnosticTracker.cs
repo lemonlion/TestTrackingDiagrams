@@ -29,6 +29,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
     public abstract string ComponentName { get; }
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     /// <summary>
     /// Call when a SQL command begins execution. Returns correlation IDs if tracking is active.

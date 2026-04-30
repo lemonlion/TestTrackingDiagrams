@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.12] - 2026-04-30
+
+### Fixed
+- **AtlasDataApi handler: HttpContextAccessor options fallback**: `AtlasDataApiTrackingMessageHandler` now reads `HttpContextAccessor` from the options object when not passed via the constructor parameter, matching the pattern used by all other extension handlers. Previously, setting `options.HttpContextAccessor` had no effect — only the constructor parameter worked.
+- **BigQuery handler: HttpContextAccessor options fallback**: Same fix as AtlasDataApi — `BigQueryTrackingMessageHandler` now reads from `options.HttpContextAccessor` as a fallback.
+- **EventHubs tracker: double-assignment bug**: `EventHubsTracker` had a duplicate assignment that overwrote the `options.HttpContextAccessor` fallback with just the constructor parameter. Fixed to use the correct `?? options.HttpContextAccessor` pattern.
+
+### Added
+- **`ITrackingComponent.HasHttpContextAccessor`**: New default interface member (`bool HasHttpContextAccessor => false;`) indicates whether a tracking component has an `IHttpContextAccessor` configured. Implemented explicitly on all 25+ tracking components. Shown in the diagnostic report's Tracking Components table.
+- **`AtlasDataApiTrackingMessageHandlerOptions.HttpContextAccessor`**: New property for setting `IHttpContextAccessor` on the options object (matching CosmosDB, CloudStorage, and other extensions).
+- **`BigQueryTrackingMessageHandlerOptions.HttpContextAccessor`**: Same as above for BigQuery.
+- **`UnmatchedClientNameRegistry`**: Static registry that records `clientName` values passed to `TestTrackingMessageHandler` that didn't match any `ClientNamesToServiceNames` key. The diagnostic report reads this to surface configuration mismatches.
+- **Diagnostic report: Unmatched HTTP Client Names section**: When `DiagnosticMode=true`, shows all unmatched client names with request counts and a fix suggestion explaining exact-match semantics and typed HttpClient naming conventions.
+- **Diagnostic report: Grouped tracking components**: Components with the same `ComponentName` are now aggregated into a single row showing total invocations, instance count, and active count. Multiple instances (common with `ICollectionFixture`) are shown with an expandable `<details>` element.
+- **Diagnostic report: HttpContextAccessor column**: The Tracking Components table now includes an HttpContextAccessor column showing `✓ configured`, `⚠ null`, or `—` for each component type.
+- **Diagnostic report: Smart "never invoked" warnings**: Distinguishes between fully-inactive component types (likely misconfiguration) and partially-inactive types (expected with collection fixtures).
+
+### Documentation
+- **Wiki: ClientNamesToServiceNames exact match semantics** (`HTTP-Tracking-Setup.md`): Added section documenting that matching uses exact dictionary lookup, typed HttpClient naming conventions, and the new diagnostic report section.
+- **Wiki: AtlasDataApi HttpContextAccessor** (`Integration-AtlasDataApi-Extension.md`): Updated setup example to show the new `HttpContextAccessor` option.
+- **Wiki: BigQuery HttpContextAccessor** (`Integration-BigQuery-Extension.md`): Same as above.
+- **Wiki: Diagnostic report improvements** (`Diagnostics-and-Debugging.md`): Updated TrackingComponentRegistry section to document grouped table, accessor column, smart warnings, and `HasHttpContextAccessor` interface member.
+
 ## [2.28.11] - 2026-04-30
 
 ### Added

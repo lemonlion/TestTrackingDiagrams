@@ -23,6 +23,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
     public string ComponentName => $"CosmosTrackingMessageHandler ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {

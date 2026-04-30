@@ -22,6 +22,7 @@ public class PubSubTracker : ITrackingComponent
     public string ComponentName => $"PubSubTracker ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
         PubSubOperationInfo operation, string? content)

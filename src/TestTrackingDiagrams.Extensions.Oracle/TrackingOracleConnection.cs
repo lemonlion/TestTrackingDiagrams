@@ -34,6 +34,7 @@ public class TrackingOracleConnection : DbConnection, ITrackingComponent
     public string ComponentName => $"TrackingOracleConnection ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     internal void IncrementInvocationCount() => Interlocked.Increment(ref _invocationCount);
     internal SqlDiagnosticTrackerForOracleWrapping Tracker => _tracker;

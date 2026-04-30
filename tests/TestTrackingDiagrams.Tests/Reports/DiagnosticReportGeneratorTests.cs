@@ -160,6 +160,138 @@ public class DiagnosticReportGeneratorTests : IDisposable
         Assert.Contains("10", html); // 5 requests + 5 responses = 10 entries
     }
 
+    // ─── HasHttpContextAccessor in diagnostic table (#09) ─────
+
+    [Fact]
+    public void Tracking_components_table_shows_HttpContextAccessor_column()
+    {
+        TrackingComponentRegistry.Register(
+            new StubComponentWithAccessor("Handler (CosmosDB)", wasInvoked: true, hasAccessor: true));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("HttpContextAccessor", html);
+        Assert.Contains("✓ configured", html);
+    }
+
+    [Fact]
+    public void Tracking_components_table_shows_null_warning_for_active_component_without_accessor()
+    {
+        TrackingComponentRegistry.Register(
+            new StubComponentWithAccessor("Handler (CosmosDB)", wasInvoked: true, hasAccessor: false));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("⚠ null", html);
+    }
+
+    [Fact]
+    public void Tracking_components_table_shows_dash_for_inactive_component_without_accessor()
+    {
+        TrackingComponentRegistry.Register(
+            new StubComponentWithAccessor("Handler (SomeQueue)", wasInvoked: false, hasAccessor: false));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.DoesNotContain("⚠ null", html);
+    }
+
+    // ─── Unmatched client names (#10) ──────────────────────────
+
+    [Fact]
+    public void Unmatched_client_names_section_shown_when_mismatches_exist()
+    {
+        UnmatchedClientNameRegistry.Clear();
+        UnmatchedClientNameRegistry.Record("TenantHierarchyHttpClient");
+        UnmatchedClientNameRegistry.Record("TenantHierarchyHttpClient");
+        UnmatchedClientNameRegistry.Record("TenantHierarchyHttpClient");
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("Unmatched HTTP Client Names", html);
+        Assert.Contains("TenantHierarchyHttpClient", html);
+        Assert.Contains("3", html);
+        UnmatchedClientNameRegistry.Clear();
+    }
+
+    [Fact]
+    public void Unmatched_client_names_section_not_shown_when_no_mismatches()
+    {
+        UnmatchedClientNameRegistry.Clear();
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.DoesNotContain("Unmatched HTTP Client Names", html);
+    }
+
+    // ─── Component grouping (#11) ──────────────────────────────
+
+    [Fact]
+    public void Components_grouped_by_name_with_instance_count()
+    {
+        TrackingComponentRegistry.Register(new StubComponent("MessageTracker (Bus)", wasInvoked: true));
+        TrackingComponentRegistry.Register(new StubComponent("MessageTracker (Bus)", wasInvoked: false));
+        TrackingComponentRegistry.Register(new StubComponent("MessageTracker (Bus)", wasInvoked: false));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("<summary>", html); // expandable detail
+        Assert.Contains("3 instances", html);
+    }
+
+    [Fact]
+    public void Never_invoked_warning_distinguishes_all_inactive_vs_some_inactive()
+    {
+        // Type with ALL instances inactive
+        TrackingComponentRegistry.Register(new StubComponent("MessageTracker (Bus)", wasInvoked: false));
+        TrackingComponentRegistry.Register(new StubComponent("MessageTracker (Bus)", wasInvoked: false));
+        // Type with SOME instances active
+        TrackingComponentRegistry.Register(new StubComponent("Handler (CosmosDB)", wasInvoked: true));
+        TrackingComponentRegistry.Register(new StubComponent("Handler (CosmosDB)", wasInvoked: false));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        // Should identify the fully-inactive type as the real problem
+        Assert.Contains("MessageTracker (Bus)", html);
+        Assert.Contains("0 of 2", html); // 0 of 2 active
+        Assert.Contains("1 of 2", html); // 1 of 2 active (some inactive is expected)
+    }
+
+    [Fact]
+    public void No_never_invoked_warning_when_all_instances_active()
+    {
+        TrackingComponentRegistry.Register(new StubComponent("Handler (Cosmos)", wasInvoked: true));
+        TrackingComponentRegistry.Register(new StubComponent("Handler (Cosmos)", wasInvoked: true));
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [MakeLog("t1", RequestResponseType.Request, Guid.NewGuid())],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.DoesNotContain("Never Invoked", html);
+    }
+
     // ─── Helpers ───────────────────────────────────────────────
 
     private class StubComponent(string name, bool wasInvoked) : ITrackingComponent
@@ -167,6 +299,14 @@ public class DiagnosticReportGeneratorTests : IDisposable
         public string ComponentName => name;
         public bool WasInvoked => wasInvoked;
         public int InvocationCount => wasInvoked ? 1 : 0;
+    }
+
+    private class StubComponentWithAccessor(string name, bool wasInvoked, bool hasAccessor) : ITrackingComponent
+    {
+        public string ComponentName => name;
+        public bool WasInvoked => wasInvoked;
+        public int InvocationCount => wasInvoked ? 1 : 0;
+        public bool HasHttpContextAccessor => hasAccessor;
     }
 
     private static RequestResponseLog MakeLog(

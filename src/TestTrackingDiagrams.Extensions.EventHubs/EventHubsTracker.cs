@@ -16,13 +16,13 @@ public class EventHubsTracker : ITrackingComponent
     {
         _options = options;
         _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
-        _httpContextAccessor = httpContextAccessor;
         TrackingComponentRegistry.Register(this);
     }
 
     public string ComponentName => $"EventHubsTracker ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     public (Guid RequestResponseId, Guid TraceId) LogRequest(
         EventHubsOperationInfo operation, string? content)

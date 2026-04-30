@@ -304,6 +304,65 @@ public class TestTrackingMessageHandlerTests : IDisposable
         Assert.Equal("Fixed Service", requestLog.ServiceName);
     }
 
+    // ─── Unmatched client name tracking (#10) ───────────────────
+
+    [Fact]
+    public async Task Unmatched_client_name_is_recorded_when_not_in_dictionary()
+    {
+        UnmatchedClientNameRegistry.Clear();
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "OtherClient", "Other" } },
+            PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port Service" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "TenantHierarchyHttpClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var unmatched = UnmatchedClientNameRegistry.GetRecordedNames();
+        Assert.Contains(unmatched, e => e.ClientName == "TenantHierarchyHttpClient");
+        UnmatchedClientNameRegistry.Clear();
+    }
+
+    [Fact]
+    public async Task Matched_client_name_is_not_recorded()
+    {
+        UnmatchedClientNameRegistry.Clear();
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "AccountClient", "Account Service" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "AccountClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var unmatched = UnmatchedClientNameRegistry.GetRecordedNames();
+        Assert.DoesNotContain(unmatched, e => e.ClientName == "AccountClient");
+        UnmatchedClientNameRegistry.Clear();
+    }
+
+    [Fact]
+    public async Task No_client_name_does_not_record_unmatched()
+    {
+        UnmatchedClientNameRegistry.Clear();
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "X", "Y" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: null);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        Assert.Empty(UnmatchedClientNameRegistry.GetRecordedNames());
+        UnmatchedClientNameRegistry.Clear();
+    }
+
     // ─── Caller name ────────────────────────────────────────────
 
     [Fact]

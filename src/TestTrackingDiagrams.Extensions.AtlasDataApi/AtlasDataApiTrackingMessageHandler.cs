@@ -18,7 +18,7 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
         IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -26,6 +26,7 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
     public string ComponentName => $"AtlasDataApiTrackingMessageHandler ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {

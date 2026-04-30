@@ -15,7 +15,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
     public BigQueryTrackingMessageHandler(BigQueryTrackingMessageHandlerOptions options, HttpMessageHandler? innerHandler = null, IHttpContextAccessor? httpContextAccessor = null)
     {
         _options = options;
-        _httpContextAccessor = httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor ?? options.HttpContextAccessor;
         InnerHandler = innerHandler ?? new HttpClientHandler();
         TrackingComponentRegistry.Register(this);
     }
@@ -23,6 +23,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
     public string ComponentName => $"BigQueryTrackingMessageHandler ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {

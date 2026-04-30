@@ -24,6 +24,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
     public string ComponentName => $"ElasticsearchTrackingCallbackHandler ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     public void HandleApiCallDetails(ApiCallDetails details)
     {

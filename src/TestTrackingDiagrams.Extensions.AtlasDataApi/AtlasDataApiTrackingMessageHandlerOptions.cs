@@ -29,4 +29,5 @@ public record AtlasDataApiTrackingMessageHandlerOptions
     public AtlasDataApiTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
+    public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
 }

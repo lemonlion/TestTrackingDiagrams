@@ -24,6 +24,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
     public string ComponentName => $"DynamoDbTrackingMessageHandler ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {

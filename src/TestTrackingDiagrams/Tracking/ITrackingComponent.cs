@@ -21,4 +21,11 @@ public interface ITrackingComponent
     /// Number of requests or commands processed so far.
     /// </summary>
     int InvocationCount { get; }
+
+    /// <summary>
+    /// Indicates whether this component has an <c>IHttpContextAccessor</c> configured.
+    /// Components without one cannot resolve test identity from HTTP request headers.
+    /// Returns <c>null</c> when the concept is not applicable (e.g. SQL interceptors).
+    /// </summary>
+    bool HasHttpContextAccessor => false;
 }

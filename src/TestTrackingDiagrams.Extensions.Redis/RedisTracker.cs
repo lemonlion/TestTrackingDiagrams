@@ -25,6 +25,7 @@ public class RedisTracker : ITrackingComponent
     public string ComponentName => $"RedisTracker ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     public (Guid RequestResponseId, Guid TraceId) LogRedisRequest(string command, string? key, int db, string? content)
     {

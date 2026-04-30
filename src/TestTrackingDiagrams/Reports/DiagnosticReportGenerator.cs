@@ -154,32 +154,94 @@ public static class DiagnosticReportGenerator
             sb.AppendLine("</table>");
         }
 
-        // Unused tracking components
+        // Tracking components — grouped by ComponentName
         var allComponents = TrackingComponentRegistry.GetRegisteredComponents();
         if (allComponents.Count > 0)
         {
-            var unused = TrackingComponentRegistry.GetUnusedComponents();
             sb.AppendLine("<h2>Tracking Components</h2>");
-            sb.AppendLine("<table><tr><th>Component</th><th>Invocations</th><th>Status</th></tr>");
-            foreach (var c in allComponents)
+
+            var groups = allComponents
+                .GroupBy(c => c.ComponentName)
+                .OrderByDescending(g => g.Sum(c => c.InvocationCount))
+                .ToArray();
+
+            sb.AppendLine("<table><tr><th>Component</th><th>Instances</th><th>Total Invocations</th><th>Active</th><th>HttpContextAccessor</th></tr>");
+            foreach (var g in groups)
             {
-                var status = c.WasInvoked
-                    ? "<span class=\"info\">✓ active</span>"
-                    : "<span class=\"warn\">⚠ never invoked</span>";
-                sb.AppendLine($"<tr><td>{Escape(c.ComponentName)}</td><td>{c.InvocationCount}</td><td>{status}</td></tr>");
+                var instances = g.ToArray();
+                var totalInvocations = instances.Sum(c => c.InvocationCount);
+                var activeCount = instances.Count(c => c.WasInvoked);
+                var totalCount = instances.Length;
+                var activeLabel = activeCount == totalCount
+                    ? $"<span class=\"info\">{activeCount} of {totalCount}</span>"
+                    : activeCount == 0
+                        ? $"<span class=\"warn\">0 of {totalCount}</span>"
+                        : $"{activeCount} of {totalCount}";
+
+                // HttpContextAccessor status — pick from first instance
+                var accessorStatus = instances[0].HasHttpContextAccessor
+                    ? "<span class=\"info\">✓ configured</span>"
+                    : instances.Any(c => c.InvocationCount > 0)
+                        ? "<span class=\"warn\">⚠ null</span>"
+                        : "—";
+
+                if (totalCount == 1)
+                {
+                    sb.AppendLine($"<tr><td>{Escape(g.Key)}</td><td>1</td><td>{totalInvocations}</td><td>{activeLabel}</td><td>{accessorStatus}</td></tr>");
+                }
+                else
+                {
+                    sb.AppendLine($"<tr><td><details><summary>{Escape(g.Key)} ({totalCount} instances)</summary><table><tr><th>#</th><th>Invocations</th></tr>");
+                    for (var i = 0; i < instances.Length; i++)
+                        sb.AppendLine($"<tr><td>{i + 1}</td><td>{instances[i].InvocationCount}</td></tr>");
+                    sb.AppendLine("</table></details></td>");
+                    sb.AppendLine($"<td>{totalCount}</td><td>{totalInvocations}</td><td>{activeLabel}</td><td>{accessorStatus}</td></tr>");
+                }
             }
             sb.AppendLine("</table>");
 
-            if (unused.Count > 0)
+            // Smart "never invoked" warning — distinguish all-inactive types from some-inactive
+            var fullyInactiveTypes = groups.Where(g => g.All(c => !c.WasInvoked)).ToArray();
+            var partiallyInactiveTypes = groups.Where(g => g.Any(c => !c.WasInvoked) && g.Any(c => c.WasInvoked)).ToArray();
+
+            if (fullyInactiveTypes.Length > 0)
             {
-                sb.AppendLine($"<h3 class=\"warn\">⚠ {unused.Count} Tracking Component(s) Never Invoked</h3>");
-                sb.AppendLine("<p>These components were registered but never processed any traffic. This usually means the component was added to the wrong pipeline or options.</p>");
+                sb.AppendLine($"<h3 class=\"warn\">⚠ {fullyInactiveTypes.Length} Component Type(s) Never Invoked</h3>");
+                sb.AppendLine("<p>These component types have zero invocations across <b>all</b> instances — likely a misconfiguration.</p><ul>");
+                foreach (var g in fullyInactiveTypes)
+                    sb.AppendLine($"<li>{Escape(g.Key)} — {g.Count()} instance(s), 0 invocations</li>");
+                sb.AppendLine("</ul>");
                 sb.AppendLine("<p><b>Common causes:</b></p><ul>");
                 sb.AppendLine("<li><b>EF Core:</b> The interceptor was added to <code>DbContextOptions&lt;TDerived&gt;</code> but the DbContext constructor accepts <code>DbContextOptions&lt;TBase&gt;</code> (e.g. Duende IdentityServer's ConfigurationDbContext). Fix: add <code>WithSqlTestTracking(sp)</code> inside the <code>ResolveDbContextOptions</code> implementation that runs at resolution time. <b>Note:</b> <code>PostConfigure</code> does not work with Duende IdentityServer because it registers store options as a direct singleton, not via <code>IOptions&lt;T&gt;</code>.</li>");
                 sb.AppendLine("<li><b>HTTP:</b> The handler was added to an HttpClient that isn't being used by the target service.</li>");
                 sb.AppendLine("<li><b>Redis:</b> An untracked IDatabase instance is being used instead of the tracked one.</li>");
                 sb.AppendLine("</ul>");
             }
+
+            if (partiallyInactiveTypes.Length > 0)
+            {
+                sb.AppendLine($"<h3>ℹ {partiallyInactiveTypes.Length} Component Type(s) with Some Inactive Instances</h3>");
+                sb.AppendLine("<p>These types are active in some instances but not others — typically expected when using collection fixtures with uneven test distribution.</p><ul>");
+                foreach (var g in partiallyInactiveTypes)
+                {
+                    var active = g.Count(c => c.WasInvoked);
+                    sb.AppendLine($"<li>{Escape(g.Key)} — {active} of {g.Count()} instance(s) active</li>");
+                }
+                sb.AppendLine("</ul>");
+            }
+        }
+
+        // Unmatched HTTP client names
+        var unmatchedNames = UnmatchedClientNameRegistry.GetRecordedNames();
+        if (unmatchedNames.Count > 0)
+        {
+            sb.AppendLine("<h2 class=\"warn\">⚠ Unmatched HTTP Client Names</h2>");
+            sb.AppendLine("<p>These <code>clientName</code> values were passed to <code>TestTrackingMessageHandler</code> but did not match any key in <code>ClientNamesToServiceNames</code>. The handler fell back to port-based mapping.</p>");
+            sb.AppendLine("<table><tr><th>Client Name</th><th>Requests</th></tr>");
+            foreach (var (clientName, requestCount) in unmatchedNames)
+                sb.AppendLine($"<tr><td>{Escape(clientName)}</td><td>{requestCount}</td></tr>");
+            sb.AppendLine("</table>");
+            sb.AppendLine("<p><b>Fix:</b> Add the exact client name to <code>ClientNamesToServiceNames</code>. For typed HttpClients registered via <code>services.AddHttpClient&lt;TClient&gt;()</code>, the client name is the <b>full type name</b> (e.g. <code>\"TenantHierarchyHttpClient\"</code>).</p>");
         }
 
         sb.AppendLine("</body></html>");

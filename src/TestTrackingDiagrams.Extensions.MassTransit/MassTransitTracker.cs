@@ -23,6 +23,7 @@ public class MassTransitTracker : ITrackingComponent
     public string ComponentName => $"MassTransitTracker ({_options.ServiceName})";
     public bool WasInvoked => _invocationCount > 0;
     public int InvocationCount => _invocationCount;
+    public bool HasHttpContextAccessor => _httpContextAccessor is not null;
 
     public void LogSend(MassTransitOperationInfo op, object? message)
     {
