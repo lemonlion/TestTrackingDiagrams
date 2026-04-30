@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.8] - 2026-04-30
+
+### Fixed
+- **Mobile: Details/Headers options overflowing off-screen**: The report-level "Details:" and "Headers:" toggle sections in `.toolbar-right` now wrap within the viewport on mobile. Added `flex-wrap: wrap` and `width: 100%` to `.toolbar-right`, and removed the fixed `margin-left: 1.5em` from `.headers-radio` at ≤768px so toggles flow naturally onto the next line.
+- **Mobile: Scenario-level diagram toggle overflow**: The `.diagram-toggle` row (Sequence Diagrams / Activity Diagrams / Flame Chart + Details/Headers) now wraps at ≤768px. The `.diagram-toggle-spacer` that pushed Details/Headers to the far right is hidden on mobile, allowing items to flow naturally within the container.
+- **Mobile: Summary chart (green circle) not centred**: Changed `.summary-chart` from `align-self: flex-start` to `align-self: center` at ≤768px so the pass/fail donut chart is horizontally centred when the header row stacks vertically.
+
 ## [2.28.7] - 2026-04-30
 
 ### Fixed

@@ -148,6 +148,12 @@ public static class DiagramContextMenu
         }
         .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
         .note-toggle-icon { user-select: none; -webkit-user-select: none; }
+        @media (max-width: 768px) {
+            .details-radio { flex-wrap: wrap; }
+            .headers-radio { margin-left: 0; flex-wrap: wrap; }
+            .diagram-toggle { flex-wrap: wrap; gap: 0.3em; }
+            .diagram-toggle-spacer { display: none; }
+        }
         """;
 
     public static string GetInternalFlowPopupStyles() => """

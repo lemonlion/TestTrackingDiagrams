@@ -1218,7 +1218,7 @@ public class Stylesheets
                     }
 
                     .summary-chart {
-                        align-self: flex-start;
+                        align-self: center;
                     }
 
                     .ci-metadata {
@@ -1243,6 +1243,26 @@ public class Stylesheets
 
                     .toolbar-right {
                         margin-right: 0;
+                        flex-wrap: wrap;
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+
+                    .details-radio {
+                        flex-wrap: wrap;
+                    }
+
+                    .headers-radio {
+                        margin-left: 0;
+                    }
+
+                    .diagram-toggle {
+                        flex-wrap: wrap;
+                        gap: 0.3em;
+                    }
+
+                    .diagram-toggle-spacer {
+                        display: none;
                     }
 
                     .feature {

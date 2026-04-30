@@ -198,4 +198,79 @@ public class MobileResponsiveTests : IClassFixture<ChromeFixtureMobile>, IDispos
         // Restore mobile size for remaining tests
         _driver.Manage().Window.Size = new System.Drawing.Size(375, 812);
     }
+
+    // ── Summary chart centred on mobile ──
+
+    [Fact]
+    public void Summary_chart_is_centred_on_mobile()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("MobileChartCenter.html"));
+        var chart = WaitFor(By.CssSelector(".summary-chart"));
+        var alignSelf = GetComputedStyle(chart, "align-self");
+        Assert.Equal("center", alignSelf);
+    }
+
+    // ── Details/Headers wraps on mobile ──
+
+    [Fact]
+    public void Toolbar_right_details_does_not_overflow()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("MobileDetailsOverflow.html"));
+        WaitFor(By.CssSelector(".toolbar-right"));
+
+        var toolbarRight = _driver.FindElement(By.CssSelector(".toolbar-right"));
+        var viewportWidth = Convert.ToInt64(((IJavaScriptExecutor)_driver).ExecuteScript(
+            "return window.innerWidth;"));
+        var rightEdge = Convert.ToInt64(((IJavaScriptExecutor)_driver).ExecuteScript(
+            "return arguments[0].getBoundingClientRect().right;", toolbarRight));
+
+        // Toolbar-right should not extend beyond viewport
+        Assert.True(rightEdge <= viewportWidth + 2,
+            $"Toolbar-right overflows: right={rightEdge}, viewport={viewportWidth}");
+    }
+
+    [Fact]
+    public void Diagram_toggle_wraps_on_mobile()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("MobileDiagramToggle.html"));
+        WaitFor(By.CssSelector("details.feature"));
+
+        // Open a feature and scenario to access the diagram toggle
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.feature')[0].setAttribute('open','');");
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.scenario')[0].setAttribute('open','');");
+        ((IJavaScriptExecutor)_driver).ExecuteScript(
+            "document.querySelectorAll('details.example-diagrams')[0]?.setAttribute('open','');");
+
+        var toggles = _driver.FindElements(By.CssSelector(".diagram-toggle"));
+        if (toggles.Count > 0)
+        {
+            var toggle = toggles[0];
+            var flexWrap = GetComputedStyle(toggle, "flex-wrap");
+            Assert.Equal("wrap", flexWrap);
+
+            // Spacer should be hidden so items flow naturally
+            var spacers = _driver.FindElements(By.CssSelector(".diagram-toggle-spacer"));
+            if (spacers.Count > 0)
+            {
+                var display = GetComputedStyle(spacers[0], "display");
+                Assert.Equal("none", display);
+            }
+        }
+    }
+
+    [Fact]
+    public void Headers_radio_has_no_left_margin_on_mobile()
+    {
+        _driver.Navigate().GoToUrl(GenerateReport("MobileHeadersMargin.html"));
+        WaitFor(By.CssSelector(".toolbar-right"));
+
+        var headersRadios = _driver.FindElements(By.CssSelector(".headers-radio"));
+        if (headersRadios.Count > 0)
+        {
+            var marginLeft = GetComputedStyle(headersRadios[0], "margin-left");
+            Assert.Equal("0px", marginLeft);
+        }
+    }
 }
