@@ -294,9 +294,13 @@ public class MessageTracker : ITrackingComponent
             }
             catch
             {
-                return null;
+                // Delegate threw — fall through to scope
             }
         }
+
+        var scope = TestIdentityScope.Current;
+        if (scope is not null)
+            return (scope.Value.Name, scope.Value.Id, Guid.NewGuid());
 
         return null;
     }

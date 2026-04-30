@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.6] - 2026-04-30
+
+### Added
+- **`TestIdentityScope` for background thread tracking**: New `AsyncLocal`-based ambient scope that propagates test identity into background threads, hosted services, change-feed subscribers, and other code paths where neither `HttpContext` nor the test framework's `TestContext` is available. Use `TestIdentityScope.Begin(testName, testId)` to wrap background processing that is logically part of a test. All tracking extensions now check `TestIdentityScope.Current` as a third-level fallback after HTTP headers and `CurrentTestInfoFetcher`. Resolution order: HTTP headers → delegate → `TestIdentityScope`.
+- **`TestInfoResolver` triple-resolution**: Both `Resolve()` overloads and `MessageTracker.GetTestInfo()` now fall back to `TestIdentityScope.Current` when the delegate returns null or throws, before returning null (which causes tracking to be silently skipped).
+
+### Documentation
+- **CosmosDB Extension wiki**: Added deferred `HttpContextAccessor` assignment pattern for `WrapHandler` scenarios where DI doesn't exist at fixture construction time.
+- **Tracking Custom Dependencies wiki**: Added "Tracking Background Processing with TestIdentityScope" section with resolution order table, usage examples, nesting behavior, and AsyncLocal propagation notes. Added "Suppressing Tracking During Fixture Setup" section showing `TestPhaseContext.Current = TestPhase.Setup` combined with `TrackDuringSetup = false`.
+
 ## [2.28.5] - 2026-04-30
 
 ### Added
