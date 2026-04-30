@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.20] - 2026-04-30
+
+### Changed
+- **Release workflow: ~60% faster builds via solution filter and parallelisation**: Replaced the sequential `for proj in src/*/` build and pack loops with a single `dotnet build release.slnf` / `dotnet pack release.slnf` invocation using a new solution filter file (`release.slnf`) that includes all 49 src projects. MSBuild now parallelises compilation across all available cores using its dependency-graph-aware scheduler (GitHub runners have 4 vCPUs). Added a dedicated `dotnet restore` step so NuGet restore happens once with a shared cache. Removed `apt-get clean` and `docker image prune` from the disk cleanup step (the fast `rm -rf` commands alone free 30+ GB and Docker isn't used). Expected total workflow time reduction: ~8m 46s → ~3-4m.
+
 ## [2.28.19] - 2026-04-30
 
 ### Fixed
