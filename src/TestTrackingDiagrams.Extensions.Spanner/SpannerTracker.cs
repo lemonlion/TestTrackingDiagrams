@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Google.Cloud.Spanner.V1;
 using Google.Protobuf;
 using Grpc.Core;
@@ -59,7 +60,7 @@ public class SpannerTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "Spanner")
+            DependencyCategory: DependencyCategories.Spanner)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -97,7 +98,7 @@ public class SpannerTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            DependencyCategory: "Spanner")
+            DependencyCategory: DependencyCategories.Spanner)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 namespace TestTrackingDiagrams.Extensions.MongoDB;
 
 /// <summary>
@@ -8,7 +9,7 @@ public record MongoDbTrackingOptions
     public string ServiceName { get; set; } = "MongoDB";
 
     /// <summary>The participant name for the calling service in diagrams.</summary>
-    public string CallerName { get; set; } = "Caller";
+    public string CallerName { get; set; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]

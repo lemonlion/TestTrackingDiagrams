@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -78,7 +79,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "BigQuery"
+            DependencyCategory: DependencyCategories.BigQuery
         )
         {
             Phase = TestPhaseContext.Current
@@ -109,7 +110,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "BigQuery"
+            DependencyCategory: DependencyCategories.BigQuery
         )
         {
             Phase = TestPhaseContext.Current

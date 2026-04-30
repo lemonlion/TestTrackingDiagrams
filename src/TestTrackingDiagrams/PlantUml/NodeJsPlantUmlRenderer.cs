@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using TestTrackingDiagrams.Constants;
 
 namespace TestTrackingDiagrams.PlantUml;
 
@@ -10,7 +11,7 @@ namespace TestTrackingDiagrams.PlantUml;
 /// </summary>
 public static class NodeJsPlantUmlRenderer
 {
-    private const string CdnBase = "https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched";
+    private const string CdnBase = TrackingDefaults.PlantUmlJsCdnBase;
     private const string VizFileName = "viz-global.js";
     private const string PlantUmlFileName = "plantuml.js";
     private const string RenderScriptName = "plantuml-render.js";

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -78,7 +79,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "CosmosDB"
+            DependencyCategory: DependencyCategories.CosmosDB
         )
         {
             Phase = TestPhaseContext.Current
@@ -109,7 +110,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "CosmosDB"
+            DependencyCategory: DependencyCategories.CosmosDB
         )
         {
             Phase = TestPhaseContext.Current

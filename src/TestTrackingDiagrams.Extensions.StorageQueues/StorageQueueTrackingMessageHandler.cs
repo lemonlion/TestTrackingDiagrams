@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -77,7 +78,7 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "MessageQueue"
+            DependencyCategory: DependencyCategories.MessageQueue
         )
         {
             Phase = TestPhaseContext.Current
@@ -108,7 +109,7 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "MessageQueue"
+            DependencyCategory: DependencyCategories.MessageQueue
         )
         {
             Phase = TestPhaseContext.Current

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -78,7 +79,7 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "BlobStorage"
+            DependencyCategory: DependencyCategories.BlobStorage
         )
         {
             Phase = TestPhaseContext.Current
@@ -109,7 +110,7 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "BlobStorage"
+            DependencyCategory: DependencyCategories.BlobStorage
         )
         {
             Phase = TestPhaseContext.Current

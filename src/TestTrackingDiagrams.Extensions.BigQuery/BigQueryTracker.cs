@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -52,7 +53,7 @@ public class BigQueryTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "BigQuery")
+            DependencyCategory: DependencyCategories.BigQuery)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -88,7 +89,7 @@ public class BigQueryTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            DependencyCategory: "BigQuery")
+            DependencyCategory: DependencyCategories.BigQuery)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

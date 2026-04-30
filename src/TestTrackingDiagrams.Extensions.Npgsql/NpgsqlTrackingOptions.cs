@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Sql;
 
@@ -11,7 +12,7 @@ public record NpgsqlTrackingOptions : SqlTrackingOptionsBase
     public NpgsqlTrackingOptions()
     {
         ServiceName = "PostgreSQL";
-        DependencyCategory = "PostgreSQL";
+        DependencyCategory = DependencyCategories.PostgreSQL;
         UriScheme = "postgresql";
     }
 }

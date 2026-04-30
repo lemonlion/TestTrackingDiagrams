@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -94,7 +95,7 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "AtlasDataApi"
+            DependencyCategory: DependencyCategories.AtlasDataApi
         )
         {
             Phase = TestPhaseContext.Current
@@ -125,7 +126,7 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "AtlasDataApi"
+            DependencyCategory: DependencyCategories.AtlasDataApi
         )
         {
             Phase = TestPhaseContext.Current

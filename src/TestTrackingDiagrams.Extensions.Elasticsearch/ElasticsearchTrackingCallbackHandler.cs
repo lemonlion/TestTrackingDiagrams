@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text;
 using Elastic.Transport;
 using Microsoft.AspNetCore.Http;
@@ -91,7 +92,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
                 : null,
-            DependencyCategory: "Elasticsearch")
+            DependencyCategory: DependencyCategories.Elasticsearch)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -116,7 +117,7 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
             StatusCode: statusCode.HasValue
                 ? (System.Net.HttpStatusCode)statusCode.Value
                 : null,
-            DependencyCategory: "Elasticsearch")
+            DependencyCategory: DependencyCategories.Elasticsearch)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

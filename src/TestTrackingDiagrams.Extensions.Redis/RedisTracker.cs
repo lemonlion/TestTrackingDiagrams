@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
@@ -71,7 +72,7 @@ public class RedisTracker : ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "Redis"
+            DependencyCategory: DependencyCategories.Redis
         )
         {
             Phase = TestPhaseContext.Current
@@ -128,7 +129,7 @@ public class RedisTracker : ITrackingComponent
             requestResponseId,
             false,
             (OneOf<HttpStatusCode, string>)"OK",
-            DependencyCategory: "Redis"
+            DependencyCategory: DependencyCategories.Redis
         )
         {
             Phase = TestPhaseContext.Current

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
@@ -107,7 +108,7 @@ public class MassTransitTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -124,7 +125,7 @@ public class MassTransitTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -157,7 +158,7 @@ public class MassTransitTracker : ITrackingComponent
             _options.CallerName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -174,7 +175,7 @@ public class MassTransitTracker : ITrackingComponent
             _options.CallerName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -205,7 +206,7 @@ public class MassTransitTracker : ITrackingComponent
             svc, caller,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -221,7 +222,7 @@ public class MassTransitTracker : ITrackingComponent
             RequestResponseType.Response, traceId, requestResponseId, false,
             StatusCode: "Fault",
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Diagnostics;
 using System.Net;
 using Google.Protobuf;
@@ -281,7 +282,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             label, content, uri,
             headers, serviceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            DependencyCategory: "gRPC")
+            DependencyCategory: DependencyCategories.Grpc)
         {
             Phase = TestPhaseContext.Current,
             Timestamp = DateTimeOffset.UtcNow,
@@ -308,7 +309,7 @@ public class GrpcTrackingInterceptor : Interceptor, ITrackingComponent
             [], serviceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             statusCode,
-            DependencyCategory: "gRPC")
+            DependencyCategory: DependencyCategories.Grpc)
         {
             Phase = TestPhaseContext.Current,
             Timestamp = DateTimeOffset.UtcNow,

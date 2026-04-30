@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -16,7 +17,7 @@ public record TrackingProxyOptions
     public required string ServiceName { get; init; }
 
     /// <summary>The participant name for the calling service in diagrams.</summary>
-    public string CallerName { get; init; } = "Caller";
+    public string CallerName { get; init; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]

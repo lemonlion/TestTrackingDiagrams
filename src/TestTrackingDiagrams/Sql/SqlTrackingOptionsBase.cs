@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 
 namespace TestTrackingDiagrams.Sql;
@@ -10,7 +11,7 @@ public record SqlTrackingOptionsBase
     public string ServiceName { get; set; } = "Database";
 
     /// <summary>The participant name for the calling service in diagrams.</summary>
-    public string CallerName { get; set; } = "Caller";
+    public string CallerName { get; set; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
@@ -30,7 +31,7 @@ public record SqlTrackingOptionsBase
     /// The DependencyCategory string used in <see cref="Tracking.RequestResponseLog.DependencyCategory"/>.
     /// Each database extension sets its own default (e.g. "PostgreSQL", "SqlServer", "MySQL").
     /// </summary>
-    public string DependencyCategory { get; set; } = "SQL";
+    public string DependencyCategory { get; set; } = DependencyCategories.SQL;
 
     /// <summary>
     /// URI scheme used for diagram URIs (e.g. "postgresql", "sqlserver", "mysql", "sqlite", "oracle").

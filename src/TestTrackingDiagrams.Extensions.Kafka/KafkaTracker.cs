@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -114,7 +115,7 @@ public class KafkaTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -130,7 +131,7 @@ public class KafkaTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -161,7 +162,7 @@ public class KafkaTracker : ITrackingComponent
             _options.CallerName, _options.ServiceName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -177,7 +178,7 @@ public class KafkaTracker : ITrackingComponent
             _options.CallerName, _options.ServiceName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

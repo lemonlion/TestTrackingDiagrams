@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
@@ -159,7 +160,7 @@ public class TrackingDbCommand : DbCommand
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "SQL")
+            DependencyCategory: DependencyCategories.SQL)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -206,7 +207,7 @@ public class TrackingDbCommand : DbCommand
             requestResponseId,
             false,
             (OneOf<HttpStatusCode, string>)"OK",
-            DependencyCategory: "SQL")
+            DependencyCategory: DependencyCategories.SQL)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

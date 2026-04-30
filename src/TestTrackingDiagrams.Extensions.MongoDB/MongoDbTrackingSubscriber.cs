@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Collections.Concurrent;
 using System.Net;
 using global::MongoDB.Bson;
@@ -88,7 +89,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             content, uri,
             [], _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
-            DependencyCategory: "MongoDB")
+            DependencyCategory: DependencyCategories.MongoDB)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -128,7 +129,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             [], _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
             HttpStatusCode.OK,
-            DependencyCategory: "MongoDB")
+            DependencyCategory: DependencyCategories.MongoDB)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -159,7 +160,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
             [], _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, pending.TraceId, pending.RequestResponseId, false,
             HttpStatusCode.InternalServerError,
-            DependencyCategory: "MongoDB")
+            DependencyCategory: DependencyCategories.MongoDB)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

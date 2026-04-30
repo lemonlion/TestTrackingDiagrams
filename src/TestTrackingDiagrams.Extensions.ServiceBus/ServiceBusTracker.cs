@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -65,7 +66,7 @@ public class ServiceBusTracker : ITrackingComponent
             requestResponseId,
             false,
             MetaType: metaType,
-            DependencyCategory: "ServiceBus"
+            DependencyCategory: DependencyCategories.ServiceBus
         )
         {
             Phase = TestPhaseContext.Current
@@ -120,7 +121,7 @@ public class ServiceBusTracker : ITrackingComponent
             requestResponseId,
             false,
             MetaType: metaType,
-            DependencyCategory: "ServiceBus"
+            DependencyCategory: DependencyCategories.ServiceBus
         )
         {
             Phase = TestPhaseContext.Current

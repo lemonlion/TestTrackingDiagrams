@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -49,7 +50,7 @@ public class EventHubsTracker : ITrackingComponent
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
@@ -83,7 +84,7 @@ public class EventHubsTracker : ITrackingComponent
             label, logContent, uri, [],
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
-            DependencyCategory: "MessageQueue")
+            DependencyCategory: DependencyCategories.MessageQueue)
         {
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MediatR;
@@ -10,7 +11,7 @@ public record MediatorTrackingOptions
     public string ServiceName { get; init; } = "Application";
 
     /// <summary>The participant name for the calling service in diagrams.</summary>
-    public string CallerName { get; init; } = "Caller";
+    public string CallerName { get; init; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]

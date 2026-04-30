@@ -1,4 +1,5 @@
-﻿namespace TestTrackingDiagrams.Tracking;
+using TestTrackingDiagrams.Constants;
+namespace TestTrackingDiagrams.Tracking;
 
 /// <summary>
 /// Options for configuring the <see cref="TestTrackingMessageHandler"/> that intercepts HTTP traffic for diagram generation.
@@ -22,7 +23,7 @@ public record TestTrackingMessageHandlerOptions
     public string? FixedNameForReceivingService { get; set; }
 
     /// <summary>Display name of the calling service in diagrams. Default: <c>"Caller"</c>.</summary>
-    public string CallerName { get; set; } = "Caller";
+    public string CallerName { get; set; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]

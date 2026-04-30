@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
@@ -95,7 +96,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "DynamoDB"
+            DependencyCategory: DependencyCategories.DynamoDB
         )
         {
             Phase = TestPhaseContext.Current
@@ -132,7 +133,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "DynamoDB"
+            DependencyCategory: DependencyCategories.DynamoDB
         )
         {
             Phase = TestPhaseContext.Current

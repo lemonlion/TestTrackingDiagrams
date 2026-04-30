@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
@@ -31,7 +32,7 @@ public static class GrpcWebApplicationFactoryExtensions
     ///     new GrpcTrackingOptions
     ///     {
     ///         ServiceName = "My API",
-    ///         CallerName = "Caller",
+    ///         CallerName = TrackingDefaults.CallerName,
     ///         CurrentTestInfoFetcher = () => (testName, testId)
     ///     });
     /// </code>

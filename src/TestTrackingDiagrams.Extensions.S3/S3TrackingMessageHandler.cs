@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
 
@@ -76,7 +77,7 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "S3"
+            DependencyCategory: DependencyCategories.S3
         )
         {
             Phase = TestPhaseContext.Current
@@ -107,7 +108,7 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "S3"
+            DependencyCategory: DependencyCategories.S3
         )
         {
             Phase = TestPhaseContext.Current

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.15] - 2026-04-30
+
+### Added
+- **`DependencyCategories` constants class**: New static class with 24 public constants for all dependency category strings (CosmosDB, SQL, BigQuery, Redis, ServiceBus, BlobStorage, HTTP, MediatR, MessageQueue, MongoDB, DynamoDB, Elasticsearch, Spanner, Bigtable, Database, S3, CloudStorage, Grpc, PostgreSQL, SqlServer, MySQL, SQLite, Oracle, AtlasDataApi). Replaces magic strings across 40+ files in `DependencyPalette`, all extension trackers/handlers, and options classes.
+- **`TrackingDefaults` constants class**: New static class with shared default values — `CallerName` ("Caller") used across 30 options files, and `PlantUmlJsCdnBase` (CDN URL) used in `NodeJsPlantUmlRenderer` and `DiagramContextMenu`.
+- **`DependencyCategoriesTests`**: 4 new tests verifying all palette keys have matching constants and all constants are registered in the palette.
+
+### Changed
+- All dependency category string literals across 27+ extension tracker/handler files now reference `DependencyCategories.*` constants.
+- All `CallerName` default values across 30 options files now reference `TrackingDefaults.CallerName`.
+- `DependencyPalette.CategoryToType` dictionary keys now use `DependencyCategories.*` constants.
+- `ComponentDiagramGenerator` HTTP string literals now use `DependencyCategories.HTTP`.
+- CDN URL in `NodeJsPlantUmlRenderer` and `DiagramContextMenu` now references `TrackingDefaults.PlantUmlJsCdnBase`.
+
 ## [2.28.14] - 2026-04-30
 
 ### Added

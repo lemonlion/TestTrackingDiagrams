@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Collections.Concurrent;
 using System.Data.Common;
 using Microsoft.AspNetCore.Http;
@@ -78,7 +79,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "SQL"
+            DependencyCategory: DependencyCategories.SQL
         )
         {
             Phase = TestPhaseContext.Current
@@ -134,7 +135,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             ids.RequestResponseId,
             false,
             (OneOf<System.Net.HttpStatusCode, string>)"OK",
-            DependencyCategory: "SQL"
+            DependencyCategory: DependencyCategories.SQL
         )
         {
             Phase = TestPhaseContext.Current

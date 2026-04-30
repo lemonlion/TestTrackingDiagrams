@@ -81,7 +81,7 @@ public class MessageTracker : ITrackingComponent
         _verbosity = MessageTrackerVerbosity.Detailed;
         _trackDuringSetup = true;
         _trackDuringAction = true;
-        _dependencyCategory = "MessageQueue";
+        _dependencyCategory = DependencyCategories.MessageQueue;
         _callerDependencyCategory = null;
         TrackingComponentRegistry.Register(this);
     }

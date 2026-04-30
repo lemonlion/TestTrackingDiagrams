@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using TestTrackingDiagrams.Tracking;
@@ -100,7 +101,7 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             traceId,
             requestResponseId,
             false,
-            DependencyCategory: "MessageQueue"
+            DependencyCategory: DependencyCategories.MessageQueue
         )
         {
             Phase = TestPhaseContext.Current
@@ -136,7 +137,7 @@ public class EventBridgeTrackingMessageHandler : DelegatingHandler, ITrackingCom
             requestResponseId,
             false,
             response.StatusCode,
-            DependencyCategory: "MessageQueue"
+            DependencyCategory: DependencyCategories.MessageQueue
         )
         {
             Phase = TestPhaseContext.Current

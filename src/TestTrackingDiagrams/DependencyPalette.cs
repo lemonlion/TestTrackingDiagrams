@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using TestTrackingDiagrams.Constants;
 
 namespace TestTrackingDiagrams;
 
@@ -12,29 +13,29 @@ public static class DependencyPalette
     public static readonly FrozenDictionary<string, DependencyType> CategoryToType =
         new Dictionary<string, DependencyType>(StringComparer.OrdinalIgnoreCase)
         {
-            ["CosmosDB"] = DependencyType.Database,
-            ["SQL"] = DependencyType.Database,
-            ["BigQuery"] = DependencyType.Database,
-            ["Redis"] = DependencyType.Cache,
-            ["ServiceBus"] = DependencyType.MessageQueue,
-            ["BlobStorage"] = DependencyType.Storage,
-            ["HTTP"] = DependencyType.HttpApi,
-            ["MediatR"] = DependencyType.HttpApi,
-            ["MessageQueue"] = DependencyType.MessageQueue,
-            ["MongoDB"] = DependencyType.Database,
-            ["DynamoDB"] = DependencyType.Database,
-            ["Elasticsearch"] = DependencyType.Database,
-            ["Spanner"] = DependencyType.Database,
-            ["Bigtable"] = DependencyType.Database,
-            ["Database"] = DependencyType.Database,
-            ["S3"] = DependencyType.Storage,
-            ["CloudStorage"] = DependencyType.Storage,
-            ["gRPC"] = DependencyType.HttpApi,
-            ["PostgreSQL"] = DependencyType.Database,
-            ["SqlServer"] = DependencyType.Database,
-            ["MySQL"] = DependencyType.Database,
-            ["SQLite"] = DependencyType.Database,
-            ["Oracle"] = DependencyType.Database,
+            [DependencyCategories.CosmosDB] = DependencyType.Database,
+            [DependencyCategories.SQL] = DependencyType.Database,
+            [DependencyCategories.BigQuery] = DependencyType.Database,
+            [DependencyCategories.Redis] = DependencyType.Cache,
+            [DependencyCategories.ServiceBus] = DependencyType.MessageQueue,
+            [DependencyCategories.BlobStorage] = DependencyType.Storage,
+            [DependencyCategories.HTTP] = DependencyType.HttpApi,
+            [DependencyCategories.MediatR] = DependencyType.HttpApi,
+            [DependencyCategories.MessageQueue] = DependencyType.MessageQueue,
+            [DependencyCategories.MongoDB] = DependencyType.Database,
+            [DependencyCategories.DynamoDB] = DependencyType.Database,
+            [DependencyCategories.Elasticsearch] = DependencyType.Database,
+            [DependencyCategories.Spanner] = DependencyType.Database,
+            [DependencyCategories.Bigtable] = DependencyType.Database,
+            [DependencyCategories.Database] = DependencyType.Database,
+            [DependencyCategories.S3] = DependencyType.Storage,
+            [DependencyCategories.CloudStorage] = DependencyType.Storage,
+            [DependencyCategories.Grpc] = DependencyType.HttpApi,
+            [DependencyCategories.PostgreSQL] = DependencyType.Database,
+            [DependencyCategories.SqlServer] = DependencyType.Database,
+            [DependencyCategories.MySQL] = DependencyType.Database,
+            [DependencyCategories.SQLite] = DependencyType.Database,
+            [DependencyCategories.Oracle] = DependencyType.Database,
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Default hex colors for each <see cref="DependencyType"/>. Palette A (Vivid).</summary>

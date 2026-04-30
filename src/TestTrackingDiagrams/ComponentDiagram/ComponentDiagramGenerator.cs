@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text;
 using System.Text.RegularExpressions;
 using TestTrackingDiagrams.Tracking;
@@ -170,7 +171,7 @@ public static partial class ComponentDiagramGenerator
             }
             else if (stats != null && stats.TryGetValue(relKey, out var relStats))
             {
-                var methodsPart = rel.Protocol == "HTTP"
+                var methodsPart = rel.Protocol == DependencyCategories.HTTP
                     ? $"HTTP: {string.Join(", ", rel.Methods.OrderBy(m => m))}"
                     : $"{rel.Protocol}: {string.Join(", ", rel.Methods.OrderBy(m => m))}";
 
@@ -184,7 +185,7 @@ public static partial class ComponentDiagramGenerator
             }
             else
             {
-                var methodsPart = rel.Protocol == "HTTP"
+                var methodsPart = rel.Protocol == DependencyCategories.HTTP
                     ? $"HTTP: {string.Join(", ", rel.Methods.OrderBy(m => m))}"
                     : $"{rel.Protocol}: {string.Join(", ", rel.Methods.OrderBy(m => m))}";
                 label = $"{methodsPart} - {rel.CallCount} calls across {rel.TestCount} tests";
@@ -259,7 +260,7 @@ public static partial class ComponentDiagramGenerator
 
         return log.MetaType == RequestResponseMetaType.Event
             ? log.Method.Value?.ToString() ?? "Event"
-            : "HTTP";
+            : DependencyCategories.HTTP;
     }
 
     private static string GetMethodName(RequestResponseLog log) =>

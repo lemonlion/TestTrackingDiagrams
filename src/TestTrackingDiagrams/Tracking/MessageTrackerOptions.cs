@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using System.Text.Json;
 
 namespace TestTrackingDiagrams.Tracking;
@@ -17,7 +18,7 @@ public record MessageTrackerOptions
     /// <summary>
     /// The participant name for the service sending/receiving messages.
     /// </summary>
-    public string CallerName { get; set; } = "Caller";
+    public string CallerName { get; set; } = TrackingDefaults.CallerName;
 
     /// <summary>Use <see cref="CallerName"/> instead.</summary>
     [Obsolete("Use CallerName instead. CallingServiceName will be removed in a future version.")]
@@ -62,7 +63,7 @@ public record MessageTrackerOptions
     /// (e.g. <c>queue</c>, <c>database</c>, <c>entity</c>).
     /// Defaults to <c>"MessageQueue"</c> which renders as a queue shape.
     /// </summary>
-    public string DependencyCategory { get; set; } = "MessageQueue";
+    public string DependencyCategory { get; set; } = DependencyCategories.MessageQueue;
 
     /// <summary>
     /// The dependency category for the <see cref="CallerName"/> participant in PlantUML diagrams.
