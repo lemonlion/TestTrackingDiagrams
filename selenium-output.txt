@@ -1,0 +1,776 @@
+Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\bin\Debug\net10.0\TestTrackingDiagrams.Tests.Selenium.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:06.63]     TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [SKIP]
+[xUnit.net 00:00:06.65]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [SKIP]
+[xUnit.net 00:00:06.69]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [SKIP]
+[xUnit.net 00:00:06.69]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [SKIP]
+[xUnit.net 00:00:06.69]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [SKIP]
+[xUnit.net 00:00:06.70]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [SKIP]
+[xUnit.net 00:00:06.70]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [SKIP]
+[xUnit.net 00:00:06.70]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [SKIP]
+[xUnit.net 00:00:06.70]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_dispatch_proxy_tracking [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.ShowcaseReportTests.Showcase_drives_through_report_features_capturing_frames [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_ci_summary [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_test_run_report [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_internal_flow_visualization [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_export_buttons [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_scenario_timeline [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_diagram_focus [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_component_diagram_report [1 ms]
+[xUnit.net 00:00:06.75]     TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiScreenshotTests.Capture_violet_theme_overview [1 ms]
+[xUnit.net 00:01:43.65]     TestTrackingDiagrams.Tests.Selenium.IflowPopupTests.Clicking_activity_toggle_back_restores_activity_view [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.IflowPopupTests.Clicking_activity_toggle_back_restores_activity_view [1 m 7 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56731/session/883c8da5d3c6655fecf56b8a5506437c/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at OpenQA.Selenium.Navigator.GoToUrl(String url)
+   at TestTrackingDiagrams.Tests.Selenium.IflowPopupTests.Clicking_activity_toggle_back_restores_activity_view() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\IflowPopupTests.cs:line 285
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.DiagnosticsHandler.SendAsyncCore(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.<CheckUsabilityOnScavenge>g__ReadAheadWithZeroByteReadAsync|39_0()
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:01:44.73]     TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Minus_button_from_truncated_goes_to_collapsed [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Minus_button_from_truncated_goes_to_collapsed [1 m 3 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56736/session/128e225ba81c07c82e89324dfd9224e1/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at OpenQA.Selenium.Navigator.GoToUrl(String url)
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNoteTestBase.ExpandAndRenderLongNoteDiagram(String fileName) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNoteTestBase.cs:line 69
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Minus_button_from_truncated_goes_to_collapsed() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNoteBasicTests.cs:line 340
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:01:48.69]     TestTrackingDiagrams.Tests.Selenium.DiagramNotePartitionTests.Partition_long_note_expand_click_works [FAIL]
+[xUnit.net 00:01:49.42]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_flame_has_boundary_markers [FAIL]
+[xUnit.net 00:01:49.42]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_FlameChart_only_shows_flame_bars [FAIL]
+[xUnit.net 00:01:49.47]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_toggle_switches_views [FAIL]
+[xUnit.net 00:01:49.49]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_Both_shows_toggle_buttons [FAIL]
+[xUnit.net 00:01:49.50]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_expands_on_click [FAIL]
+[xUnit.net 00:01:49.50]     TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_renders_collapsed_details_block [FAIL]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [SKIP]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramNotePartitionTests.Partition_long_note_expand_click_works [1 m 9 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56730/session/ffde9c5cb41dac1c54bac73c585819c9/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at OpenQA.Selenium.Navigator.GoToUrl(String url)
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNotePartitionTests.Partition_long_note_expand_click_works() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNotePartitionTests.cs:line 238
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.<CheckUsabilityOnScavenge>g__ReadAheadWithZeroByteReadAsync|39_0()
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_flame_has_boundary_markers [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_FlameChart_only_shows_flame_bars [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_toggle_switches_views [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_Both_shows_toggle_buttons [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_expands_on_click [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Failed TestTrackingDiagrams.Tests.Selenium.WholeTestFlowTests.Whole_test_flow_renders_collapsed_details_block [1 ms]
+  Error Message:
+   Class fixture type 'TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900' threw in its constructor
+---- OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56724/session timed out after 60 seconds.
+-------- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+------------ System.TimeoutException : The operation was canceled.
+---------------- System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+-------------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+------------------------ System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+  
+----- Inner Stack Trace -----
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.StartSession(ICapabilities capabilities)
+   at OpenQA.Selenium.WebDriver..ctor(ICommandExecutor executor, ICapabilities capabilities)
+   at OpenQA.Selenium.Chromium.ChromiumDriver..ctor(ChromiumDriverService service, ChromiumOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options, TimeSpan commandTimeout)
+   at OpenQA.Selenium.Chrome.ChromeDriver..ctor(ChromeDriverService service, ChromeOptions options)
+   at TestTrackingDiagrams.Tests.Selenium.ChromeDriverFactory.Create(Int32 width, Int32 height, Boolean headless) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeDriverFactory.cs:line 46
+   at TestTrackingDiagrams.Tests.Selenium.ChromeFixture1280X900..ctor() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ChromeFixture.cs:line 26
+   at InvokeStub_ChromeFixture1280X900..ctor(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|115_0(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature10_JSON_Report_GIF [1 ms]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_xUnit_Screenshot [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [SKIP]
+[xUnit.net 00:01:49.55]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [SKIP]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_ReqNRoll_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature20_Export_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature02_Search_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature05_Sequence_Diagrams_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature12_DiagramFocus_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_xUnit_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature17_Framework_LightBDD_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature19_Scenario_Timeline_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature14_Category_Filter_GIF [1 ms]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature08_Internal_Flow_GIF [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature01_Interactive_Report_GIF [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature03_Parameterized_Tests_GIF [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature07_Component_Diagram_Screenshot [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature11_MediatR_Screenshot [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature13_Failure_Diagnostics_GIF [SKIP]
+[xUnit.net 00:01:49.56]     TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature09_CI_Summary_Screenshot [SKIP]
+[xUnit.net 00:01:49.85]     TestTrackingDiagrams.Tests.Selenium.NoteButtonsAfterHeaderHideTests.Hiding_headers_after_manual_note_state_change_preserves_state [FAIL]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature08_Internal_Flow_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature01_Interactive_Report_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature03_Parameterized_Tests_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature07_Component_Diagram_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature11_MediatR_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature06_Database_Tracking_Screenshot [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature13_Failure_Diagnostics_GIF [1 ms]
+  Skipped TestTrackingDiagrams.Tests.Selenium.WikiGifTests.Feature09_CI_Summary_Screenshot [1 ms]
+  Failed TestTrackingDiagrams.Tests.Selenium.NoteButtonsAfterHeaderHideTests.Hiding_headers_after_manual_note_state_change_preserves_state [1 m 7 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56733/session/273818a08d6d9246ed72cebcf532e8c9/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at OpenQA.Selenium.Navigator.GoToUrl(String url)
+   at TestTrackingDiagrams.Tests.Selenium.NoteButtonsAfterHeaderHideTests.NavigateAndSetup(String fileName) in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\NoteButtonsAfterHeaderHideTests.cs:line 182
+   at TestTrackingDiagrams.Tests.Selenium.NoteButtonsAfterHeaderHideTests.Hiding_headers_after_manual_note_state_change_preserves_state() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\NoteButtonsAfterHeaderHideTests.cs:line 418
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:02:19.96]     TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Scenario_link_exists_on_parameterized_group [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Scenario_link_exists_on_parameterized_group [1 m 36 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56735/session/c12ca57fbbb1d3b60b21801590e3122e/element/f.B6DE5702E1FE2F99077C3B871C71FE19.d.8AB40B2EDB4A8060B8CE44DA6070C4BA.e.16/element timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebElement.Execute(String commandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebElement.FindElement(String mechanism, String value)
+   at OpenQA.Selenium.By.<.ctor>b__6_0(ISearchContext context)
+   at OpenQA.Selenium.By.FindElement(ISearchContext context)
+   at OpenQA.Selenium.WebElement.FindElement(By by)
+   at TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Scenario_link_exists_on_parameterized_group() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ParameterizedGroupTests.cs:line 286
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:02:30.02]     TestTrackingDiagrams.Tests.Selenium.HeadersDetailsInterferenceTests.Switching_expanded_to_truncated_respects_scenario_dropdown_value [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.HeadersDetailsInterferenceTests.Switching_expanded_to_truncated_respects_scenario_dropdown_value [1 m 47 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56718/session/c4548f4275dd3fe098502366c1e7b314/element timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.FindElement(String mechanism, String value)
+   at OpenQA.Selenium.By.<.ctor>b__6_0(ISearchContext context)
+   at OpenQA.Selenium.By.FindElement(ISearchContext context)
+   at OpenQA.Selenium.WebDriver.FindElement(By by)
+   at TestTrackingDiagrams.Tests.Selenium.HeadersDetailsInterferenceTests.GetDataPlantuml() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\HeadersDetailsInterferenceTests.cs:line 111
+   at TestTrackingDiagrams.Tests.Selenium.HeadersDetailsInterferenceTests.Switching_expanded_to_truncated_respects_scenario_dropdown_value() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\HeadersDetailsInterferenceTests.cs:line 457
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:02:45.24]     TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Collapsed_note_shows_plus_button_in_top_right [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Collapsed_note_shows_plus_button_in_top_right [1 m]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56736/session/128e225ba81c07c82e89324dfd9224e1/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at OpenQA.Selenium.Navigator.GoToUrl(String url)
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Collapsed_note_shows_plus_button_in_top_right() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNoteBasicTests.cs:line 210
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:02:53.46]     TestTrackingDiagrams.Tests.Selenium.DiagramNoteSplitTests.After_report_truncation_change_all_diagrams_have_hover_buttons [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramNoteSplitTests.After_report_truncation_change_all_diagrams_have_hover_buttons [1 m 12 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56721/session/863b81073de8a650edc361684160c0c5/element/f.F42ABD143204C5A53B197F4AA8B04373.d.7CC40AF21FF6B7A3EABAB6EBD21B1AD7.e.45/name timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebElement.get_TagName()
+   at OpenQA.Selenium.Support.UI.SelectElement..ctor(IWebElement element)
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNoteSplitTests.After_report_truncation_change_all_diagrams_have_hover_buttons() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNoteSplitTests.cs:line 290
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:03:20.21]     TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_switches_visible_detail_content [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_switches_visible_detail_content [1 m]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56735/session/c12ca57fbbb1d3b60b21801590e3122e/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_switches_visible_detail_content() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ParameterizedGroupTests.cs:line 202
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:03:34.29]     TestTrackingDiagrams.Tests.Selenium.DiagramZoomTests.Clicking_zoom_button_again_removes_natural_size_class [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramZoomTests.Clicking_zoom_button_again_removes_natural_size_class [58 s]
+  Error Message:
+   OpenQA.Selenium.WebDriverTimeoutException : script timeout
+  (Session info: chrome=147.0.7727.117)
+  Stack Trace:
+     at OpenQA.Selenium.WebDriver.UnpackAndThrowOnError(Response errorResponse, String commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.ExecuteScript(String script, Object[] args)
+   at TestTrackingDiagrams.Tests.Selenium.DiagramZoomTests.Clicking_zoom_button_again_removes_natural_size_class() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramZoomTests.cs:line 160
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:03:45.46]     TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Changing_scenario_line_count_updates_selected_value [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Changing_scenario_line_count_updates_selected_value [1 m]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56736/session/128e225ba81c07c82e89324dfd9224e1/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at TestTrackingDiagrams.Tests.Selenium.DiagramNoteBasicTests.Changing_scenario_line_count_updates_selected_value() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\DiagramNoteBasicTests.cs:line 120
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+[xUnit.net 00:04:20.59]     TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_in_second_feature_does_not_hide_first_feature_panels [FAIL]
+  Failed TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_in_second_feature_does_not_hide_first_feature_panels [1 m]
+  Error Message:
+   OpenQA.Selenium.WebDriverException : The HTTP request to the remote WebDriver server for URL http://localhost:56735/session/c12ca57fbbb1d3b60b21801590e3122e/url timed out after 60 seconds.
+---- System.Threading.Tasks.TaskCanceledException : The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.
+-------- System.TimeoutException : The operation was canceled.
+------------ System.Threading.Tasks.TaskCanceledException : The operation was canceled.
+---------------- System.IO.IOException : Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+-------------------- System.Net.Sockets.SocketException : The I/O operation has been aborted because of either a thread exit or an application request.
+  Stack Trace:
+     at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.Remote.DriverServiceCommandExecutor.ExecuteAsync(Command commandToExecute)
+   at OpenQA.Selenium.WebDriver.ExecuteAsync(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.Navigator.GoToUrlAsync(String url)
+   at OpenQA.Selenium.Navigator.<>c__DisplayClass6_0.<<GoToUrl>b__0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at TestTrackingDiagrams.Tests.Selenium.ParameterizedGroupTests.Clicking_row_in_second_feature_does_not_hide_first_feature_panels() in C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests.Selenium\ParameterizedGroupTests.cs:line 678
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.MakeHttpRequest(HttpRequestInfo requestInfo)
+   at OpenQA.Selenium.Remote.HttpCommandExecutor.ExecuteAsync(Command commandToExecute)
+----- Inner Stack Trace -----
+
+----- Inner Stack Trace -----
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+----- Inner Stack Trace -----
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.InitialFillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+----- Inner Stack Trace -----
+
+
+Failed!  - Failed:    18, Passed:   264, Skipped:    28, Total:   310, Duration: 6 m 33 s - TestTrackingDiagrams.Tests.Selenium.dll (net10.0)

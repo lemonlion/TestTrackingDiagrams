@@ -1166,13 +1166,27 @@ public static class DiagramContextMenu
                 container.style.position = 'relative';
                 var btn = document.createElement('button');
                 btn.className = 'diagram-zoom-toggle';
-                btn.textContent = '\u2922';
+                btn.textContent = container.classList.contains('diagram-natural-size') ? '\u2921' : '\u2922';
                 btn.title = 'Toggle zoom (or double-click diagram)';
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     toggleDiagramZoom(container);
                 });
                 container.prepend(btn);
+                // Restore zoom state on the new SVG after re-render
+                restoreZoomState(container);
+            }
+
+            // Re-apply zoom inline styles after SVG re-render (innerHTML replacement destroys them)
+            function restoreZoomState(container) {
+                var svg = getSvg(container);
+                if (!svg) return;
+                if (container.classList.contains('diagram-natural-size')) {
+                    svg.style.maxWidth = 'none';
+                    container.style.overflow = 'auto';
+                    container.style.maxHeight = '80vh';
+                    container.style.cursor = 'grab';
+                }
             }
 
             // Drag-to-pan when zoomed

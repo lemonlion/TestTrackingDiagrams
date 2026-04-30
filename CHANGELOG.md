@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.17] - 2026-04-30
+
+### Fixed
+- **Zoom state lost after note collapse/expand or truncation/headers change**: When a diagram was zoomed to natural size and then notes were collapsed/expanded (via radio buttons or hover buttons) or truncation/headers were toggled, the SVG re-render destroyed inline zoom styles. The zoom button icon also showed the wrong state after re-render. Added `restoreZoomState()` function that re-applies zoom inline styles (`maxWidth: none`, `overflow: auto`, `maxHeight: 80vh`, `cursor: grab`) whenever `addZoomButton` runs after a re-render, and ensures the button icon reflects the current zoom state.
+
 ## [2.28.16] - 2026-04-30
 
 ### Added
