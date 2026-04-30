@@ -269,7 +269,8 @@ public class MessageTracker : ITrackingComponent
             requestResponseId,
             false,
             DependencyCategory: _dependencyCategory,
-            CallerDependencyCategory: _callerDependencyCategory
+            CallerDependencyCategory: _callerDependencyCategory,
+            MetaType: RequestResponseMetaType.Event
         )
         {
             Timestamp = now,
@@ -293,7 +294,8 @@ public class MessageTracker : ITrackingComponent
             false,
             "Sent",
             DependencyCategory: _dependencyCategory,
-            CallerDependencyCategory: _callerDependencyCategory
+            CallerDependencyCategory: _callerDependencyCategory,
+            MetaType: RequestResponseMetaType.Event
         )
         {
             Timestamp = now,

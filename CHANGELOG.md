@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.18] - 2026-04-30
+
+### Fixed
+- **`TrackSendMessage` missing event note styling**: `TrackSendMessage` now sets `MetaType = RequestResponseMetaType.Event` on both request and response log entries, matching `TrackSendEvent`. Previously it used `Default`, causing message payload notes to render with plain white backgrounds instead of the light blue `<<eventNote>>` styling (`BackgroundColor #cfecf7`, `FontSize 11`, `RoundCorner 10`) that visually distinguishes async messaging from synchronous HTTP calls.
+
 ## [2.28.17] - 2026-04-30
 
 ### Fixed

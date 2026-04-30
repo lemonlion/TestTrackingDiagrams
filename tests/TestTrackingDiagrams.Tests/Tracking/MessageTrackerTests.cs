@@ -1378,7 +1378,7 @@ public class MessageTrackerTests
     }
 
     [Fact]
-    public void TrackSendMessage_uses_Default_meta_type()
+    public void TrackSendMessage_uses_Event_meta_type()
     {
         var testId = Guid.NewGuid().ToString();
         var tracker = new MessageTracker(new MessageTrackerOptions
@@ -1392,7 +1392,7 @@ public class MessageTrackerTests
 
         var logs = RequestResponseLogger.RequestAndResponseLogs
             .Where(l => l.RequestResponseId == id).ToArray();
-        Assert.All(logs, l => Assert.Equal(RequestResponseMetaType.Default, l.MetaType));
+        Assert.All(logs, l => Assert.Equal(RequestResponseMetaType.Event, l.MetaType));
     }
 
     [Fact]

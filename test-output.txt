@@ -1,4 +1,4 @@
 Test run for C:\git\TestTrackingDiagrams\tests\TestTrackingDiagrams.Tests\bin\Debug\net10.0\TestTrackingDiagrams.Tests.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
 
-Passed!  - Failed:     0, Passed:  2277, Skipped:     0, Total:  2277, Duration: 18 s - TestTrackingDiagrams.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:  2277, Skipped:     0, Total:  2277, Duration: 9 s - TestTrackingDiagrams.Tests.dll (net10.0)
