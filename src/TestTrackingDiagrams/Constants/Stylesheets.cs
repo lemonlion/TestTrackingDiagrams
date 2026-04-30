@@ -1199,6 +1199,167 @@ public class Stylesheets
                 details.param-expand .expand-body { margin: 0.3em 0 0.2em 0.5em; padding: 0.5em 0.7em; background: #f8f9fa; border: 1px solid #e8e8e8; border-radius: 4px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.88em; white-space: pre-wrap; line-height: 1.4; }
                 details.param-expand .expand-body .prop-key { color: #7d3c98; }
                 details.param-expand .expand-body .prop-val { color: #1a5276; }
+
+                /* ── Mobile / Responsive ── */
+                @media (max-width: 768px) {
+                    body {
+                        padding: 0.5em;
+                        font-size: 0.95em;
+                    }
+
+                    .header-row {
+                        flex-direction: column;
+                        gap: 0.5em;
+                    }
+
+                    .test-execution-summary {
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+
+                    .summary-chart {
+                        align-self: flex-start;
+                    }
+
+                    .ci-metadata {
+                        align-self: flex-start;
+                    }
+
+                    .filtering-box {
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+
+                    .filter-row {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+
+                    .toolbar-row {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 0.5em;
+                    }
+
+                    .toolbar-right {
+                        margin-right: 0;
+                    }
+
+                    .feature {
+                        padding: 0.5em;
+                        border-radius: 6px;
+                    }
+
+                    .scenario {
+                        padding: 0.5em;
+                        border-radius: 6px;
+                    }
+
+                    .example-image {
+                        overflow-x: auto;
+                    }
+
+                    .timeline-label {
+                        min-width: 100px;
+                        max-width: 100px;
+                        font-size: 0.7em;
+                    }
+
+                    .scenario-timeline {
+                        padding: 0.5em;
+                    }
+
+                    .param-test-table {
+                        display: block;
+                        overflow-x: auto;
+                        width: 100%;
+                        margin-left: 0;
+                    }
+
+                    .feature-summary-table {
+                        display: block;
+                        overflow-x: auto;
+                    }
+
+                    .examples-table {
+                        display: block;
+                        overflow-x: auto;
+                        margin-left: 0;
+                    }
+
+                    .failure-result pre {
+                        font-size: 0.8em;
+                    }
+
+                    .endpoint {
+                        float: none;
+                        display: block;
+                        margin-top: 0.3em;
+                    }
+
+                    .jump-to-failure {
+                        bottom: 0.8em;
+                        right: 0.8em;
+                        font-size: 0.8em;
+                        padding: 0.4em 0.8em;
+                    }
+
+                    .search-help-panel {
+                        font-size: 0.8em;
+                    }
+
+                    .filtering-box-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 0.3em;
+                    }
+
+                    .expand-row {
+                        flex-wrap: wrap;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .header-row {
+                        gap: 0.3em;
+                    }
+
+                    .summary-chart {
+                        width: 80px;
+                        height: 80px;
+                    }
+
+                    .h2 {
+                        font-size: 1.2em;
+                    }
+
+                    .h3 {
+                        font-size: 1em;
+                    }
+
+                    .toolbar-left, .toolbar-right {
+                        flex-wrap: wrap;
+                        gap: 0.3em;
+                    }
+
+                    .happy-path-toggle, .dependency-toggle, .status-toggle,
+                    .category-toggle, .percentile-btn, .collapse-expand-all, .export-btn {
+                        font-size: 0.75em;
+                        padding: 0.2em 0.4em;
+                    }
+
+                    .duration-badge {
+                        font-size: 0.65em;
+                    }
+
+                    .copy-scenario-name, .scenario-link {
+                        font-size: 0.6em;
+                    }
+
+                    span.label {
+                        font-size: 0.6em;
+                    }
+                }
         """;
 
     public const string VioletThemeStyleSheet =

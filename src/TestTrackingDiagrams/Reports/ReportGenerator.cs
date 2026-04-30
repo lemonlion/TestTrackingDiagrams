@@ -1233,8 +1233,11 @@ public static class ReportGenerator
         var advancedSearchScript = AdvancedSearchJs.Value;
 
         var html = $$"""
+                    <!DOCTYPE html>
                     <html>
                         <head>
+                            <meta charset="utf-8" />
+                            <meta name="viewport" content="width=device-width, initial-scale=1" />
                             <meta name="generator" content="TestTrackingDiagrams v{{TtdVersion}}" />
                             <style>
                                 {{combinedStylesheet}}

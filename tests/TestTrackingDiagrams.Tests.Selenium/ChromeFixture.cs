@@ -31,3 +31,17 @@ public sealed class ChromeFixture1280X900 : IDisposable
         Driver.Dispose();
     }
 }
+
+/// <summary>
+/// Shared Chrome driver fixture for 375x812 (iPhone X-class mobile) window size.
+/// </summary>
+public sealed class ChromeFixtureMobile : IDisposable
+{
+    public ChromeDriver Driver { get; } = ChromeDriverFactory.Create(375, 812);
+
+    public void Dispose()
+    {
+        Driver.Quit();
+        Driver.Dispose();
+    }
+}

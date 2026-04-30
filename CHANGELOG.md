@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.5] - 2026-04-30
+
+### Added
+- **Mobile-responsive HTML reports**: `TestRunReport.html` and `Specifications.html` now adapt to mobile and tablet viewports without any visible change to the existing desktop layout. Added `<!DOCTYPE html>`, `<meta charset="utf-8">`, and `<meta name="viewport">` to the HTML template. Two CSS `@media` breakpoints (768px and 480px) stack the header row, toolbar, and filter rows vertically, shrink the summary chart, make wide tables horizontally scrollable, and reduce button/badge font sizes on small screens. The jump-to-failure FAB remains accessible on mobile.
+- **10 new Selenium tests** (`MobileResponsiveTests`) verifying viewport meta tag presence, vertical stacking of header/toolbar/filters at 375px width, no horizontal page overflow, table scroll behavior, filter box full-width, jump-to-failure visibility, and correct restoration of row layout at 1920px desktop width.
+
 ## [2.28.4] - 2026-04-30
 
 ### Changed
