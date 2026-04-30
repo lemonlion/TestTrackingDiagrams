@@ -381,6 +381,10 @@ public class MessageTracker : ITrackingComponent
         if (scope is not null)
             return (scope.Value.Name, scope.Value.Id, Guid.NewGuid());
 
+        var globalFallback = TestIdentityScope.GlobalFallback;
+        if (globalFallback is not null)
+            return (globalFallback.Value.Name, globalFallback.Value.Id, Guid.NewGuid());
+
         return null;
     }
 }

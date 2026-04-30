@@ -121,4 +121,123 @@ public class TestIdentityScopeTests
         Assert.Equal(TestIdentityScope.UnknownTestName, name);
         Assert.Equal(TestIdentityScope.UnknownTestId, id);
     }
+
+    #region GlobalFallback
+
+    [Fact]
+    public void GlobalFallback_is_null_by_default()
+    {
+        TestIdentityScope.ClearGlobalFallback();
+
+        Assert.Null(TestIdentityScope.GlobalFallback);
+    }
+
+    [Fact]
+    public void SetGlobalFallback_sets_value()
+    {
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+            Assert.NotNull(TestIdentityScope.GlobalFallback);
+            Assert.Equal("GlobalTest", TestIdentityScope.GlobalFallback.Value.Name);
+            Assert.Equal("global-id", TestIdentityScope.GlobalFallback.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void ClearGlobalFallback_resets_to_null()
+    {
+        TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+        TestIdentityScope.ClearGlobalFallback();
+
+        Assert.Null(TestIdentityScope.GlobalFallback);
+    }
+
+    [Fact]
+    public void GlobalFallback_accessible_from_pre_existing_thread()
+    {
+        // This is the key use case: thread started BEFORE fallback is set
+        (string Name, string Id)? capturedInThread = null;
+        var readySignal = new ManualResetEventSlim(false);
+        var setSignal = new ManualResetEventSlim(false);
+
+        var thread = new Thread(() =>
+        {
+            readySignal.Set();      // Signal that thread is running
+            setSignal.Wait();       // Wait for fallback to be set
+            capturedInThread = TestIdentityScope.GlobalFallback;
+        });
+
+        try
+        {
+            thread.Start();
+            readySignal.Wait();     // Ensure thread is running before setting fallback
+
+            TestIdentityScope.SetGlobalFallback("CrossThread", "cross-id");
+            setSignal.Set();        // Let thread read the fallback
+            thread.Join();
+
+            Assert.NotNull(capturedInThread);
+            Assert.Equal("CrossThread", capturedInThread.Value.Name);
+            Assert.Equal("cross-id", capturedInThread.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void GlobalFallback_not_affected_by_AsyncLocal_scope()
+    {
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("Global", "global-id");
+
+            using (TestIdentityScope.Begin("Local", "local-id"))
+            {
+                // Current should be the AsyncLocal value
+                Assert.Equal("Local", TestIdentityScope.Current!.Value.Name);
+
+                // GlobalFallback should be independent
+                Assert.Equal("Global", TestIdentityScope.GlobalFallback!.Value.Name);
+            }
+
+            // After scope ends, Current is null but GlobalFallback persists
+            Assert.Null(TestIdentityScope.Current);
+            Assert.NotNull(TestIdentityScope.GlobalFallback);
+            Assert.Equal("Global", TestIdentityScope.GlobalFallback.Value.Name);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void GlobalFallback_not_visible_via_Current()
+    {
+        TestIdentityScope.Reset();
+
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("Global", "global-id");
+
+            // Current only returns AsyncLocal, not GlobalFallback
+            Assert.Null(TestIdentityScope.Current);
+            Assert.NotNull(TestIdentityScope.GlobalFallback);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    #endregion
 }

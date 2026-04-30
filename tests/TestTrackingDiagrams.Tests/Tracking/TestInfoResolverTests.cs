@@ -377,10 +377,142 @@ public class TestInfoResolverTests
     public void Returns_null_when_no_http_no_delegate_and_no_scope()
     {
         TestIdentityScope.Reset();
+        TestIdentityScope.ClearGlobalFallback();
 
         var result = TestInfoResolver.Resolve(null, (Func<(string, string)>?)null);
 
         Assert.Null(result);
+    }
+
+    #endregion
+
+    #region GlobalFallback resolution
+
+    [Fact]
+    public void Falls_back_to_GlobalFallback_when_no_http_no_delegate_and_no_scope()
+    {
+        TestIdentityScope.Reset();
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+            var result = TestInfoResolver.Resolve(null, (Func<(string, string)>?)null);
+
+            Assert.NotNull(result);
+            Assert.Equal("GlobalTest", result.Value.Name);
+            Assert.Equal("global-id", result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Prefers_TestIdentityScope_Current_over_GlobalFallback()
+    {
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+            using (TestIdentityScope.Begin("ScopeTest", "scope-id"))
+            {
+                var result = TestInfoResolver.Resolve(null, (Func<(string, string)>?)null);
+
+                Assert.NotNull(result);
+                Assert.Equal("ScopeTest", result.Value.Name);
+                Assert.Equal("scope-id", result.Value.Id);
+            }
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Prefers_delegate_over_GlobalFallback()
+    {
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+            var result = TestInfoResolver.Resolve(null, () => ("DelegateTest", "delegate-id"));
+
+            Assert.NotNull(result);
+            Assert.Equal("DelegateTest", result.Value.Name);
+            Assert.Equal("delegate-id", result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Prefers_http_headers_over_GlobalFallback()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestNameHeader] = "HttpTest";
+        httpContext.Request.Headers[TestTrackingHttpHeaders.CurrentTestIdHeader] = "http-id";
+        var accessor = new FakeHttpContextAccessor(httpContext);
+
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+
+            var result = TestInfoResolver.Resolve(accessor, (Func<(string, string)>?)null);
+
+            Assert.NotNull(result);
+            Assert.Equal("HttpTest", result.Value.Name);
+            Assert.Equal("http-id", result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Falls_back_to_GlobalFallback_when_delegate_throws_and_no_scope()
+    {
+        TestIdentityScope.Reset();
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+            Func<(string, string)> throwingFetcher = () => throw new InvalidOperationException();
+
+            var result = TestInfoResolver.Resolve(null, throwingFetcher);
+
+            Assert.NotNull(result);
+            Assert.Equal("GlobalTest", result.Value.Name);
+            Assert.Equal("global-id", result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Nullable_overload_falls_back_to_GlobalFallback()
+    {
+        TestIdentityScope.Reset();
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+            Func<(string, string)?> fetcher = () => null;
+
+            var result = TestInfoResolver.Resolve(null, fetcher);
+
+            Assert.NotNull(result);
+            Assert.Equal("GlobalTest", result.Value.Name);
+            Assert.Equal("global-id", result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
     }
 
     #endregion

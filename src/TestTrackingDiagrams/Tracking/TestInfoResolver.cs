@@ -4,11 +4,12 @@ using TestTrackingDiagrams.Constants;
 namespace TestTrackingDiagrams.Tracking;
 
 /// <summary>
-/// Resolves test identity using a triple-resolution strategy:
+/// Resolves test identity using a four-level resolution strategy:
 /// <list type="number">
 ///   <item>HTTP context request headers (for code running inside the SUT's request pipeline)</item>
 ///   <item>Delegate fallback (for code running on the test thread)</item>
 ///   <item><see cref="TestIdentityScope.Current"/> (for background threads with an explicit scope)</item>
+///   <item><see cref="TestIdentityScope.GlobalFallback"/> (for pre-existing threads that can't inherit AsyncLocal)</item>
 /// </list>
 /// </summary>
 public static class TestInfoResolver
@@ -17,7 +18,8 @@ public static class TestInfoResolver
     /// Attempts to resolve the current test name and ID.
     /// First checks HTTP request headers propagated by <see cref="TestTrackingMessageHandler"/>,
     /// then falls back to the delegate (e.g. from a test framework's execution context),
-    /// then falls back to <see cref="TestIdentityScope.Current"/>.
+    /// then falls back to <see cref="TestIdentityScope.Current"/>,
+    /// then falls back to <see cref="TestIdentityScope.GlobalFallback"/>.
     /// </summary>
     public static (string Name, string Id)? Resolve(
         IHttpContextAccessor? httpContextAccessor,
@@ -37,7 +39,7 @@ public static class TestInfoResolver
             // Delegate threw — fall through to scope
         }
 
-        return TestIdentityScope.Current;
+        return TestIdentityScope.Current ?? TestIdentityScope.GlobalFallback;
     }
 
     /// <summary>
@@ -61,7 +63,7 @@ public static class TestInfoResolver
             // Delegate threw — fall through to scope
         }
 
-        return TestIdentityScope.Current;
+        return TestIdentityScope.Current ?? TestIdentityScope.GlobalFallback;
     }
 
     /// <summary>

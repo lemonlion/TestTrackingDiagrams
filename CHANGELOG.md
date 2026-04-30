@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.16] - 2026-04-30
+
+### Added
+- **`TestIdentityScope.GlobalFallback` for pre-existing background threads**: New static, thread-safe fallback that provides test identity to threads started before `TestIdentityScope.Begin()` was called — such as Cosmos DB Change Feed Processor polling threads, Hangfire workers, and hosted service loops. These threads have their own execution context and never inherit `AsyncLocal` values. `SetGlobalFallback(testName, testId)` sets the fallback; `ClearGlobalFallback()` clears it in teardown. The resolution chain is now four levels: HTTP headers → `CurrentTestInfoFetcher` delegate → `TestIdentityScope.Current` (AsyncLocal) → `TestIdentityScope.GlobalFallback` (static). Both `TestInfoResolver.Resolve()` and `MessageTracker.GetTestInfo()` check `GlobalFallback` as the last resort before returning null. This eliminates the common boilerplate of maintaining a manual shared mutable field with lock in test fixtures.
+
+### Documentation
+- **Wiki: Background Thread Correlation** — added Solution 3 (GlobalFallback) with usage example, resolution order table, parallel execution warning, and comparison table vs ActiveTestTracker pattern.
+
 ## [2.28.15] - 2026-04-30
 
 ### Added

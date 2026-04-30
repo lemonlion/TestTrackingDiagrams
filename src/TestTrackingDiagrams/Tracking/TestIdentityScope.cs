@@ -9,7 +9,8 @@ namespace TestTrackingDiagrams.Tracking;
 /// <list type="number">
 ///   <item>HTTP request headers (propagated by <see cref="TestTrackingMessageHandler"/>)</item>
 ///   <item><c>CurrentTestInfoFetcher</c> delegate (test framework AsyncLocal)</item>
-///   <item><see cref="TestIdentityScope.Current"/> (this class)</item>
+///   <item><see cref="TestIdentityScope.Current"/> (this class, AsyncLocal)</item>
+///   <item><see cref="TestIdentityScope.GlobalFallback"/> (static, for pre-existing threads)</item>
 /// </list>
 /// </para>
 /// <example>
@@ -19,6 +20,11 @@ namespace TestTrackingDiagrams.Tracking;
 /// {
 ///     await backgroundService.ProcessAsync(); // tracking attributes to this test
 /// }
+///
+/// // For pre-existing threads (Change Feed Processor, Hangfire, hosted services):
+/// TestIdentityScope.SetGlobalFallback(testName, testId);
+/// // ... run test ...
+/// TestIdentityScope.ClearGlobalFallback();
 /// </code>
 /// </example>
 /// </summary>
@@ -41,10 +47,53 @@ public static class TestIdentityScope
 
     private static readonly AsyncLocal<(string Name, string Id)?> CurrentIdentity = new();
 
+    private static readonly object GlobalFallbackLock = new();
+    private static (string Name, string Id)? _globalFallback;
+
     /// <summary>
     /// Gets the current test identity from the ambient scope, or <c>null</c> if no scope is active.
     /// </summary>
     public static (string Name, string Id)? Current => CurrentIdentity.Value;
+
+    /// <summary>
+    /// Gets the global fallback test identity for pre-existing background threads
+    /// that cannot inherit <see cref="AsyncLocal{T}"/> values.
+    /// <para>
+    /// This is checked as the last resort in the resolution chain, after
+    /// HTTP headers, delegate, and <see cref="Current"/>.
+    /// </para>
+    /// <para>
+    /// <b>Warning:</b> This is a process-wide static field. It is designed for
+    /// scenarios where tests run serially within a shared fixture (e.g. xUnit
+    /// collection fixtures). It does not support parallel test execution where
+    /// multiple tests set different fallback values simultaneously.
+    /// </para>
+    /// </summary>
+    public static (string Name, string Id)? GlobalFallback
+    {
+        get { lock (GlobalFallbackLock) { return _globalFallback; } }
+    }
+
+    /// <summary>
+    /// Sets the global fallback test identity for pre-existing background threads.
+    /// Use this in test setup when background infrastructure (Change Feed Processor,
+    /// Hangfire workers, hosted service loops) was started before
+    /// <see cref="Begin"/> could propagate via <see cref="AsyncLocal{T}"/>.
+    /// </summary>
+    /// <param name="testName">The test display name.</param>
+    /// <param name="testId">The test unique identifier.</param>
+    public static void SetGlobalFallback(string testName, string testId)
+    {
+        lock (GlobalFallbackLock) { _globalFallback = (testName, testId); }
+    }
+
+    /// <summary>
+    /// Clears the global fallback test identity. Call in test teardown.
+    /// </summary>
+    public static void ClearGlobalFallback()
+    {
+        lock (GlobalFallbackLock) { _globalFallback = null; }
+    }
 
     /// <summary>
     /// Sets the ambient test identity for the current async context.
