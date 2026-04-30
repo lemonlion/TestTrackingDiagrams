@@ -306,4 +306,21 @@ public class InternalFlowHtmlGeneratorTests : IDisposable
         // Should contain the highest duration test (Test 25)
         Assert.Contains("Test 25", result);
     }
+
+    [Fact]
+    public void ActivityDiagram_div_does_not_contain_inner_loading_text()
+    {
+        var span = CreateSpan("op", TimeSpan.FromMilliseconds(100));
+        var segments = new Dictionary<string, InternalFlowSegment>
+        {
+            ["iflow-test-test-1"] = MakeSegment("test-1", span)
+        };
+
+        var result = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
+            segments, "test-1", [], WholeTestFlowVisualization.ActivityDiagram);
+
+        Assert.NotNull(result);
+        // The div should not contain "Loading..." text since CSS ::before handles loading messages
+        Assert.DoesNotContain(">Loading...</div>", result.Value.ActivityHtml);
+    }
 }

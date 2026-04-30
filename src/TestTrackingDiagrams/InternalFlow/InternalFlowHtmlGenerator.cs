@@ -123,7 +123,7 @@ public static class InternalFlowHtmlGenerator
         var plantuml = InternalFlowRenderer.RenderActivityDiagram(segment);
         var id = $"iflow-puml-{segment.RequestResponseId}-{segment.BoundaryType.ToString().ToLowerInvariant()}";
         var compressed = CompressToBase64(plantuml);
-        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
+        return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>";
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public static class InternalFlowHtmlGenerator
                 ? $"iflow-puml-whole-{segment.TestId}"
                 : $"iflow-puml-whole-{segment.TestId}-{i}";
             var compressed = CompressToBase64(batches[i]);
-            sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>");
+            sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>");
         }
         return sb.ToString();
     }

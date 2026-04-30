@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.7] - 2026-04-30
+
+### Fixed
+- **Activity diagram loading text duplication**: Fixed bug where activity diagrams displayed both "Rendering Diagrams..." (from CSS `::before` pseudo-element) and "Loading..." (from inner div text) simultaneously. Removed redundant inner text from plantuml-browser divs in `InternalFlowHtmlGenerator` and `ComponentDiagramReportGenerator`.
+
 ## [2.28.6] - 2026-04-30
 
 ### Added

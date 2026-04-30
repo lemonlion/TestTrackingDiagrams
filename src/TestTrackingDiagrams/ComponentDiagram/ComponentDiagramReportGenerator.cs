@@ -102,7 +102,7 @@ public static class ComponentDiagramReportGenerator
         if (useBrowserJs)
         {
             var compressed = InternalFlow.InternalFlowHtmlGenerator.CompressToBase64(plantUml);
-            diagramHtml = $"<div class=\"plantuml-browser\" id=\"comp-diagram\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\">Loading...</div>";
+            diagramHtml = $"<div class=\"plantuml-browser\" id=\"comp-diagram\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>";
         }
         else
         {
