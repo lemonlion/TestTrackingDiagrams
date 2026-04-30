@@ -293,6 +293,112 @@ public class RequestResponseLoggerTests
         }
     }
 
+    // ─── LogPair with auto-resolving test info ────────────
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_uses_provided_fetcher()
+    {
+        RequestResponseLogger.LogPair(
+            method: "Cache Set",
+            uri: new Uri("redis://cache/key"),
+            serviceName: "Redis",
+            callerName: "API",
+            testInfoFetcher: () => ("Auto Test", _testId));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l =>
+        {
+            Assert.Equal("Auto Test", l.TestName);
+            Assert.Equal(_testId, l.TestId);
+        });
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_sets_method_and_names()
+    {
+        RequestResponseLogger.LogPair(
+            method: "Blob Upload",
+            uri: new Uri("https://blob.core.windows.net/c/f"),
+            serviceName: "Blob Storage",
+            callerName: "My API",
+            testInfoFetcher: () => ("T", _testId));
+
+        var logs = GetLogsFromThisTest();
+        Assert.All(logs, l =>
+        {
+            Assert.Equal("Blob Upload", l.Method.Value?.ToString());
+            Assert.Equal("Blob Storage", l.ServiceName);
+            Assert.Equal("My API", l.CallerName);
+        });
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_sets_content()
+    {
+        RequestResponseLogger.LogPair(
+            method: "Op",
+            uri: new Uri("mock://svc/op"),
+            serviceName: "Svc",
+            callerName: "Caller",
+            testInfoFetcher: () => ("T", _testId),
+            requestContent: "req-body",
+            responseContent: "res-body");
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal("req-body", logs.First(l => l.Type == RequestResponseType.Request).Content);
+        Assert.Equal("res-body", logs.First(l => l.Type == RequestResponseType.Response).Content);
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_sets_status_code()
+    {
+        RequestResponseLogger.LogPair(
+            method: "Get",
+            uri: new Uri("https://api.example.com/data"),
+            serviceName: "API",
+            callerName: "Caller",
+            testInfoFetcher: () => ("T", _testId),
+            statusCode: HttpStatusCode.NotFound);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(HttpStatusCode.NotFound,
+            logs.First(l => l.Type == RequestResponseType.Response).StatusCode!.Value);
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_skips_when_fetcher_is_null()
+    {
+        var uniqueTestId = Guid.NewGuid().ToString();
+        RequestResponseLogger.LogPair(
+            method: "Op",
+            uri: new Uri("mock://svc/op"),
+            serviceName: "Svc",
+            callerName: "Caller",
+            testInfoFetcher: null);
+
+        // Should not throw, but produces no logs (or logs with null identity)
+        // The important thing is it doesn't crash
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_uses_TestIdentityScope_when_no_fetcher()
+    {
+        using (TestIdentityScope.Begin("Scoped Test", _testId))
+        {
+            RequestResponseLogger.LogPair(
+                method: "Background Op",
+                uri: new Uri("mock://svc/bg"),
+                serviceName: "Svc",
+                callerName: "Caller",
+                testInfoFetcher: null);
+        }
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal("Scoped Test", l.TestName));
+    }
+
     private RequestResponseLog MakeLog(string? content) => new(
         "My Test", _testId, "Op", content, new Uri("mock://svc/op"),
         [], "Svc", "Caller", RequestResponseType.Request,

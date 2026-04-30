@@ -602,6 +602,7 @@ public class MessageTrackerTests
     [Fact]
     public void TrackSendEvent_does_nothing_when_no_test_info()
     {
+        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             CallerName = "Svc",
@@ -1030,6 +1031,7 @@ public class MessageTrackerTests
     [Fact]
     public void TrackConsumeEvent_does_nothing_when_no_test_info()
     {
+        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             CallerName = "Broker",
@@ -1332,5 +1334,104 @@ public class MessageTrackerTests
 
         var log = GetLogsById(id).Single();
         Assert.False(log.NoteOnRight);
+    }
+
+    // ─── TrackSendMessage (atomic, non-event arrows) ────────────
+
+    [Fact]
+    public void TrackSendMessage_logs_request_and_response_pair()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallerName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        var id = tracker.TrackSendMessage("Send (SB)", "Service Bus",
+            new Uri("servicebus://sb/queue"), new { Msg = "hello" });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.RequestResponseId == id).ToArray();
+        Assert.Equal(2, logs.Length);
+        Assert.Contains(logs, l => l.Type == RequestResponseType.Request);
+        Assert.Contains(logs, l => l.Type == RequestResponseType.Response);
+    }
+
+    [Fact]
+    public void TrackSendMessage_shares_same_requestResponseId()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallerName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        var id = tracker.TrackSendMessage("Send", "Queue",
+            new Uri("sb://q"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.RequestResponseId == id).ToArray();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal(logs[0].RequestResponseId, logs[1].RequestResponseId);
+    }
+
+    [Fact]
+    public void TrackSendMessage_uses_Default_meta_type()
+    {
+        var testId = Guid.NewGuid().ToString();
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallerName = "Svc",
+            CurrentTestInfoFetcher = () => ("T", testId)
+        });
+
+        var id = tracker.TrackSendMessage("Send", "Queue",
+            new Uri("sb://q"), new { });
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.RequestResponseId == id).ToArray();
+        Assert.All(logs, l => Assert.Equal(RequestResponseMetaType.Default, l.MetaType));
+    }
+
+    [Fact]
+    public void TrackSendMessage_returns_non_empty_guid()
+    {
+        var tracker = CreateOptionsTracker();
+
+        var id = tracker.TrackSendMessage("Send", "Queue",
+            new Uri("sb://q"), new { });
+
+        Assert.NotEqual(Guid.Empty, id);
+    }
+
+    [Fact]
+    public void TrackSendMessage_increments_invocation_count()
+    {
+        var tracker = CreateOptionsTracker();
+        var before = tracker.InvocationCount;
+
+        tracker.TrackSendMessage("Send", "Queue",
+            new Uri("sb://q"), new { });
+
+        Assert.Equal(before + 1, tracker.InvocationCount);
+    }
+
+    [Fact]
+    public void TrackSendMessage_does_nothing_when_no_test_info()
+    {
+        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
+        var tracker = new MessageTracker(new MessageTrackerOptions
+        {
+            CallerName = "Svc",
+            CurrentTestInfoFetcher = null
+        });
+        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+
+        var id = tracker.TrackSendMessage("Send", "Queue",
+            new Uri("sb://q"), new { });
+
+        Assert.Equal(Guid.Empty, id);
     }
 }

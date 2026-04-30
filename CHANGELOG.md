@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.11] - 2026-04-30
+
+### Added
+- **`DiagramMethod` and `DiagramStatusCode` wrapper types**: Named alternatives to `OneOf<HttpMethod, string>` and `OneOf<HttpStatusCode, string>` that avoid the `CS0104` ambiguous reference error when a project also references the popular `OneOf` NuGet package. Both types inherit from the existing `OneOf<T1,T2>` and are assignment-compatible everywhere the base type is used. Use `DiagramMethod method = "Blob Upload";` instead of `TestTrackingDiagrams.Tracking.OneOf<HttpMethod, string> method = "Blob Upload";`.
+- **`RequestResponseLogger.LogPair()` auto-resolving overload**: New overload that doesn't require `testName`/`testId` parameters — resolves test identity from an optional `testInfoFetcher` delegate, then falls back to `TestIdentityScope.Current`. Simplifies custom dependency tracking in background processing scenarios.
+- **`MessageTracker.TrackSendMessage()`**: Atomic request+response tracking with standard (non-event) arrow styling. Unlike `TrackSendEvent()` which produces event-styled blue arrows, `TrackSendMessage()` produces standard arrows matching HTTP call styling. Ideal for the common `AfterPublish` handler pattern where you want to log a successful send atomically.
+- **Diagnostic report: Unknown entries breakdown**: The `DiagnosticReport.html` now includes a dedicated "Unknown Entries Breakdown" section when log entries with test ID `"unknown"` are present. Groups entries by service name and method with counts and timestamp ranges, making it easy to identify which background operations (change feed processor, hosted services, etc.) are producing unattributed tracking entries.
+
+### Documentation
+- **Wiki: OneOf type ambiguity avoidance** (`Tracking-Custom-Dependencies.md`): Added section covering `DiagramMethod`/`DiagramStatusCode`, `using` aliases, and fully-qualified name patterns.
+- **Wiki: Auto-resolving LogPair** (`Tracking-Custom-Dependencies.md`): Added section showing the new overload with `TestIdentityScope` fallback.
+- **Wiki: IDistributedCache tracking example** (`Tracking-Custom-Dependencies.md`): Complete manual decorator example for `IDistributedCache` with hit/miss tracking and dual test-identity resolution.
+- **Wiki: CosmosDB InMemoryEmulator integration** (`Integration-CosmosDB-Extension.md`): Added section covering `WrapHandler()` pattern, two-phase HttpContextAccessor setup, recommended verbosity, and fault injection visibility.
+- **Wiki: When ReplaceWithTracked won't work** (`Integration-DispatchProxy-Extension.md`): Added section documenting the DI bypass limitation with detection guidance via DiagnosticReport.
+- **Wiki: Multi-Host Test Architectures** (new page): Covers dual-host pattern (WebApplicationFactory + FunctionTestServer), shared InMemoryMessaging, DI ordering gotcha, cross-container tracker bridging, and shared singleton patterns.
+- **Wiki: JustEat.HttpClientInterception integration** (`HTTP-Tracking-Setup.md`): Added complete `IHttpMessageHandlerBuilderFilter` recipe for combining TTD tracking with JustEat HTTP mocking.
+
 ## [2.28.10] - 2026-04-30
 
 ### Changed

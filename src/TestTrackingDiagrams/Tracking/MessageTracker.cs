@@ -227,6 +227,84 @@ public class MessageTracker : ITrackingComponent
     }
 
     /// <summary>
+    /// Logs a complete send as an atomic request+response pair with standard (non-event) styling.
+    /// Unlike <see cref="TrackSendEvent"/>, this produces standard arrows in diagrams rather
+    /// than event-styled blue notes. Use this when you want the arrow style to match HTTP calls.
+    /// </summary>
+    /// <param name="protocol">The protocol or transport label shown in the diagram.</param>
+    /// <param name="destinationName">The name of the destination service or topic shown in the diagram.</param>
+    /// <param name="destinationUri">A URI representing the destination.</param>
+    /// <param name="payload">Optional message payload. Will be JSON-serialised when verbosity allows.</param>
+    /// <returns>The correlation ID for the logged pair, or <see cref="Guid.Empty"/> if tracking was skipped.</returns>
+    public Guid TrackSendMessage(string protocol, string destinationName, Uri destinationUri, object? payload = null)
+    {
+        Interlocked.Increment(ref _invocationCount);
+
+        if (!PhaseConfiguration.ShouldTrack(_trackDuringSetup, _trackDuringAction))
+            return Guid.Empty;
+
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return Guid.Empty;
+
+        var requestResponseId = Guid.NewGuid();
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_verbosity, _setupVerbosity, _actionVerbosity);
+        var content = effectiveVerbosity == MessageTrackerVerbosity.Summarised
+            ? null
+            : JsonSerializer.Serialize(payload ?? new { }, _serializerOptions);
+        var now = DateTimeOffset.UtcNow;
+
+        RequestResponseLogger.Log(new RequestResponseLog(
+            testInfo.Value.TestName,
+            testInfo.Value.TestId,
+            protocol,
+            content,
+            destinationUri,
+            [],
+            destinationName,
+            _callerName,
+            RequestResponseType.Request,
+            testInfo.Value.TraceId,
+            requestResponseId,
+            false,
+            DependencyCategory: _dependencyCategory,
+            CallerDependencyCategory: _callerDependencyCategory
+        )
+        {
+            Timestamp = now,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString(),
+            Phase = TestPhaseContext.Current
+        });
+
+        RequestResponseLogger.Log(new RequestResponseLog(
+            testInfo.Value.TestName,
+            testInfo.Value.TestId,
+            protocol,
+            null,
+            destinationUri,
+            [],
+            destinationName,
+            _callerName,
+            RequestResponseType.Response,
+            testInfo.Value.TraceId,
+            requestResponseId,
+            false,
+            "Sent",
+            DependencyCategory: _dependencyCategory,
+            CallerDependencyCategory: _callerDependencyCategory
+        )
+        {
+            Timestamp = now,
+            ActivitySpanId = Activity.Current?.SpanId.ToString(),
+            ActivityTraceId = Activity.Current?.TraceId.ToString(),
+            Phase = TestPhaseContext.Current
+        });
+
+        return requestResponseId;
+    }
+
+    /// <summary>
     /// Tracks consumption of an event from a message broker as a delivery + ack pair.
     /// Arrow direction: <c>CallerName</c> → <paramref name="consumerName"/> (broker → consumer).
     /// Payload appears on the delivery arrow; response uses the <paramref name="ackLabel"/>.

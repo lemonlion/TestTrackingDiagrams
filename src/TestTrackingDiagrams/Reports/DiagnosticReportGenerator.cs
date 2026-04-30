@@ -73,6 +73,27 @@ public static class DiagnosticReportGenerator
             sb.AppendLine("</table>");
         }
 
+        // Unknown entries breakdown
+        var unknownLogs = logs.Where(l => l.TestId == "unknown").ToArray();
+        if (unknownLogs.Length > 0)
+        {
+            var byServiceMethod = unknownLogs
+                .GroupBy(l => (l.ServiceName, Method: l.Method.Value?.ToString() ?? "?"))
+                .OrderByDescending(g => g.Count())
+                .ToArray();
+            sb.AppendLine($"<h3 class=\"warn\">⚠ Unknown Entries Breakdown ({unknownLogs.Length} entries)</h3>");
+            sb.AppendLine("<p>These log entries have test ID \"unknown\" — typically from background threads without test correlation.</p>");
+            sb.AppendLine("<table><tr><th>Service</th><th>Method</th><th>Count</th><th>First Seen</th><th>Last Seen</th></tr>");
+            foreach (var g in byServiceMethod.Take(50))
+            {
+                var timestamps = g.Where(l => l.Timestamp.HasValue).Select(l => l.Timestamp!.Value).ToArray();
+                var first = timestamps.Length > 0 ? timestamps.Min().ToString("yyyy-MM-dd HH:mm:ss") : "?";
+                var last = timestamps.Length > 0 ? timestamps.Max().ToString("yyyy-MM-dd HH:mm:ss") : "?";
+                sb.AppendLine($"<tr><td>{Escape(g.Key.ServiceName)}</td><td>{Escape(g.Key.Method)}</td><td>{g.Count()}</td><td>{first}</td><td>{last}</td></tr>");
+            }
+            sb.AppendLine("</table>");
+        }
+
         // Unpaired requests
         var requests = logs.Where(l => l.Type == RequestResponseType.Request).ToArray();
         var responseIds = logs.Where(l => l.Type == RequestResponseType.Response).Select(l => l.RequestResponseId).ToHashSet();

@@ -75,6 +75,91 @@ public class DiagnosticReportGeneratorTests : IDisposable
         Assert.DoesNotContain("Tracking Components", html);
     }
 
+    // ─── Unknown entries breakdown ─────────────────────────────
+
+    [Fact]
+    public void Unknown_entries_breakdown_shown_when_unknown_logs_exist()
+    {
+        var rrId1 = Guid.NewGuid();
+        var rrId2 = Guid.NewGuid();
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [
+                MakeLog("unknown", RequestResponseType.Request, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
+                MakeLog("unknown", RequestResponseType.Response, rrId1, serviceName: "CosmosDB", method: "GET containers/events/docs"),
+                MakeLog("unknown", RequestResponseType.Request, rrId2, serviceName: "Service Bus", method: "Publish"),
+                MakeLog("unknown", RequestResponseType.Response, rrId2, serviceName: "Service Bus", method: "Publish"),
+            ],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("Unknown Entries Breakdown", html);
+        Assert.Contains("CosmosDB", html);
+        Assert.Contains("Service Bus", html);
+    }
+
+    [Fact]
+    public void Unknown_entries_breakdown_not_shown_when_no_unknown_logs()
+    {
+        var rrId = Guid.NewGuid();
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [
+                MakeLog("real-test-id", RequestResponseType.Request, rrId),
+                MakeLog("real-test-id", RequestResponseType.Response, rrId),
+            ],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.DoesNotContain("Unknown Entries Breakdown", html);
+    }
+
+    [Fact]
+    public void Unknown_entries_breakdown_groups_by_service_and_method()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 10; i++)
+        {
+            var rrId = Guid.NewGuid();
+            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "GET"));
+            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "GET"));
+        }
+        for (var i = 0; i < 4; i++)
+        {
+            var rrId = Guid.NewGuid();
+            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "CosmosDB", method: "POST"));
+            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "CosmosDB", method: "POST"));
+        }
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [.. logs],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("CosmosDB", html);
+        Assert.Contains("GET", html);
+        Assert.Contains("POST", html);
+    }
+
+    [Fact]
+    public void Unknown_entries_breakdown_shows_entry_count()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 5; i++)
+        {
+            var rrId = Guid.NewGuid();
+            logs.Add(MakeLog("unknown", RequestResponseType.Request, rrId, serviceName: "Redis", method: "GET"));
+            logs.Add(MakeLog("unknown", RequestResponseType.Response, rrId, serviceName: "Redis", method: "GET"));
+        }
+
+        var html = DiagnosticReportGenerator.BuildHtml(
+            [.. logs],
+            [],
+            new ReportConfigurationOptions());
+
+        Assert.Contains("10", html); // 5 requests + 5 responses = 10 entries
+    }
+
     // ─── Helpers ───────────────────────────────────────────────
 
     private class StubComponent(string name, bool wasInvoked) : ITrackingComponent
@@ -84,9 +169,14 @@ public class DiagnosticReportGeneratorTests : IDisposable
         public int InvocationCount => wasInvoked ? 1 : 0;
     }
 
-    private static RequestResponseLog MakeLog(string testId, RequestResponseType type, Guid requestResponseId) =>
-        new("Test", testId, HttpMethod.Get, null, new Uri("http://svc/api"),
-            [], "Svc", "Caller", type, Guid.NewGuid(), requestResponseId, false)
+    private static RequestResponseLog MakeLog(
+        string testId,
+        RequestResponseType type,
+        Guid requestResponseId,
+        string serviceName = "Svc",
+        string method = "GET") =>
+        new("Test", testId, (OneOf<HttpMethod, string>)method, null, new Uri("http://svc/api"),
+            [], serviceName, "Caller", type, Guid.NewGuid(), requestResponseId, false)
         {
             Timestamp = DateTimeOffset.UtcNow
         };
