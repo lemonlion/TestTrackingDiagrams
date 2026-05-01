@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.23] - 2026-05-01
+
+### Fixed
+- **`TrackDependenciesForDiagrams` no longer produces unpaired `override.com` entries in diagnostic reports** (fixes [#24](https://github.com/lemonlion/TestTrackingDiagrams/issues/24)): `TestTrackingMessageHandler` now auto-excludes requests to `override.com` (ASP.NET Core TestServer's internal base address) from tracking. These requests are still forwarded normally to the inner handler but produce no log entries. A new `ExcludedHosts` property on `TestTrackingMessageHandlerOptions` (default: `["override.com"]`) allows customising which hosts are excluded. Set to an empty collection to restore previous behavior.
+
+### Added
+- **`services.RemoveDbContext<TContext>()` extension method** (fixes [#25](https://github.com/lemonlion/TestTrackingDiagrams/issues/25)): New DI helper in `TestTrackingDiagrams.Extensions.EfCore.Relational` that removes all registrations related to a DbContext type — including `IDbContextOptionsConfiguration<TContext>` (an internal EF Core type that survives `RemoveAll<DbContextOptions<T>>()`). Call this in `ConfigureTestServices` before re-registering the DbContext with a tracking interceptor to ensure no production configuration callbacks survive.
+
+### Documentation
+- **EF Core Extension wiki**: Replaced `RemoveAll<DbContextOptions<T>>()` in Option A with `RemoveDbContext<T>()` and added migration warning about the insufficient removal pattern.
+- **HTTP Tracking Setup wiki**: Added `ExcludedHosts` to the `TestTrackingMessageHandlerOptions` reference table.
+- **Tracking Dependencies wiki**: Added note about automatic `override.com` exclusion in v2.28.23+.
+
 ## [2.28.22] - 2026-05-01
 
 ### Fixed

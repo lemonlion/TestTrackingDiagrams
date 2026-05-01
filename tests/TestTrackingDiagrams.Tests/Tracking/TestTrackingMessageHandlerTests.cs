@@ -498,6 +498,70 @@ public class TestTrackingMessageHandlerTests : IDisposable
         Assert.True(responseLog.TrackingIgnore);
     }
 
+    // ─── Excluded hosts ─────────────────────────────────────────
+
+    [Fact]
+    public async Task Request_to_excluded_host_is_not_logged()
+    {
+        var options = DefaultOptions();
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://override.com/api/test"), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Empty(logs);
+    }
+
+    [Fact]
+    public async Task Request_to_excluded_host_still_forwards_the_request()
+    {
+        var options = DefaultOptions();
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://override.com/api/test"), CancellationToken.None);
+
+        Assert.NotNull(_innerHandler.CapturedRequest);
+        Assert.Equal(new Uri("http://override.com/api/test"), _innerHandler.CapturedRequest!.RequestUri);
+    }
+
+    [Fact]
+    public async Task Custom_excluded_hosts_are_respected()
+    {
+        var options = DefaultOptions();
+        options.ExcludedHosts = ["my-internal-host.local", "override.com"];
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://my-internal-host.local/health"), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Empty(logs);
+    }
+
+    [Fact]
+    public async Task Request_to_non_excluded_host_is_still_logged()
+    {
+        var options = DefaultOptions();
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://real-service:5000/api/data"), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
+    [Fact]
+    public async Task Empty_excluded_hosts_disables_host_filtering()
+    {
+        var options = DefaultOptions();
+        options.ExcludedHosts = [];
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://override.com/api/test"), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+    }
+
     // ─── Request headers captured in log ────────────────────────
 
     [Fact]

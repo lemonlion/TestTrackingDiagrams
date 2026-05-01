@@ -24,6 +24,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
     private readonly string[]? _internalFlowActivitySources;
     private readonly bool _trackDuringSetup;
     private readonly bool _trackDuringAction;
+    private readonly IReadOnlyCollection<string> _excludedHosts;
     private string? _lastStepType;
     private bool _wasInGivenSection;
     private bool _actionStartInjected;
@@ -44,6 +45,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _internalFlowActivitySources = options.InternalFlowActivitySources;
         _trackDuringSetup = options.TrackDuringSetup;
         _trackDuringAction = options.TrackDuringAction;
+        _excludedHosts = options.ExcludedHosts;
         InnerHandler ??= new HttpClientHandler();
 
         TrackingComponentRegistry.Register(this);
@@ -95,6 +97,13 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         {
             InternalFlow.InternalFlowActivityListener.EnsureStarted(_internalFlowActivitySources);
             _listenerStarted = true;
+        }
+
+        // Skip tracking entirely for excluded hosts (e.g. ASP.NET Core TestServer's internal "override.com")
+        if (request.RequestUri is not null && _excludedHosts.Count > 0 &&
+            _excludedHosts.Contains(request.RequestUri.Host, StringComparer.OrdinalIgnoreCase))
+        {
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
         ForwardHeaders(request);

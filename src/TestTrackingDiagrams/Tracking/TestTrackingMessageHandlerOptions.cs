@@ -48,6 +48,13 @@ public record TestTrackingMessageHandlerOptions
     public bool TrackDuringAction { get; set; } = true;
 
     /// <summary>
+    /// Host names to exclude from tracking. Requests to these hosts are forwarded without logging.
+    /// Default: <c>["override.com"]</c> (ASP.NET Core TestServer's internal base address).
+    /// Set to an empty collection to disable host-based filtering.
+    /// </summary>
+    public IReadOnlyCollection<string> ExcludedHosts { get; set; } = ["override.com"];
+
+    /// <summary>
     /// Resolves test identity from HTTP context headers when the handler runs inside
     /// the SUT's request pipeline. Auto-resolved from DI by <c>CreateTestTrackingClient</c>
     /// and <c>AddTrackedGrpcClient</c> when not explicitly set.
