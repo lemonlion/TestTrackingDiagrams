@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.27] - 2026-05-01
+
+### Fixed
+- **CI: Unit test assertion updated after note button index refactor**: `MakeNotesCollapsible_passes_onTruncate_to_state_1` asserted the old variable name `idx` in the `setNoteState` call; updated to `srcIdx` to match the v2.28.26 refactor.
+
+## [2.28.26] - 2026-05-01
+
+### Fixed
+- **Note hover buttons no longer affect the wrong note when header-only notes become empty**: When "Headers: Hidden" was active or a note was collapsed, notes whose entire content was gray HTTP headers (e.g. GET/DELETE request notes) would produce empty PlantUML notes with no SVG text elements. `findNoteGroups` skipped these empty notes, causing an index mismatch between SVG groups and source note blocks - so clicking a button on note N would actually collapse/expand note N-1. Fixed with two layers: (1) `buildSourceWithNoteStates` now inserts a non-breaking space placeholder when a note would otherwise be empty, ensuring PlantUML always renders text for every note; (2) `makeNotesCollapsible` now computes a `sourceIndexMap` when fewer SVG groups are detected than source blocks, mapping each SVG group to the correct source note by checking which notes are visible in the current rendered state.
+
+### Added
+- **8 new Selenium tests** (`NoteButtonIndexTests`) verifying note hover button index alignment: groups-vs-blocks equality with headers visible/hidden, minus-button targeting correct note after hide, multiple header-only notes maintaining alignment, collapse/expand with empty notes, and double-click cycling the correct note.
+
 ## [2.28.25] - 2026-05-01
 
 ### Added
