@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.24] - 2026-05-01
+
+### Fixed
+- **Failure cluster links now navigate to the correct scenario when duplicate display names exist across features**: `GenerateScenarioAnchorId` previously produced identical `id` attributes for scenarios with the same display name in different features (e.g. "Health check fails" in both "Order API" and "Payment API"). `getElementById` always returned the first occurrence, so the second cluster link opened the wrong feature. Anchor IDs are now pre-computed with deduplication — the second occurrence receives a `-2` suffix (e.g. `scenario-health-check-fails-2`), the third gets `-3`, etc. The cluster links, scenario permalinks, and element IDs all use the same deduplicated map.
+
+### Added
+- **15 new Selenium tests** (`FailureClusterLinkTests`) verifying failure cluster link navigation: basic scroll-to-scenario, parent feature opening, multi-feature navigation, sequential link clicks, parameterized row activation and detail panel visibility, duplicate display name handling, URL hash updates, multi-cluster navigation, and already-expanded-feature edge case.
+
 ## [2.28.23] - 2026-05-01
 
 ### Fixed

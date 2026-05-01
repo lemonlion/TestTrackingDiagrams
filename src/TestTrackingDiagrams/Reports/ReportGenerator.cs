@@ -1565,6 +1565,25 @@ public static class ReportGenerator
 
         // Failure clusters
         var allScenarios = features.SelectMany(f => f.Scenarios).ToArray();
+
+        // Pre-compute unique anchor IDs for all scenarios (handle duplicate display names)
+        var scenarioAnchorIds = new Dictionary<string, string>();
+        var anchorIdCounts = new Dictionary<string, int>();
+        foreach (var scenario in allScenarios)
+        {
+            var baseAnchor = GenerateScenarioAnchorId(scenario.DisplayName);
+            if (anchorIdCounts.TryGetValue(baseAnchor, out var count))
+            {
+                anchorIdCounts[baseAnchor] = count + 1;
+                scenarioAnchorIds[scenario.Id] = $"{baseAnchor}-{count + 1}";
+            }
+            else
+            {
+                anchorIdCounts[baseAnchor] = 1;
+                scenarioAnchorIds[scenario.Id] = baseAnchor;
+            }
+        }
+
         var clusters = FailureClusterer.Cluster(allScenarios);
         if (clusters.Length > 0)
         {
@@ -1580,7 +1599,7 @@ public static class ReportGenerator
             {
                 var anchorLinks = string.Join("", cluster.Scenarios.Select(s =>
                 {
-                    var anchorId = GenerateScenarioAnchorId(s.DisplayName);
+                    var anchorId = scenarioAnchorIds[s.Id];
                     var featureName = scenarioFeatureLookup.GetValueOrDefault(s.Id, "");
                     var prefix = featureName.Length > 0 ? $"<span style=\"color:rgb(100,100,100);font-size:0.85em\">{System.Net.WebUtility.HtmlEncode(featureName)} &rsaquo;</span> " : "";
                     return $"<li>{prefix}<a class=\"failure-cluster-scenario-link\" href=\"#{anchorId}\" onclick=\"event.preventDefault();var el=document.getElementById('{anchorId}');if(el){{var p=el;while(p){{if(p.tagName==='DETAILS')p.setAttribute('open','');p=p.parentElement;}}if(el.tagName==='TR')el.click();else el.setAttribute('open','');el.scrollIntoView({{behavior:'smooth',block:'start'}});history.replaceState(null,'',location.pathname+location.search+'#{anchorId}');}}\">{System.Net.WebUtility.HtmlEncode(s.DisplayName)}</a></li>";
@@ -1717,6 +1736,7 @@ public static class ReportGenerator
                         showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
                         ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
                         titleizeParameterNames,
+                        scenarioAnchorIds: scenarioAnchorIds,
                         featureDisplayName: feature.DisplayName,
                         featureDescription: feature.Description,
                         featureLabels: feature.Labels);
@@ -1742,7 +1762,7 @@ public static class ReportGenerator
                 }
 
                 // Deep link anchor ID
-                var anchorId = GenerateScenarioAnchorId(scenario.DisplayName);
+                var anchorId = scenarioAnchorIds[scenario.Id];
 
                 // Pre-build searchable text: feature context + scenario name + error info + step text + diagram sources + tags
                 var searchParts = new List<string> { feature.DisplayName, scenario.DisplayName };
@@ -2183,6 +2203,7 @@ public static class ReportGenerator
         WholeTestFlowVisualization wholeTestVisualization,
         int medianSpanCount,
         bool titleizeParameterNames = true,
+        Dictionary<string, string>? scenarioAnchorIds = null,
         string? featureDisplayName = null,
         string? featureDescription = null,
         string[]? featureLabels = null)
@@ -2312,7 +2333,7 @@ public static class ReportGenerator
             foreach (var d in diagramsByTestId[s.Id]) rowSearchParts.Add(d.CodeBehind);
             var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
-            var rowAnchorId = GenerateScenarioAnchorId(s.DisplayName);
+            var rowAnchorId = scenarioAnchorIds?.GetValueOrDefault(s.Id) ?? GenerateScenarioAnchorId(s.DisplayName);
             body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\" id=\"{rowAnchorId}\" data-scenario-id=\"{rowAnchorId}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
             body.Append($"<td>{ri + 1}</td>");
 

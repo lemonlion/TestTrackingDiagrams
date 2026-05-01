@@ -179,4 +179,48 @@ public class FailureClustererTests
         var clusters = FailureClusterer.Cluster([scenario]);
         Assert.Empty(clusters); // null error message can't be clustered
     }
+
+    [Fact]
+    public void Duplicate_display_names_get_deduplicated_anchor_ids_in_report()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Feature A",
+                Scenarios =
+                [
+                    new Scenario { Id = "a1", DisplayName = "Health check fails", Result = ExecutionResult.Failed, ErrorMessage = "Service unavailable" },
+                ]
+            },
+            new Feature
+            {
+                DisplayName = "Feature B",
+                Scenarios =
+                [
+                    new Scenario { Id = "b1", DisplayName = "Health check fails", Result = ExecutionResult.Failed, ErrorMessage = "Service unavailable" },
+                ]
+            }
+        };
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"dup-anchor-{Guid.NewGuid():N}.html");
+        try
+        {
+            var path = ReportGenerator.GenerateHtmlReport(
+                [], features, DateTime.UtcNow, DateTime.UtcNow,
+                null, tempFile, "Test", false);
+            var html = File.ReadAllText(path);
+
+            // First occurrence gets the base ID
+            Assert.Contains("id=\"scenario-health-check-fails\"", html);
+            // Second occurrence gets a deduplicated ID with suffix
+            Assert.Contains("id=\"scenario-health-check-fails-2\"", html);
+            // Cluster link for the second scenario should reference the deduplicated ID
+            Assert.Contains("href=\"#scenario-health-check-fails-2\"", html);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
 }
