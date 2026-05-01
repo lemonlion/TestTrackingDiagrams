@@ -1,4 +1,5 @@
 using System.Net;
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
@@ -397,6 +398,56 @@ public class RequestResponseLoggerTests
         var logs = GetLogsFromThisTest();
         Assert.Equal(2, logs.Length);
         Assert.All(logs, l => Assert.Equal("Scoped Test", l.TestName));
+    }
+
+    // ─── LogPair dependencyCategory ─────────────────────────
+
+    [Fact]
+    public void LogPair_sets_dependency_category_on_both_entries()
+    {
+        RequestResponseLogger.LogPair(
+            testName: "My Test",
+            testId: _testId,
+            method: "Blob Upload",
+            uri: new Uri("https://blob.core.windows.net/c/f"),
+            serviceName: "Blob Storage",
+            callerName: "My API",
+            dependencyCategory: DependencyCategories.BlobStorage);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal(DependencyCategories.BlobStorage, l.DependencyCategory));
+    }
+
+    [Fact]
+    public void LogPair_dependency_category_defaults_to_null()
+    {
+        RequestResponseLogger.LogPair(
+            testName: "My Test",
+            testId: _testId,
+            method: "Op",
+            uri: new Uri("mock://svc/op"),
+            serviceName: "Svc",
+            callerName: "Caller");
+
+        var logs = GetLogsFromThisTest();
+        Assert.All(logs, l => Assert.Null(l.DependencyCategory));
+    }
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_sets_dependency_category()
+    {
+        RequestResponseLogger.LogPair(
+            method: "Query",
+            uri: new Uri("cosmos://db/container"),
+            serviceName: "Cosmos",
+            callerName: "API",
+            testInfoFetcher: () => ("T", _testId),
+            dependencyCategory: DependencyCategories.CosmosDB);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal(DependencyCategories.CosmosDB, l.DependencyCategory));
     }
 
     private RequestResponseLog MakeLog(string? content) => new(

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.21] - 2026-05-01
+
+### Added
+- **`dependencyCategory` parameter on `RequestResponseLogger.LogPair`**: Both overloads now accept an optional `string? dependencyCategory` parameter that is passed through to `RequestResponseLog.DependencyCategory`. This allows manually logged interactions (blob uploads, custom service calls, etc.) to render with the correct participant shape and colour in sequence diagrams (e.g. `database` shape for blob storage) instead of the default generic `entity`.
+
 ## [2.28.20] - 2026-04-30
 
 ### Changed

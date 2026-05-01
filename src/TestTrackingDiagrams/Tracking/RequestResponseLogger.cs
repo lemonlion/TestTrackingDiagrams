@@ -43,14 +43,16 @@ public static class RequestResponseLogger
         string? requestContent = null,
         string? responseContent = null,
         HttpStatusCode? statusCode = null,
-        TestPhase phase = TestPhase.Unknown)
+        TestPhase phase = TestPhase.Unknown,
+        string? dependencyCategory = null)
     {
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
         Log(new RequestResponseLog(testName, testId, method, requestContent, uri,
-            [], serviceName, callerName, RequestResponseType.Request, traceId, requestResponseId, false)
+            [], serviceName, callerName, RequestResponseType.Request, traceId, requestResponseId, false,
+            DependencyCategory: dependencyCategory)
         {
             Timestamp = now,
             Phase = phase
@@ -58,7 +60,8 @@ public static class RequestResponseLogger
 
         Log(new RequestResponseLog(testName, testId, method, responseContent, uri,
             [], serviceName, callerName, RequestResponseType.Response, traceId, requestResponseId, false,
-            statusCode is not null ? (OneOf<HttpStatusCode, string>)statusCode.Value : null)
+            statusCode is not null ? (OneOf<HttpStatusCode, string>)statusCode.Value : null,
+            DependencyCategory: dependencyCategory)
         {
             Timestamp = now,
             Phase = phase
@@ -89,7 +92,8 @@ public static class RequestResponseLogger
         string? requestContent = null,
         string? responseContent = null,
         HttpStatusCode? statusCode = null,
-        TestPhase phase = TestPhase.Unknown)
+        TestPhase phase = TestPhase.Unknown,
+        string? dependencyCategory = null)
     {
         (string Name, string Id)? testInfo = null;
 
@@ -105,6 +109,6 @@ public static class RequestResponseLogger
             return;
 
         LogPair(testInfo.Value.Name, testInfo.Value.Id, method, uri, serviceName, callerName,
-            requestContent, responseContent, statusCode, phase);
+            requestContent, responseContent, statusCode, phase, dependencyCategory);
     }
 }
