@@ -816,4 +816,115 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// PlantUML source where note 1 is ALL gray headers (no body content) and note 2
+    /// has actual body content. When headers are hidden, note 1 becomes empty, testing
+    /// the index alignment between SVG groups and source note blocks.
+    /// </summary>
+    private const string HeaderOnlyNotePlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        caller -> svc : GET /api/orders
+        note left
+        <color:gray>Authorization: Bearer token123
+        <color:gray>Accept: application/json
+        <color:gray>X-Request-Id: req-001
+        end note
+        svc -> db : SELECT * FROM Orders
+        note left
+        <color:gray>Content-Type: text/plain
+
+        SELECT Id, Name, Status
+        FROM Orders
+        WHERE Active = 1
+        end note
+        db --> svc : OK
+        note right
+        <color:gray>Content-Type: application/json
+
+        [{"id":1,"name":"Order A"},{"id":2,"name":"Order B"}]
+        end note
+        svc --> caller : 200 OK
+        @enduml
+        """;
+
+    /// <summary>
+    /// PlantUML source with multiple header-only notes interspersed with content notes.
+    /// Notes 1 and 3 are all-headers; notes 2 and 4 have body content.
+    /// </summary>
+    private const string MultipleHeaderOnlyNotesPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "PaymentService" as pay
+        participant "Database" as db
+
+        caller -> svc : GET /api/orders
+        note left
+        <color:gray>Authorization: Bearer token123
+        <color:gray>Accept: application/json
+        end note
+        svc -> db : SELECT * FROM Orders
+        note left
+        <color:gray>X-DB-Hint: readonly
+
+        SELECT Id, Name FROM Orders
+        end note
+        db --> svc : OK
+        svc -> pay : POST /api/charge
+        note left
+        <color:gray>Content-Type: application/json
+        <color:gray>X-Idempotency-Key: abc-123
+        end note
+        pay --> svc : 200 OK
+        note right
+        <color:gray>Content-Type: application/json
+
+        {"chargeId":"ch_001","status":"succeeded"}
+        end note
+        svc --> caller : 200 OK
+        @enduml
+        """;
+
+    public static string GenerateReportWithHeaderOnlyNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", HeaderOnlyNotePlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    public static string GenerateReportWithMultipleHeaderOnlyNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", MultipleHeaderOnlyNotesPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

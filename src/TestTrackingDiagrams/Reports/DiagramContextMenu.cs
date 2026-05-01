@@ -2040,32 +2040,67 @@ public static class DiagramContextMenu
                     }
                 }
 
-                for (var ni = 0; ni < Math.min(noteGroups.length, noteBlocks.length); ni++) {
-                    (function(idx) {
-                        var grp = noteGroups[idx];
+                // Build index mapping: when some notes are empty in the rendered SVG
+                // (e.g. header-only notes with headers hidden, or collapsed all-gray notes),
+                // the SVG has fewer groups than source blocks. Map each SVG group to the
+                // correct source block index by computing which blocks are visible.
+                var sourceIndexMap = null;
+                if (noteGroups.length < noteBlocks.length) {
+                    sourceIndexMap = [];
+                    for (var si = 0; si < noteBlocks.length; si++) {
+                        var sStep = container._noteSteps[si] || 0;
+                        var sState = noteStepState(sStep);
+                        var noteEmpty = false;
+                        if (sState === 'collapsed') {
+                            var prev = getNotePreview(noteBlocks[si].contentLines);
+                            if (!prev) noteEmpty = true;
+                        } else if (container._headersHidden) {
+                            var hasVisible = false;
+                            var afterGrayLine = false;
+                            for (var li = 0; li < noteBlocks[si].contentLines.length; li++) {
+                                var cl = noteBlocks[si].contentLines[li].trim();
+                                if (/^<color:gray>/.test(cl)) { afterGrayLine = true; continue; }
+                                if (afterGrayLine && cl === '') continue;
+                                afterGrayLine = false;
+                                hasVisible = true;
+                                break;
+                            }
+                            if (!hasVisible) noteEmpty = true;
+                        }
+                        if (!noteEmpty) sourceIndexMap.push(si);
+                    }
+                }
+
+                var loopCount = sourceIndexMap
+                    ? Math.min(noteGroups.length, sourceIndexMap.length)
+                    : Math.min(noteGroups.length, noteBlocks.length);
+
+                for (var ni = 0; ni < loopCount; ni++) {
+                    (function(svgIdx, srcIdx) {
+                        var grp = noteGroups[svgIdx];
                         var bbox = getNoteBBox(grp);
-                        var step = container._noteSteps[idx] || 0;
+                        var step = container._noteSteps[srcIdx] || 0;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
-                        if (!isLongNote(noteBlocks[idx].contentLines, container._truncateLines) && step === 1) step = 2;
+                        if (!isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
                             function() {
-                                var long = isLongNote(noteBlocks[idx].contentLines, container._truncateLines);
-                                var curStep = container._noteSteps[idx] || 0;
-                                setNoteState(container, idx, (long && curStep === 0) ? 1 : 2);
+                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
+                                var curStep = container._noteSteps[srcIdx] || 0;
+                                setNoteState(container, srcIdx, (long && curStep === 0) ? 1 : 2);
                             },
-                            function() { setNoteState(container, idx, 0); },
-                            function() { setNoteState(container, idx, 1); },
+                            function() { setNoteState(container, srcIdx, 0); },
+                            function() { setNoteState(container, srcIdx, 1); },
                             function() {
-                                var curStep = container._noteSteps[idx] || 0;
-                                var long = isLongNote(noteBlocks[idx].contentLines, container._truncateLines);
+                                var curStep = container._noteSteps[srcIdx] || 0;
+                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
                                 else nextStep = long ? 1 : 2;
-                                setNoteState(container, idx, nextStep);
+                                setNoteState(container, srcIdx, nextStep);
                             },
-                            noteBlocks[idx].contentLines, grp, container);
-                    })(ni);
+                            noteBlocks[srcIdx].contentLines, grp, container);
+                    })(ni, sourceIndexMap ? sourceIndexMap[ni] : ni);
                 }
             }
 
@@ -2078,19 +2113,21 @@ public static class DiagramContextMenu
                 var noteMode = 'normal'; // 'normal', 'collapsed', 'truncated'
                 var truncateLineCount = 0;
                 var justSkippedGray = false;
+                var noteContentEmitted = false;
 
                 for (var i = 0; i < lines.length; i++) {
                     var trimmed = lines[i].trim();
                     if (!inNote && /^note(?:<<\w+>>)?\s+(left|right)/.test(trimmed)) {
                         inNote = true;
                         justSkippedGray = false;
+                        noteContentEmitted = false;
                         newLines.push(lines[i]);
                         var step = noteSteps[nIdx] || 0;
                         var state = noteStepState(step);
                         if (state === 'collapsed') {
                             noteMode = 'collapsed';
                             var preview = getNotePreview(noteBlocks[nIdx].contentLines);
-                            if (preview) newLines.push(preview);
+                            if (preview) { newLines.push(preview); noteContentEmitted = true; }
                         } else if (state === 'truncated') {
                             noteMode = 'truncated';
                             truncateLineCount = 0;
@@ -2103,6 +2140,12 @@ public static class DiagramContextMenu
                     if (inNote && trimmed === 'end note') {
                         if (noteMode === 'truncated' && truncateLineCount > limit) {
                             newLines.push('...');
+                            noteContentEmitted = true;
+                        }
+                        // Ensure note is never empty — PlantUML must render text so that
+                        // findNoteGroups detects it and index alignment is preserved
+                        if (!noteContentEmitted) {
+                            newLines.push('\u00A0');
                         }
                         inNote = false;
                         noteMode = 'normal';
@@ -2118,6 +2161,7 @@ public static class DiagramContextMenu
                         truncateLineCount++;
                         if (truncateLineCount <= limit) {
                             newLines.push(lines[i]);
+                            noteContentEmitted = true;
                         }
                         continue;
                     }
@@ -2125,6 +2169,7 @@ public static class DiagramContextMenu
                     if (justSkippedGray && trimmed === '') continue;
                     justSkippedGray = false;
                     newLines.push(lines[i]);
+                    if (inNote) noteContentEmitted = true;
                 }
                 return newLines.join('\n');
             }
