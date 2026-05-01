@@ -544,7 +544,7 @@ public class DiagramContextMenuTests
     {
         var funcBody = GetFunction("makeNotesCollapsible");
         // onTruncate callback sets state to 1 (truncated)
-        Assert.Contains("setNoteState(container, idx, 1)", funcBody);
+        Assert.Contains("setNoteState(container, srcIdx, 1)", funcBody);
     }
 
     // ─── buildSourceWithNoteStates — trailing space fix ─────
