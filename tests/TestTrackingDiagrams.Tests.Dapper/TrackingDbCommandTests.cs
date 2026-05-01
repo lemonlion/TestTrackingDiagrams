@@ -210,14 +210,14 @@ public class TrackingDbCommandTests : IDisposable
     // ─── Verbosity levels ───────────────────────────────────────
 
     [Fact]
-    public void Raw_verbosity_includes_full_sql_as_method()
+    public void Raw_verbosity_uses_keyword_as_method()
     {
         _options.Verbosity = DapperTrackingVerbosity.Raw;
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         cmd.ExecuteReader();
 
         var request = GetLogsForTest()[0];
-        Assert.Equal("SELECT * FROM Users WHERE Id = 1", request.Method.Value?.ToString());
+        Assert.Equal("SELECT", request.Method.Value?.ToString());
     }
 
     [Fact]
@@ -362,5 +362,52 @@ public class TrackingDbCommandTests : IDisposable
         using var cmd = CreateCommand("SELECT 1");
         cmd.ExecuteScalar();
         Assert.Equal(1, _trackingConnection.InvocationCount);
+    }
+
+    // ─── Method field (component diagram arrow label) ──────
+
+    [Fact]
+    public void LogRequest_Raw_Method_uses_keyword_not_full_sql()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Raw;
+        using var cmd = CreateCommand("SELECT CustomerId, CustomerName, PreferredMilkType FROM CustomerPreferences WHERE CustomerId = @id");
+        cmd.ExecuteReader();
+
+        var log = GetLogsForTest().First();
+        Assert.Equal("SELECT", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Raw_Method_uses_keyword_for_insert()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Raw;
+        using var cmd = CreateCommand("INSERT INTO Users (Id, Name) VALUES (@id, @name)");
+        cmd.ExecuteNonQuery();
+
+        var log = GetLogsForTest().First();
+        Assert.Equal("INSERT", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Detailed_Method_includes_table()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Detailed;
+        using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = @id");
+        cmd.ExecuteReader();
+
+        var log = GetLogsForTest().First();
+        Assert.Equal("SELECT FROM Users", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Raw_Variant_method_uses_keyword()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Detailed;
+        _options.SetupVerbosity = DapperTrackingVerbosity.Raw;
+        using var cmd = CreateCommand("SELECT FeedbackId, CustomerName, OrderId FROM Feedback WHERE OrderId = @orderId ORDER BY CreatedAt");
+        cmd.ExecuteReader();
+
+        var log = GetLogsForTest().First();
+        Assert.Equal("SELECT", log.SetupVariant!.Method.Value?.ToString());
     }
 }

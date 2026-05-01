@@ -118,4 +118,41 @@ public static partial class SpannerOperationClassifier
             _ => op.Operation.ToString()
         };
     }
+
+    /// <summary>
+    /// Gets a short keyword suitable for component diagram arrow labels from a Spanner operation.
+    /// For SQL operations, extracts the SQL keyword (Select, Insert, etc.).
+    /// For non-SQL operations (mutations), returns the operation name.
+    /// </summary>
+    public static string? GetRawKeyword(SpannerOperationInfo op)
+    {
+        if (op.SqlText is not null)
+            return GetRawKeyword(op.SqlText);
+
+        return op.Operation.ToString();
+    }
+
+    /// <summary>
+    /// Gets the raw SQL keyword from command text (for Raw verbosity arrow labels).
+    /// Returns null if command text is null/empty or doesn't start with a known SQL keyword.
+    /// </summary>
+    public static string? GetRawKeyword(string? commandText)
+    {
+        if (string.IsNullOrWhiteSpace(commandText))
+            return null;
+
+        var trimmed = commandText.TrimStart();
+
+        return trimmed switch
+        {
+            _ when trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) => "Select",
+            _ when trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase) => "Insert",
+            _ when trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase) => "Update",
+            _ when trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase) => "Delete",
+            _ when trimmed.StartsWith("CREATE", StringComparison.OrdinalIgnoreCase) => "Create",
+            _ when trimmed.StartsWith("ALTER", StringComparison.OrdinalIgnoreCase) => "Alter",
+            _ when trimmed.StartsWith("DROP", StringComparison.OrdinalIgnoreCase) => "Drop",
+            _ => null
+        };
+    }
 }

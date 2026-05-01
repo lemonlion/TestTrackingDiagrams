@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.28] - 2026-05-01
+
+### Fixed
+- **Spanner and Dapper component diagram arrows no longer show full SQL text**: At Raw verbosity, the `Method` field in `RequestResponseLog` entries now contains just the SQL keyword (`Select`, `Insert`, `Update`, `Delete`) instead of the full SQL query text. This was causing component diagram arrows to be hundreds of characters long (e.g. `"Spanner: Insert, InsertOrUpdate, SELECT CustomerId, CustomerName, PreferredMilkType, LikesExtraToppings..."`) instead of the expected short summary (`"Spanner: Insert, InsertOrUpdate, Select"`). Affected extensions: `SpannerTracker` and `TrackingDbCommand` (Dapper). The sequence diagram content is unaffected — full SQL text still appears in the note/content body.
+
+### Added
+- **`SpannerOperationClassifier.GetRawKeyword()`**: New method that extracts just the SQL keyword from command text or returns the operation name for non-SQL operations (mutations). Used internally by `SpannerTracker` for the `Method` field.
+- **`DapperOperationClassifier.GetRawKeyword()`**: Delegates to `UnifiedSqlClassifier.GetRawKeyword()` for consistent keyword extraction.
+
 ## [2.28.27] - 2026-05-01
 
 ### Fixed

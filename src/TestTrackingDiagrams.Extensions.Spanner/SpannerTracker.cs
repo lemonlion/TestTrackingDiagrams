@@ -48,6 +48,9 @@ public class SpannerTracker : ITrackingComponent
 
         var uri = BuildUri(operation, effectiveVerbosity);
         var label = SpannerOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SpannerTrackingVerbosity.Raw
+            ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
+            : label;
         var traceId = Guid.NewGuid();
         var requestResponseId = Guid.NewGuid();
 
@@ -56,7 +59,7 @@ public class SpannerTracker : ITrackingComponent
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
-            label, logContent, uri, [],
+            method, logContent, uri, [],
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Request, traceId, requestResponseId, false,
             MetaType: RequestResponseMetaType.Event,
@@ -65,7 +68,9 @@ public class SpannerTracker : ITrackingComponent
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v => new PhaseVariant(
-                SpannerOperationClassifier.GetDiagramLabel(operation, v),
+                v == SpannerTrackingVerbosity.Raw
+                    ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
+                    : SpannerOperationClassifier.GetDiagramLabel(operation, v),
                 BuildUri(operation, v),
                 v == SpannerTrackingVerbosity.Summarised ? null :
                     v == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content,
@@ -89,13 +94,16 @@ public class SpannerTracker : ITrackingComponent
 
         var uri = BuildUri(operation, effectiveVerbosity);
         var label = SpannerOperationClassifier.GetDiagramLabel(operation, effectiveVerbosity);
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SpannerTrackingVerbosity.Raw
+            ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
+            : label;
 
         var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null :
             effectiveVerbosity == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name, testInfo.Value.Id,
-            label, logContent, uri, [],
+            method, logContent, uri, [],
             _options.ServiceName, _options.CallerName,
             RequestResponseType.Response, traceId, requestResponseId, false,
             DependencyCategory: DependencyCategories.Spanner)
@@ -103,7 +111,9 @@ public class SpannerTracker : ITrackingComponent
             Phase = TestPhaseContext.Current
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v => new PhaseVariant(
-                SpannerOperationClassifier.GetDiagramLabel(operation, v),
+                v == SpannerTrackingVerbosity.Raw
+                    ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
+                    : SpannerOperationClassifier.GetDiagramLabel(operation, v),
                 BuildUri(operation, v),
                 v == SpannerTrackingVerbosity.Summarised ? null :
                     v == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content,

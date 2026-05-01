@@ -328,4 +328,83 @@ public class SpannerTrackerTests
         Assert.Empty(GetLogsFromThisTest());
         Assert.Equal(Guid.Empty, reqId);
     }
+
+    // ─── Method field (component diagram arrow label) ──────
+
+    [Fact]
+    public void LogRequest_Raw_Method_uses_keyword_not_full_sql()
+    {
+        var tracker = new SpannerTracker(MakeOptions(SpannerTrackingVerbosity.Raw));
+        var op = SpannerOperationClassifier.ClassifySql(
+            "SELECT CustomerId, CustomerName, PreferredMilkType FROM CustomerPreferences WHERE CustomerId = @id");
+
+        tracker.LogRequest(op, "SELECT CustomerId, CustomerName, PreferredMilkType FROM CustomerPreferences WHERE CustomerId = @id");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("Select", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Raw_Method_uses_keyword_for_insert()
+    {
+        var tracker = new SpannerTracker(MakeOptions(SpannerTrackingVerbosity.Raw));
+        var op = SpannerOperationClassifier.ClassifySql(
+            "INSERT INTO Users (Id, Name) VALUES (@id, @name)");
+
+        tracker.LogRequest(op, "INSERT INTO Users (Id, Name) VALUES (@id, @name)");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("Insert", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Raw_Method_uses_operation_name_for_non_sql_operations()
+    {
+        var tracker = new SpannerTracker(MakeOptions(SpannerTrackingVerbosity.Raw));
+        var op = new SpannerOperationInfo(SpannerOperation.InsertOrUpdate, "Users");
+
+        tracker.LogRequest(op, null);
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("InsertOrUpdate", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Detailed_Method_includes_table()
+    {
+        var tracker = new SpannerTracker(MakeOptions(SpannerTrackingVerbosity.Detailed));
+        var op = SpannerOperationClassifier.ClassifySql("SELECT * FROM Users WHERE Id = @id");
+
+        tracker.LogRequest(op, "SELECT * FROM Users WHERE Id = @id");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("SELECT FROM Users", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Summarised_Method_uses_keyword()
+    {
+        var tracker = new SpannerTracker(MakeOptions(SpannerTrackingVerbosity.Summarised));
+        var op = SpannerOperationClassifier.ClassifySql("SELECT * FROM Users WHERE Id = @id");
+
+        tracker.LogRequest(op, "SELECT * FROM Users WHERE Id = @id");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("SELECT", log.Method.Value?.ToString());
+    }
+
+    [Fact]
+    public void LogRequest_Raw_Variant_method_uses_keyword()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Detailed);
+        options.SetupVerbosity = SpannerTrackingVerbosity.Raw;
+        var tracker = new SpannerTracker(options);
+        var op = SpannerOperationClassifier.ClassifySql(
+            "SELECT FeedbackId, CustomerName, OrderId FROM Feedback WHERE OrderId = @orderId ORDER BY CreatedAt");
+
+        tracker.LogRequest(op, "some content");
+
+        var log = GetLogsFromThisTest().First();
+        Assert.Equal("Select", log.SetupVariant!.Method.Value?.ToString());
+    }
 }

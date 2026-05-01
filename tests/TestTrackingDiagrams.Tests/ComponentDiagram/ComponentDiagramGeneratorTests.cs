@@ -1106,4 +1106,29 @@ public class ComponentDiagramGeneratorTests
         Assert.Equal("HTTP", rels[0].Protocol);
         Assert.Null(rels[0].DependencyCategory);
     }
+
+    // ─── Spanner/SQL method extraction (component diagram arrow labels) ──
+
+    [Fact]
+    public void ExtractRelationships_Spanner_Uses_Short_Method_Names_Not_Full_Sql()
+    {
+        // Simulates what SpannerTracker produces at Raw verbosity after the fix:
+        // Method is just the keyword, not the full SQL text.
+        var logs = new[]
+        {
+            MakeRequest(serviceName: "Spanner", callerName: "My API", method: "Select", dependencyCategory: "Spanner"),
+            MakeRequest(serviceName: "Spanner", callerName: "My API", method: "Select", dependencyCategory: "Spanner"),
+            MakeRequest(serviceName: "Spanner", callerName: "My API", method: "Insert", dependencyCategory: "Spanner"),
+            MakeRequest(serviceName: "Spanner", callerName: "My API", method: "InsertOrUpdate", dependencyCategory: "Spanner"),
+        };
+
+        var rels = ComponentDiagramGenerator.ExtractRelationships(logs);
+
+        Assert.Single(rels);
+        Assert.Equal(new HashSet<string> { "Select", "Insert", "InsertOrUpdate" }, rels[0].Methods);
+        var plantUml = ComponentDiagramGenerator.GeneratePlantUml(rels, useC4: false);
+        Assert.Contains("Spanner: Insert, InsertOrUpdate, Select", plantUml);
+        Assert.DoesNotContain("FROM", plantUml);
+        Assert.DoesNotContain("WHERE", plantUml);
+    }
 }

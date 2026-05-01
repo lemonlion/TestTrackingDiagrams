@@ -142,6 +142,9 @@ public class TrackingDbCommand : DbCommand
         var requestResponseId = Guid.NewGuid();
 
         var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        OneOf<System.Net.Http.HttpMethod, string> method = effectiveVerbosity == DapperTrackingVerbosity.Raw
+            ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+            : label;
         var uri = BuildUri(op, effectiveVerbosity);
         var content = effectiveVerbosity == DapperTrackingVerbosity.Raw
             ? BuildParameterizedContent()
@@ -150,7 +153,7 @@ public class TrackingDbCommand : DbCommand
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
             testInfo.Value.Id,
-            (OneOf<System.Net.Http.HttpMethod, string>)label,
+            method,
             content,
             uri,
             [],
@@ -166,12 +169,14 @@ public class TrackingDbCommand : DbCommand
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vLabel = DapperOperationClassifier.GetDiagramLabel(op, v);
+                OneOf<System.Net.Http.HttpMethod, string> vMethod = v == DapperTrackingVerbosity.Raw
+                    ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+                    : DapperOperationClassifier.GetDiagramLabel(op, v);
                 var vContent = v == DapperTrackingVerbosity.Raw
                     ? BuildParameterizedContent()
                     : _options.LogSqlText ? CommandText : null;
                 return new PhaseVariant(
-                    vLabel, BuildUri(op, v), vContent, [], false);
+                    vMethod, BuildUri(op, v), vContent, [], false);
             }));
 
         return (traceId, requestResponseId);
@@ -188,6 +193,9 @@ public class TrackingDbCommand : DbCommand
         if (testInfo is null) return;
 
         var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        OneOf<System.Net.Http.HttpMethod, string> method = effectiveVerbosity == DapperTrackingVerbosity.Raw
+            ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+            : label;
         var uri = BuildUri(op, effectiveVerbosity);
         var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised
             ? null
@@ -196,7 +204,7 @@ public class TrackingDbCommand : DbCommand
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
             testInfo.Value.Id,
-            (OneOf<System.Net.Http.HttpMethod, string>)label,
+            method,
             responseContent,
             uri,
             [],
@@ -213,12 +221,14 @@ public class TrackingDbCommand : DbCommand
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vLabel = DapperOperationClassifier.GetDiagramLabel(op, v);
+                OneOf<System.Net.Http.HttpMethod, string> vMethod = v == DapperTrackingVerbosity.Raw
+                    ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+                    : DapperOperationClassifier.GetDiagramLabel(op, v);
                 var vContent = v == DapperTrackingVerbosity.Summarised
                     ? null
                     : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
                 return new PhaseVariant(
-                    vLabel, BuildUri(op, v), vContent, [], false);
+                    vMethod, BuildUri(op, v), vContent, [], false);
             }));
     }
 

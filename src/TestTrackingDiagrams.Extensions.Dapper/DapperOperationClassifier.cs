@@ -67,4 +67,11 @@ public static class DapperOperationClassifier
 
     internal static string ExtractProcName(string? commandText) =>
         UnifiedSqlClassifier.ExtractProcName(commandText);
+
+    /// <summary>
+    /// Gets the raw SQL keyword from command text (for Raw verbosity arrow labels).
+    /// Delegates to <see cref="UnifiedSqlClassifier.GetRawKeyword"/>.
+    /// </summary>
+    public static string? GetRawKeyword(string? commandText) =>
+        UnifiedSqlClassifier.GetRawKeyword(commandText);
 }

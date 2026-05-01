@@ -333,4 +333,52 @@ public class SpannerOperationClassifierTests
         var label = SpannerOperationClassifier.GetDiagramLabel(op, SpannerTrackingVerbosity.Raw);
         Assert.Equal("Commit", label);
     }
+
+    // ─── GetRawKeyword ──────────────────────────────────────
+
+    [Fact]
+    public void GetRawKeyword_Select_ReturnsSelect()
+    {
+        var keyword = SpannerOperationClassifier.GetRawKeyword(
+            "SELECT CustomerId, CustomerName FROM CustomerPreferences WHERE CustomerId = @id");
+        Assert.Equal("Select", keyword);
+    }
+
+    [Fact]
+    public void GetRawKeyword_Insert_ReturnsInsert()
+    {
+        var keyword = SpannerOperationClassifier.GetRawKeyword(
+            "INSERT INTO Users (Id, Name) VALUES (@id, @name)");
+        Assert.Equal("Insert", keyword);
+    }
+
+    [Fact]
+    public void GetRawKeyword_Update_ReturnsUpdate()
+    {
+        var keyword = SpannerOperationClassifier.GetRawKeyword(
+            "UPDATE Users SET Name = @name WHERE Id = @id");
+        Assert.Equal("Update", keyword);
+    }
+
+    [Fact]
+    public void GetRawKeyword_Delete_ReturnsDelete()
+    {
+        var keyword = SpannerOperationClassifier.GetRawKeyword(
+            "DELETE FROM Users WHERE Id = @id");
+        Assert.Equal("Delete", keyword);
+    }
+
+    [Fact]
+    public void GetRawKeyword_NullOrEmpty_ReturnsNull()
+    {
+        Assert.Null(SpannerOperationClassifier.GetRawKeyword((string?)null));
+        Assert.Null(SpannerOperationClassifier.GetRawKeyword(""));
+        Assert.Null(SpannerOperationClassifier.GetRawKeyword("  "));
+    }
+
+    [Fact]
+    public void GetRawKeyword_NonSqlOperation_ReturnsNull()
+    {
+        Assert.Null(SpannerOperationClassifier.GetRawKeyword("SOME UNKNOWN THING"));
+    }
 }
