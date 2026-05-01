@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.25] - 2026-05-01
+
+### Added
+- **4 additional Selenium tests** (`FailureClusterLinkTests`) targeting real-world cluster link navigation bugs found in a v2.22.12 report: parameterized group parent `<details>` opening, parameterized row viewport scroll, sequential click navigation without manual scroll-back, and triple sequential click navigation.
+
+### Changed
+- Updated `Selenium.WebDriver.ChromeDriver` from 136.0.7103.9200 to 147.0.7727.11700 to match current Chrome stable.
+
 ## [2.28.24] - 2026-05-01
 
 ### Fixed

@@ -652,4 +652,106 @@ public class FailureClusterLinkTests : IClassFixture<ChromeFixture>, IDisposable
         Assert.Contains("Order Feature", prefixSpans[0].Text);
         Assert.Contains("Payment Feature", prefixSpans[1].Text);
     }
+
+    // ── Parameterized group parent opening ──
+
+    [Fact]
+    public void Cluster_link_opens_parameterized_group_parent_details()
+    {
+        // This tests the real-world bug where a <tr> has a parent <details class="scenario-parameterized">
+        // that also needs to be opened for the row to be visible.
+        var url = GenerateClusterReport("ClusterParamParentOpen.html", CreateParameterizedClusterData());
+        _driver.Navigate().GoToUrl(url);
+        WaitFor(By.CssSelector(".failure-clusters"));
+
+        // Verify parameterized group is initially closed
+        var paramGroup = _driver.FindElement(By.CssSelector("details.scenario-parameterized"));
+        Assert.Null(paramGroup.GetAttribute("open"));
+
+        _driver.FindElement(By.CssSelector(".failure-cluster > summary")).Click();
+        var links = _driver.FindElements(By.CssSelector(".failure-cluster-scenario-link"));
+        links[0].Click();
+        WaitForScrollToSettle();
+
+        // Both the feature AND the parameterized group should now be open
+        var feature = _driver.FindElement(By.CssSelector("details.feature"));
+        Assert.NotNull(feature.GetAttribute("open"));
+        Assert.NotNull(paramGroup.GetAttribute("open"));
+    }
+
+    [Fact]
+    public void Cluster_link_to_parameterized_row_scrolls_to_visible_row()
+    {
+        var url = GenerateClusterReport("ClusterParamVisible.html", CreateParameterizedClusterData());
+        _driver.Navigate().GoToUrl(url);
+        WaitFor(By.CssSelector(".failure-clusters"));
+
+        _driver.FindElement(By.CssSelector(".failure-cluster > summary")).Click();
+        var links = _driver.FindElements(By.CssSelector(".failure-cluster-scenario-link"));
+        links[0].Click();
+        WaitForScrollToSettle();
+
+        // The target row should be visible in the viewport
+        var targetRow = _driver.FindElement(By.Id("scenario-checkout-completes-uk-gbp"));
+        Assert.True(IsElementInViewport(targetRow),
+            "Parameterized row should be visible in viewport after cluster link click");
+    }
+
+    // ── Second click after first (the primary bug in the original report) ──
+
+    [Fact]
+    public void Second_cluster_link_works_after_first_click_without_manual_scroll()
+    {
+        // This is the exact bug scenario from the real report:
+        // 1. Click first link -> works
+        // 2. Click second link without scrolling back -> should still navigate correctly
+        var url = GenerateClusterReport("ClusterSecondNoScroll.html", CreateMultiFeatureClusterData());
+        _driver.Navigate().GoToUrl(url);
+        WaitFor(By.CssSelector(".failure-clusters"));
+
+        _driver.FindElement(By.CssSelector(".failure-cluster > summary")).Click();
+        var links = _driver.FindElements(By.CssSelector(".failure-cluster-scenario-link"));
+
+        // Click first link
+        links[0].Click();
+        WaitForScrollToSettle();
+
+        var firstTarget = _driver.FindElement(By.Id("scenario-create-order-fails"));
+        Assert.True(IsElementInViewport(firstTarget), "First link should work");
+
+        // Now click second link via JS (simulating the cluster being off-screen)
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", links[1]);
+        WaitForScrollToSettle();
+
+        var secondTarget = _driver.FindElement(By.Id("scenario-process-payment-fails"));
+        Assert.True(IsElementInViewport(secondTarget),
+            "Second cluster link should navigate correctly without needing to scroll back first");
+        Assert.NotNull(secondTarget.GetAttribute("open"));
+    }
+
+    [Fact]
+    public void Third_cluster_link_works_after_first_two_clicks()
+    {
+        var url = GenerateClusterReport("ClusterThirdClick.html", CreateMultiFeatureClusterData());
+        _driver.Navigate().GoToUrl(url);
+        WaitFor(By.CssSelector(".failure-clusters"));
+
+        _driver.FindElement(By.CssSelector(".failure-cluster > summary")).Click();
+        var links = _driver.FindElements(By.CssSelector(".failure-cluster-scenario-link"));
+        Assert.True(links.Count >= 3);
+
+        // Click all three in sequence
+        links[0].Click();
+        WaitForScrollToSettle();
+
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", links[1]);
+        WaitForScrollToSettle();
+
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", links[2]);
+        WaitForScrollToSettle();
+
+        var thirdTarget = _driver.FindElement(By.Id("scenario-calculate-shipping-fails"));
+        Assert.True(IsElementInViewport(thirdTarget),
+            "Third cluster link should navigate correctly after two prior clicks");
+    }
 }
