@@ -1,5 +1,3 @@
-using TestTrackingDiagrams.Tracking;
-
 namespace TestTrackingDiagrams.ReqNRoll;
 
 /// <summary>
@@ -13,5 +11,5 @@ public static class CurrentTestInfo
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () => ReqNRollTestContext.CurrentTestInfo
-            ?? TestIdentityScope.UnknownIdentity;
+            ?? throw new InvalidOperationException("Test context not available on this thread.");
 }

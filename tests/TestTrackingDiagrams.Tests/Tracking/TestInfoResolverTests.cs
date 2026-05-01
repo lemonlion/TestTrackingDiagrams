@@ -517,6 +517,72 @@ public class TestInfoResolverTests
 
     #endregion
 
+    #region UnknownIdentity fallthrough
+
+    [Fact]
+    public void Falls_through_to_TestIdentityScope_when_delegate_returns_UnknownIdentity()
+    {
+        using (TestIdentityScope.Begin("ScopeTest", "scope-id"))
+        {
+            Func<(string, string)> fetcher = () => TestIdentityScope.UnknownIdentity;
+
+            var result = TestInfoResolver.Resolve(null, fetcher);
+
+            Assert.NotNull(result);
+            Assert.Equal("ScopeTest", result.Value.Name);
+            Assert.Equal("scope-id", result.Value.Id);
+        }
+    }
+
+    [Fact]
+    public void Falls_through_to_GlobalFallback_when_delegate_returns_UnknownIdentity_and_no_scope()
+    {
+        TestIdentityScope.Reset();
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", "global-id");
+            Func<(string, string)> fetcher = () => TestIdentityScope.UnknownIdentity;
+
+            var result = TestInfoResolver.Resolve(null, fetcher);
+
+            Assert.NotNull(result);
+            Assert.NotEqual(TestIdentityScope.UnknownTestId, result.Value.Id);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void Does_not_return_UnknownIdentity_from_delegate()
+    {
+        Func<(string, string)> fetcher = () => TestIdentityScope.UnknownIdentity;
+
+        var result = TestInfoResolver.Resolve(null, fetcher);
+
+        // Result should either be null (no fallbacks) or from scope/globalFallback — not UnknownIdentity
+        if (result is not null)
+            Assert.NotEqual(TestIdentityScope.UnknownTestId, result.Value.Id);
+    }
+
+    [Fact]
+    public void Nullable_overload_falls_through_when_delegate_returns_UnknownIdentity()
+    {
+        using (TestIdentityScope.Begin("ScopeTest", "scope-id"))
+        {
+            Func<(string, string)?> fetcher = () => TestIdentityScope.UnknownIdentity;
+
+            var result = TestInfoResolver.Resolve(null, fetcher);
+
+            Assert.NotNull(result);
+            Assert.Equal("ScopeTest", result.Value.Name);
+            Assert.Equal("scope-id", result.Value.Id);
+        }
+    }
+
+    #endregion
+
     private class FakeHttpContextAccessor(HttpContext? context) : IHttpContextAccessor
     {
         public HttpContext? HttpContext { get; set; } = context;

@@ -31,7 +31,7 @@ public static class TestInfoResolver
         try
         {
             var delegateResult = currentTestInfoFetcher?.Invoke();
-            if (delegateResult is not null)
+            if (delegateResult is not null && !IsUnknownIdentity(delegateResult.Value))
                 return delegateResult;
         }
         catch
@@ -55,7 +55,7 @@ public static class TestInfoResolver
         try
         {
             var delegateResult = currentTestInfoFetcher?.Invoke();
-            if (delegateResult is not null)
+            if (delegateResult is not null && !IsUnknownIdentity(delegateResult.Value))
                 return delegateResult;
         }
         catch
@@ -121,4 +121,7 @@ public static class TestInfoResolver
 
         return false;
     }
+
+    private static bool IsUnknownIdentity((string Name, string Id) identity) =>
+        string.Equals(identity.Id, TestIdentityScope.UnknownTestId, StringComparison.OrdinalIgnoreCase);
 }

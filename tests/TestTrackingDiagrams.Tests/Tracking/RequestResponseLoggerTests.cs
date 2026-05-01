@@ -450,6 +450,26 @@ public class RequestResponseLoggerTests
         Assert.All(logs, l => Assert.Equal(DependencyCategories.CosmosDB, l.DependencyCategory));
     }
 
+    // ─── LogPair UnknownIdentity fallthrough ─────────────────────
+
+    [Fact]
+    public void LogPair_auto_resolving_overload_falls_through_to_TestIdentityScope_when_fetcher_returns_UnknownIdentity()
+    {
+        using (TestIdentityScope.Begin("Scoped Test", _testId))
+        {
+            RequestResponseLogger.LogPair(
+                method: "Op",
+                uri: new Uri("mock://svc/op"),
+                serviceName: "Svc",
+                callerName: "Caller",
+                testInfoFetcher: () => TestIdentityScope.UnknownIdentity);
+        }
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal("Scoped Test", l.TestName));
+    }
+
     private RequestResponseLog MakeLog(string? content) => new(
         "My Test", _testId, "Op", content, new Uri("mock://svc/op"),
         [], "Svc", "Caller", RequestResponseType.Request,

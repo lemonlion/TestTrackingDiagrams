@@ -1,5 +1,4 @@
 using LightBDD.Core.ExecutionContext;
-using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD;
 
@@ -15,14 +14,7 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            try
-            {
-                var scenario = ScenarioExecutionContext.CurrentScenario;
-                return (scenario.Info.Name.ToString(), scenario.Info.RuntimeId.ToString());
-            }
-            catch
-            {
-                return TestIdentityScope.UnknownIdentity;
-            }
+            var scenario = ScenarioExecutionContext.CurrentScenario;
+            return (scenario.Info.Name.ToString(), scenario.Info.RuntimeId.ToString());
         };
 }

@@ -99,7 +99,12 @@ public static class RequestResponseLogger
 
         if (testInfoFetcher is not null)
         {
-            try { testInfo = testInfoFetcher(); }
+            try
+            {
+                var info = testInfoFetcher();
+                if (!string.Equals(info.Id, TestIdentityScope.UnknownTestId, StringComparison.OrdinalIgnoreCase))
+                    testInfo = info;
+            }
             catch { /* Delegate threw — fall through to scope */ }
         }
 

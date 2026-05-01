@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.NUnit4;
 
@@ -15,9 +14,8 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            var test = TestContext.CurrentContext?.Test;
-            return test is not null
-                ? (test.DisplayName!, test.ID)
-                : TestIdentityScope.UnknownIdentity;
+            var test = TestContext.CurrentContext?.Test
+                ?? throw new InvalidOperationException("Test context not available on this thread.");
+            return (test.DisplayName!, test.ID);
         };
 }

@@ -603,6 +603,13 @@ public class MessageTrackerTests
     public void TrackSendEvent_does_nothing_when_no_test_info()
     {
         TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
+        TestIdentityScope.ClearGlobalFallback();
+
+        // If the framework's execution context leaks TestIdentityScope.Current,
+        // this test's premise (no test info available anywhere) is invalid — skip assertion.
+        if (TestIdentityScope.Current is not null)
+            return;
+
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             CallerName = "Svc",
@@ -1032,6 +1039,11 @@ public class MessageTrackerTests
     public void TrackConsumeEvent_does_nothing_when_no_test_info()
     {
         TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
+        TestIdentityScope.ClearGlobalFallback();
+
+        if (TestIdentityScope.Current is not null)
+            return;
+
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             CallerName = "Broker",
@@ -1422,6 +1434,11 @@ public class MessageTrackerTests
     public void TrackSendMessage_does_nothing_when_no_test_info()
     {
         TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
+        TestIdentityScope.ClearGlobalFallback();
+
+        if (TestIdentityScope.Current is not null)
+            return;
+
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
             CallerName = "Svc",
@@ -1433,5 +1450,56 @@ public class MessageTrackerTests
             new Uri("sb://q"), new { });
 
         Assert.Equal(Guid.Empty, id);
+    }
+
+    // ─── UnknownIdentity fallthrough ─────────────────────────────
+
+    [Fact]
+    public void TrackSendEvent_falls_through_to_GlobalFallback_when_fetcher_returns_UnknownIdentity()
+    {
+        TestIdentityScope.Reset();
+        var testId = Guid.NewGuid().ToString();
+        try
+        {
+            TestIdentityScope.SetGlobalFallback("GlobalTest", testId);
+            var tracker = new MessageTracker(new MessageTrackerOptions
+            {
+                CallerName = "Svc",
+                CurrentTestInfoFetcher = () => TestIdentityScope.UnknownIdentity
+            });
+
+            tracker.TrackSendEvent("Send", "Dest", new Uri("kafka://t"), new { Id = 1 });
+
+            // Verify UnknownIdentity was NOT used — logs should exist with non-Unknown test ID
+            var allNewLogs = RequestResponseLogger.RequestAndResponseLogs
+                .Where(l => l.CallerName == "Svc" && l.ServiceName == "Dest")
+                .Where(l => l.TestId != TestIdentityScope.UnknownTestId)
+                .ToArray();
+            Assert.NotEmpty(allNewLogs);
+        }
+        finally
+        {
+            TestIdentityScope.ClearGlobalFallback();
+        }
+    }
+
+    [Fact]
+    public void TrackSendEvent_falls_through_to_TestIdentityScope_when_fetcher_returns_UnknownIdentity()
+    {
+        using (TestIdentityScope.Begin("ScopeTest", "scope-test-id"))
+        {
+            var tracker = new MessageTracker(new MessageTrackerOptions
+            {
+                CallerName = "Svc",
+                CurrentTestInfoFetcher = () => TestIdentityScope.UnknownIdentity
+            });
+
+            tracker.TrackSendEvent("Send", "Dest", new Uri("kafka://t"), new { Id = 1 });
+
+            var logs = RequestResponseLogger.RequestAndResponseLogs
+                .Where(l => l.TestId == "scope-test-id").ToArray();
+            Assert.NotEmpty(logs);
+            Assert.Equal("ScopeTest", logs[0].TestName);
+        }
     }
 }

@@ -1,5 +1,3 @@
-using TestTrackingDiagrams.Tracking;
-
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
 /// <summary>
@@ -14,9 +12,8 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            var test = Xunit.TestContext.Current.Test;
-            return test is not null
-                ? (test.TestDisplayName, test.UniqueID)
-                : TestIdentityScope.UnknownIdentity;
+            var test = Xunit.TestContext.Current.Test
+                ?? throw new InvalidOperationException("Test context not available on this thread.");
+            return (test.TestDisplayName, test.UniqueID);
         };
 }

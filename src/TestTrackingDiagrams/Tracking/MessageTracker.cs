@@ -373,7 +373,8 @@ public class MessageTracker : ITrackingComponent
             try
             {
                 var info = _testInfoFallback();
-                return (info.Name, info.Id, Guid.NewGuid());
+                if (!string.Equals(info.Id, TestIdentityScope.UnknownTestId, StringComparison.OrdinalIgnoreCase))
+                    return (info.Name, info.Id, Guid.NewGuid());
             }
             catch
             {

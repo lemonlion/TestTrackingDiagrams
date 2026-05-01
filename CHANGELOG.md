@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.22] - 2026-05-01
+
+### Fixed
+- **`CurrentTestInfo.Fetcher` no longer short-circuits the resolution chain when test context is unavailable**: All 8 framework `CurrentTestInfo.Fetcher` implementations (xUnit3, xUnit2, NUnit4, TUnit, MSTest, LightBDD, ReqNRoll, BDDfy) now throw `InvalidOperationException` when the test context is unavailable, instead of returning `TestIdentityScope.UnknownIdentity`. This allows the existing try/catch fallthrough pattern in `MessageTracker.GetTestInfo()`, `TestInfoResolver.Resolve()`, and `RequestResponseLogger.LogPair()` to correctly fall through to `TestIdentityScope.Current` and `GlobalFallback`. Previously, returning `("Unknown", "unknown")` satisfied the non-null check and caused resolution to stop immediately — silently misattributing events instead of reaching the correct fallback.
+- **Defense-in-depth: `UnknownIdentity` treated as unresolved in all resolvers**: `TestInfoResolver.Resolve()` (both overloads), `MessageTracker.GetTestInfo()`, and `RequestResponseLogger.LogPair()` now explicitly check for `UnknownTestId` and fall through — regardless of whether the delegate throws or returns the sentinel value. This guards against custom fetcher implementations that return `UnknownIdentity` instead of throwing.
+
 ## [2.28.21] - 2026-05-01
 
 ### Added

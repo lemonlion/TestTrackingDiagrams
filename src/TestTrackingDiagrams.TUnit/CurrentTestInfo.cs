@@ -1,4 +1,3 @@
-using TestTrackingDiagrams.Tracking;
 using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
@@ -15,9 +14,8 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            var ctx = TestContext.Current;
-            return ctx is not null
-                ? (ctx.Metadata.DisplayName, ctx.Id)
-                : TestIdentityScope.UnknownIdentity;
+            var ctx = TestContext.Current
+                ?? throw new InvalidOperationException("Test context not available on this thread.");
+            return (ctx.Metadata.DisplayName, ctx.Id);
         };
 }

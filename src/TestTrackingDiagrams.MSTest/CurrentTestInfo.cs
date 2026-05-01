@@ -1,5 +1,3 @@
-using TestTrackingDiagrams.Tracking;
-
 namespace TestTrackingDiagrams.MSTest;
 
 /// <summary>
@@ -14,9 +12,8 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            var ctx = DiagrammedComponentTest.GetCurrentTestContext();
-            return ctx is not null
-                ? (ctx.TestName!, $"{ctx.FullyQualifiedTestClassName}.{ctx.TestName}")
-                : TestIdentityScope.UnknownIdentity;
+            var ctx = DiagrammedComponentTest.GetCurrentTestContext()
+                ?? throw new InvalidOperationException("Test context not available on this thread.");
+            return (ctx.TestName!, $"{ctx.FullyQualifiedTestClassName}.{ctx.TestName}");
         };
 }

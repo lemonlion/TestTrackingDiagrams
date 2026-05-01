@@ -1,5 +1,3 @@
-using TestTrackingDiagrams.Tracking;
-
 namespace TestTrackingDiagrams.xUnit2;
 
 /// <summary>
@@ -14,14 +12,9 @@ public static class CurrentTestInfo
     public static Func<(string Name, string Id)> Fetcher { get; } =
         () =>
         {
-            try
-            {
-                var (name, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
-                return (name, id);
-            }
-            catch
-            {
-                return TestIdentityScope.UnknownIdentity;
-            }
+            var (name, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
+            if (string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Test context not available on this thread.");
+            return (name, id);
         };
 }
