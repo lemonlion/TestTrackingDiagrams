@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.30] - 2026-05-05
+
+### Added
+- **`Track.That()` inline assertion tracking**: New API (`Track.That(() => expr.Should()...)`) that captures assertion expressions and renders them as styled PlantUML `hnote` annotations in sequence diagrams. Green notes (✓) for passing assertions, red notes (✗) for failures (with failure message). Supports sync, async, and value-returning overloads via `[CallerArgumentExpression]`.
+- **`AssertionExpressionFormatter`**: Converts raw `[CallerArgumentExpression]` strings (e.g. `result.Count.Should().Be(3)`) into readable English summaries (e.g. `result count should be 3`). Handles `.Should().` splitting, PascalCase word boundary detection, generic type arguments (`BeOfType<string>()`), `.And.` chaining, lambda arguments, and enum prefix stripping.
+- **Assertions toggle UI**: Report-level and scenario-level "Assertions: Show/Hide" radio buttons (hidden by default) that toggle assertion note visibility without page reload. Uses the same queue-based re-render pattern as Details and Headers toggles.
+- **Conditional `<<assertionNote>>` PlantUML style**: The custom style block is only emitted when assertion notes are present in the diagram, avoiding unnecessary styling overhead.
+
 ## [2.28.29] - 2026-05-04
 
 ### Added

@@ -130,6 +130,7 @@ public static class DiagramContextMenu
     public static string GetCollapsibleNotesStyles() => """
         .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
         .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
+        .assertions-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
         .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
         .details-radio-btn {
             padding: 0.25em 0.6em;
@@ -153,6 +154,7 @@ public static class DiagramContextMenu
         @media (max-width: 768px) {
             .details-radio { flex-wrap: wrap; }
             .headers-radio { margin-left: 0; flex-wrap: wrap; }
+            .assertions-radio { margin-left: 0; flex-wrap: wrap; }
             .diagram-toggle { flex-wrap: wrap; gap: 0.3em; }
             .diagram-toggle-spacer { display: none; }
             .diagram-toggle-btn { max-width: 5.5em; text-align: center; }
@@ -2184,7 +2186,7 @@ public static class DiagramContextMenu
 
                 var origSource = container._noteOriginalSource;
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines);
+                var newSource = applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines));
 
                 container.setAttribute('data-plantuml', newSource);
 
@@ -2255,12 +2257,24 @@ public static class DiagramContextMenu
             window._headersHidden = false;
             window._truncateLines = 40;
             window._detailsDefault = 'truncated';
+            window._assertionsVisible = false;
+
+            function stripAssertionNotes(source) {
+                return source.replace(/\n?hnote across <<assertionNote>>[^\n]*\n[\s\S]*?end note\n?/g, '');
+            }
+
+            function applyAssertionFilter(source) {
+                return window._assertionsVisible ? source : stripAssertionNotes(source);
+            }
 
             // Pre-process source before initial render — applies current report-level defaults
             window._preProcessSource = function(el, source) {
-                var noteBlocks = parseNoteBlocks(source);
-                if (noteBlocks.length === 0) return source;
+                // Strip assertion notes before note-block parsing when hidden
+                var renderSource = !window._assertionsVisible ? stripAssertionNotes(source) : source;
+                var noteBlocks = parseNoteBlocks(renderSource);
+                if (noteBlocks.length === 0 && renderSource === source) return source;
                 el._noteOriginalSource = source;
+                if (noteBlocks.length === 0) return renderSource;
                 var state = window._detailsDefault;
                 // Always initialize _noteSteps so that subsequent headers toggle
                 // or details changes see the correct state (step 2 = expanded)
@@ -2276,9 +2290,9 @@ public static class DiagramContextMenu
                 }
                 el._headersHidden = window._headersHidden;
                 if (state !== 'expanded' || window._headersHidden) {
-                    return buildSourceWithNoteStates(source, el._noteSteps, noteBlocks, window._headersHidden, el._truncateLines);
+                    return buildSourceWithNoteStates(renderSource, el._noteSteps, noteBlocks, window._headersHidden, el._truncateLines);
                 }
-                return source;
+                return renderSource;
             };
 
             // Shared serialized render queue — TeaVM engine uses shared global state
@@ -2292,7 +2306,7 @@ public static class DiagramContextMenu
                     }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines);
+                    var newSource = applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines));
                     container.setAttribute('data-plantuml', newSource);
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
@@ -2504,6 +2518,49 @@ public static class DiagramContextMenu
                 syncHeadersRadio(scenario, state);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildHeadersQueue(containers, hiding));
+            };
+
+            function syncAssertionsRadio(parent, state) {
+                parent.querySelectorAll('.assertions-radio-btn').forEach(function(b) {
+                    if (b.getAttribute('data-astate') === state) b.classList.add('details-active');
+                    else b.classList.remove('details-active');
+                });
+            }
+
+            function buildAssertionsQueue(containers) {
+                var queue = [];
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var origSource = container._noteOriginalSource;
+                    var renderSource = applyAssertionFilter(origSource);
+                    var noteBlocks = parseNoteBlocks(renderSource);
+                    if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
+                    if (!container._noteSteps) container._noteSteps = {};
+                    queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+                return queue;
+            }
+
+            // Report-level: show/hide assertions for all scenarios
+            window._setReportAssertions = function(state) {
+                var showing = state === 'show';
+                window._assertionsVisible = showing;
+                syncAssertionsRadio(document.querySelector('.toolbar-right'), state);
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncAssertionsRadio(sc, state);
+                });
+                var containers = document.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildAssertionsQueue(containers));
+            };
+
+            // Scenario-level: show/hide assertions for one scenario
+            window._setScenarioAssertions = function(btn, state) {
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                window._assertionsVisible = state === 'show';
+                syncAssertionsRadio(scenario, state);
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildAssertionsQueue(containers));
             };
         })();
         </script>

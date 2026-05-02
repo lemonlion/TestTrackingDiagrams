@@ -341,6 +341,7 @@ public static partial class PlantUmlCreator
                 @startuml
                 {themeDirective}!pragma teoz true
                 {AddEventStyling(tracesForTest)}
+                {AddAssertionStyling(tracesForTest)}
                 skinparam wrapWidth {MaxLineWidth}
                 autonumber {stepNumber}
 
@@ -348,6 +349,21 @@ public static partial class PlantUmlCreator
 
                 """.TrimStart();
     }
+
+    private const string AssertionNoteClass = "assertionNote";
+
+    private static string AddAssertionStyling(List<RequestResponseLog> tracesForTest) =>
+        tracesForTest.Any(x => x.PlantUml is not null && x.PlantUml.Contains($"<<{AssertionNoteClass}>>"))
+            ? $$"""
+
+                <style>
+                 .{{AssertionNoteClass}} {
+                     FontSize 11
+                     RoundCorner 5
+                 }
+                </style>
+                """.TrimStart()
+            : "";
 
     private static string AddEventStyling(List<RequestResponseLog> tracesForTest) =>
         tracesForTest.Any(x => x.MetaType == RequestResponseMetaType.Event)
