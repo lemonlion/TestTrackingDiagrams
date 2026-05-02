@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.29] - 2026-05-04
+
+### Added
+- **Playwright E2E test suite**: Migrated all 27 Selenium browser test files to Playwright in `TestTrackingDiagrams.Tests.EndToEnd`. 309 tests pass (28 skipped wiki screenshot/gif tests). Tests run with full parallel execution support.
+- **AGENTS.md**: Added agent customization file with Playwright test conventions.
+
+### Fixed
+- **Playwright `WaitForFunctionAsync` timeouts under parallel load**: Added `PollingInterval = 200` to all `WaitForFunctionAsync` calls. The default `requestAnimationFrame`-based polling fails when multiple browser contexts run simultaneously in headless Chromium; explicit interval-based polling resolves the issue.
+- **SVG interaction helpers**: `DispatchContextMenu()`, JS-dispatched `mouseenter`/`dblclick` for note hover rects, and `FillSearchBar()` with manual `keyup` dispatch — all needed because Playwright's native mouse events don't reliably trigger handlers on SVG elements or `onkeyup`-bound inputs.
+
 ## [2.28.28] - 2026-05-01
 
 ### Fixed

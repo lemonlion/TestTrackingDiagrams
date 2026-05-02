@@ -1,0 +1,262 @@
+using Microsoft.Playwright;
+
+namespace TestTrackingDiagrams.Tests.EndToEnd;
+
+public class MobileResponsiveTests : PlaywrightTestBase
+{
+    public MobileResponsiveTests(PlaywrightFixture fixture) : base(fixture) { }
+
+    protected override int ViewportWidth => 375;
+    protected override int ViewportHeight => 812;
+
+    private async Task<string> GetComputedStyle(ILocator el, string prop) =>
+        await el.EvaluateAsync<string>("(e, p) => window.getComputedStyle(e).getPropertyValue(p)", prop);
+
+    // ── Viewport meta tag ──
+
+    [Fact]
+    public async Task Report_has_viewport_meta_tag()
+    {
+        await Page.GotoAsync(GenerateReport("MobileViewport.html"));
+        var meta = Page.Locator("meta[name='viewport']");
+        var content = await meta.GetAttributeAsync("content");
+        Assert.Contains("width=device-width", content);
+    }
+
+    [Fact]
+    public async Task Report_has_doctype_and_charset()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDoctype.html"));
+        var charset = Page.Locator("meta[charset]");
+        Assert.Equal("utf-8", await charset.GetAttributeAsync("charset"));
+    }
+
+    // ── Header row stacks vertically ──
+
+    [Fact]
+    public async Task Header_row_stacks_vertically_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileHeaderStack.html"));
+        var headerRow = Page.Locator(".header-row");
+        await headerRow.WaitForAsync(new() { Timeout = 5000 });
+        var flexDirection = await GetComputedStyle(headerRow, "flex-direction");
+        Assert.Equal("column", flexDirection);
+    }
+
+    // ── Toolbar stacks vertically ──
+
+    [Fact]
+    public async Task Toolbar_stacks_vertically_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileToolbar.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var toolbar = Page.Locator(".toolbar-row");
+        var flexDirection = await GetComputedStyle(toolbar, "flex-direction");
+        Assert.Equal("column", flexDirection);
+    }
+
+    // ── No horizontal overflow ──
+
+    [Fact]
+    public async Task Page_does_not_overflow_horizontally()
+    {
+        await Page.GotoAsync(GenerateReport("MobileOverflow.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var viewportWidth = await Page.EvaluateAsync<long>("() => window.innerWidth");
+        var scrollWidth = await Page.EvaluateAsync<long>("() => document.documentElement.scrollWidth");
+
+        Assert.True(scrollWidth <= viewportWidth + 2,
+            $"Page overflows: scrollWidth={scrollWidth}, viewportWidth={viewportWidth}");
+    }
+
+    // ── Filter buttons wrap ──
+
+    [Fact]
+    public async Task Filter_row_stacks_vertically_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileFilters.html"));
+        await Page.Locator(".filter-row").WaitForAsync(new() { Timeout = 5000 });
+
+        var filterRow = Page.Locator(".filter-row");
+        var flexDirection = await GetComputedStyle(filterRow, "flex-direction");
+        Assert.Equal("column", flexDirection);
+    }
+
+    // ── Tables scroll horizontally ──
+
+    [Fact]
+    public async Task Feature_summary_table_scrolls_horizontally()
+    {
+        await Page.GotoAsync(GenerateReport("MobileTable.html"));
+        await Page.Locator(".features-summary-details").WaitForAsync(new() { Timeout = 5000 });
+
+        await Page.Locator(".features-summary-details > summary").ClickAsync();
+
+        var table = Page.Locator(".feature-summary-table");
+        var display = await GetComputedStyle(table, "display");
+        Assert.Equal("block", display);
+    }
+
+    // ── Filtering box takes full width ──
+
+    [Fact]
+    public async Task Filtering_box_takes_full_width_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileFilterBox.html"));
+        var filterBox = Page.Locator(".filtering-box");
+        await filterBox.WaitForAsync(new() { Timeout = 5000 });
+
+        var boxSizing = await GetComputedStyle(filterBox, "box-sizing");
+        Assert.Equal("border-box", boxSizing);
+
+        var viewportWidth = await Page.EvaluateAsync<long>("() => window.innerWidth");
+        var box = await filterBox.BoundingBoxAsync();
+        Assert.True(box!.Width <= viewportWidth,
+            $"Filter box width ({box.Width}) exceeds viewport ({viewportWidth})");
+    }
+
+    // ── Jump-to-failure button is accessible ──
+
+    [Fact]
+    public async Task Jump_to_failure_button_visible_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileJump.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var buttons = Page.Locator(".jump-to-failure");
+        if (await buttons.CountAsync() > 0)
+        {
+            var btn = buttons.First;
+            await Expect(btn).ToBeVisibleAsync();
+            var right = await Page.EvaluateAsync<long>(
+                "(el) => el.getBoundingClientRect().right", await btn.ElementHandleAsync());
+            var viewportWidth = await Page.EvaluateAsync<long>("() => window.innerWidth");
+            Assert.True(right <= viewportWidth,
+                $"Button right edge ({right}) exceeds viewport ({viewportWidth})");
+        }
+    }
+
+    // ── Desktop is unaffected at full width ──
+
+    [Fact]
+    public async Task Desktop_layout_unaffected_at_1920_width()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDesktopCheck.html"));
+        await Page.Locator(".header-row").WaitForAsync(new() { Timeout = 5000 });
+
+        // At 375px, header-row should be column
+        var headerRow = Page.Locator(".header-row");
+        Assert.Equal("column", await GetComputedStyle(headerRow, "flex-direction"));
+
+        // Resize viewport to desktop
+        await Page.SetViewportSizeAsync(1920, 1080);
+        await Page.ReloadAsync();
+        await Page.Locator(".header-row").WaitForAsync(new() { Timeout = 5000 });
+        headerRow = Page.Locator(".header-row");
+        Assert.Equal("row", await GetComputedStyle(headerRow, "flex-direction"));
+
+        // Restore mobile size
+        await Page.SetViewportSizeAsync(375, 812);
+    }
+
+    // ── Summary chart centred on mobile ──
+
+    [Fact]
+    public async Task Summary_chart_is_centred_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileChartCenter.html"));
+        var chart = Page.Locator(".summary-chart");
+        await chart.WaitForAsync(new() { Timeout = 5000 });
+        var alignSelf = await GetComputedStyle(chart, "align-self");
+        Assert.Equal("center", alignSelf);
+    }
+
+    // ── Details/Headers wraps on mobile ──
+
+    [Fact]
+    public async Task Toolbar_right_details_does_not_overflow()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDetailsOverflow.html"));
+        await Page.Locator(".toolbar-right").WaitForAsync(new() { Timeout = 5000 });
+
+        var toolbarRight = Page.Locator(".toolbar-right");
+        var viewportWidth = await Page.EvaluateAsync<long>("() => window.innerWidth");
+        var rightEdge = await Page.EvaluateAsync<long>(
+            "(el) => el.getBoundingClientRect().right", await toolbarRight.ElementHandleAsync());
+
+        Assert.True(rightEdge <= viewportWidth + 2,
+            $"Toolbar-right overflows: right={rightEdge}, viewport={viewportWidth}");
+    }
+
+    [Fact]
+    public async Task Diagram_toggle_wraps_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramToggle.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.EvaluateAsync("""
+            () => {
+                document.querySelectorAll('details.feature')[0]?.setAttribute('open','');
+                document.querySelectorAll('details.scenario')[0]?.setAttribute('open','');
+                document.querySelectorAll('details.example-diagrams')[0]?.setAttribute('open','');
+            }
+        """);
+
+        var toggles = Page.Locator(".diagram-toggle");
+        if (await toggles.CountAsync() > 0)
+        {
+            var toggle = toggles.First;
+            var flexWrap = await GetComputedStyle(toggle, "flex-wrap");
+            Assert.Equal("wrap", flexWrap);
+
+            var spacers = Page.Locator(".diagram-toggle-spacer");
+            if (await spacers.CountAsync() > 0)
+            {
+                var display = await GetComputedStyle(spacers.First, "display");
+                Assert.Equal("none", display);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Headers_radio_has_no_left_margin_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileHeadersMargin.html"));
+        await Page.Locator(".toolbar-right").WaitForAsync(new() { Timeout = 5000 });
+
+        var headersRadios = Page.Locator(".headers-radio");
+        if (await headersRadios.CountAsync() > 0)
+        {
+            var marginLeft = await GetComputedStyle(headersRadios.First, "margin-left");
+            Assert.Equal("0px", marginLeft);
+        }
+    }
+
+    // ── Diagram toggle buttons ──
+
+    [Fact]
+    public async Task Diagram_toggle_buttons_have_max_width_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramBtns.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.EvaluateAsync("""
+            () => {
+                document.querySelectorAll('details.feature')[0]?.setAttribute('open','');
+                document.querySelectorAll('details.scenario')[0]?.setAttribute('open','');
+                document.querySelectorAll('details.example-diagrams')[0]?.setAttribute('open','');
+            }
+        """);
+
+        var btns = Page.Locator(".diagram-toggle-btn");
+        if (await btns.CountAsync() > 0)
+        {
+            var maxWidth = await GetComputedStyle(btns.First, "max-width");
+            Assert.NotEqual("none", maxWidth);
+            var textAlign = await GetComputedStyle(btns.First, "text-align");
+            Assert.Equal("center", textAlign);
+        }
+    }
+}
