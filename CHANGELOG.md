@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Fixed
 - **Browser zoom now scales diagrams**: Large diagrams that start fit-to-width no longer stay the same physical size when using browser zoom (Ctrl+/-). The SVG `max-width` is now set as a fixed pixel value (snapshot of container width at render time) instead of `100%`, so browser zoom scales the diagram proportionally. A horizontal scrollbar appears when the zoomed diagram overflows. Genuine window resize recalculates the snapshot. The toggle to "natural size" is unaffected.
+- **Track.That assertions silently dropped in non-BDDfy packages**: `Track.That()` assertions were not appearing in reports for projects using the standalone framework packages (xUnit3, xUnit2, NUnit4, TUnit, MSTest). The root cause was that `Track.TestIdResolver` was never configured, causing `ResolveTestId()` to return null and `LogAssertion()` to silently discard the assertion. Fixed by setting `Track.TestIdResolver` in each framework's `DiagrammedTestRun` constructor/Setup method. The BDDfy.xUnit3 package was already working correctly.
 
 ## [2.28.39] - 2026-05-03
 
