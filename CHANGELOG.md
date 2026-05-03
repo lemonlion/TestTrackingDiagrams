@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.32] - 2026-05-03
+
+### Fixed
+- `DependencyCategory` is now preserved through the deferred log path (`TrackingLogMode.Deferred`) — previously lost when `PendingLogEntry` was flushed
+
 ## [2.28.31] - 2026-05-03
 
 ### Added

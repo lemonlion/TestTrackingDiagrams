@@ -141,6 +141,26 @@ public class TrackingProxyTests
     }
 
     [Fact]
+    public void Deferred_mode_preserves_dependency_category()
+    {
+        PendingRequestResponseLogs.Clear();
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = "SmtpRelay",
+            DependencyCategory = "Email",
+            LogMode = TrackingLogMode.Deferred
+        });
+
+        proxy.Add(1, 2);
+        PendingRequestResponseLogs.FlushAll(TestName, _testId);
+
+        var logs = GetLogsForTest();
+        Assert.Equal(2, logs.Length);
+        Assert.All(logs, l => Assert.Equal("Email", l.DependencyCategory));
+    }
+
+    [Fact]
     public void Proxy_creates_activity_when_source_configured()
     {
         var mock = new FakeCalculator();

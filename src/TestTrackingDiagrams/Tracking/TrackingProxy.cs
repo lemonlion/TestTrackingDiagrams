@@ -202,7 +202,8 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
             PendingRequestResponseLogs.Enqueue(new PendingLogEntry(
                 _options.ServiceName, _options.CallerName,
                 methodName, requestContent, responseContent, uri, statusCode,
-                activity?.TraceId.ToString(), activity?.SpanId.ToString()));
+                activity?.TraceId.ToString(), activity?.SpanId.ToString(),
+                _options.DependencyCategory));
             return;
         }
 

@@ -16,7 +16,8 @@ public record PendingLogEntry(
     Uri Uri,
     HttpStatusCode StatusCode = HttpStatusCode.OK,
     string? ActivityTraceId = null,
-    string? ActivitySpanId = null)
+    string? ActivitySpanId = null,
+    string? DependencyCategory = null)
 {
     internal DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }
@@ -43,7 +44,8 @@ public static class PendingRequestResponseLogs
             RequestResponseLogger.Log(new RequestResponseLog(
                 testName, testId, entry.Method, entry.RequestContent, entry.Uri,
                 [], entry.ServiceName, entry.CallerName, RequestResponseType.Request,
-                traceId, requestResponseId, false)
+                traceId, requestResponseId, false,
+                DependencyCategory: entry.DependencyCategory)
             {
                 Timestamp = entry.Timestamp,
                 ActivityTraceId = entry.ActivityTraceId,
@@ -54,7 +56,8 @@ public static class PendingRequestResponseLogs
                 testName, testId, entry.Method, entry.ResponseContent, entry.Uri,
                 [], entry.ServiceName, entry.CallerName, RequestResponseType.Response,
                 traceId, requestResponseId, false,
-                (OneOf<HttpStatusCode, string>)entry.StatusCode)
+                (OneOf<HttpStatusCode, string>)entry.StatusCode,
+                DependencyCategory: entry.DependencyCategory)
             {
                 Timestamp = entry.Timestamp,
                 ActivityTraceId = entry.ActivityTraceId,
