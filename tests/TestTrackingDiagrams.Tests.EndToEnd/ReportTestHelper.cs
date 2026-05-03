@@ -927,4 +927,88 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with TWO scenarios, each having assertion notes (hnote across assertionNote)
+    /// plus regular notes. Used to test that Show/Hide assertions on one scenario
+    /// does not affect the other scenario.
+    /// </summary>
+    public static string GenerateReportWithAssertionNotes(string tempDir, string outputDir, string fileName)
+    {
+        // Use a minimal feature set with exactly 2 happy-path scenarios that sort adjacently,
+        // ensuring they appear as details.scenario:nth(0) and nth(1) in the DOM.
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Assertion Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "a1", DisplayName = "Alpha scenario", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "alpha precondition", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "alpha result", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "a2", DisplayName = "Beta scenario", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "beta precondition", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "beta result", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("a1", "", AssertionNotePlantUmlSource("Scenario1")),
+            new DiagramAsCode("a2", "", AssertionNotePlantUmlSource("Scenario2"))
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    private static string AssertionNotePlantUmlSource(string label) => $$"""
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        caller -> svc : POST /api/orders
+        note left
+        Content-Type: application/json
+        {"item":"Widget","qty":2}
+        end note
+        svc -> db : INSERT INTO Orders
+        db --> svc : OK
+
+        hnote across <<assertionNote>> #d4edda
+        \u2713 {{label}} status code should be created
+        end note
+
+        svc --> caller : 201 Created
+
+        hnote across <<assertionNote>> #d4edda
+        \u2713 {{label}} response id should not be empty
+        end note
+
+        @enduml
+        """;
 }

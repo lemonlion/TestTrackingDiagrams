@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.39] - 2026-05-03
+
+### Fixed
+- **Assertion Show/Hide scope bug**: Scenario-level Assertions Show/Hide radio buttons no longer affect other scenarios. Previously, clicking Show on one scenario would cause assertion notes to appear in other scenarios on subsequent re-renders. Assertion visibility is now stored per-container instead of globally.
+- **Assertion radio button detection**: Report now correctly shows Assertions radio buttons when assertion notes exist in diagram source (previously only detected via tracked logs)
+
 ## [2.28.38] - 2026-05-03
 
 ### Changed

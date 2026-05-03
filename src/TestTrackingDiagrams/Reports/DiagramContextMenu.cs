@@ -2301,14 +2301,15 @@ public static class DiagramContextMenu
                 return source.replace(/\n?hnote across <<assertionNote>>[^\n]*\n[\s\S]*?end note\n?/g, '');
             }
 
-            function applyAssertionFilter(source) {
-                return window._assertionsVisible ? source : stripAssertionNotes(source);
+            function applyAssertionFilter(source, showing) {
+                return showing ? source : stripAssertionNotes(source);
             }
 
             // Pre-process source before initial render — applies current report-level defaults
             window._preProcessSource = function(el, source) {
                 // Strip assertion notes before note-block parsing when hidden
-                var renderSource = !window._assertionsVisible ? stripAssertionNotes(source) : source;
+                el._assertionsVisible = window._assertionsVisible;
+                var renderSource = !el._assertionsVisible ? stripAssertionNotes(source) : source;
                 var noteBlocks = parseNoteBlocks(renderSource);
                 if (noteBlocks.length === 0 && renderSource === source) return source;
                 el._noteOriginalSource = source;
@@ -2344,7 +2345,7 @@ public static class DiagramContextMenu
                     }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines));
+                    var newSource = applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible);
                     container.setAttribute('data-plantuml', newSource);
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
@@ -2565,12 +2566,15 @@ public static class DiagramContextMenu
                 });
             }
 
-            function buildAssertionsQueue(containers) {
+            function buildAssertionsQueue(containers, showing) {
                 var queue = [];
                 containers.forEach(function(container) {
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var wasVisible = !!container._assertionsVisible;
+                    if (wasVisible === showing) return;
+                    container._assertionsVisible = showing;
                     var origSource = container._noteOriginalSource;
-                    var renderSource = applyAssertionFilter(origSource);
+                    var renderSource = applyAssertionFilter(origSource, showing);
                     var noteBlocks = parseNoteBlocks(renderSource);
                     if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     if (!container._noteSteps) container._noteSteps = {};
@@ -2588,17 +2592,17 @@ public static class DiagramContextMenu
                     syncAssertionsRadio(sc, state);
                 });
                 var containers = document.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildAssertionsQueue(containers));
+                processRenderQueue(buildAssertionsQueue(containers, showing));
             };
 
             // Scenario-level: show/hide assertions for one scenario
             window._setScenarioAssertions = function(btn, state) {
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
-                window._assertionsVisible = state === 'show';
+                var showing = state === 'show';
                 syncAssertionsRadio(scenario, state);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildAssertionsQueue(containers));
+                processRenderQueue(buildAssertionsQueue(containers, showing));
             };
         })();
         </script>

@@ -1229,8 +1229,9 @@ public static class ReportGenerator
         var isPlantUmlBrowser = plantUmlRendering == PlantUmlRendering.BrowserJs;
         var isInlineSvg = !isPlantUmlBrowser && inlineSvgRendering;
         var hasInteractiveDiagrams = isPlantUmlBrowser || isInlineSvg;
-        var hasAssertionNotes = isPlantUmlBrowser && trackedLogs is not null &&
-            trackedLogs.Any(l => l.PlantUml is not null && l.PlantUml.Contains("<<assertionNote>>"));
+        var hasAssertionNotes = isPlantUmlBrowser && (
+            (trackedLogs is not null && trackedLogs.Any(l => l.PlantUml is not null && l.PlantUml.Contains("<<assertionNote>>"))) ||
+            diagrams.Any(d => d.CodeBehind.Contains("<<assertionNote>>")));
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
         var collapsibleNotesScript = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesScript() : "";
         var collapsibleNotesStyles = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesStyles() : "";
