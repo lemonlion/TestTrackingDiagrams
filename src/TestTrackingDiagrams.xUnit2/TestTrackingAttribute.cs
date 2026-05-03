@@ -21,6 +21,13 @@ public sealed class TestTrackingAttribute : BeforeAfterTestAttribute
 {
     public override void Before(MethodInfo methodUnderTest)
     {
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () =>
+        {
+            var (_, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
+            return string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase) ? null : id;
+        };
+
         var testId = Guid.NewGuid().ToString();
         var className = (methodUnderTest.ReflectedType ?? methodUnderTest.DeclaringType)?.Name ?? TestIdentityScope.UnknownTestName;
         var methodName = methodUnderTest.Name;

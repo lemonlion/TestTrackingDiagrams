@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.41] - 2026-05-03
+
+### Fixed
+- **Track.TestIdResolver not set when DiagrammedTestRun is not instantiated**: The v2.28.40 fix only set `Track.TestIdResolver` in `DiagrammedTestRun` constructors, which are never called when users compose their own test setup (e.g. using `DiagrammedTestRun.TestContexts` statically). Moved the resolver initialization into `DiagrammedComponentTest` constructors/SetUp methods (xUnit3, NUnit4, TUnit, MSTest) and `TestTrackingAttribute.Before()` (xUnit2), which run before each test executes.
+
 ## [2.28.40] - 2026-05-03
 
 ### Fixed

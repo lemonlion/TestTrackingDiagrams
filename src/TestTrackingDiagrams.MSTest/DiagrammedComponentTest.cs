@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.MSTest;
 
@@ -17,6 +18,12 @@ public abstract class DiagrammedComponentTest
     [TestInitialize]
     public void TestTrackingInitialize()
     {
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () =>
+        {
+            var ctx = GetCurrentTestContext();
+            return ctx is not null ? $"{ctx.FullyQualifiedTestClassName}.{ctx.TestName}" : null;
+        };
         _stopwatch = Stopwatch.StartNew();
         CurrentContext.Value = TestContext;
     }

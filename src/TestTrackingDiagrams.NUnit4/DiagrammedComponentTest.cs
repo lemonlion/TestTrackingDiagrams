@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using NUnit.Framework;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.NUnit4;
 
@@ -11,7 +12,12 @@ public abstract class DiagrammedComponentTest
     private Stopwatch? _stopwatch;
 
     [SetUp]
-    public void TestTrackingSetUp() => _stopwatch = Stopwatch.StartNew();
+    public void TestTrackingSetUp()
+    {
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () => TestContext.CurrentContext?.Test?.ID;
+        _stopwatch = Stopwatch.StartNew();
+    }
 
     [TearDown]
     public void TearDown()

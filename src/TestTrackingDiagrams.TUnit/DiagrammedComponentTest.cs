@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Tracking;
 using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
@@ -7,6 +8,12 @@ namespace TestTrackingDiagrams.TUnit;
 /// </summary>
 public abstract class DiagrammedComponentTest
 {
+    protected DiagrammedComponentTest()
+    {
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () => TestContext.Current?.Id;
+    }
+
     [After(Test)]
     public Task EnqueueTestContext(TestContext context)
     {
