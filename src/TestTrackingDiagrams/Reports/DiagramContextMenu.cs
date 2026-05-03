@@ -2050,6 +2050,33 @@ public static class DiagramContextMenu
                     }
                     if (bestFill) {
                         noteGroups = fillMap[bestFill].groups;
+                    } else {
+                        // Fallback: no single fill color has the matching count.
+                        // Use positional heuristic — notes appear after participants/partitions
+                        // in PlantUML SVGs, so take the last N groups. Validate by checking
+                        // that each candidate group's text matches its source note content.
+                        var candidate = noteGroups.slice(-noteBlocks.length);
+                        var validated = true;
+                        for (var ci = 0; ci < candidate.length && validated; ci++) {
+                            var grpText = candidate[ci].texts.map(function(t) {
+                                return t.textContent.trim();
+                            }).join(' ').trim();
+                            var srcText = noteBlocks[ci].contentLines.map(function(l) {
+                                return l.replace(/<[^>]*>/g, '').trim();
+                            }).filter(function(l) { return l; }).join(' ').trim();
+                            // Check if at least part of the source text appears in the SVG text
+                            if (srcText && grpText) {
+                                var srcStart = srcText.substring(0, Math.min(20, srcText.length));
+                                if (grpText.indexOf(srcStart) < 0 && srcStart.indexOf(grpText.substring(0, Math.min(20, grpText.length))) < 0) {
+                                    validated = false;
+                                }
+                            }
+                        }
+                        if (validated) {
+                            noteGroups = candidate;
+                        }
+                        // If validation fails, leave noteGroups as-is; the loop count
+                        // will be clamped to min(noteGroups, noteBlocks) preventing overflow.
                     }
                 }
 

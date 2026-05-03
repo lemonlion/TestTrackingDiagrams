@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.33] - 2026-05-03
+
+### Changed
+- **Setup partition background color**: Default changed from `#E2E2F0` to `#F6F6F6` for better visual distinction from participant fills
+- **`SetupHighlightColor` configuration**: New property on `DiagramsFetcherOptions` and `ReportConfigurationOptions` allows users to customise the Setup partition background color
+
+### Fixed
+- **Collapsible note safety-net**: Removed all hardcoded color exclusions from `hasNoteFill()` — the fill-frequency filter now works universally regardless of PlantUML theme or user-configured colors
+- **Safety-net robustness**: Added positional fallback with text-content validation when the fill-frequency filter cannot find a matching count, preventing incorrect note-group mapping in edge cases
+
 ## [2.28.32] - 2026-05-03
 
 ### Fixed
