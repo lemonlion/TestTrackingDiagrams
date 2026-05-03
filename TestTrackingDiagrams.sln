@@ -51,8 +51,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Extensions.OpenTelemetry", "src\TestTrackingDiagrams.Extensions.OpenTelemetry\TestTrackingDiagrams.Extensions.OpenTelemetry.csproj", "{F636ED8D-472F-4354-AAD6-2EAA045AC976}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.Selenium", "tests\TestTrackingDiagrams.Tests.Selenium\TestTrackingDiagrams.Tests.Selenium.csproj", "{7683910A-7114-4B6D-A695-F65B7CF433D8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.TUnit", "src\TestTrackingDiagrams.TUnit\TestTrackingDiagrams.TUnit.csproj", "{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTrackingDiagrams.Tests.TUnit", "tests\TestTrackingDiagrams.Tests.TUnit\TestTrackingDiagrams.Tests.TUnit.csproj", "{A5364DD5-8A4B-4E9D-B688-2D7BFD0FBF15}"
@@ -485,18 +483,6 @@ Global
 		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x64.Build.0 = Release|Any CPU
 		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x86.ActiveCfg = Release|Any CPU
 		{F636ED8D-472F-4354-AAD6-2EAA045AC976}.Release|x86.Build.0 = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|x64.Build.0 = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Debug|x86.Build.0 = Debug|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|x64.ActiveCfg = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|x64.Build.0 = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|x86.ActiveCfg = Release|Any CPU
-		{7683910A-7114-4B6D-A695-F65B7CF433D8}.Release|x86.Build.0 = Release|Any CPU
 		{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D40A25C7-7DB7-4607-BAB2-3CB63961DD96}.Debug|x64.ActiveCfg = Debug|Any CPU

@@ -33,33 +33,29 @@ jobs:
           - name: PlantUml IKVM Tests
             projects: tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
             needs-disk-cleanup: true
-          - name: Selenium (Popups & Flows)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
-          - name: Selenium (Filters & URL Hash)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: UrlHashFilterHighlightTests|FilterPerformanceTests
-          - name: Selenium (Toolbar & Scenarios)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: ReportToolbarTests|ScenarioInteractionTests
-          - name: Selenium (Diagrams & Context Menu)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: DiagramZoomTests|DiagramNoteTests|ContextMenuExtendedTests
           - name: E2E (Popups & Flows)
             projects: tests/TestTrackingDiagrams.Tests.EndToEnd
             filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
             needs-playwright: true
-          - name: E2E (Filters & Search)
+          - name: E2E (Search & Filters)
             projects: tests/TestTrackingDiagrams.Tests.EndToEnd
             filter: UrlHashFilterHighlightTests|FilterPerformanceTests|AdvancedSearchTests|DependencyColoringTests
             needs-playwright: true
-          - name: E2E (Toolbar & Scenarios)
+          - name: E2E (Toolbar & Reports)
             projects: tests/TestTrackingDiagrams.Tests.EndToEnd
-            filter: ReportToolbarTests|ScenarioInteractionTests|ParameterizedGroupTests|MobileResponsiveTests|LoadingMessageTests|JumpToFailureTests|FailureClusterLinkTests
+            filter: ReportToolbarTests|MobileResponsiveTests|LoadingMessageTests|JumpToFailureTests
             needs-playwright: true
-          - name: E2E (Diagrams & Notes)
+          - name: E2E (Scenarios & Navigation)
             projects: tests/TestTrackingDiagrams.Tests.EndToEnd
-            filter: DiagramZoomTests|DiagramNoteBasicTests|DiagramNoteLongNoteTests|DiagramNoteSplitTests|DiagramNotePartitionTests|ContextMenuExtendedTests|HeadersDetailsInterferenceTests|NoteButtonIndexTests|NoteButtonsAfterHeaderHideTests|ZoomNoteInteractionTests
+            filter: ScenarioInteractionTests|ParameterizedGroupTests|FailureClusterLinkTests
+            needs-playwright: true
+          - name: E2E (Diagram Notes)
+            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            filter: DiagramNoteBasicTests|DiagramNoteLongNoteTests|DiagramNoteSplitTests|DiagramNotePartitionTests|NoteButtonIndexTests
+            needs-playwright: true
+          - name: E2E (Diagram Interactions)
+            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            filter: DiagramZoomTests|ContextMenuExtendedTests|HeadersDetailsInterferenceTests|NoteButtonsAfterHeaderHideTests|ZoomNoteInteractionTests
             needs-playwright: true
           - name: Example.Api xUnit Tests
             projects: >-

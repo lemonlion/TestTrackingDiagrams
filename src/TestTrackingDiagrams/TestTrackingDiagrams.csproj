@@ -10,7 +10,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests" />
-		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests.Selenium" />
+		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests.EndToEnd" />
 		<InternalsVisibleTo Include="TestTrackingDiagrams.Extensions.Grpc" />
 	</ItemGroup>
 

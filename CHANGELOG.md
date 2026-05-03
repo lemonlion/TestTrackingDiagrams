@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.34] - 2026-05-03
+
+### Removed
+- **Selenium test project**: Removed `TestTrackingDiagrams.Tests.Selenium` — fully replaced by the Playwright-based `TestTrackingDiagrams.Tests.EndToEnd` suite (identical 293-test coverage)
+- Removed Selenium CI matrix jobs (4 jobs) — Playwright E2E jobs now provide full browser test coverage in CI
+
 ## [2.28.33] - 2026-05-03
 
 ### Changed

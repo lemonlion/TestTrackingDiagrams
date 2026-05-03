@@ -22,7 +22,7 @@ public static class TestPageGenerator
         bool includeEmptySegment = false,
         bool includeContextMenu = false)
     {
-        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.Selenium");
+        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.EndToEnd");
         using var listener = new ActivityListener
         {
             ShouldListenTo = _ => true,
@@ -126,7 +126,7 @@ public static class TestPageGenerator
     /// </summary>
     public static string GenerateWholeTestFlowPage(WholeTestFlowVisualization visualization = WholeTestFlowVisualization.Both)
     {
-        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.Selenium.WholeTest");
+        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.EndToEnd.WholeTest");
         using var listener = new ActivityListener
         {
             ShouldListenTo = _ => true,
@@ -201,7 +201,7 @@ public static class TestPageGenerator
     /// </summary>
     public static string GenerateComponentFlowPage()
     {
-        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.Selenium.CompFlow");
+        using var activitySource = new ActivitySource("TestTrackingDiagrams.Tests.EndToEnd.CompFlow");
         using var listener = new ActivityListener
         {
             ShouldListenTo = _ => true,
