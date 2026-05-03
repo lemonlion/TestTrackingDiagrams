@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.38] - 2026-05-03
+
+### Changed
+- **Radio button labels**: Changed from past-tense (Expanded/Collapsed/Truncated/Shown/Hidden) to imperative (Expand/Collapse/Truncate/Show/Hide) for clearer action-oriented UI
+
 ## [2.28.37] - 2026-05-03
 
 ### Added
