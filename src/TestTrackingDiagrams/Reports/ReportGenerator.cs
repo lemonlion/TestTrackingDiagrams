@@ -84,6 +84,7 @@ public static class ReportGenerator
             ExcludedHeaders = options.ExcludedHeaders,
             SeparateSetup = options.SeparateSetup,
             HighlightSetup = options.HighlightSetup,
+            SetupHighlightColor = options.SetupHighlightColor,
             LazyLoadDiagramImages = options.LazyLoadDiagramImages,
             FocusEmphasis = options.FocusEmphasis,
             FocusDeEmphasis = options.FocusDeEmphasis,

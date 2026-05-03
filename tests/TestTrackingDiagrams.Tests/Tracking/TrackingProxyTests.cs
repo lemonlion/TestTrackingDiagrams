@@ -242,6 +242,39 @@ public class TrackingProxyTests
         Assert.Contains("/ICalculator/Add", uri.AbsolutePath);
     }
 
+    [Fact]
+    public void Proxy_sets_dependency_category_on_logged_entries()
+    {
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = "SmtpServer",
+            DependencyCategory = "Email",
+            CurrentTestInfoFetcher = () => (TestName, _testId)
+        });
+
+        proxy.Add(1, 2);
+
+        var logs = GetLogsForTest();
+        Assert.All(logs, l => Assert.Equal("Email", l.DependencyCategory));
+    }
+
+    [Fact]
+    public void Proxy_dependency_category_defaults_to_null()
+    {
+        var mock = new FakeCalculator();
+        var proxy = TrackingProxy<ICalculator>.Create(mock, new TrackingProxyOptions
+        {
+            ServiceName = "Calculator",
+            CurrentTestInfoFetcher = () => (TestName, _testId)
+        });
+
+        proxy.Add(1, 2);
+
+        var logs = GetLogsForTest();
+        Assert.All(logs, l => Assert.Null(l.DependencyCategory));
+    }
+
     public interface ICalculator
     {
         int Add(int a, int b);

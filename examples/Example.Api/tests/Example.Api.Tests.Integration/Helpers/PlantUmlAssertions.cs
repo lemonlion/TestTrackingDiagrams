@@ -78,7 +78,7 @@ public static class PlantUmlAssertions
     public static void AssertContainsSetupPartition(string plantUml, bool highlighted)
     {
         if (highlighted)
-            Assert.Contains("partition #E2E2F0 Setup", plantUml);
+            Assert.Contains("partition #F6F6F6 Setup", plantUml);
         else
             Assert.Matches(@"partition Setup\s", plantUml);
     }

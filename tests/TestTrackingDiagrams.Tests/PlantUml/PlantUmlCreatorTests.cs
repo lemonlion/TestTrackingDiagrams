@@ -118,9 +118,9 @@ public class PlantUmlCreatorTests
         };
     }
 
-    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs, bool separateSetup = false, bool highlightSetup = true)
+    private static string GetPlantUml(IEnumerable<RequestResponseLog> logs, bool separateSetup = false, bool highlightSetup = true, string? setupHighlightColor = null)
     {
-        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: separateSetup, highlightSetup: highlightSetup).ToList();
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, separateSetup: separateSetup, highlightSetup: highlightSetup, setupHighlightColor: setupHighlightColor).ToList();
         return results.Single().PlantUmls.First().PlainText;
     }
 
@@ -1615,9 +1615,9 @@ public class PlantUmlCreatorTests
         };
         var plantUml = GetPlantUml(logs, separateSetup: true);
 
-        Assert.Contains("partition #E2E2F0 Setup", plantUml);
+        Assert.Contains("partition #F6F6F6 Setup", plantUml);
         var endMarker = Environment.NewLine + "end" + Environment.NewLine;
-        var partitionOpen = plantUml.IndexOf("partition #E2E2F0 Setup");
+        var partitionOpen = plantUml.IndexOf("partition #F6F6F6 Setup");
         var setupCall = plantUml.IndexOf("/api/setup");
         var partitionEnd = plantUml.IndexOf(endMarker, partitionOpen);
         var actionCall = plantUml.IndexOf("/api/action");
@@ -1705,6 +1705,38 @@ public class PlantUmlCreatorTests
     }
 
     [Fact]
+    public void Setup_partition_uses_default_color_F6F6F6()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true);
+
+        Assert.Contains("partition #F6F6F6 Setup", plantUml);
+    }
+
+    [Fact]
+    public void Setup_partition_uses_custom_color_when_configured()
+    {
+        var logs = new[]
+        {
+            MakeRequest(callerName: "User", serviceName: "Api"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+            MakeActionStart(),
+            MakeRequest(callerName: "User", serviceName: "Api", uri: "http://example.com/api/action"),
+            MakeResponse(callerName: "User", serviceName: "Api"),
+        };
+        var plantUml = GetPlantUml(logs, separateSetup: true, setupHighlightColor: "#AABBCC");
+
+        Assert.Contains("partition #AABBCC Setup", plantUml);
+    }
+
+    [Fact]
     public void StartAction_marker_is_not_rendered_as_entity()
     {
         var logs = new[]
@@ -1753,7 +1785,7 @@ public class PlantUmlCreatorTests
         var plantUml = GetPlantUml(logs, separateSetup: true);
 
         var endMarker = Environment.NewLine + "end" + Environment.NewLine;
-        var partitionOpen = plantUml.IndexOf("partition #E2E2F0 Setup");
+        var partitionOpen = plantUml.IndexOf("partition #F6F6F6 Setup");
         var setup1 = plantUml.IndexOf("/api/setup1");
         var setup2 = plantUml.IndexOf("/api/setup2");
         var partitionEnd = plantUml.IndexOf(endMarker, partitionOpen);
@@ -1950,7 +1982,7 @@ public class PlantUmlCreatorTests
 
         // partition line uses teoz syntax (no braces)
         var partitionLine = plantUml.Split('\n').First(l => l.Contains("partition"));
-        Assert.Equal("partition #E2E2F0 Setup", partitionLine.TrimEnd());
+        Assert.Equal("partition #F6F6F6 Setup", partitionLine.TrimEnd());
 
         // "end" line comes before action content
         var endMarker = Environment.NewLine + "end" + Environment.NewLine;

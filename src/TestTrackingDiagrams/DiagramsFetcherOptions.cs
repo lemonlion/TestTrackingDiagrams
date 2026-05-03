@@ -16,6 +16,7 @@ public record DiagramsFetcherOptions
     public IEnumerable<string> ExcludedHeaders { get; set; } = [];
     public bool SeparateSetup { get; set; }
     public bool HighlightSetup { get; set; } = true;
+    public string SetupHighlightColor { get; set; } = "#F6F6F6";
     public bool LazyLoadDiagramImages { get; set; } = true;
     public FocusEmphasis FocusEmphasis { get; set; } = FocusEmphasis.Bold;
     public FocusDeEmphasis FocusDeEmphasis { get; set; } = FocusDeEmphasis.LightGray;

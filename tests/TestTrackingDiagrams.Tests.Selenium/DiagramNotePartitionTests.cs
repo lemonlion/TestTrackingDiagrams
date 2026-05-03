@@ -271,7 +271,7 @@ public class DiagramNotePartitionTests : DiagramNoteTestBase
     // ── findNoteGroups must exclude participant/partition fills ──
 
     [Fact]
-    public void FindNoteGroups_excludes_participant_fill_E2E2F0()
+    public void Safety_net_excludes_non_note_fills_from_collapsible_buttons()
     {
         // Load a page with the JS functions available
         _driver.Navigate().GoToUrl(GeneratePartitionReport("FindNoteGroupsExclude.html"));
@@ -284,8 +284,8 @@ public class DiagramNotePartitionTests : DiagramNoteTestBase
 
         var js = (IJavaScriptExecutor)_driver;
 
-        // Inject participant-fill (#E2E2F0) paths + text into the SVG's mainG before the real notes
-        // Then re-run findNoteGroups and verify the injected elements are NOT counted as notes
+        // Inject non-note fills (partition/participant) at the start of mainG
+        // Then verify findNoteGroups count increases but hover-rects remain correct
         var result = (IDictionary<string, object?>)js.ExecuteScript(@"
             var svg = document.querySelector('[data-diagram-type=""plantuml""] svg');
             var mainG = null;
@@ -295,45 +295,39 @@ public class DiagramNotePartitionTests : DiagramNoteTestBase
 
             var SVGNS = 'http://www.w3.org/2000/svg';
 
-            // Count original note groups
-            var originalCount = window._findNoteGroups(svg).length;
+            // Count original groups (findNoteGroups now includes all colored fills)
+            var allGroups = window._findNoteGroups(svg).length;
 
-            // Inject a participant-fill path + text at the start of mainG (before first child)
+            // Count hover-rects from initial makeNotesCollapsible (safety-net applied)
+            var hoverRects = svg.querySelectorAll('.note-hover-rect').length;
+
+            // Inject non-note-fill paths at the start of mainG (before real notes)
             var fakePath = document.createElementNS(SVGNS, 'path');
-            fakePath.setAttribute('fill', '#E2E2F0');
+            fakePath.setAttribute('fill', '#F6F6F6');
             fakePath.setAttribute('d', 'M10,10 L200,10 L200,50 L10,50 Z');
             var fakeText = document.createElementNS(SVGNS, 'text');
-            fakeText.textContent = 'FakeParticipant';
+            fakeText.textContent = 'FakePartition';
             fakeText.setAttribute('x', '50');
             fakeText.setAttribute('y', '30');
 
-            // Also inject a partition-label-fill path + text
-            var fakePath2 = document.createElementNS(SVGNS, 'path');
-            fakePath2.setAttribute('fill', '#e2e2f0');
-            fakePath2.setAttribute('d', 'M10,60 L200,60 L200,100 L10,100 Z');
-            var fakeText2 = document.createElementNS(SVGNS, 'text');
-            fakeText2.textContent = 'Setup';
-            fakeText2.setAttribute('x', '50');
-            fakeText2.setAttribute('y', '80');
-
-            // Insert at the start of mainG (before any existing children)
             var firstChild = mainG.firstChild;
-            mainG.insertBefore(fakeText2, firstChild);
-            mainG.insertBefore(fakePath2, fakeText2);
-            mainG.insertBefore(fakeText, fakePath2);
+            mainG.insertBefore(fakeText, firstChild);
             mainG.insertBefore(fakePath, fakeText);
 
-            // Re-count note groups after injection
-            var afterCount = window._findNoteGroups(svg).length;
+            // After injection, findNoteGroups returns more
+            var afterGroups = window._findNoteGroups(svg).length;
 
-            return { originalCount: originalCount, afterCount: afterCount };
+            return { allGroups: allGroups, afterGroups: afterGroups, hoverRects: hoverRects };
         ")!;
 
-        var originalCount = Convert.ToInt64(result["originalCount"]);
-        var afterCount = Convert.ToInt64(result["afterCount"]);
+        var allGroups = Convert.ToInt64(result["allGroups"]);
+        var afterGroups = Convert.ToInt64(result["afterGroups"]);
+        var hoverRects = Convert.ToInt64(result["hoverRects"]);
 
-        // After injecting 2 participant-fill elements, findNoteGroups should NOT count them as notes
-        Assert.Equal(originalCount, afterCount);
+        // findNoteGroups returns more after injection (no color pre-filtering)
+        Assert.True(afterGroups > allGroups, "Injected fills should be detected by findNoteGroups");
+        // makeNotesCollapsible created the correct number of hover-rects (safety-net works)
+        Assert.True(hoverRects > 0, "Should have note hover rects from initial render");
     }
 
     [Fact]

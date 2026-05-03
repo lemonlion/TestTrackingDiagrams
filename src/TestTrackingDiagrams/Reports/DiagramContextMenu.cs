@@ -1661,7 +1661,9 @@ public static class DiagramContextMenu
         </script>
         """;
 
-    public static string GetCollapsibleNotesScript() => """
+    public static string GetCollapsibleNotesScript() => CollapsibleNotesScriptContent;
+
+    private const string CollapsibleNotesScriptContent = """
         <script>
         (function() {
             var SVGNS = 'http://www.w3.org/2000/svg';
@@ -1700,8 +1702,6 @@ public static class DiagramContextMenu
                 if (!fill || fill === 'none' || fill === 'transparent') return false;
                 if (fill === '#000000' || fill === '#000' || fill === 'black' || fill === 'rgb(0,0,0)') return false;
                 if (/^#[0-9a-f]{6}00$/.test(fill)) return false;
-                // Exclude standard PlantUML participant/partition fill
-                if (fill === '#e2e2f0') return false;
                 return true;
             }
 
@@ -2026,19 +2026,30 @@ public static class DiagramContextMenu
                 var noteGroups = findNoteGroups(svg);
 
                 // Safety net: if more SVG groups were detected than note blocks exist,
-                // filter to only groups whose fill matches the expected note count
+                // filter to only groups whose fill matches the expected note count.
+                // When multiple fills have the matching count, prefer the one whose
+                // groups appear latest in the DOM (notes always come after participants
+                // and partitions in PlantUML sequence diagram SVGs).
                 if (noteGroups.length > noteBlocks.length && noteBlocks.length > 0) {
                     var fillMap = {};
-                    noteGroups.forEach(function(g) {
+                    noteGroups.forEach(function(g, idx) {
                         var f = (g.paths[0].getAttribute('fill') || '').toLowerCase();
-                        if (!fillMap[f]) fillMap[f] = [];
-                        fillMap[f].push(g);
+                        if (!fillMap[f]) fillMap[f] = { groups: [], lastIdx: idx };
+                        fillMap[f].groups.push(g);
+                        fillMap[f].lastIdx = idx;
                     });
+                    var bestFill = null;
+                    var bestLastIdx = -1;
                     for (var f in fillMap) {
-                        if (fillMap[f].length === noteBlocks.length) {
-                            noteGroups = fillMap[f];
-                            break;
+                        if (fillMap[f].groups.length === noteBlocks.length) {
+                            if (fillMap[f].lastIdx > bestLastIdx) {
+                                bestLastIdx = fillMap[f].lastIdx;
+                                bestFill = f;
+                            }
                         }
+                    }
+                    if (bestFill) {
+                        noteGroups = fillMap[bestFill].groups;
                     }
                 }
 

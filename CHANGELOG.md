@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.31] - 2026-05-03
+
+### Added
+- `DependencyCategory` property on `TrackingProxyOptions` — allows non-HTTP proxied dependencies (SMTP, gRPC, FTP, etc.) to render with the correct participant shape and colour in component diagrams instead of defaulting to HTTP API styling
+
 ## [2.28.30] - 2026-05-05
 
 ### Added

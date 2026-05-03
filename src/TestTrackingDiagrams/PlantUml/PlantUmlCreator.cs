@@ -41,6 +41,7 @@ public static partial class PlantUmlCreator
         int maxUrlLength = 100,
         bool separateSetup = false,
         bool highlightSetup = true,
+        string? setupHighlightColor = null,
         bool lazyLoadImages = true,
         FocusEmphasis focusEmphasis = FocusEmphasis.Bold,
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
@@ -78,6 +79,7 @@ public static partial class PlantUmlCreator
                 maxUrlLength,
                 separateSetup,
                 highlightSetup,
+                setupHighlightColor,
                 focusEmphasis,
                 focusDeEmphasis,
                 plantUmlTheme,
@@ -109,6 +111,7 @@ public static partial class PlantUmlCreator
         int maxUrlLength,
         bool separateSetup,
         bool highlightSetup,
+        string? setupHighlightColor,
         FocusEmphasis focusEmphasis,
         FocusDeEmphasis focusDeEmphasis,
         string? plantUmlTheme,
@@ -133,7 +136,8 @@ public static partial class PlantUmlCreator
             .Take(actionStartIndex)
             .Any(t => !t.IsOverrideStart && !t.IsOverrideEnd && !t.IsActionStart);
         var setupPartitionClosed = false;
-        var partitionLine = highlightSetup ? "partition #E2E2F0 Setup" : "partition Setup";
+        var effectiveColor = setupHighlightColor ?? "#F6F6F6";
+        var partitionLine = highlightSetup ? $"partition {effectiveColor} Setup" : "partition Setup";
         var isInActionPhase = actionStartIndex < 0; // no IsActionStart marker → everything is action
 
         foreach (var trace in tracesForTest)

@@ -100,6 +100,7 @@ public static class DefaultDiagramsFetcher
             excludedHeaders: options.ExcludedHeaders.ToArray(),
             separateSetup: options.SeparateSetup,
             highlightSetup: options.HighlightSetup,
+            setupHighlightColor: options.SetupHighlightColor,
             lazyLoadImages: lazyLoadImages,
             focusEmphasis: options.FocusEmphasis,
             focusDeEmphasis: options.FocusDeEmphasis,

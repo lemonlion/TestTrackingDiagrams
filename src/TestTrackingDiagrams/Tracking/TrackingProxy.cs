@@ -34,6 +34,13 @@ public record TrackingProxyOptions
 
     /// <summary>When <c>false</c>, calls during the Action phase are not tracked. Default: <c>true</c>.</summary>
     public bool TrackDuringAction { get; init; } = true;
+
+    /// <summary>
+    /// The dependency category string used for component diagram participant shapes and colours.
+    /// Examples: <c>"Email"</c>, <c>"SMTP"</c>, <c>"gRPC"</c>, <c>"FTP"</c>.
+    /// When <c>null</c>, defaults to HTTP API styling.
+    /// </summary>
+    public string? DependencyCategory { get; init; }
 }
 
 /// <summary>
@@ -211,6 +218,7 @@ public partial class TrackingProxy<T> : DispatchProxy where T : class
             requestContent,
             responseContent,
             statusCode,
-            TestPhaseContext.Current);
+            TestPhaseContext.Current,
+            _options.DependencyCategory);
     }
 }

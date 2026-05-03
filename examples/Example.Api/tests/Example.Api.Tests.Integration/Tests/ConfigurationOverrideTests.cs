@@ -63,7 +63,7 @@ public class ConfigurationOverrideTests
 
         var plantUmlSources = await GetPlantUmlSources(result.ReportsFolderPath);
         var happyPathDiagram = plantUmlSources.First(p => p.Contains("CowService") || p.Contains("Cow Service"));
-        Assert.Contains("#E2E2F0", happyPathDiagram);
+        Assert.Contains("#F6F6F6", happyPathDiagram);
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public class ConfigurationOverrideTests
         var plantUmlSources = await GetPlantUmlSources(result.ReportsFolderPath);
         var happyPathDiagram = plantUmlSources.First(p => p.Contains("CowService") || p.Contains("Cow Service"));
         Assert.Contains("partition Setup", happyPathDiagram);
-        Assert.DoesNotContain("#E2E2F0", happyPathDiagram);
+        Assert.DoesNotContain("#F6F6F6", happyPathDiagram);
     }
 
     [Theory]

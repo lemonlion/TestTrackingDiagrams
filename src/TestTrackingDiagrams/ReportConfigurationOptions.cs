@@ -47,6 +47,9 @@ public record ReportConfigurationOptions
     /// <summary>When <c>true</c>, setup/teardown steps are visually highlighted. Default: <c>true</c>.</summary>
     public bool HighlightSetup { get; set; } = true;
 
+    /// <summary>Background color for the setup partition when <see cref="HighlightSetup"/> is <c>true</c>. Default: <c>"#F6F6F6"</c>.</summary>
+    public string SetupHighlightColor { get; set; } = "#F6F6F6";
+
     /// <summary>When <c>true</c>, diagram images use lazy loading for better page performance. Default: <c>true</c>.</summary>
     public bool LazyLoadDiagramImages { get; set; } = true;
 

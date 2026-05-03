@@ -406,7 +406,7 @@ public static class ReportTestHelper
         participant "OrderService" as svc
         participant "Database" as db
 
-        partition #E2E2F0 Setup
+        partition #F6F6F6 Setup
           caller -> setup : POST /api/setup
           note left
           Content-Type: application/json
@@ -443,7 +443,7 @@ public static class ReportTestHelper
                 participant "OrderService" as svc
                 participant "Database" as db
 
-                partition #E2E2F0 Setup
+                partition #F6F6F6 Setup
                   caller -> setup : POST /api/setup
                   note left
                 {longContent}
