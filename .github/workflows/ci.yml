@@ -66,20 +66,16 @@ jobs:
               examples/Example.Api/tests/Example.Api.Tests.Component.BDDfy.xUnit3
               examples/Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit2
               examples/Example.Api/tests/Example.Api.Tests.Component.LightBDD.xUnit3
-          - name: Example.Api ReqNRoll.xUnit2 Tests
-            projects: examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
-          - name: Example.Api ReqNRoll.xUnit3 Tests
-            projects: examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
+          - name: Example.Api ReqNRoll Tests
+            projects: >-
+              examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit2
+              examples/Example.Api/tests/Example.Api.Tests.Component.ReqNRoll.xUnit3
           - name: Example.Api NUnit4 Tests
             projects: examples/Example.Api/tests/Example.Api.Tests.Component.NUnit4
-          - name: Integration (xUnit2)
+          - name: Integration (xUnit)
             projects: examples/Example.Api/tests/Example.Api.Tests.Integration
             restore-first: examples/Example.Api/Example.Api.sln
-            filter: Component.xUnit2
-          - name: Integration (xUnit3)
-            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: examples/Example.Api/Example.Api.sln
-            filter: Component.xUnit3
+            filter: Component.xUnit2|Component.xUnit3
           - name: Integration (NUnit4)
             projects: examples/Example.Api/tests/Example.Api.Tests.Integration
             restore-first: examples/Example.Api/Example.Api.sln
@@ -92,14 +88,10 @@ jobs:
             projects: examples/Example.Api/tests/Example.Api.Tests.Integration
             restore-first: examples/Example.Api/Example.Api.sln
             filter: Component.BDDfy
-          - name: Integration (ReqNRoll.xUnit2)
+          - name: Integration (ReqNRoll)
             projects: examples/Example.Api/tests/Example.Api.Tests.Integration
             restore-first: examples/Example.Api/Example.Api.sln
-            filter: Component.ReqNRoll.xUnit2
-          - name: Integration (ReqNRoll.xUnit3)
-            projects: examples/Example.Api/tests/Example.Api.Tests.Integration
-            restore-first: examples/Example.Api/Example.Api.sln
-            filter: Component.ReqNRoll.xUnit3
+            filter: Component.ReqNRoll.xUnit2|Component.ReqNRoll.xUnit3
     steps:
       - name: Free disk space (IKVM)
         if: matrix.needs-disk-cleanup
