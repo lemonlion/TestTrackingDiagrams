@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.40] - 2026-05-03
+
+### Fixed
+- **Browser zoom now scales diagrams**: Large diagrams that start fit-to-width no longer stay the same physical size when using browser zoom (Ctrl+/-). The SVG `max-width` is now set as a fixed pixel value (snapshot of container width at render time) instead of `100%`, so browser zoom scales the diagram proportionally. A horizontal scrollbar appears when the zoomed diagram overflows. Genuine window resize recalculates the snapshot. The toggle to "natural size" is unaffected.
+
 ## [2.28.39] - 2026-05-03
 
 ### Fixed

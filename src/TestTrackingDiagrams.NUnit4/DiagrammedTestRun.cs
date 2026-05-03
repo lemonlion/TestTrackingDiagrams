@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using NUnit.Framework;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.NUnit4;
 
@@ -16,5 +17,8 @@ public class DiagrammedTestRun
     protected static void Setup()
     {
         StartRunTime = DateTime.UtcNow;
+
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () => TestContext.CurrentContext?.Test?.ID;
     }
 }

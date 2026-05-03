@@ -1,3 +1,5 @@
+using TestTrackingDiagrams.Tracking;
+
 namespace TestTrackingDiagrams.xUnit2;
 
 /// <summary>
@@ -20,5 +22,12 @@ public class DiagrammedTestRun
     public DiagrammedTestRun()
     {
         StartRunTime = DateTime.UtcNow;
+
+        // Enable Track.That() assertions to resolve the current test ID.
+        Track.TestIdResolver ??= () =>
+        {
+            var (_, id) = XUnit2TestTrackingContext.GetCurrentTestInfo();
+            return string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase) ? null : id;
+        };
     }
 }
