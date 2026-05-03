@@ -15,6 +15,7 @@ public class TrackThatTests : IDisposable
     {
         TestIdentityScope.Reset();
         TestIdentityScope.ClearGlobalFallback();
+        Track.TestIdResolver = null;
         RequestResponseLogger.Clear();
     }
 
@@ -133,5 +134,59 @@ public class TrackThatTests : IDisposable
         Assert.NotEmpty(logs);
         // The expression should be formatted — at minimum it should contain some text
         Assert.Contains("Assert.True(true)", logs[0].PlantUml!);
+    }
+
+    [Fact]
+    public void That_uses_TestIdResolver_when_no_identity_scope()
+    {
+        TestIdentityScope.Reset();
+        Track.TestIdResolver = () => TestId;
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Contains("#d4edda", logs[0].PlantUml!);
+    }
+
+    [Fact]
+    public void That_TestIdResolver_is_checked_before_identity_scope()
+    {
+        const string resolverId = "resolver-id";
+        const string scopeId = "scope-id";
+        using var scope = TestIdentityScope.Begin("scope-test", scopeId);
+        Track.TestIdResolver = () => resolverId;
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Equal(resolverId, logs[0].TestId);
+    }
+
+    [Fact]
+    public void That_falls_back_to_identity_scope_when_resolver_returns_null()
+    {
+        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        Track.TestIdResolver = () => null;
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Equal(TestId, logs[0].TestId);
+    }
+
+    [Fact]
+    public void That_falls_back_to_identity_scope_when_resolver_throws()
+    {
+        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        Track.TestIdResolver = () => throw new InvalidOperationException("No scenario context");
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Equal(TestId, logs[0].TestId);
     }
 }

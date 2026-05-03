@@ -16,6 +16,13 @@ public static class Track
     private const string FailSymbol = "\u2717"; // ✗
 
     /// <summary>
+    /// Optional delegate that resolves the current test ID from a framework-specific context
+    /// (e.g. LightBDD's <c>ScenarioExecutionContext</c>, xUnit's <c>TestContext</c>).
+    /// Checked before <see cref="TestIdentityScope.Current"/> and <see cref="TestIdentityScope.GlobalFallback"/>.
+    /// </summary>
+    public static Func<string?>? TestIdResolver { get; set; }
+
+    /// <summary>
     /// Executes an assertion action and tracks it in the sequence diagram.
     /// On success, logs a green assertion note. On failure, logs a red note and re-throws.
     /// </summary>
@@ -98,6 +105,17 @@ public static class Track
 
     private static string? ResolveTestId()
     {
+        try
+        {
+            var resolved = TestIdResolver?.Invoke();
+            if (resolved is not null)
+                return resolved;
+        }
+        catch
+        {
+            // Resolver threw (e.g. no active scenario context) — fall through
+        }
+
         var identity = TestIdentityScope.Current;
         if (identity is not null)
             return identity.Value.Id;

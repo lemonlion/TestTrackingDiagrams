@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.35] - 2026-05-03
+
+### Fixed
+- **`Track.That()` assertions not appearing in diagrams**: `Track.That()` silently discarded assertions when called from LightBDD, BDDfy, or ReqNRoll test contexts because it could not resolve the test ID from framework-specific execution contexts
+
+### Added
+- **`Track.TestIdResolver`**: New static delegate on `Track` that framework integrations use to resolve the current test ID. Set automatically by LightBDD, BDDfy, and ReqNRoll adapters during configuration — no user action needed
+
 ## [2.28.34] - 2026-05-03
 
 ### Removed

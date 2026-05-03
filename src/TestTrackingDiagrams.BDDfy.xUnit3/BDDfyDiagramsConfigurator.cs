@@ -1,4 +1,5 @@
 using TestStack.BDDfy.Configuration;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
@@ -13,6 +14,9 @@ public static class BDDfyDiagramsConfigurator
     {
         if (_configured) return;
         _configured = true;
+
+        // Enable Track.That assertions to resolve the current xUnit v3 test ID.
+        Track.TestIdResolver ??= () => Xunit.TestContext.Current.Test?.UniqueID;
 
         // Disable BDDfy's built-in HTML reporter to prevent crashes when scenarios
         // have duplicate titles (e.g. .BDDfy(nameof(ClassName))). Our batch processor

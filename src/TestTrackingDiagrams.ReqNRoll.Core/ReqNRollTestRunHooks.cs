@@ -1,4 +1,5 @@
 using Reqnroll;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
@@ -12,6 +13,9 @@ public class ReqNRollTestRunHooks
     public static void BeforeTestRun()
     {
         ReqNRollScenarioCollector.StartRunTime = DateTime.UtcNow;
+
+        // Enable Track.That assertions to resolve the current ReqNRoll scenario ID.
+        Track.TestIdResolver ??= () => ReqNRollTestContext.CurrentTestInfo?.Id;
     }
 
     [AfterTestRun(Order = int.MinValue)]

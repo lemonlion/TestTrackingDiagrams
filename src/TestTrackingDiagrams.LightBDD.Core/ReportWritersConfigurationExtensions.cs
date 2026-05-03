@@ -1,8 +1,10 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using LightBDD.Core.Configuration;
+using LightBDD.Core.ExecutionContext;
 using LightBDD.Framework.Configuration;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD
 {
@@ -24,6 +26,9 @@ namespace TestTrackingDiagrams.LightBDD
         internal static ReportWritersConfiguration CreateStandardReportsWithDiagramsInternal(
             ReportWritersConfiguration configuration, ReportConfigurationOptions options, Assembly testAssembly, Func<Assembly, int> testCountResolver)
         {
+            // Enable Track.That assertions to resolve the current LightBDD scenario ID.
+            Track.TestIdResolver ??= () => ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString();
+
             // Disable LightBDD's built-in report writers and register a single formatter
             // that delegates to the standard ReportGenerator pipeline — the same pipeline
             // used by every other framework adapter (xUnit, NUnit, MSTest, TUnit, BDDfy, ReqNRoll).
