@@ -33,18 +33,6 @@ jobs:
           - name: PlantUml IKVM Tests
             projects: tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
             needs-disk-cleanup: true
-          - name: Selenium (Popups & Flows)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
-          - name: Selenium (Filters & URL Hash)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: UrlHashFilterHighlightTests|FilterPerformanceTests
-          - name: Selenium (Toolbar & Scenarios)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: ReportToolbarTests|ScenarioInteractionTests
-          - name: Selenium (Diagrams & Context Menu)
-            projects: tests/TestTrackingDiagrams.Tests.Selenium
-            filter: DiagramZoomTests|DiagramNoteTests|ContextMenuExtendedTests
           - name: E2E (Popups & Flows)
             projects: tests/TestTrackingDiagrams.Tests.EndToEnd
             filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
