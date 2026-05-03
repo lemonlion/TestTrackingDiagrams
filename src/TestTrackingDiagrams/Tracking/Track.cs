@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace TestTrackingDiagrams.Tracking;
@@ -14,6 +15,24 @@ public static class Track
     private const string FailColor = "#f8d7da";
     private const string PassSymbol = "\u2713"; // ✓
     private const string FailSymbol = "\u2717"; // ✗
+
+    private static readonly ConcurrentQueue<string> DiagnosticEntries = new();
+
+    /// <summary>
+    /// When <c>true</c>, records diagnostic entries for assertion value resolution fallbacks.
+    /// </summary>
+    public static bool DiagnosticMode { get; set; }
+
+    /// <summary>
+    /// Diagnostic log entries recorded when <see cref="DiagnosticMode"/> is <c>true</c>.
+    /// Contains details about closure value resolution fallbacks.
+    /// </summary>
+    public static IReadOnlyCollection<string> DiagnosticLog => DiagnosticEntries.ToArray();
+
+    /// <summary>
+    /// Clears all diagnostic log entries.
+    /// </summary>
+    public static void ClearDiagnosticLog() => DiagnosticEntries.Clear();
 
     /// <summary>
     /// Optional delegate that resolves the current test ID from a framework-specific context
@@ -33,11 +52,13 @@ public static class Track
         try
         {
             assertion();
-            LogAssertion(expression, passed: true);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: true, resolvedValues: resolved);
         }
         catch (Exception ex)
         {
-            LogAssertion(expression, passed: false, ex.Message);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: false, ex.Message, resolved);
             throw;
         }
     }
@@ -52,12 +73,14 @@ public static class Track
         try
         {
             var result = assertion();
-            LogAssertion(expression, passed: true);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: true, resolvedValues: resolved);
             return result;
         }
         catch (Exception ex)
         {
-            LogAssertion(expression, passed: false, ex.Message);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: false, ex.Message, resolved);
             throw;
         }
     }
@@ -72,22 +95,47 @@ public static class Track
         try
         {
             await assertion();
-            LogAssertion(expression, passed: true);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: true, resolvedValues: resolved);
         }
         catch (Exception ex)
         {
-            LogAssertion(expression, passed: false, ex.Message);
+            var resolved = ResolveClosureValues(assertion, expression);
+            LogAssertion(expression, passed: false, ex.Message, resolved);
             throw;
         }
     }
 
-    private static void LogAssertion(string? expression, bool passed, string? failureMessage = null)
+    private static Dictionary<string, string>? ResolveClosureValues(Delegate assertion, string? expression)
+    {
+        try
+        {
+            var result = ClosureValueResolver.ResolveValues(assertion, expression);
+
+            if (DiagnosticMode && result.Fallbacks.Count > 0)
+            {
+                foreach (var (fieldName, reason) in result.Fallbacks)
+                    DiagnosticEntries.Enqueue(
+                        $"[Track.That] Value resolution fallback: '{fieldName}' — {reason} (expression: {expression})");
+            }
+
+            return result.ResolvedValues.Count > 0 ? result.ResolvedValues : null;
+        }
+        catch
+        {
+            // Resolution must never break assertion tracking
+            return null;
+        }
+    }
+
+    private static void LogAssertion(string? expression, bool passed, string? failureMessage = null,
+        Dictionary<string, string>? resolvedValues = null)
     {
         var testId = ResolveTestId();
         if (testId is null)
             return;
 
-        var formatted = AssertionExpressionFormatter.Format(expression);
+        var formatted = AssertionExpressionFormatter.Format(expression, resolvedValues);
         if (string.IsNullOrEmpty(formatted))
             formatted = expression ?? "assertion";
 

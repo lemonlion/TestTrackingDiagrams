@@ -244,6 +244,22 @@ public static class DiagnosticReportGenerator
             sb.AppendLine("<p><b>Fix:</b> Add the exact client name to <code>ClientNamesToServiceNames</code>. For typed HttpClients registered via <code>services.AddHttpClient&lt;TClient&gt;()</code>, the client name is the <b>full type name</b> (e.g. <code>\"TenantHierarchyHttpClient\"</code>).</p>");
         }
 
+        // Assertion value resolution diagnostics
+        var diagLog = Track.DiagnosticLog;
+        if (diagLog.Count > 0)
+        {
+            sb.AppendLine("<h2>Assertion Value Resolution</h2>");
+            sb.AppendLine($"<p>{diagLog.Count} fallback(s) recorded during closure value resolution.</p>");
+            sb.AppendLine("<table><tr><th>#</th><th>Details</th></tr>");
+            var i = 0;
+            foreach (var entry in diagLog)
+            {
+                i++;
+                sb.AppendLine($"<tr><td>{i}</td><td>{Escape(entry)}</td></tr>");
+            }
+            sb.AppendLine("</table>");
+        }
+
         sb.AppendLine("</body></html>");
         return sb.ToString();
     }

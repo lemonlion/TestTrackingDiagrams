@@ -17,6 +17,11 @@ public static partial class AssertionExpressionFormatter
 
     public static string Format(string? expression)
     {
+        return Format(expression, resolvedValues: null);
+    }
+
+    public static string Format(string? expression, Dictionary<string, string>? resolvedValues)
+    {
         if (string.IsNullOrWhiteSpace(expression))
             return "";
 
@@ -46,7 +51,7 @@ public static partial class AssertionExpressionFormatter
 
         var (method, args) = ParseMethodAndArgs(assertionPart);
         var formattedMethod = SplitPascalCase(method).ToLowerInvariant();
-        var formattedArgs = FormatArgs(args);
+        var formattedArgs = FormatArgs(args, resolvedValues);
 
         var result = string.IsNullOrEmpty(formattedArgs)
             ? $"{formattedSubject} should {formattedMethod}"
@@ -129,7 +134,7 @@ public static partial class AssertionExpressionFormatter
         return (method, string.IsNullOrWhiteSpace(args) ? null : args);
     }
 
-    private static string FormatArgs(string? args)
+    private static string FormatArgs(string? args, Dictionary<string, string>? resolvedValues)
     {
         if (string.IsNullOrWhiteSpace(args))
             return "";
@@ -138,12 +143,67 @@ public static partial class AssertionExpressionFormatter
         if (args.Contains("=>"))
             return $"[{args}]";
 
+        // Substitute resolved values for standalone variable tokens in the args
+        if (resolvedValues is { Count: > 0 })
+            args = SubstituteResolvedValues(args, resolvedValues);
+
         // Strip enum prefixes: TaskStatus.RanToCompletion → RanToCompletion, HttpStatusCode.OK → OK
         // But preserve complex expressions like DateTime.UtcNow, TimeSpan.FromSeconds(5)
-        args = StripSimpleEnumPrefixes(args);
+        // Only strip if no substitutions were made (resolved values are already formatted)
+        if (resolvedValues is not { Count: > 0 } || !args.Contains('\''))
+            args = StripSimpleEnumPrefixes(args);
 
         return args;
     }
+
+    private static string SubstituteResolvedValues(string args, Dictionary<string, string> resolvedValues)
+    {
+        foreach (var (name, value) in resolvedValues)
+        {
+            var idx = 0;
+            while (idx <= args.Length - name.Length)
+            {
+                idx = args.IndexOf(name, idx, StringComparison.Ordinal);
+                if (idx < 0) break;
+
+                var before = idx > 0 ? args[idx - 1] : ' ';
+                var after = idx + name.Length < args.Length ? args[idx + name.Length] : ' ';
+
+                // Must be a standalone token (not part of a larger identifier)
+                if (IsIdentifierChar(before) || IsIdentifierChar(after))
+                {
+                    idx += name.Length;
+                    continue;
+                }
+
+                // Don't substitute inside quoted strings
+                if (IsInsideQuotes(args, idx))
+                {
+                    idx += name.Length;
+                    continue;
+                }
+
+                var replacement = $"'{value}'";
+                args = args[..idx] + replacement + args[(idx + name.Length)..];
+                idx += replacement.Length;
+            }
+        }
+
+        return args;
+    }
+
+    private static bool IsInsideQuotes(string text, int position)
+    {
+        var quoteCount = 0;
+        for (var i = 0; i < position; i++)
+        {
+            if (text[i] == '"' && (i == 0 || text[i - 1] != '\\'))
+                quoteCount++;
+        }
+        return quoteCount % 2 != 0;
+    }
+
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 
     private static string StripSimpleEnumPrefixes(string args)
     {

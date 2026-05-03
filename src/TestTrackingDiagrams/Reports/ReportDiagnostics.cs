@@ -69,6 +69,13 @@ public static class ReportDiagnostics
                 "Enable DiagnosticMode for details.");
         }
 
+        var assertionFallbacks = Track.DiagnosticLog;
+        if (assertionFallbacks.Count > 0)
+        {
+            warnings.Add($"Info: {assertionFallbacks.Count} assertion argument(s) could not be resolved to runtime values " +
+                "(enable DiagnosticMode and check DiagnosticReport.html for details).");
+        }
+
         return warnings.ToArray();
     }
 

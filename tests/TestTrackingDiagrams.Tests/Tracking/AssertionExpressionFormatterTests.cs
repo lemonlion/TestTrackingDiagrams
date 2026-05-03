@@ -113,4 +113,92 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(expression);
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void Format_substitutes_resolved_variable_in_args()
+    {
+        var resolved = new Dictionary<string, string> { ["expected"] = "hello" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(expected)", resolved);
+        Assert.Equal("X should be 'hello'", result);
+    }
+
+    [Fact]
+    public void Format_substitutes_guid_variable()
+    {
+        var resolved = new Dictionary<string, string>
+            { ["confirmationId"] = "12345678-1234-1234-1234-123456789abc" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(confirmationId)", resolved);
+        Assert.Equal("X should be '12345678-1234-1234-1234-123456789abc'", result);
+    }
+
+    [Fact]
+    public void Format_leaves_unresolved_variable_unchanged()
+    {
+        var resolved = new Dictionary<string, string>();
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(expected)", resolved);
+        Assert.Equal("X should be expected", result);
+    }
+
+    [Fact]
+    public void Format_with_null_resolved_values_behaves_like_original()
+    {
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(expected)", null);
+        Assert.Equal("X should be expected", result);
+    }
+
+    [Fact]
+    public void Format_substitutes_only_in_args_not_subject()
+    {
+        var resolved = new Dictionary<string, string> { ["result"] = "some value" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => result.Should().Be(expected)", resolved);
+        // 'result' is the subject — should NOT be substituted; 'expected' is not resolved
+        Assert.Equal("Result should be expected", result);
+    }
+
+    [Fact]
+    public void Format_substitutes_multiple_resolved_values()
+    {
+        var resolved = new Dictionary<string, string>
+        {
+            ["min"] = "1",
+            ["max"] = "100"
+        };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().BeInRange(min, max)", resolved);
+        Assert.Equal("X should be in range '1', '100'", result);
+    }
+
+    [Fact]
+    public void Format_does_not_substitute_inside_quoted_strings()
+    {
+        var resolved = new Dictionary<string, string> { ["expected"] = "world" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(\"expected\")", resolved);
+        // "expected" is a string literal, not a variable reference
+        Assert.Equal("X should be \"expected\"", result);
+    }
+
+    [Fact]
+    public void Format_does_not_substitute_partial_token_match()
+    {
+        var resolved = new Dictionary<string, string> { ["id"] = "123" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(orderId)", resolved);
+        // 'id' should NOT match inside 'orderId'
+        Assert.Equal("X should be orderId", result);
+    }
+
+    [Fact]
+    public void Format_substitutes_null_resolved_value()
+    {
+        var resolved = new Dictionary<string, string> { ["expected"] = "null" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().Be(expected)", resolved);
+        Assert.Equal("X should be 'null'", result);
+    }
 }

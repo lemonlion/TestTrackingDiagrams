@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.37] - 2026-05-03
+
+### Added
+- **Assertion value resolution**: `Track.That()` now resolves runtime values of captured variables via closure inspection and displays them in assertion notes (e.g. `expected` → `'hello-world'`). Falls back to source text for computed expressions, complex objects, or when resolution is not possible.
+- **`Track.DiagnosticMode`**: When enabled, records reasons for value resolution fallbacks in `Track.DiagnosticLog` and the DiagnosticReport.html
+- **`ClosureValueResolver`**: New internal component that inspects delegate closures to extract captured variable values safely
+
 ## [2.28.36] - 2026-05-03
 
 ### Fixed
