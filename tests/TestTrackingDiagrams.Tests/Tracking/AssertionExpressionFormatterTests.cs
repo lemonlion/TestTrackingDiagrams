@@ -11,7 +11,7 @@ public class AssertionExpressionFormatterTests
     [InlineData("() => order.Total.Should().BeGreaterThan(0)", "Order total should be greater than 0")]
     [InlineData("() => items.Should().NotBeEmpty()", "Items should not be empty")]
     [InlineData("() => result.Name.Should().StartWith(\"John\")", "Result name should start with \"John\"")]
-    [InlineData("() => users.Should().ContainSingle(x => x.IsAdmin)", "Users should contain single x => x.IsAdmin")]
+    [InlineData("() => users.Should().ContainSingle(x => x.IsAdmin)", "Users should contain single [x => x.IsAdmin]")]
     [InlineData("() => result.Should().BeNull()", "Result should be null")]
     [InlineData("() => count.Should().Be(42)", "Count should be 42")]
     [InlineData("() => list.Should().BeEmpty()", "List should be empty")]
@@ -88,5 +88,29 @@ public class AssertionExpressionFormatterTests
     {
         var result = AssertionExpressionFormatter.Format("() => status.Should().Be(TaskStatus.RanToCompletion)");
         Assert.Equal("Status should be RanToCompletion", result);
+    }
+
+    [Fact]
+    public void Format_removes_null_forgiving_operators()
+    {
+        var result = AssertionExpressionFormatter.Format("() => _auditLogResponse!.StatusCode.Should().Be(HttpStatusCode.OK)");
+        Assert.Equal("Audit log response status code should be OK", result);
+    }
+
+    [Fact]
+    public void Format_strips_underscore_prefix_from_subject()
+    {
+        var result = AssertionExpressionFormatter.Format("() => _pancakeSteps.ResponseMessage.Should().NotBeNull()");
+        Assert.Equal("Pancake steps response message should not be null", result);
+    }
+
+    [Theory]
+    [InlineData("() => myVariable.Should().OnlyContain(x => x.Foo == bar)", "My variable should only contain [x => x.Foo == bar]")]
+    [InlineData("() => items.Should().AllSatisfy(x => x.IsValid)", "Items should all satisfy [x => x.IsValid]")]
+    [InlineData("() => _auditLogs.Should().BeInDescendingOrder(l => l.Timestamp)", "Audit logs should be in descending order [l => l.Timestamp]")]
+    public void Format_wraps_lambda_args_in_square_brackets(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
     }
 }

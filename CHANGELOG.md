@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.36] - 2026-05-03
+
+### Fixed
+- **Assertion expression formatting**: Removed null-forgiving operators (`!`) from rendered assertion text (e.g. `_auditLogResponse!.StatusCode` no longer shows the `!`)
+- **Assertion expression formatting**: Strip leading `_` prefix from field names before humanising (e.g. `_auditLogResponse` renders as "Audit log response")
+
+### Changed
+- **Lambda assertion arguments**: Lambda expressions in assertion args are now wrapped in square brackets for readability (e.g. `OnlyContain(x => x.Foo == bar)` renders as "only contain [x => x.Foo == bar]")
+
 ## [2.28.35] - 2026-05-03
 
 ### Fixed

@@ -25,6 +25,9 @@ public static partial class AssertionExpressionFormatter
             ? expression["() => ".Length..]
             : expression;
 
+        // Remove null-forgiving operators (!)
+        expr = expr.Replace("!", "");
+
         // Split on .Should().
         var match = ShouldSplitRegex.Match(expr);
         if (!match.Success)
@@ -59,7 +62,8 @@ public static partial class AssertionExpressionFormatter
         for (var i = 0; i < segments.Length; i++)
         {
             if (i > 0) sb.Append(' ');
-            sb.Append(SplitPascalCase(segments[i]).ToLowerInvariant());
+            var segment = segments[i].TrimStart('_');
+            sb.Append(SplitPascalCase(segment).ToLowerInvariant());
         }
 
         // Capitalize first letter
@@ -129,6 +133,10 @@ public static partial class AssertionExpressionFormatter
     {
         if (string.IsNullOrWhiteSpace(args))
             return "";
+
+        // Wrap lambda expressions in square brackets for readability
+        if (args.Contains("=>"))
+            return $"[{args}]";
 
         // Strip enum prefixes: TaskStatus.RanToCompletion → RanToCompletion, HttpStatusCode.OK → OK
         // But preserve complex expressions like DateTime.UtcNow, TimeSpan.FromSeconds(5)
