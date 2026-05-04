@@ -524,4 +524,49 @@ public class ParameterParserTests
         Assert.Equal("2", result["Y"]);
         Assert.True(result.Count >= 2);
     }
+
+    [Fact]
+    public void Parse_handles_square_brackets_in_quoted_param_values_parens_format()
+    {
+        var result = ParameterParser.Parse(
+            "Order_with_invalid_field_should_return_bad_request(field: \"Items[0].BatchId\", value: null, reason: \"Batch ID is required\", expectedError: \"'Batch Id' is required.\", expectedStatus: \"Bad Request\")");
+        Assert.NotNull(result);
+        Assert.Equal(5, result!.Count);
+        Assert.Equal("Items[0].BatchId", result["field"]);
+        Assert.Equal("null", result["value"]);
+        Assert.Equal("Batch ID is required", result["reason"]);
+        Assert.Equal("'Batch Id' is required.", result["expectedError"]);
+        Assert.Equal("Bad Request", result["expectedStatus"]);
+    }
+
+    [Fact]
+    public void Parse_handles_square_brackets_in_bracketed_format()
+    {
+        var result = ParameterParser.Parse(
+            "Order validation [field: Items[0].BatchId, value: null, reason: Batch ID is required]");
+        Assert.NotNull(result);
+        Assert.Equal(3, result!.Count);
+        Assert.Equal("Items[0].BatchId", result["field"]);
+        Assert.Equal("null", result["value"]);
+        Assert.Equal("Batch ID is required", result["reason"]);
+    }
+
+    [Fact]
+    public void Parse_handles_square_brackets_in_quoted_bracketed_format()
+    {
+        var result = ParameterParser.Parse(
+            "Order validation [field: \"Items[0].BatchId\", value: null]");
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("Items[0].BatchId", result["field"]);
+        Assert.Equal("null", result["value"]);
+    }
+
+    [Fact]
+    public void ExtractBaseName_handles_square_brackets_in_param_values()
+    {
+        var result = ParameterParser.ExtractBaseName(
+            "Order validation [field: Items[0].BatchId, value: null]");
+        Assert.Equal("Order validation", result);
+    }
 }

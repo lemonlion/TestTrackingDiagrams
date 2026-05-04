@@ -18,17 +18,18 @@ public static class ParameterParser
             return null;
 
         // Try bracketed format first: "Name [key: val, key2: val2]" or "Name [k1: v1] [k2: v2]"
-        var bracketStart = displayName.LastIndexOf('[');
-        if (bracketStart >= 0 && displayName.EndsWith(']'))
+        var spBracket = displayName.LastIndexOf(" [");
+        if (spBracket >= 0 && displayName.EndsWith(']'))
         {
             // Collect all trailing bracket groups: [p1: v1] [p2: v2] ...
             var allParams = new Dictionary<string, string>();
             var remaining = displayName.AsSpan();
             while (true)
             {
-                var lastOpen = remaining.LastIndexOf('[');
-                if (lastOpen < 0 || remaining[^1] != ']')
+                var lastSpace = remaining.LastIndexOf(" [".AsSpan());
+                if (lastSpace < 0 || remaining[^1] != ']')
                     break;
+                var lastOpen = lastSpace + 1; // point to '['
                 var inner = remaining.Slice(lastOpen + 1, remaining.Length - lastOpen - 2).Trim();
                 if (inner.Length == 0)
                     break;

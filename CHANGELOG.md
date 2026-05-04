@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.1-beta] - 2026-05-04
+
+### Fixed
+- **Parameterized test parameters garbled when values contain square brackets**: `ParameterParser.Parse()` used `LastIndexOf('[')` to find the parameter bracket group, which incorrectly matched `[` characters inside parameter values (e.g. `Items[0].BatchId`). This caused rows 3-5 of parameterized tests with array-index field names to display blank parameter columns with the entire remainder dumped into a single "Arg 0" column. Fixed by requiring ` [` (space-bracket) to identify parameter bracket groups, consistent with `ExtractBaseName()` which already used this pattern.
+
 ## [2.29.0-beta] - 2026-05-04
 
 ### Added
