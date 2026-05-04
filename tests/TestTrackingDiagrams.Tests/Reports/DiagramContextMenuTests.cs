@@ -731,8 +731,8 @@ public class DiagramContextMenuTests
         // Button should be invisible by default
         Assert.Contains("opacity: 0", css);
         Assert.Contains("pointer-events: none", css);
-        // Container hover reveals the button
-        Assert.Contains("[data-diagram-type]:hover > .diagram-zoom-toggle", css);
+        // Container hover reveals the controls
+        Assert.Contains("[data-diagram-type]:hover > .diagram-zoom-controls", css);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -767,8 +767,8 @@ public class DiagramContextMenuTests
     [Fact]
     public void ZoomButton_is_prepended_not_appended()
     {
-        Assert.Contains("container.prepend(btn)", _script);
-        Assert.DoesNotContain("container.appendChild(btn)", _script);
+        Assert.Contains("container.prepend(controls)", _script);
+        Assert.DoesNotContain("container.appendChild(controls)", _script);
     }
 
     [Fact]

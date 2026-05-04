@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.0-beta] - 2026-05-04
+
+### Added
+- **Gradual zoom (beta)**: Diagrams now support smooth, incremental zooming instead of only toggling between fit-to-width and full size.
+  - **Diagram selection**: Click a diagram to select it (blue glow indicator). Click elsewhere or press Escape to deselect.
+  - **Zoom slider**: A horizontal range slider appears alongside the zoom toggle button on zoomable diagrams. Drag to smoothly zoom between fit-to-width and 100% natural size.
+  - **Keyboard zoom**: `Ctrl`+`+` / `Ctrl`+`-` zoom the selected diagram in 5% increments.
+  - **Mouse wheel zoom**: `Ctrl`+scroll wheel zooms the diagram under the cursor.
+  - **Zoom-to-cursor**: All zoom methods (slider, keyboard, mouse wheel, double-click) scroll the diagram to keep the artifact under the cursor in the same viewport position, so you can zoom into a specific area without losing your place.
+
 ## [2.28.45] - 2026-05-04
 
 ### Added

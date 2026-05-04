@@ -1,0 +1,503 @@
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+
+namespace TestTrackingDiagrams.Tests.EndToEnd;
+
+public class GradualZoomTests : PlaywrightTestBase
+{
+    public GradualZoomTests(PlaywrightFixture fixture) : base(fixture) { }
+
+    private ILocator GetDiagramContainer() =>
+        Page.Locator("[data-diagram-type='plantuml']").First;
+
+    private async Task SetupWideDiagram(string fileName)
+    {
+        await Page.GotoAsync(GenerateReportWithWideDiagram(fileName));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+        // Wait for zoom controls to be added
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-controls').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
+    }
+
+    // ── Diagram Selection ──
+
+    [Fact]
+    public async Task Clicking_diagram_selects_it()
+    {
+        await SetupWideDiagram("SelectOnClick.html");
+        var container = GetDiagramContainer();
+
+        await container.EvaluateAsync("el => el.click()");
+
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+    }
+
+    [Fact]
+    public async Task Selected_diagram_has_blue_glow()
+    {
+        await SetupWideDiagram("SelectGlow.html");
+        var container = GetDiagramContainer();
+
+        await container.EvaluateAsync("el => el.click()");
+
+        var boxShadow = await container.EvaluateAsync<string>(
+            "e => window.getComputedStyle(e).boxShadow");
+        // Should contain a blue-ish rgba value in the box-shadow
+        Assert.Matches(new Regex(@"rgba?\(59,\s*130,\s*246"), boxShadow);
+    }
+
+    [Fact]
+    public async Task Clicking_outside_diagram_deselects_it()
+    {
+        await SetupWideDiagram("DeselectClickOutside.html");
+        var container = GetDiagramContainer();
+
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+
+        // Click body away from any diagram
+        await Page.EvaluateAsync("() => document.querySelector('h1, h2, body').click()");
+
+        await Expect(container).Not.ToHaveClassAsync(new Regex("diagram-selected"));
+    }
+
+    [Fact]
+    public async Task Escape_deselects_diagram()
+    {
+        await SetupWideDiagram("DeselectEscape.html");
+        var container = GetDiagramContainer();
+
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+
+        await Page.Keyboard.PressAsync("Escape");
+
+        await Expect(container).Not.ToHaveClassAsync(new Regex("diagram-selected"));
+    }
+
+    [Fact]
+    public async Task Only_one_diagram_can_be_selected_at_a_time()
+    {
+        await SetupWideDiagram("SingleSelection.html");
+        // This report has at least one diagram. Click it, then verify selection.
+        var container = GetDiagramContainer();
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+
+        // Click outside to deselect, then ensure no diagram has class
+        await Page.Keyboard.PressAsync("Escape");
+        var selectedCount = await Page.Locator(".diagram-selected").CountAsync();
+        Assert.Equal(0, selectedCount);
+    }
+
+    // ── Zoom Slider ──
+
+    [Fact]
+    public async Task Zoom_slider_appears_on_zoomable_diagram()
+    {
+        await SetupWideDiagram("SliderExists.html");
+
+        var sliderCount = await Page.Locator(".diagram-zoom-slider").CountAsync();
+        Assert.True(sliderCount > 0, "Zoom slider should exist on zoomable diagram");
+    }
+
+    [Fact]
+    public async Task Zoom_slider_does_not_appear_on_non_zoomable_diagram()
+    {
+        await Page.GotoAsync(GenerateReport("SliderNonZoomable.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        // Wait a bit for any zoom controls to potentially appear
+        await Page.WaitForTimeoutAsync(500);
+
+        var sliderCount = await Page.Locator(".diagram-zoom-slider").CountAsync();
+        Assert.Equal(0, sliderCount);
+    }
+
+    [Fact]
+    public async Task Zoom_slider_is_hidden_until_hover()
+    {
+        await SetupWideDiagram("SliderHidden.html");
+
+        var opacity = await Page.Locator(".diagram-zoom-controls").First
+            .EvaluateAsync<string>("e => window.getComputedStyle(e).opacity");
+        Assert.Equal("0", opacity);
+    }
+
+    [Fact]
+    public async Task Zoom_slider_becomes_visible_on_container_hover()
+    {
+        await SetupWideDiagram("SliderHoverVisible.html");
+
+        var container = GetDiagramContainer();
+        await container.HoverAsync();
+
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var ctrl = document.querySelector('.diagram-zoom-controls');
+                return ctrl && window.getComputedStyle(ctrl).opacity !== '0';
+            }
+        """, null, new() { Timeout = 3000, PollingInterval = 200 });
+    }
+
+    [Fact]
+    public async Task Zoom_slider_has_correct_min_max()
+    {
+        await SetupWideDiagram("SliderMinMax.html");
+
+        var max = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<string>("e => e.max");
+        Assert.Equal("100", max);
+
+        var min = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.min)");
+        Assert.True(min > 0 && min < 100, $"Min should be between 0-100 (fit-to-width ratio) but was {min}");
+    }
+
+    [Fact]
+    public async Task Moving_slider_changes_svg_width()
+    {
+        await SetupWideDiagram("SliderChangesWidth.html");
+
+        var container = GetDiagramContainer();
+
+        // Get initial SVG width
+        var initialWidth = await container.EvaluateAsync<double>("""
+            c => {
+                var svg = c.querySelector('svg');
+                return svg.getBoundingClientRect().width;
+            }
+        """);
+
+        // Set slider to 100 (max zoom) via JS
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
+
+        var newWidth = await container.EvaluateAsync<double>("""
+            c => {
+                var svg = c.querySelector('svg');
+                return svg.getBoundingClientRect().width;
+            }
+        """);
+
+        Assert.True(newWidth > initialWidth, $"SVG width should increase from {initialWidth} to larger but got {newWidth}");
+    }
+
+    [Fact]
+    public async Task Slider_syncs_when_zoom_button_clicked()
+    {
+        await SetupWideDiagram("SliderSyncButton.html");
+
+        var container = GetDiagramContainer();
+        await container.HoverAsync();
+        await Page.WaitForTimeoutAsync(200);
+
+        // Click zoom toggle button
+        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+
+        // Slider should be at max (100)
+        var sliderVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<string>("e => e.value");
+        Assert.Equal("100", sliderVal);
+
+        // Click again to unzoom
+        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+
+        // Slider should be at min
+        var sliderValAfter = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<string>("e => e.value");
+        var min = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<string>("e => e.min");
+        Assert.Equal(min, sliderValAfter);
+    }
+
+    [Fact]
+    public async Task Slider_syncs_when_double_click_zooms()
+    {
+        await SetupWideDiagram("SliderSyncDblClick.html");
+
+        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
+        await svg.DblClickAsync();
+
+        // Slider should be at max after double-click zoom in
+        var sliderVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<string>("e => e.value");
+        Assert.Equal("100", sliderVal);
+    }
+
+    [Fact]
+    public async Task Container_gets_overflow_auto_when_slider_above_fit()
+    {
+        await SetupWideDiagram("SliderOverflow.html");
+
+        // Set slider to max
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
+
+        var container = GetDiagramContainer();
+        var overflow = await container.EvaluateAsync<string>("e => e.style.overflow");
+        Assert.Equal("auto", overflow);
+    }
+
+    // ── Keyboard Zoom ──
+
+    [Fact]
+    public async Task Ctrl_plus_zooms_selected_diagram()
+    {
+        await SetupWideDiagram("CtrlPlusZoom.html");
+
+        var container = GetDiagramContainer();
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Press Ctrl+=  (which is Ctrl+Plus on most keyboards)
+        await Page.Keyboard.PressAsync("Control+=");
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.True(newVal > initialVal, $"Slider value should increase from {initialVal} but got {newVal}");
+    }
+
+    [Fact]
+    public async Task Ctrl_minus_zooms_out_selected_diagram()
+    {
+        await SetupWideDiagram("CtrlMinusZoom.html");
+
+        var container = GetDiagramContainer();
+        await container.EvaluateAsync("el => el.click()");
+
+        // First zoom in fully
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
+
+        var maxVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Press Ctrl+-
+        await Page.Keyboard.PressAsync("Control+-");
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.True(newVal < maxVal, $"Slider value should decrease from {maxVal} but got {newVal}");
+    }
+
+    [Fact]
+    public async Task Ctrl_plus_does_nothing_without_selection()
+    {
+        await SetupWideDiagram("CtrlPlusNoSelect.html");
+
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        await Page.Keyboard.PressAsync("Control+=");
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.Equal(initialVal, newVal);
+    }
+
+    // ── Mouse Wheel Zoom ──
+
+    [Fact]
+    public async Task Ctrl_wheel_zooms_diagram_under_cursor()
+    {
+        await SetupWideDiagram("CtrlWheelZoom.html");
+
+        var container = GetDiagramContainer();
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Dispatch a Ctrl+wheel event over the diagram container
+        await container.EvaluateAsync("""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: true,
+                    deltaY: -100,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.True(newVal > initialVal, $"Ctrl+wheel up should zoom in: {initialVal} -> {newVal}");
+    }
+
+    [Fact]
+    public async Task Ctrl_wheel_down_zooms_out()
+    {
+        await SetupWideDiagram("CtrlWheelOut.html");
+
+        var container = GetDiagramContainer();
+
+        // First zoom in
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
+
+        // Dispatch Ctrl+wheel down
+        await container.EvaluateAsync("""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: true,
+                    deltaY: 100,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.True(newVal < 100, $"Ctrl+wheel down should zoom out from 100 but got {newVal}");
+    }
+
+    // ── Zoom-to-Cursor (scroll adjustment) ──
+
+    [Fact]
+    public async Task Zoom_in_keeps_artifact_under_cursor_in_place()
+    {
+        await SetupWideDiagram("ZoomToCursor.html");
+
+        var container = GetDiagramContainer();
+
+        // First partially zoom so there's a scrollable area
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                var mid = Math.round((parseInt(slider.min) + 100) / 2);
+                slider.value = String(mid);
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
+
+        // Record scroll position and SVG width before further zoom
+        var before = await container.EvaluateAsync<double[]>("""
+            (c) => {
+                var svg = c.querySelector('svg');
+                return [c.scrollLeft, svg.getBoundingClientRect().width, c.getBoundingClientRect().left, c.getBoundingClientRect().width];
+            }
+        """);
+        var scrollLeftBefore = before[0];
+        var svgWidthBefore = before[1];
+        var containerLeft = before[2];
+        var containerWidth = before[3];
+
+        // Cursor position: center of the visible container area
+        var cursorX = containerLeft + containerWidth / 2;
+
+        // The SVG-space X under cursor before zoom
+        var svgXBefore = (cursorX - containerLeft + scrollLeftBefore) / svgWidthBefore;
+
+        // Zoom in via Ctrl+wheel at cursor position
+        await container.EvaluateAsync($$"""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: true,
+                    deltaY: -300,
+                    clientX: {{cursorX}},
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
+        // Record after
+        var after = await container.EvaluateAsync<double[]>("""
+            (c) => {
+                var svg = c.querySelector('svg');
+                return [c.scrollLeft, svg.getBoundingClientRect().width];
+            }
+        """);
+        var scrollLeftAfter = after[0];
+        var svgWidthAfter = after[1];
+
+        // The SVG-space X under cursor after zoom
+        var svgXAfter = (cursorX - containerLeft + scrollLeftAfter) / svgWidthAfter;
+
+        // Positions should be approximately the same (within 2% tolerance)
+        Assert.True(Math.Abs(svgXBefore - svgXAfter) < 0.02,
+            $"SVG point under cursor shifted: before={svgXBefore:F4}, after={svgXAfter:F4}");
+    }
+
+    [Fact]
+    public async Task Double_click_zoom_scrolls_to_click_point()
+    {
+        await SetupWideDiagram("DblClickZoomToCursor.html");
+
+        var container = GetDiagramContainer();
+
+        // Get container rect for click coordinates
+        var rect = await container.EvaluateAsync<double[]>("""
+            c => {
+                var r = c.getBoundingClientRect();
+                return [r.left, r.top, r.width, r.height];
+            }
+        """);
+        var clickX = rect[0] + rect[2] * 0.7; // Click at 70% across to test scroll-to-point
+
+        // Double-click at a specific X position
+        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
+        await svg.EvaluateAsync($$"""
+            (el) => {
+                el.dispatchEvent(new MouseEvent('dblclick', {
+                    bubbles: true, cancelable: true,
+                    clientX: {{clickX}},
+                    clientY: {{rect[1] + rect[3] / 2}}
+                }));
+            }
+        """);
+
+        // After zooming to natural size, the click point should be roughly at the same viewport position
+        var afterData = await container.EvaluateAsync<double[]>("""
+            c => {
+                var svg = c.querySelector('svg');
+                return [c.scrollLeft, svg.getBoundingClientRect().width, c.getBoundingClientRect().left];
+            }
+        """);
+        var scrollLeft = afterData[0];
+        var svgWidth = afterData[1];
+
+        // The scroll should be non-zero (scrolled to keep click point visible)
+        // For a wide diagram clicked at 70%, there should be meaningful scroll
+        Assert.True(scrollLeft > 0, $"Expected scrollLeft > 0 after double-click zoom at 70% but got {scrollLeft}");
+    }
+}

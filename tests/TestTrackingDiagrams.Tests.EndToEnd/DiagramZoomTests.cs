@@ -34,8 +34,8 @@ public class DiagramZoomTests : PlaywrightTestBase
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var zoomBtn = Page.Locator(".diagram-zoom-toggle").First;
-        var opacity = await GetComputedStyle(zoomBtn, "opacity");
+        var zoomControls = Page.Locator(".diagram-zoom-controls").First;
+        var opacity = await GetComputedStyle(zoomControls, "opacity");
         Assert.Equal("0", opacity);
     }
 

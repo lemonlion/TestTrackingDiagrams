@@ -102,11 +102,34 @@ public static class DiagramContextMenu
         body.plantuml-ready .plantuml-browser:not([data-rendered])::before {
             content: 'Rendering diagram\2026';
         }
-        .diagram-zoom-toggle {
+        .diagram-selected {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+            border-radius: 4px;
+        }
+        .diagram-zoom-controls {
             position: absolute;
             top: 6px;
             left: 6px;
             z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+        [data-diagram-type]:hover > .diagram-zoom-controls {
+            opacity: 0.4;
+            pointer-events: auto;
+        }
+        .diagram-zoom-controls:hover {
+            opacity: 1 !important;
+        }
+        .diagram-selected > .diagram-zoom-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .diagram-zoom-toggle {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(180, 180, 180, 0.6);
             border-radius: 4px;
@@ -114,17 +137,15 @@ public static class DiagramContextMenu
             line-height: 1;
             padding: 2px 5px;
             cursor: pointer;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.15s;
-        }
-        [data-diagram-type]:hover > .diagram-zoom-toggle {
-            opacity: 0.4;
-            pointer-events: auto;
         }
         .diagram-zoom-toggle:hover {
-            opacity: 1 !important;
             background: rgba(255, 255, 255, 0.95);
+        }
+        .diagram-zoom-slider {
+            width: 100px;
+            height: 6px;
+            cursor: pointer;
+            accent-color: rgb(59, 130, 246);
         }
         """;
 
@@ -1117,6 +1138,53 @@ public static class DiagramContextMenu
             });
             document.addEventListener('scroll', closeMenu, true);
 
+            // ── Diagram Selection ──
+            var selectedDiagram = null;
+
+            function selectDiagram(container) {
+                if (selectedDiagram && selectedDiagram !== container) {
+                    selectedDiagram.classList.remove('diagram-selected');
+                }
+                container.classList.add('diagram-selected');
+                selectedDiagram = container;
+            }
+
+            function deselectDiagram() {
+                if (selectedDiagram) {
+                    selectedDiagram.classList.remove('diagram-selected');
+                    selectedDiagram = null;
+                }
+            }
+
+            document.addEventListener('click', function(e) {
+                var container = findDiagramContainer(e.target);
+                if (container) {
+                    selectDiagram(container);
+                } else if (!e.target.closest('.diagram-zoom-controls')) {
+                    deselectDiagram();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') deselectDiagram();
+            });
+
+            // ── Zoom Helpers ──
+
+            // Get the natural (unscaled) SVG width
+            function getNaturalWidth(container) {
+                var svg = getSvg(container);
+                if (!svg) return 0;
+                var saved = svg.style.maxWidth;
+                var savedW = svg.style.width;
+                svg.style.maxWidth = 'none';
+                svg.style.width = '';
+                var naturalW = svg.getBoundingClientRect().width;
+                svg.style.maxWidth = saved;
+                svg.style.width = savedW;
+                return naturalW;
+            }
+
             // Check whether an SVG diagram is wider than its container (needs zoom)
             function isDiagramZoomable(container) {
                 var svg = getSvg(container);
@@ -1128,24 +1196,114 @@ public static class DiagramContextMenu
                 return naturalW > container.clientWidth + 1;
             }
 
-            // Toggle diagram between fit-to-width and natural size
-            function toggleDiagramZoom(container) {
+            // Calculate the fit-to-width zoom percentage
+            function getFitPercent(container) {
+                var svg = getSvg(container);
+                if (!svg) return 100;
+                var savedMax = svg.style.maxWidth;
+                var savedW = svg.style.width;
+                svg.style.maxWidth = 'none';
+                svg.style.width = '';
+                var naturalW = svg.getBoundingClientRect().width;
+                svg.style.maxWidth = savedMax;
+                svg.style.width = savedW;
+                if (naturalW <= 0) return 100;
+                var pct = Math.round(container.clientWidth / naturalW * 100);
+                return Math.max(1, Math.min(pct, 100));
+            }
+
+            // Track last known cursor position per container
+            document.addEventListener('mousemove', function(e) {
+                var c = findDiagramContainer(e.target);
+                if (c) { c._lastCursorX = e.clientX; c._lastCursorY = e.clientY; }
+            });
+
+            // Apply zoom level (0-100) to a container, optionally preserving a point under cursor
+            function applyZoomLevel(container, percent, cursorClientX, cursorClientY) {
                 var svg = getSvg(container);
                 if (!svg) return;
-                var isZoomed = container.classList.toggle('diagram-natural-size');
-                var btn = container.querySelector('.diagram-zoom-toggle');
+                var fitPct = getFitPercent(container);
+                percent = Math.max(fitPct, Math.min(100, percent));
+
+                // Get container rect
+                var cRect = container.getBoundingClientRect();
+
+                // Calculate natural width
+                var savedMax = svg.style.maxWidth;
+                var savedW = svg.style.width;
+                svg.style.maxWidth = 'none';
+                svg.style.width = '';
+                var naturalW = svg.getBoundingClientRect().width;
+                svg.style.maxWidth = savedMax;
+                svg.style.width = savedW;
+
+                var newWidth = naturalW * percent / 100;
+                var oldWidth = svg.getBoundingClientRect().width;
+
+                // Calculate zoom-to-point scroll adjustment
+                var viewportX = 0, scrollLeftBefore = container.scrollLeft;
+                if (typeof cursorClientX === 'number' && oldWidth > 0) {
+                    viewportX = cursorClientX - cRect.left;
+                    var svgFraction = (viewportX + container.scrollLeft) / oldWidth;
+                    var newScrollLeft = svgFraction * newWidth - viewportX;
+
+                    // Apply the new width
+                    if (percent >= 100) {
+                        svg.style.maxWidth = 'none';
+                        svg.style.width = '';
+                    } else if (percent <= fitPct) {
+                        svg.style.maxWidth = '100%';
+                        svg.style.width = '';
+                    } else {
+                        svg.style.maxWidth = 'none';
+                        svg.style.width = newWidth + 'px';
+                    }
+
+                    // Set scroll after width change
+                    container.scrollLeft = Math.max(0, newScrollLeft);
+                } else {
+                    if (percent >= 100) {
+                        svg.style.maxWidth = 'none';
+                        svg.style.width = '';
+                    } else if (percent <= fitPct) {
+                        svg.style.maxWidth = '100%';
+                        svg.style.width = '';
+                    } else {
+                        svg.style.maxWidth = 'none';
+                        svg.style.width = newWidth + 'px';
+                    }
+                }
+
+                // Update container overflow
+                var isZoomed = percent > fitPct;
                 if (isZoomed) {
-                    svg.style.maxWidth = 'none';
                     container.style.overflow = 'auto';
                     container.style.maxHeight = '80vh';
                     container.style.cursor = 'grab';
-                    if (btn) btn.textContent = '\u2921';
+                    container.classList.add('diagram-natural-size');
                 } else {
-                    svg.style.maxWidth = '100%';
                     container.style.overflow = '';
                     container.style.maxHeight = '';
                     container.style.cursor = '';
-                    if (btn) btn.textContent = '\u2922';
+                    container.classList.remove('diagram-natural-size');
+                }
+
+                // Update button icon
+                var btn = container.querySelector('.diagram-zoom-toggle');
+                if (btn) btn.textContent = isZoomed ? '\u2921' : '\u2922';
+
+                // Update slider
+                var slider = container.querySelector('.diagram-zoom-slider');
+                if (slider) slider.value = String(percent);
+            }
+
+            // Toggle diagram between fit-to-width and natural size
+            function toggleDiagramZoom(container, cursorX, cursorY) {
+                var isCurrentlyZoomed = container.classList.contains('diagram-natural-size');
+                if (isCurrentlyZoomed) {
+                    applyZoomLevel(container, getFitPercent(container));
+                } else {
+                    applyZoomLevel(container, 100, cursorX, cursorY);
                 }
             }
 
@@ -1156,17 +1314,22 @@ public static class DiagramContextMenu
                 if (!getSvg(container)) return;
                 if (!container.classList.contains('diagram-natural-size') && !isDiagramZoomable(container)) return;
                 e.preventDefault();
-                toggleDiagramZoom(container);
+                toggleDiagramZoom(container, e.clientX, e.clientY);
                 if (window.getSelection) window.getSelection().removeAllRanges();
             });
 
-            // Add zoom button to a single diagram container once its SVG is ready
+            // ── Zoom Controls (button + slider) ──
+
             function addZoomButton(container) {
-                if (container.querySelector('.diagram-zoom-toggle')) return;
+                if (container.querySelector('.diagram-zoom-controls')) return;
                 var svg = getSvg(container);
                 if (!svg) return;
                 if (!isDiagramZoomable(container)) return;
                 container.style.position = 'relative';
+
+                var controls = document.createElement('div');
+                controls.className = 'diagram-zoom-controls';
+
                 var btn = document.createElement('button');
                 btn.className = 'diagram-zoom-toggle';
                 btn.textContent = container.classList.contains('diagram-natural-size') ? '\u2921' : '\u2922';
@@ -1175,7 +1338,28 @@ public static class DiagramContextMenu
                     e.stopPropagation();
                     toggleDiagramZoom(container);
                 });
-                container.prepend(btn);
+                controls.appendChild(btn);
+
+                var fitPct = getFitPercent(container);
+                var slider = document.createElement('input');
+                slider.type = 'range';
+                slider.className = 'diagram-zoom-slider';
+                slider.min = String(fitPct);
+                slider.max = '100';
+                slider.value = container.classList.contains('diagram-natural-size') ? '100' : String(fitPct);
+                slider.title = 'Zoom level';
+                slider.addEventListener('input', function(e) {
+                    e.stopPropagation();
+                    var pct = parseInt(slider.value);
+                    var cx = container._lastCursorX;
+                    var cy = container._lastCursorY;
+                    applyZoomLevel(container, pct, cx, cy);
+                });
+                slider.addEventListener('click', function(e) { e.stopPropagation(); });
+                controls.appendChild(slider);
+
+                container.prepend(controls);
+
                 // Restore zoom state on the new SVG after re-render
                 restoreZoomState(container);
             }
@@ -1194,13 +1378,54 @@ public static class DiagramContextMenu
                 }
             }
 
+            // ── Keyboard Zoom (Ctrl+Plus / Ctrl+Minus) ──
+
+            document.addEventListener('keydown', function(e) {
+                if (!e.ctrlKey && !e.metaKey) return;
+                var isPlus = (e.key === '=' || e.key === '+' || e.key === 'NumpadAdd');
+                var isMinus = (e.key === '-' || e.key === '_' || e.key === 'NumpadSubtract');
+                if (!isPlus && !isMinus) return;
+
+                if (!selectedDiagram) return;
+                var container = selectedDiagram;
+                if (!container.querySelector('.diagram-zoom-slider')) return;
+
+                e.preventDefault();
+                var slider = container.querySelector('.diagram-zoom-slider');
+                var current = parseInt(slider.value);
+                var range = 100 - parseInt(slider.min);
+                var step = Math.max(1, Math.round(range * 0.05));
+                var newVal = isPlus ? Math.min(100, current + step) : Math.max(parseInt(slider.min), current - step);
+                var cx = container._lastCursorX;
+                var cy = container._lastCursorY;
+                applyZoomLevel(container, newVal, cx, cy);
+            });
+
+            // ── Mouse Wheel Zoom (Ctrl+Wheel) ──
+
+            document.addEventListener('wheel', function(e) {
+                if (!e.ctrlKey && !e.metaKey) return;
+                var container = findDiagramContainer(e.target);
+                if (!container) return;
+                var slider = container.querySelector('.diagram-zoom-slider');
+                if (!slider) return;
+
+                e.preventDefault();
+                var current = parseInt(slider.value);
+                var range = 100 - parseInt(slider.min);
+                var step = Math.max(1, Math.round(range * 0.05));
+                var delta = e.deltaY < 0 ? step : -step;
+                var newVal = Math.max(parseInt(slider.min), Math.min(100, current + delta));
+                applyZoomLevel(container, newVal, e.clientX, e.clientY);
+            }, { passive: false });
+
             // Drag-to-pan when zoomed
             (function() {
                 var dragging = false, dragContainer, startX, startY, scrollL, scrollT;
                 document.addEventListener('mousedown', function(e) {
                     var c = findDiagramContainer(e.target);
                     if (!c || !c.classList.contains('diagram-natural-size')) return;
-                    if (e.target.classList.contains('diagram-zoom-toggle')) return;
+                    if (e.target.closest('.diagram-zoom-controls')) return;
                     dragging = true;
                     dragContainer = c;
                     startX = e.pageX;
