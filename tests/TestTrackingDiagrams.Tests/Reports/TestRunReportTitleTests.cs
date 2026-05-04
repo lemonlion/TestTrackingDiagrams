@@ -81,4 +81,40 @@ public class TestRunReportTitleTests
 
         Assert.Equal("Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
     }
+
+    [Fact]
+    public void GetTestRunReportTitle_WithTestRunReportTitle_ReturnsExactValue()
+    {
+        var options = new ReportConfigurationOptions
+        {
+            TestRunReportTitle = "My Custom Report"
+        };
+
+        Assert.Equal("My Custom Report", ReportGenerator.GetTestRunReportTitle(options));
+    }
+
+    [Fact]
+    public void GetTestRunReportTitle_WithTestRunReportTitle_OverridesComponentDiagramTitle()
+    {
+        var options = new ReportConfigurationOptions
+        {
+            TestRunReportTitle = "My Custom Report",
+            ComponentDiagramOptions = new ComponentDiagramOptions { Title = "Payment Gateway" },
+            FixedNameForReceivingService = "OrderService"
+        };
+
+        Assert.Equal("My Custom Report", ReportGenerator.GetTestRunReportTitle(options));
+    }
+
+    [Fact]
+    public void GetTestRunReportTitle_WithEmptyTestRunReportTitle_FallsBackToExistingLogic()
+    {
+        var options = new ReportConfigurationOptions
+        {
+            TestRunReportTitle = "",
+            FixedNameForReceivingService = "OrderService"
+        };
+
+        Assert.Equal("OrderService - Test Run Report", ReportGenerator.GetTestRunReportTitle(options));
+    }
 }

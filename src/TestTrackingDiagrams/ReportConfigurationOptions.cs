@@ -20,6 +20,9 @@ public record ReportConfigurationOptions
     /// <summary>Optional mid-processor applied to request/response content during processing.</summary>
     public Func<string, string>? RequestResponseMidProcessor { get; set; }
 
+    /// <summary>Title displayed at the top of the test run report. When set, overrides the default title derived from <see cref="ComponentDiagram.ComponentDiagramOptions.Title"/> or <see cref="FixedNameForReceivingService"/>. Default: <c>null</c> (auto-derived).</summary>
+    public string? TestRunReportTitle { get; set; }
+
     /// <summary>Title displayed at the top of the specifications report. Default: <c>"Service Specifications"</c>.</summary>
     public string SpecificationsTitle { get; set; } = "Service Specifications";
 

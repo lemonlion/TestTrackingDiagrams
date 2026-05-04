@@ -230,6 +230,8 @@ public static class ReportGenerator
 
     public static string GetTestRunReportTitle(ReportConfigurationOptions options)
     {
+        if (!string.IsNullOrEmpty(options.TestRunReportTitle))
+            return options.TestRunReportTitle;
         var prefix = options.ComponentDiagramOptions?.Title;
         if (string.IsNullOrEmpty(prefix))
             prefix = options.FixedNameForReceivingService;
@@ -1255,6 +1257,7 @@ public static class ReportGenerator
                             <meta charset="utf-8" />
                             <meta name="viewport" content="width=device-width, initial-scale=1" />
                             <meta name="generator" content="TestTrackingDiagrams v{{TtdVersion}}" />
+                            <title>{{title}}</title>
                             <style>
                                 {{combinedStylesheet}}
                                 {{contextMenuStyles}}

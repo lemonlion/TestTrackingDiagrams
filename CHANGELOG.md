@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.45] - 2026-05-04
+
+### Added
+- **`TestRunReportTitle` property** on `ReportConfigurationOptions`: allows full customization of the test run report page title. When set, the value is used verbatim — no " - Test Run Report" suffix is appended. When `null` (default), the existing auto-derived logic applies: `ComponentDiagramOptions.Title` → `FixedNameForReceivingService` → `"Test Run Report"`.
+- **HTML `<title>` element**: the test run report HTML now includes a `<title>` tag in `<head>`, setting the browser tab title to match the report heading.
+
 ## [2.28.44] - 2026-05-04
 
 ### Fixed
