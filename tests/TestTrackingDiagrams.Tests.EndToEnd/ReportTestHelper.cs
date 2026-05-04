@@ -1011,4 +1011,93 @@ public static class ReportTestHelper
 
         @enduml
         """;
+
+    /// <summary>
+    /// PlantUML source with entity, queue, and database participant types that generate
+    /// SVG path+text groups similar to notes. Tests that findNoteGroups correctly
+    /// distinguishes notes from participant shapes using fold-triangle detection.
+    /// Mirrors the BreakfastProvider report structure where clicking minus on one note
+    /// was collapsing a different note due to index misalignment.
+    /// </summary>
+    private const string MixedParticipantNotesPlantUmlSource = """
+        @startuml
+        !pragma teoz true
+        <style>
+         .eventNote {
+             BackgroundColor #cfecf7
+             FontSize 11
+             RoundCorner 10
+         }
+        </style>
+        skinparam wrapWidth 800
+        autonumber 1
+
+        actor "Caller" as caller
+        entity "Service A" as svcA
+        entity "Service B" as svcB
+        queue "Message Broker" as broker
+        database "Database" as db
+
+        caller -[#438DD5]> svcA: GET /api/items
+        note left
+        <color:gray>[traceparent=00-abc-def-00]
+        <color:gray>[X-Request-Id=req-001]
+        end note
+        svcA -[#438DD5]> svcB: GET /api/data
+        note left
+        <color:gray>[X-Request-Id=req-001]
+        <color:gray>[X-Correlation-Id=cor-001]
+        end note
+        svcB -[#438DD5]-> svcA: OK
+        note right
+        <color:gray>[Content-Type=application/json]
+
+        {
+          "data": "value1"
+        }
+        end note
+        broker -[#9B59B6]> svcA: Consume: /events
+        note<<eventNote>> right
+        {
+          "eventId": "evt-001",
+          "type": "ItemCreated",
+          "payload": {
+            "id": "item-001",
+            "name": "Test Item"
+          }
+        }
+        end note
+        svcA -[#9B59B6]-> broker: Ack
+        svcA -[#E74C3C]> db: Insert: /Items
+        db -[#E74C3C]-> svcA: OK
+        svcA -[#438DD5]-> caller: Created
+        note right
+        <color:gray>[X-Correlation-Id=cor-001]
+
+        {
+          "id": "item-001",
+          "status": "created"
+        }
+        end note
+        @enduml
+        """;
+
+    public static string GenerateReportWithMixedParticipantNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", MixedParticipantNotesPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

@@ -1735,6 +1735,39 @@ public static class DiagramContextMenu
                 return true;
             }
 
+            // Detect the small triangular fold path that is characteristic of
+            // PlantUML note shapes. This distinguishes notes from participant
+            // shapes (entity boxes, database cylinders, queue shapes), which
+            // also produce path+text groups but never have a fold triangle.
+            // Works regardless of theme or note fill color.
+            function hasNoteFoldTriangle(paths) {
+                if (paths.length < 2) return false;
+                try {
+                    var bodyBB = paths[0].getBBox();
+                    if (bodyBB.width <= 0 || bodyBB.height <= 0) return false;
+                    for (var pi = 1; pi < paths.length; pi++) {
+                        var fBB = paths[pi].getBBox();
+                        if (fBB.width <= 0 || fBB.height <= 0) continue;
+                        // Fold is small: either < 50% of body in both dimensions,
+                        // or < 25px absolute (handles tiny collapsed notes where
+                        // the fold is a large % of the body)
+                        var smallEnough = (fBB.width < bodyBB.width * 0.5 && fBB.height < bodyBB.height * 0.5)
+                            || (fBB.width < 25 && fBB.height < 25);
+                        if (!smallEnough) continue;
+                        // Must not be body-sized (would be a duplicate/shadow path)
+                        if (fBB.width > bodyBB.width * 0.9 && fBB.height > bodyBB.height * 0.9) continue;
+                        // Fold sits at a corner of the body (shares edges on two sides)
+                        var tol = 3;
+                        var atRight = Math.abs((fBB.x + fBB.width) - (bodyBB.x + bodyBB.width)) < tol;
+                        var atLeft = Math.abs(fBB.x - bodyBB.x) < tol;
+                        var atTop = Math.abs(fBB.y - bodyBB.y) < tol;
+                        var atBot = Math.abs((fBB.y + fBB.height) - (bodyBB.y + bodyBB.height)) < tol;
+                        if ((atRight || atLeft) && (atTop || atBot)) return true;
+                    }
+                } catch(e) {}
+                return false;
+            }
+
             function findNoteGroups(svg) {
                 var mainG = null;
                 for (var i = 0; i < svg.children.length; i++) {
@@ -1742,7 +1775,7 @@ public static class DiagramContextMenu
                 }
                 if (!mainG) return [];
                 var children = Array.from(mainG.children);
-                var groups = [];
+                var candidates = [];
                 var ci = 0;
                 while (ci < children.length) {
                     if (children[ci].tagName === 'g') { ci++; continue; }
@@ -1778,13 +1811,18 @@ public static class DiagramContextMenu
                             else { break; }
                         }
                         if (grp.paths.length > 0 && grp.texts.length > 0) {
-                            groups.push(grp);
+                            candidates.push(grp);
                         }
                     } else {
                         ci++;
                     }
                 }
-                return groups;
+                // Filter to groups with the note fold triangle — this excludes
+                // participant shapes (entity/database/queue boxes) that also
+                // produce path+text groups but lack the fold. Falls back to all
+                // candidates if fold detection finds nothing (unusual rendering).
+                var foldGroups = candidates.filter(function(g) { return hasNoteFoldTriangle(g.paths); });
+                return foldGroups.length > 0 ? foldGroups : candidates;
             }
 
             function getNoteBBox(grp) {
@@ -1845,6 +1883,7 @@ public static class DiagramContextMenu
                         symA.textContent = '\u25B2'; // ▲
                         ga.appendChild(symA);
                         bgA.addEventListener('click', function(ev) { ev.stopPropagation(); onTruncate(); });
+                        bgA.addEventListener('dblclick', function(ev) { ev.stopPropagation(); ev.preventDefault(); });
                         buttons.push(ga);
                     }
                     // − (minus) button — top-right
@@ -1869,6 +1908,7 @@ public static class DiagramContextMenu
                     symC.style.pointerEvents = 'none';
                     gc.appendChild(symC);
                     bgC.addEventListener('click', function(ev) { ev.stopPropagation(); onContract(); });
+                    bgC.addEventListener('dblclick', function(ev) { ev.stopPropagation(); ev.preventDefault(); });
                     buttons.push(gc);
                 }
 
@@ -1902,6 +1942,7 @@ public static class DiagramContextMenu
                     symPV.style.pointerEvents = 'none';
                     gp.appendChild(symPV);
                     bgP.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
+                    bgP.addEventListener('dblclick', function(ev) { ev.stopPropagation(); ev.preventDefault(); });
                     buttons.push(gp);
                 }
 
@@ -1929,6 +1970,7 @@ public static class DiagramContextMenu
                     symE.textContent = '\u25BC'; // ▼
                     ge.appendChild(symE);
                     bgE.addEventListener('click', function(ev) { ev.stopPropagation(); onExpand(); });
+                    bgE.addEventListener('dblclick', function(ev) { ev.stopPropagation(); ev.preventDefault(); });
                     buttons.push(ge);
                 }
 
@@ -1956,6 +1998,7 @@ public static class DiagramContextMenu
                     symBC.textContent = '\u25B2'; // ▲
                     gbc.appendChild(symBC);
                     bgBC.addEventListener('click', function(ev) { ev.stopPropagation(); onTruncate(); });
+                    bgBC.addEventListener('dblclick', function(ev) { ev.stopPropagation(); ev.preventDefault(); });
                     buttons.push(gbc);
                 }
 
@@ -2250,11 +2293,13 @@ public static class DiagramContextMenu
                 if (container._noteRendering || window._plantumlRendering) return;
                 if (!container._noteSteps) container._noteSteps = {};
                 if (container._noteSteps[noteIdx] === targetStep) return;
+                var oldStep = container._noteSteps[noteIdx];
                 container._noteSteps[noteIdx] = targetStep;
 
                 var origSource = container._noteOriginalSource;
+                if (!origSource) { container._noteSteps[noteIdx] = oldStep; return; }
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines));
+                var newSource = applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible);
 
                 container.setAttribute('data-plantuml', newSource);
 
@@ -2295,6 +2340,9 @@ public static class DiagramContextMenu
                     mo.disconnect();
                     container._noteRendering = false;
                     window._plantumlRendering = false;
+                    // Render failed — restore previous step and sync buttons
+                    container._noteSteps[noteIdx] = oldStep;
+                    makeNotesCollapsible(container);
                 }
 
                 var pollCount = 0;
@@ -2312,6 +2360,9 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         container._noteRendering = false;
                         window._plantumlRendering = false;
+                        // Render timed out — restore previous step and sync buttons
+                        container._noteSteps[noteIdx] = oldStep;
+                        makeNotesCollapsible(container);
                     }
                 }, 250);
             }

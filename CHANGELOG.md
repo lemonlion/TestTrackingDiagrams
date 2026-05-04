@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.42] - 2026-05-04
+
+### Fixed
+- **Note hover buttons acting on wrong note**: In diagrams with `entity`, `queue`, or `database` participant types, clicking the minus/plus hover button on one note would collapse/expand a different note further down. The root cause was that `findNoteGroups` misidentified participant shapes (which also render as path+text SVG groups) as note groups, causing note index misalignment. Fixed by adding fold-triangle geometry detection — every PlantUML note has a small triangular fold path at one corner that participants never have. This works regardless of theme or note fill color.
+- **`applyAssertionFilter` missing visibility parameter in `setNoteState`**: When toggling individual note state via hover buttons, `applyAssertionFilter` was called without the `showing` parameter, defaulting to assertion-hidden mode regardless of the actual setting.
+- **Note state rollback on render failure**: If a PlantUML WASM re-render fails or times out after a note state change, the `_noteSteps` value is now rolled back to the previous state and buttons are resynchronized, preventing visual/state desynchronization.
+- **Double-click on note buttons no longer triggers zoom toggle**: Added `dblclick` event suppression on all note hover button rects to prevent fast double-clicks from bubbling to the diagram zoom toggle handler.
+
 ## [2.28.41] - 2026-05-03
 
 ### Fixed

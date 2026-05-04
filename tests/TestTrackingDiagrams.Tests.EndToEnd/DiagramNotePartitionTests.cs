@@ -157,13 +157,13 @@ public class DiagramNotePartitionTests : DiagramNotePlaywrightBase
                 }
                 var SVGNS = 'http://www.w3.org/2000/svg';
 
-                // findNoteGroups now includes ALL colored-fill groups (no pre-exclusion)
+                // findNoteGroups uses fold-triangle detection to find only real notes
                 var allGroups = window._findNoteGroups(svg).length;
 
                 // But makeNotesCollapsible correctly reconciles — count hover rects as proof
                 var hoverRects = svg.querySelectorAll('.note-hover-rect').length;
 
-                // Inject non-note fills (partition/participant) at the start — before real notes
+                // Inject a fake participant-style rectangle (no fold triangle) at the start
                 var fakePath = document.createElementNS(SVGNS, 'path');
                 fakePath.setAttribute('fill', '#F6F6F6');
                 fakePath.setAttribute('d', 'M10,10 L200,10 L200,50 L10,50 Z');
@@ -176,7 +176,8 @@ public class DiagramNotePartitionTests : DiagramNotePlaywrightBase
                 mainG.insertBefore(fakeText, firstChild);
                 mainG.insertBefore(fakePath, fakeText);
 
-                // After injection, findNoteGroups will return more groups
+                // After injection, findNoteGroups should NOT detect the fake rectangle
+                // because it lacks the fold triangle that real notes have
                 var afterGroups = window._findNoteGroups(svg).length;
 
                 return { allGroups: allGroups, afterGroups: afterGroups, hoverRects: hoverRects };
@@ -187,9 +188,9 @@ public class DiagramNotePartitionTests : DiagramNotePlaywrightBase
         var afterGroups = result.GetProperty("afterGroups").GetInt32();
         var hoverRects = result.GetProperty("hoverRects").GetInt32();
 
-        // findNoteGroups returns more after injection (no color pre-filtering)
-        Assert.True(afterGroups > allGroups, "Injected fills should be detected by findNoteGroups");
-        // But makeNotesCollapsible created the correct number of hover-rects (safety-net works)
+        // Fold detection correctly excludes the fake rectangle — count stays the same
+        Assert.Equal(allGroups, afterGroups);
+        // makeNotesCollapsible created the correct number of hover-rects
         Assert.True(hoverRects > 0, "Should have note hover rects from initial render");
     }
 
