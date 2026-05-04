@@ -107,9 +107,8 @@ public static class DiagramContextMenu
             border-radius: 4px;
         }
         .diagram-zoom-controls {
-            position: absolute;
+            position: sticky;
             top: 6px;
-            left: 6px;
             z-index: 10;
             display: flex;
             align-items: center;
@@ -117,6 +116,9 @@ public static class DiagramContextMenu
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.15s;
+            height: 0;
+            overflow: visible;
+            padding-left: 6px;
         }
         [data-diagram-type]:hover > .diagram-zoom-controls {
             opacity: 0.4;
@@ -1277,13 +1279,13 @@ public static class DiagramContextMenu
                 // Update container overflow
                 var isZoomed = percent > fitPct;
                 if (isZoomed) {
-                    container.style.overflow = 'auto';
-                    container.style.maxHeight = '80vh';
+                    container.style.overflowX = 'auto';
+                    container.style.overflowY = '';
                     container.style.cursor = 'grab';
                     container.classList.add('diagram-natural-size');
                 } else {
-                    container.style.overflow = '';
-                    container.style.maxHeight = '';
+                    container.style.overflowX = '';
+                    container.style.overflowY = '';
                     container.style.cursor = '';
                     container.classList.remove('diagram-natural-size');
                 }
@@ -1370,8 +1372,8 @@ public static class DiagramContextMenu
                 if (!svg) return;
                 if (container.classList.contains('diagram-natural-size')) {
                     svg.style.maxWidth = 'none';
-                    container.style.overflow = 'auto';
-                    container.style.maxHeight = '80vh';
+                    container.style.overflowX = 'auto';
+                    container.style.overflowY = '';
                     container.style.cursor = 'grab';
                 } else {
                     svg.style.maxWidth = '100%';

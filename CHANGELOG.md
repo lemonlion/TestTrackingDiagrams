@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.2-beta] - 2026-05-04
+
+### Changed
+- **Zoom: no vertical scrollbar constraint**: Zoomed diagrams now expand to their full natural height instead of being capped at `80vh` with a vertical scrollbar. Only a horizontal scrollbar appears when the diagram is wider than the container.
+- **Zoom controls float at top-left while scrolling**: The zoom button and slider now use `position: sticky` so they remain visible at the top-left of the diagram as the user scrolls down through a tall zoomed diagram.
+
 ## [2.29.1-beta] - 2026-05-04
 
 ### Fixed

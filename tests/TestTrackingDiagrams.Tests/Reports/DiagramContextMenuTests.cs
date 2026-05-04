@@ -736,22 +736,20 @@ public class DiagramContextMenuTests
     }
 
     // ═══════════════════════════════════════════════════════════
-    // Zoom toggle — drag-to-pan and max-height
+    // Zoom toggle — drag-to-pan and overflow
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void ZoomToggle_sets_overflow_auto_and_max_height_when_zoomed()
+    public void ZoomToggle_sets_overflow_x_auto_when_zoomed()
     {
-        Assert.Contains("container.style.overflow = 'auto'", _script);
-        Assert.Contains("container.style.maxHeight = '80vh'", _script);
+        Assert.Contains("container.style.overflowX = 'auto'", _script);
         Assert.Contains("container.style.cursor = 'grab'", _script);
     }
 
     [Fact]
-    public void ZoomToggle_clears_overflow_and_max_height_when_unzoomed()
+    public void ZoomToggle_clears_overflow_x_when_unzoomed()
     {
-        Assert.Contains("container.style.overflow = ''", _script);
-        Assert.Contains("container.style.maxHeight = ''", _script);
+        Assert.Contains("container.style.overflowX = ''", _script);
         Assert.Contains("container.style.cursor = ''", _script);
     }
 

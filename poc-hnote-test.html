@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>POC: hnote rendering test</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .test { border: 1px solid #ccc; padding: 1em; margin: 1em 0; border-radius: 8px; }
+        .test h2 { margin-top: 0; }
+        .source { background: #f4f4f4; padding: 0.5em 1em; font-family: monospace; white-space: pre; font-size: 13px; margin-bottom: 1em; border-radius: 4px; }
+        .diagram { min-height: 100px; border: 1px dashed #ddd; padding: 0.5em; }
+        .status { font-weight: bold; margin-top: 0.5em; }
+        .status.pending { color: orange; }
+        .status.rendered { color: green; }
+        .status.failed { color: red; }
+    </style>
+</head>
+<body>
+    <h1>POC: hnote syntax rendering in plantuml-wasm</h1>
+    <p>This tests whether the single-line colon syntax used by <code>InsertTestDelimiter</code> renders in plantuml-wasm.</p>
+
+    <div class="test">
+        <h2>A) Current delimiter syntax (single-line colon)</h2>
+        <div class="source" id="sourceA"></div>
+        <div class="diagram" id="diagramA"></div>
+        <div class="status pending" id="statusA">⏳ Pending...</div>
+    </div>
+
+    <div class="test">
+        <h2>B) Proposed fix: multi-line with end note</h2>
+        <div class="source" id="sourceB"></div>
+        <div class="diagram" id="diagramB"></div>
+        <div class="status pending" id="statusB">⏳ Pending...</div>
+    </div>
+
+    <div class="test">
+        <h2>C) Control: assertion note (known working)</h2>
+        <div class="source" id="sourceC"></div>
+        <div class="diagram" id="diagramC"></div>
+        <div class="status pending" id="statusC">⏳ Pending...</div>
+    </div>
+
+    <div class="test">
+        <h2>D) Variant: hnote across #black with colon text (no color tag)</h2>
+        <div class="source" id="sourceD"></div>
+        <div class="diagram" id="diagramD"></div>
+        <div class="status pending" id="statusD">⏳ Pending...</div>
+    </div>
+
+    <div class="test">
+        <h2>E) Variant: note across #black (not hnote)</h2>
+        <div class="source" id="sourceE"></div>
+        <div class="diagram" id="diagramE"></div>
+        <div class="status pending" id="statusE">⏳ Pending...</div>
+    </div>
+
+    <script defer src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched/viz-global.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_98304@v1.2026.3beta6-patched/plantuml.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // plantumlLoad() is defined by plantuml.js and must be called to initialize
+            if (typeof plantumlLoad === 'function') {
+                plantumlLoad();
+                console.log('plantumlLoad() called');
+            } else {
+                console.error('plantumlLoad not found — plantuml.js may not have loaded');
+            }
+        });
+
+        var diagrams = {
+            A: {
+                label: 'Current InsertTestDelimiter syntax',
+                source: '@startuml\nactor Caller\nentity API\nCaller -> API: GET /orders\nhnote across #black:<color:white>Test 1\nCaller -> API: GET /orders/2\n@enduml'
+            },
+            B: {
+                label: 'Proposed fix (multi-line)',
+                source: '@startuml\nactor Caller\nentity API\nCaller -> API: GET /orders\nhnote across #black\n<color:white>Test 1\nend note\nCaller -> API: GET /orders/2\n@enduml'
+            },
+            C: {
+                label: 'Assertion note (control)',
+                source: '@startuml\nactor Caller\nentity API\nCaller -> API: GET /orders\nhnote across <<assertionNote>> #d4edda\n\\u2713 Order count should be 3\nend note\nCaller -> API: GET /orders/2\n@enduml'
+            },
+            D: {
+                label: 'hnote across #black colon (no color tag)',
+                source: '@startuml\nactor Caller\nentity API\nCaller -> API: GET /orders\nhnote across #black: Test 1\nCaller -> API: GET /orders/2\n@enduml'
+            },
+            E: {
+                label: 'note across (not hnote) multi-line',
+                source: '@startuml\nactor Caller\nentity API\nCaller -> API: GET /orders\nnote across #black\n<color:white>Test 1\nend note\nCaller -> API: GET /orders/2\n@enduml'
+            }
+        };
+
+        // Show source code for each diagram
+        Object.keys(diagrams).forEach(function(key) {
+            document.getElementById('source' + key).textContent = diagrams[key].source.replace(/\\n/g, '\n');
+        });
+
+        // Wait for plantuml-wasm to load, then render
+        var waitCount = 0;
+        function waitForPlantuml() {
+            waitCount++;
+            var hasPlantuml = !!window.plantuml;
+            var hasRender = hasPlantuml && typeof window.plantuml.render === 'function';
+            console.log('Poll #' + waitCount + ': window.plantuml=' + hasPlantuml + ', render=' + hasRender);
+            if (hasRender) {
+                console.log('plantuml.render available, starting renders');
+                renderAll();
+            } else if (waitCount > 50) {
+                document.querySelectorAll('.status').forEach(function(el) {
+                    el.textContent = '❌ plantuml-wasm failed to load after 10s. Check console.';
+                    el.className = 'status failed';
+                });
+            } else {
+                setTimeout(waitForPlantuml, 200);
+            }
+        }
+
+        function renderAll() {
+            var keys = Object.keys(diagrams);
+            var idx = 0;
+
+            function renderNext() {
+                if (idx >= keys.length) return;
+                var key = keys[idx];
+                var el = document.getElementById('diagram' + key);
+                var statusEl = document.getElementById('status' + key);
+                var lines = diagrams[key].source.split('\n');
+
+                var mo = new MutationObserver(function() {
+                    mo.disconnect();
+                    var svg = el.querySelector('svg');
+                    if (svg) {
+                        statusEl.textContent = '✅ Rendered successfully';
+                        statusEl.className = 'status rendered';
+                    } else {
+                        statusEl.textContent = '❌ No SVG produced';
+                        statusEl.className = 'status failed';
+                    }
+                    idx++;
+                    renderNext();
+                });
+                mo.observe(el, { childList: true, subtree: true });
+
+                try {
+                    window.plantuml.render(lines, el.id);
+                } catch (e) {
+                    mo.disconnect();
+                    statusEl.textContent = '❌ Error: ' + (e.message || e);
+                    statusEl.className = 'status failed';
+                    idx++;
+                    renderNext();
+                }
+            }
+
+            renderNext();
+        }
+
+        waitForPlantuml();
+    </script>
+</body>
+</html>

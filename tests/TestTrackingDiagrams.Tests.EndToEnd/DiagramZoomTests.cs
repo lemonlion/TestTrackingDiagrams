@@ -95,7 +95,7 @@ public class DiagramZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Zoomed_container_has_overflow_auto_and_max_height()
+    public async Task Zoomed_container_has_overflow_x_auto()
     {
         await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomOverflow.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -108,14 +108,14 @@ public class DiagramZoomTests : PlaywrightTestBase
 
         await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
 
-        var overflow = await container.EvaluateAsync<string>("e => window.getComputedStyle(e).overflow");
-        Assert.Equal("auto", overflow);
-        var maxHeight = await container.EvaluateAsync<string>("e => e.style.maxHeight");
-        Assert.Equal("80vh", maxHeight);
+        var overflowX = await container.EvaluateAsync<string>("e => e.style.overflowX");
+        Assert.Equal("auto", overflowX);
+        var overflowY = await container.EvaluateAsync<string>("e => e.style.overflowY");
+        Assert.True(overflowY is "" or "visible", $"Expected no vertical overflow constraint but got: {overflowY}");
     }
 
     [Fact]
-    public async Task Unzooming_clears_overflow_and_max_height()
+    public async Task Unzooming_clears_overflow()
     {
         await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomClearOverflow.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -131,8 +131,8 @@ public class DiagramZoomTests : PlaywrightTestBase
             () => { var btn = document.querySelector('.diagram-zoom-toggle'); btn.click(); btn.click(); }
         """);
 
-        var overflow = await container.EvaluateAsync<string>("e => e.style.overflow");
-        Assert.True(overflow is "" or "visible", $"Expected overflow to be cleared but got: {overflow}");
+        var overflowX = await container.EvaluateAsync<string>("e => e.style.overflowX");
+        Assert.True(overflowX is "" or "visible", $"Expected overflow-x to be cleared but got: {overflowX}");
     }
 
     // ── Double-click zoom ──

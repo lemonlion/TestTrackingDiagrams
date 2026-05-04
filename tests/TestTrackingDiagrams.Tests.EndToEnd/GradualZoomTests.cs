@@ -236,7 +236,7 @@ public class GradualZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Container_gets_overflow_auto_when_slider_above_fit()
+    public async Task Container_gets_overflow_x_auto_when_slider_above_fit()
     {
         await SetupWideDiagram("SliderOverflow.html");
 
@@ -250,8 +250,8 @@ public class GradualZoomTests : PlaywrightTestBase
         """);
 
         var container = GetDiagramContainer();
-        var overflow = await container.EvaluateAsync<string>("e => e.style.overflow");
-        Assert.Equal("auto", overflow);
+        var overflowX = await container.EvaluateAsync<string>("e => e.style.overflowX");
+        Assert.Equal("auto", overflowX);
     }
 
     // ── Keyboard Zoom ──
