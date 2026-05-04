@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.43] - 2026-05-04
+
+### Reverted
+- **Browser zoom fixed-pixel `max-width` on SVG diagrams** (introduced in v2.28.40): Reverted the SVG `max-width` from a fixed pixel snapshot (`container.clientWidth + 'px'`) back to `100%`. Removed the `snapshotMaxWidth()` function, the `window.resize` recalculation listener, and all pixel-snapshot calls in `addZoomButton`, `toggleDiagramZoom`, and `restoreZoomState`.
+
 ## [2.28.42] - 2026-05-04
 
 ### Fixed

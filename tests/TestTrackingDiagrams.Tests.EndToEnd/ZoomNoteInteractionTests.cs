@@ -156,7 +156,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await Page.EvaluateAsync(
             "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
         Assert.False(await IsZoomedIn(), "Should have zoomed out");
-        Assert.EndsWith("px", await GetSvgMaxWidth());
+        Assert.Equal("100%", await GetSvgMaxWidth());
         Assert.Equal("", await GetContainerOverflow());
     }
 
@@ -250,7 +250,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await WaitForReRender();
 
         Assert.False(await IsZoomedIn());
-        Assert.EndsWith("px", await GetSvgMaxWidth());
+        Assert.Equal("100%", await GetSvgMaxWidth());
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         """);
 
         Assert.False(await IsZoomedIn());
-        Assert.EndsWith("px", await GetSvgMaxWidth());
+        Assert.Equal("100%", await GetSvgMaxWidth());
     }
 
     [Fact]

@@ -1128,17 +1128,6 @@ public static class DiagramContextMenu
                 return naturalW > container.clientWidth + 1;
             }
 
-            // Snapshot the container width as fixed-pixel max-width on the SVG.
-            // This preserves fit-to-width at load time while allowing browser zoom
-            // (Ctrl+/-) to physically scale the diagram — unlike max-width: 100%
-            // which always tracks the container width in CSS pixels.
-            function snapshotMaxWidth(container) {
-                var svg = getSvg(container);
-                if (!svg) return;
-                if (container.classList.contains('diagram-natural-size')) return;
-                svg.style.maxWidth = container.clientWidth + 'px';
-            }
-
             // Toggle diagram between fit-to-width and natural size
             function toggleDiagramZoom(container) {
                 var svg = getSvg(container);
@@ -1152,7 +1141,7 @@ public static class DiagramContextMenu
                     container.style.cursor = 'grab';
                     if (btn) btn.textContent = '\u2921';
                 } else {
-                    svg.style.maxWidth = container.clientWidth + 'px';
+                    svg.style.maxWidth = '100%';
                     container.style.overflow = '';
                     container.style.maxHeight = '';
                     container.style.cursor = '';
@@ -1173,8 +1162,6 @@ public static class DiagramContextMenu
 
             // Add zoom button to a single diagram container once its SVG is ready
             function addZoomButton(container) {
-                // Always snapshot the fixed max-width for browser zoom support
-                snapshotMaxWidth(container);
                 if (container.querySelector('.diagram-zoom-toggle')) return;
                 var svg = getSvg(container);
                 if (!svg) return;
@@ -1203,7 +1190,7 @@ public static class DiagramContextMenu
                     container.style.maxHeight = '80vh';
                     container.style.cursor = 'grab';
                 } else {
-                    snapshotMaxWidth(container);
+                    svg.style.maxWidth = '100%';
                 }
             }
 
@@ -1238,20 +1225,6 @@ public static class DiagramContextMenu
             })();
 
             window._addZoomButton = addZoomButton;
-
-            // Recalculate fixed max-width on genuine window resize (not browser zoom).
-            // window.outerWidth changes on resize but NOT on zoom.
-            (function() {
-                var lastOuterWidth = window.outerWidth;
-                window.addEventListener('resize', function() {
-                    if (window.outerWidth === lastOuterWidth) return;
-                    lastOuterWidth = window.outerWidth;
-                    document.querySelectorAll('[data-diagram-type]').forEach(function(c) {
-                        if (c.classList.contains('diagram-natural-size')) return;
-                        snapshotMaxWidth(c);
-                    });
-                });
-            })();
 
             // Lazily add zoom buttons when diagram containers scroll into view.
             // A per-container MutationObserver waits for the SVG to render before
