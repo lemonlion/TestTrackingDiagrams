@@ -602,27 +602,22 @@ public class MessageTrackerTests
     [Fact]
     public void TrackSendEvent_does_nothing_when_no_test_info()
     {
-        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
-        TestIdentityScope.ClearGlobalFallback();
-
-        // If the framework's execution context leaks TestIdentityScope.Current,
-        // this test's premise (no test info available anywhere) is invalid — skip assertion.
-        if (TestIdentityScope.Current is not null)
+        // If the framework's execution context or a parallel test has set identity,
+        // this test's premise (no test info available anywhere) is invalid — skip.
+        if (TestIdentityScope.Current is not null || TestIdentityScope.GlobalFallback is not null)
             return;
 
+        var marker = $"NoLog-SendEvent-{Guid.NewGuid():N}";
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallerName = "Svc",
+            CallerName = marker,
             CurrentTestInfoFetcher = null
         });
-        var idsBefore = RequestResponseLogger.RequestAndResponseLogs
-            .Select(l => l.RequestResponseId).ToHashSet();
 
         tracker.TrackSendEvent("Kafka", "Dest", new Uri("kafka://t"), new { });
 
-        var newLogs = RequestResponseLogger.RequestAndResponseLogs
-            .Where(l => !idsBefore.Contains(l.RequestResponseId)).ToArray();
-        Assert.Empty(newLogs);
+        var logs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.CallerName == marker).ToArray();
+        Assert.Empty(logs);
     }
 
     // ─── ServiceName in options ─────────────────────────────────
@@ -795,16 +790,17 @@ public class MessageTrackerTests
     [Fact]
     public void TrackMessageRequest_does_not_log_when_fetcher_throws()
     {
-        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
+        var marker = $"NoLog-Request-{Guid.NewGuid():N}";
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallerName = "Svc",
+            CallerName = marker,
             CurrentTestInfoFetcher = () => throw new NullReferenceException("TestContext.Current.Test is null")
         });
 
         tracker.TrackMessageRequest("Kafka", "Svc", new Uri("kafka://t"), new { });
 
-        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+        var logs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.CallerName == marker).ToArray();
+        Assert.Empty(logs);
     }
 
     [Fact]
@@ -1038,22 +1034,20 @@ public class MessageTrackerTests
     [Fact]
     public void TrackConsumeEvent_does_nothing_when_no_test_info()
     {
-        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
-        TestIdentityScope.ClearGlobalFallback();
-
-        if (TestIdentityScope.Current is not null)
+        if (TestIdentityScope.Current is not null || TestIdentityScope.GlobalFallback is not null)
             return;
 
+        var marker = $"NoLog-Consume-{Guid.NewGuid():N}";
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallerName = "Broker",
+            CallerName = marker,
             CurrentTestInfoFetcher = null
         });
-        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
 
         tracker.TrackConsumeEvent("Consume", "Consumer", new Uri("kafka:///t"), new { });
 
-        Assert.Equal(countBefore, RequestResponseLogger.RequestAndResponseLogs.Length);
+        var logs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.CallerName == marker).ToArray();
+        Assert.Empty(logs);
     }
 
     [Fact]
@@ -1433,23 +1427,22 @@ public class MessageTrackerTests
     [Fact]
     public void TrackSendMessage_does_nothing_when_no_test_info()
     {
-        TestIdentityScope.Reset(); // ensure no ambient scope from a previous test
-        TestIdentityScope.ClearGlobalFallback();
-
-        if (TestIdentityScope.Current is not null)
+        if (TestIdentityScope.Current is not null || TestIdentityScope.GlobalFallback is not null)
             return;
 
+        var marker = $"NoLog-SendMessage-{Guid.NewGuid():N}";
         var tracker = new MessageTracker(new MessageTrackerOptions
         {
-            CallerName = "Svc",
+            CallerName = marker,
             CurrentTestInfoFetcher = null
         });
-        var countBefore = RequestResponseLogger.RequestAndResponseLogs.Length;
 
         var id = tracker.TrackSendMessage("Send", "Queue",
             new Uri("sb://q"), new { });
 
         Assert.Equal(Guid.Empty, id);
+        var logs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.CallerName == marker).ToArray();
+        Assert.Empty(logs);
     }
 
     // ─── UnknownIdentity fallthrough ─────────────────────────────

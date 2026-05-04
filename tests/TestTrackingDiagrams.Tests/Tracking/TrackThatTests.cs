@@ -2,34 +2,27 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("TestIdentityScope")]
 public class TrackThatTests : IDisposable
 {
-    private const string TestId = "TrackThatTests.TestMethod";
-
-    public TrackThatTests()
-    {
-        RequestResponseLogger.Clear();
-    }
+    private readonly string _testId = $"TrackThatTests.{Guid.NewGuid():N}";
 
     public void Dispose()
     {
-        TestIdentityScope.Reset();
-        TestIdentityScope.ClearGlobalFallback();
         Track.TestIdResolver = null;
         Track.DiagnosticMode = false;
         Track.ClearDiagnosticLog();
-        RequestResponseLogger.Clear();
     }
 
-    private static List<RequestResponseLog> GetAssertionLogs() =>
+    private List<RequestResponseLog> GetAssertionLogs(string? testId = null) =>
         RequestResponseLogger.RequestAndResponseLogs
-            .Where(l => l.PlantUml is not null && l.PlantUml.Contains("<<assertionNote>>"))
+            .Where(l => l.TestId == (testId ?? _testId) && l.PlantUml is not null && l.PlantUml.Contains("<<assertionNote>>"))
             .ToList();
 
     [Fact]
     public void That_passed_assertion_logs_green_note_with_assertionNote_stereotype()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         Track.That(() => Assert.True(true));
 
@@ -42,7 +35,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_failed_assertion_logs_red_note_and_rethrows()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var ex = Assert.Throws<Exception>(() =>
             Track.That(() => throw new Exception("Test failure")));
@@ -59,7 +52,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public async Task ThatAsync_passed_assertion_logs_green_note()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         await Track.ThatAsync(async () =>
         {
@@ -75,7 +68,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public async Task ThatAsync_failed_assertion_logs_red_note_and_rethrows()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Track.ThatAsync(async () =>
@@ -94,7 +87,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_with_return_value_returns_value_and_logs()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var result = Track.That(() => 42);
 
@@ -128,7 +121,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_formats_expression_in_plantuml_note()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         Track.That(() => Assert.True(true));
 
@@ -142,7 +135,7 @@ public class TrackThatTests : IDisposable
     public void That_uses_TestIdResolver_when_no_identity_scope()
     {
         TestIdentityScope.Reset();
-        Track.TestIdResolver = () => TestId;
+        Track.TestIdResolver = () => _testId;
 
         Track.That(() => Assert.True(true));
 
@@ -161,7 +154,7 @@ public class TrackThatTests : IDisposable
 
         Track.That(() => Assert.True(true));
 
-        var logs = GetAssertionLogs();
+        var logs = GetAssertionLogs(resolverId);
         Assert.NotEmpty(logs);
         Assert.Equal(resolverId, logs[0].TestId);
     }
@@ -169,33 +162,33 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_falls_back_to_identity_scope_when_resolver_returns_null()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
         Track.TestIdResolver = () => null;
 
         Track.That(() => Assert.True(true));
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Equal(TestId, logs[0].TestId);
+        Assert.Equal(_testId, logs[0].TestId);
     }
 
     [Fact]
     public void That_falls_back_to_identity_scope_when_resolver_throws()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
         Track.TestIdResolver = () => throw new InvalidOperationException("No scenario context");
 
         Track.That(() => Assert.True(true));
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Equal(TestId, logs[0].TestId);
+        Assert.Equal(_testId, logs[0].TestId);
     }
 
     [Fact]
     public void That_resolves_captured_variable_value_in_assertion_note()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var expected = "hello-world";
         // CallerArgumentExpression will be: () => "x".Should().Be(expected)
@@ -210,7 +203,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_falls_back_to_source_text_for_computed_expression()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var maxOrders = 5;
         // CallerArgumentExpression: () => "x".Should().Be(maxOrders - 1)
@@ -225,7 +218,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_DiagnosticMode_logs_fallback_reason()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
         Track.DiagnosticMode = true;
 
         try
@@ -246,7 +239,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public void That_DiagnosticMode_off_does_not_log_fallback()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
         Track.DiagnosticMode = false;
 
         var maxOrders = 5;
@@ -258,7 +251,7 @@ public class TrackThatTests : IDisposable
     [Fact]
     public async Task ThatAsync_resolves_captured_variable_value()
     {
-        using var scope = TestIdentityScope.Begin(TestId, TestId);
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
 
         var expected = "async-value";
         await Track.ThatAsync(async () =>

@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("TestIdentityScope")]
 public class TestInfoResolverTests
 {
     [Fact]

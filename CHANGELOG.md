@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.28.44] - 2026-05-04
+
+### Fixed
+- **Flaky unit tests under parallel execution**: Fixed shared static state pollution across xUnit parallel test classes. `TrackThatTests` now uses a unique `_testId` per instance (via `Guid.NewGuid()`) instead of a shared constant, preventing log cross-contamination between test methods. `TrackThatIntegrationTests` now filters `trackedLogs` by `testId` before passing to `GenerateHtmlReport`, preventing assertion logs from other parallel tests leaking into report assertions. `MessageTrackerTests` "does_nothing" tests now use unique `CallerName` markers and filter by marker instead of global log count. Added `[Collection("TestIdentityScope")]` to `TestIdentityScopeTests` and `TestInfoResolverTests` to serialize tests that mutate `TestIdentityScope.GlobalFallback`.
+
 ## [2.28.43] - 2026-05-04
 
 ### Reverted

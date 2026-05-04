@@ -12,9 +12,6 @@ public class TrackThatIntegrationTests : IDisposable
     {
         foreach (var file in Directory.GetFiles(_reportDir, "TrackThat*"))
             File.Delete(file);
-        RequestResponseLogger.Clear();
-        TestIdentityScope.Reset();
-        TestIdentityScope.ClearGlobalFallback();
     }
 
     private static Feature[] MakeFeatures(string scenarioId = "assertion-test") =>
@@ -39,7 +36,6 @@ public class TrackThatIntegrationTests : IDisposable
     public void Report_contains_assertionNote_in_PlantUML_source_when_Track_That_used()
     {
         const string testId = "assertion-test";
-        RequestResponseLogger.Clear();
 
         // Simulate a tracked HTTP call + assertion
         using (TestIdentityScope.Begin("Verifies response", testId))
@@ -56,7 +52,7 @@ public class TrackThatIntegrationTests : IDisposable
             Track.That(() => { });
         }
 
-        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs;
+        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == testId).ToArray();
         var diagrams = new[]
         {
             new DefaultDiagramsFetcher.DiagramAsCode(testId, "",
@@ -79,7 +75,6 @@ public class TrackThatIntegrationTests : IDisposable
     public void Report_does_not_contain_assertions_radio_when_no_assertions_tracked()
     {
         const string testId = "no-assertions";
-        RequestResponseLogger.Clear();
 
         // Just log a normal request, no assertions
         using (TestIdentityScope.Begin("Normal test", testId))
@@ -92,7 +87,7 @@ public class TrackThatIntegrationTests : IDisposable
             RequestResponseLogger.Log(requestLog);
         }
 
-        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs;
+        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == testId).ToArray();
         var diagrams = new[]
         {
             new DefaultDiagramsFetcher.DiagramAsCode(testId, "",
@@ -115,14 +110,13 @@ public class TrackThatIntegrationTests : IDisposable
     public void Report_contains_stripAssertionNotes_function()
     {
         const string testId = "strip-test";
-        RequestResponseLogger.Clear();
 
         using (TestIdentityScope.Begin("Strip test", testId))
         {
             Track.That(() => { });
         }
 
-        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs;
+        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == testId).ToArray();
         var diagrams = new[]
         {
             new DefaultDiagramsFetcher.DiagramAsCode(testId, "",
@@ -145,7 +139,6 @@ public class TrackThatIntegrationTests : IDisposable
     public void PlantUML_source_includes_assertionNote_style_when_assertions_present()
     {
         const string testId = "style-test";
-        RequestResponseLogger.Clear();
 
         using (TestIdentityScope.Begin("Style test", testId))
         {
@@ -159,7 +152,7 @@ public class TrackThatIntegrationTests : IDisposable
             Track.That(() => { });
         }
 
-        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs;
+        var trackedLogs = RequestResponseLogger.RequestAndResponseLogs.Where(l => l.TestId == testId).ToArray();
 
         // Verify that assertion logs have the assertionNote stereotype
         var assertionLogs = trackedLogs.Where(l => l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>")).ToArray();
