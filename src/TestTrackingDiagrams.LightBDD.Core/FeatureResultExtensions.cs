@@ -52,6 +52,7 @@ internal static class FeatureResultExtensions
 
         string displayName;
         Dictionary<string, string>? exampleValues;
+        Dictionary<string, object?>? exampleRawValues = null;
         string? outlineId;
 
         if (nameParams.Length > 0)
@@ -60,6 +61,9 @@ internal static class FeatureResultExtensions
             // including those substituted inline into the scenario name
             displayName = nameInfo.ToString();
             (outlineId, exampleValues) = ExtractScenarioParameters(nameInfo.NameFormat, nameParams);
+
+            // Try to look up captured raw parameter values
+            exampleRawValues = TryGetCapturedRawValues(nameParams, exampleValues);
         }
         else
         {
@@ -83,7 +87,60 @@ internal static class FeatureResultExtensions
             Categories = categories.Length > 0 ? categories : null,
             OutlineId = outlineId,
             ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
+            ExampleRawValues = exampleRawValues,
         };
+    }
+
+    /// <summary>
+    /// Attempts to look up captured raw argument values that were stored during test execution.
+    /// Uses the formatted parameter values as a content-based key for matching.
+    /// </summary>
+    private static Dictionary<string, object?>? TryGetCapturedRawValues(
+        INameParameterInfo[] nameParams, Dictionary<string, string> exampleValues)
+    {
+        try
+        {
+            // Strategy 1: Try values-only key (most reliable - avoids param name mismatch)
+            var formattedValues = nameParams.Select(p => p.FormattedValue ?? "").ToArray();
+            var valuesKey = CapturedScenarioArguments.BuildValuesOnlyKey(formattedValues);
+            var captured = CapturedScenarioArguments.TryGet(valuesKey);
+
+            if (captured is null)
+            {
+                // Strategy 2: Try full key with exampleValues keys as param names
+                var paramNames = exampleValues.Keys.ToArray();
+                if (paramNames.Length == formattedValues.Length)
+                {
+                    var fullKey = CapturedScenarioArguments.BuildKey(paramNames, formattedValues);
+                    captured = CapturedScenarioArguments.TryGet(fullKey);
+                }
+            }
+
+            if (captured is null)
+                return null;
+
+            // Build ExampleRawValues using the same parameter names as ExampleValues
+            var rawValues = new Dictionary<string, object?>();
+            var capturedParamNames = captured.Value.ParamNames;
+            var capturedRawValues = captured.Value.RawValues;
+
+            // Map captured raw values to exampleValues keys by matching parameter names
+            foreach (var kvp in exampleValues)
+            {
+                var paramIdx = Array.FindIndex(capturedParamNames,
+                    n => n.Equals(kvp.Key, StringComparison.OrdinalIgnoreCase));
+                if (paramIdx >= 0 && paramIdx < capturedRawValues.Length)
+                {
+                    rawValues[kvp.Key] = capturedRawValues[paramIdx];
+                }
+            }
+
+            return rawValues.Count > 0 ? rawValues : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

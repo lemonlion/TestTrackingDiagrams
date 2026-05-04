@@ -12,6 +12,7 @@ using Xunit.v3;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 [assembly: TestPipelineStartup(typeof(ConfiguredLightBddScope))]
+[assembly: CaptureLightBddArguments]
 namespace Example.Api.Tests.Component.LightBDD.xUnit3.Infrastructure;
 
 public class ConfiguredLightBddScope : LightBddScope

@@ -35,6 +35,9 @@ internal static class ScenarioInfoEnumerableExtensions
                         .DistinctBy(x => x.ScenarioId)
                         .OrderByDescending(x => x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
+                        .ThenBy(x => x.ExampleValues is { Count: > 0 }
+                            ? string.Join("|", x.ExampleValues.Values)
+                            : "")
                         .Select(x =>
                         {
                             var labels = x.ScenarioTags
@@ -84,10 +87,66 @@ internal static class ScenarioInfoEnumerableExtensions
                 Status = steps[i].Status.ToStepResult(priorFailure),
                 Duration = steps[i].Duration,
                 DocString = steps[i].DocString,
+                Parameters = ParseTableText(steps[i].TableText),
             };
             if (steps[i].Status == ScenarioExecutionStatus.TestError || steps[i].Status == ScenarioExecutionStatus.BindingError)
                 priorFailure = true;
         }
         return mapped;
+    }
+
+    private static StepParameter[]? ParseTableText(string? tableText)
+    {
+        if (string.IsNullOrWhiteSpace(tableText))
+            return null;
+
+        var lines = tableText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length < 2) // Need at least header + one data row
+            return null;
+
+        var headers = ParseTableRow(lines[0]);
+        if (headers.Length == 0)
+            return null;
+
+        var columns = headers.Select(h => new TabularColumn(h, false)).ToArray();
+        var rows = new List<TabularRow>();
+
+        for (var i = 1; i < lines.Length; i++)
+        {
+            var cells = ParseTableRow(lines[i]);
+            if (cells.Length == 0)
+                continue;
+
+            // Pad or truncate to match header count
+            var tabularCells = new TabularCell[columns.Length];
+            for (var j = 0; j < columns.Length; j++)
+            {
+                var value = j < cells.Length ? cells[j] : "";
+                tabularCells[j] = new TabularCell(value, null, VerificationStatus.NotApplicable);
+            }
+            rows.Add(new TabularRow(TableRowType.Matching, tabularCells));
+        }
+
+        if (rows.Count == 0)
+            return null;
+
+        return [new StepParameter
+        {
+            Name = "table",
+            Kind = StepParameterKind.Tabular,
+            TabularValue = new TabularParameterValue(columns, rows.ToArray())
+        }];
+    }
+
+    private static string[] ParseTableRow(string line)
+    {
+        var trimmed = line.Trim();
+        if (!trimmed.StartsWith('|') || !trimmed.EndsWith('|'))
+            return [];
+
+        return trimmed[1..^1]
+            .Split('|')
+            .Select(cell => cell.Trim())
+            .ToArray();
     }
 }

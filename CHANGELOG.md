@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.4-beta] - 2026-05-04
+
+### Fixed
+- **LightBDD adapter now captures raw parameter objects for rich rendering**: Previously, LightBDD's result API only exposes `FormattedValue` (ToString() representation), causing complex objects like `List<ToppingData>` to render as type names rather than their actual contents. Added `CaptureLightBddArgumentsAttribute` (assembly-level xUnit3 `BeforeAfterTestAttribute`) and `CapturedScenarioArguments` static store to capture raw test method arguments during execution. The LightBDD report mapper now looks up these captured values and populates `ExampleRawValues`, enabling the same rich R3/R4 rendering (sub-tables, expandable JSON) that xUnit3 and other adapters already support.
+- **ReqNRoll scenario outline row ordering now deterministic**: Scenario outline examples sharing the same title were ordered non-deterministically because `.ThenBy(x => x.ScenarioTitle)` provided no differentiation. Added a secondary sort by `ExampleValues` content to ensure stable alphabetical ordering across runs.
+
+## [2.29.3-beta] - 2026-05-04
+
+### Fixed
+- **Complex object parameters (nested records, collections) render poorly in string-based path**: When using LightBDD or other frameworks that only provide `ToString()` representations (no raw objects), nested record values like `IngredientSet { Flour = Plain, ... }` were displayed as raw text and `List<T>` properties showed as `System.Collections.Generic.List'1[Namespace.Type]`. Fixed by making `RenderSubTableFromParsed` recursively render nested record values as nested sub-tables and clean collection type names (e.g. `List<ToppingData>`). Also improved the expandable (R4) JSON view and preview text for the same cases.
+
 ## [2.29.2-beta] - 2026-05-04
 
 ### Changed

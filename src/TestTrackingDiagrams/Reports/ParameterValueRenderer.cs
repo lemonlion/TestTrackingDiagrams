@@ -330,15 +330,87 @@ internal static class ParameterValueRenderer
 
     /// <summary>
     /// Renders a sub-table (R3) from parsed string key-value pairs.
+    /// Recursively renders nested record values and cleans up collection type names.
     /// </summary>
     internal static void RenderSubTableFromParsed(StringBuilder body, Dictionary<string, string> parsed)
     {
         body.Append("<table class=\"cell-subtable\">");
         foreach (var kvp in parsed)
         {
-            body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(kvp.Key)}</th><td>{System.Net.WebUtility.HtmlEncode(kvp.Value)}</td></tr>");
+            body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(kvp.Key)}</th><td>");
+            RenderParsedValue(body, kvp.Value);
+            body.Append("</td></tr>");
         }
         body.Append("</table>");
+    }
+
+    /// <summary>
+    /// Renders a single parsed value intelligently: nested records become sub-tables,
+    /// collection type names become readable labels, and scalars are HTML-encoded.
+    /// </summary>
+    internal static void RenderParsedValue(StringBuilder body, string value)
+    {
+        // Try to parse as a nested record (e.g. "IngredientSet { Flour = Plain, ... }")
+        var nestedParsed = ParameterParser.TryParseRecordToString(value);
+        if (nestedParsed is { Count: > 0 })
+        {
+            RenderSubTableFromParsed(body, nestedParsed);
+            return;
+        }
+
+        // Clean up .NET collection type names
+        var cleaned = TryCleanCollectionTypeName(value);
+        if (cleaned is not null)
+        {
+            body.Append($"<span class=\"mono\">{System.Net.WebUtility.HtmlEncode(cleaned)}</span>");
+            return;
+        }
+
+        // Scalar: plain HTML-encoded text
+        body.Append(System.Net.WebUtility.HtmlEncode(value));
+    }
+
+    /// <summary>
+    /// Detects and cleans .NET collection type names like
+    /// "System.Collections.Generic.List`1[Namespace.Type]" into "List&lt;Type&gt;".
+    /// Returns null if the value is not a collection type name.
+    /// </summary>
+    internal static string? TryCleanCollectionTypeName(string value)
+    {
+        if (!value.StartsWith("System.Collections.", StringComparison.Ordinal) &&
+            !value.StartsWith("System.Linq.", StringComparison.Ordinal))
+            return null;
+
+        // Extract the simple type name and generic argument
+        // Pattern: "System.Collections.Generic.List`1[Namespace.TypeName]"
+        var backtickIdx = value.IndexOf('`');
+        if (backtickIdx < 0)
+        {
+            // Non-generic collection (e.g. "System.Collections.ArrayList")
+            var lastDot = value.LastIndexOf('.');
+            return lastDot >= 0 ? value[(lastDot + 1)..] : value;
+        }
+
+        // Get the simple collection name (e.g. "List" from "System.Collections.Generic.List`1[...]")
+        var nameStart = value.LastIndexOf('.', backtickIdx - 1) + 1;
+        var collectionName = value[nameStart..backtickIdx];
+
+        // Extract the generic argument type name
+        var bracketStart = value.IndexOf('[', backtickIdx);
+        var bracketEnd = value.LastIndexOf(']');
+        if (bracketStart < 0 || bracketEnd <= bracketStart)
+            return collectionName;
+
+        var fullArgType = value[(bracketStart + 1)..bracketEnd];
+        // Get just the simple type name (after last dot, strip nested class + prefix)
+        var argLastDot = fullArgType.LastIndexOf('.');
+        var simpleArgType = argLastDot >= 0 ? fullArgType[(argLastDot + 1)..] : fullArgType;
+        // Strip nested class prefix (e.g. "OuterClass+InnerType" → "InnerType")
+        var plusIdx = simpleArgType.LastIndexOf('+');
+        if (plusIdx >= 0)
+            simpleArgType = simpleArgType[(plusIdx + 1)..];
+
+        return $"List<{simpleArgType}>";
     }
 
     /// <summary>
@@ -357,6 +429,7 @@ internal static class ParameterValueRenderer
 
     /// <summary>
     /// Generates a short preview for the parsed record (shows up to 3 properties).
+    /// Cleans up nested record values and collection type names in the preview.
     /// </summary>
     internal static string GeneratePreviewFromParsed(string originalValue, Dictionary<string, string> parsed)
     {
@@ -364,13 +437,22 @@ internal static class ParameterValueRenderer
         var braceIdx = originalValue.IndexOf(" { ", StringComparison.Ordinal);
         var typeName = braceIdx >= 0 ? originalValue[..braceIdx] : "Object";
 
-        var previewParts = parsed.Take(3).Select(kvp => $"{kvp.Key}: {kvp.Value}");
+        var previewParts = parsed.Take(3).Select(kvp =>
+        {
+            var val = TryCleanCollectionTypeName(kvp.Value) ?? kvp.Value;
+            // Shorten nested records in preview to just "TypeName {...}"
+            var nestedBrace = val.IndexOf(" { ", StringComparison.Ordinal);
+            if (nestedBrace > 0)
+                val = val[..nestedBrace] + " {...}";
+            return $"{kvp.Key}: {val}";
+        });
         var suffix = parsed.Count > 3 ? ", ..." : "";
         return $"{typeName} {{ {string.Join(", ", previewParts)}{suffix} }}";
     }
 
     /// <summary>
     /// Generates JSON-like highlighted HTML from parsed string key-value pairs.
+    /// Recursively renders nested record values.
     /// </summary>
     internal static string GenerateHighlightedJsonFromParsed(Dictionary<string, string> parsed)
     {
@@ -381,7 +463,18 @@ internal static class ParameterValueRenderer
         {
             var (key, value) = entries[i];
             sb.Append($"  <span class=\"prop-key\">\"{System.Net.WebUtility.HtmlEncode(key)}\"</span>: ");
-            sb.Append($"<span class=\"prop-val\">{System.Net.WebUtility.HtmlEncode(value)}</span>");
+
+            // Try nested record rendering
+            var nestedParsed = ParameterParser.TryParseRecordToString(value);
+            if (nestedParsed is { Count: > 0 })
+            {
+                sb.Append(GenerateHighlightedJsonFromParsed(nestedParsed));
+            }
+            else
+            {
+                var cleaned = TryCleanCollectionTypeName(value);
+                sb.Append($"<span class=\"prop-val\">{System.Net.WebUtility.HtmlEncode(cleaned ?? value)}</span>");
+            }
             if (i < entries.Length - 1) sb.Append(',');
             sb.Append('\n');
         }

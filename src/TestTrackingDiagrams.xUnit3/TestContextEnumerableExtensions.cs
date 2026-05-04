@@ -55,11 +55,20 @@ internal static class TestContextEnumerableExtensions
     {
         try
         {
-            if (context.TestMethod is not IXunitTestMethod xunitMethod)
+            if (context.TestCase is not XunitTestCase testCase)
                 return null;
 
-            var args = xunitMethod.TestMethodArguments;
-            var parameters = xunitMethod.Parameters;
+            // TestMethodArguments are cleared by xUnit3 after test execution.
+            // Read from the static store populated by DiagrammedComponentTest constructor.
+            object[]? args = null;
+            var testId = context.Test?.UniqueID;
+            if (testId is not null)
+                DiagrammedComponentTest.CapturedTestMethodArguments.TryRemove(testId, out args);
+
+            // Fallback to direct access (works if called during test execution)
+            args ??= testCase.TestMethodArguments;
+
+            var parameters = testCase.TestMethod.Parameters;
             if (args is not { Length: > 0 } || parameters is not { Count: > 0 })
                 return null;
 
@@ -74,8 +83,8 @@ internal static class TestContextEnumerableExtensions
 
     private static string? GetStructuredOutlineId(ITestContext context)
     {
-        if (context.TestMethod is IXunitTestMethod xunitMethod)
-            return xunitMethod.Method?.Name;
+        if (context.TestCase is XunitTestCase testCase)
+            return testCase.TestMethod.Method?.Name;
         return null;
     }
 }
