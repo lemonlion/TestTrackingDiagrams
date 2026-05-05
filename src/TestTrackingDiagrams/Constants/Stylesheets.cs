@@ -121,8 +121,19 @@ public class Stylesheets
                     align-self: center;
                 }
 
+                .ci-chart-group {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    gap: 0.5em;
+                }
+
                 .ci-metadata {
-                    align-self: center;
+                    background-color: rgb(224, 224, 224);
+                    border-radius: 1em;
+                    padding: 1em;
                     flex-shrink: 0;
                 }
 
@@ -1222,7 +1233,7 @@ public class Stylesheets
                     }
 
                     .ci-metadata {
-                        align-self: flex-start;
+                        align-self: center;
                     }
 
                     .filtering-box {
@@ -1387,6 +1398,7 @@ public class Stylesheets
                 .feature { background-color: #DDD6FE; }
                 .features-summary-details { background-color: #DDD6FE; }
                 .test-execution-summary { background-color: #DDD6FE; }
+                .ci-metadata { background-color: #DDD6FE; }
                 .filtering-box { background-color: #DDD6FE; }
                 .example-diagrams { border-color: #DDD6FE; }
 

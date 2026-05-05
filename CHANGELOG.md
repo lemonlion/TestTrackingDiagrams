@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.14-beta] - 2026-05-05
+
+### Changed
+- **CI metadata stacked above pie chart**: When CI metadata is present, it now appears vertically stacked above the summary pie chart (both centered horizontally and vertically within the header row) instead of side-by-side.
+- **CI metadata box styling**: The CI metadata panel now has a gray background, rounded corners, and padding matching the test execution summary panel.
+- **Violet theme**: CI metadata panel uses the violet background in the violet theme.
+
 ## [2.29.13-beta] - 2026-05-05
 
 ### Changed

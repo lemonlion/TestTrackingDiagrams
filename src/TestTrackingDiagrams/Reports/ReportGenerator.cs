@@ -1407,6 +1407,7 @@ public static class ReportGenerator
 
             if (ciMetadata is not null)
             {
+                body.Append("<div class=\"ci-chart-group\">");
                 body.Append("<div class=\"ci-metadata\"><table>");
                 body.Append($"<tr><td colspan=\"2\" class=\"column-header\">CI ({ciMetadata.Provider})</td></tr>");
                 if (ciMetadata.BuildNumber is not null)
@@ -1427,6 +1428,9 @@ public static class ReportGenerator
 
             var bypassedScenarios = scenarios.Where(x => x.Result == ExecutionResult.Bypassed).ToArray();
             body.Append(GeneratePieChartSvg(passedScenarios.Length, failedScenarios.Length, skippedScenarios.Length, bypassedScenarios.Length));
+
+            if (ciMetadata is not null)
+                body.Append("</div>"); // close ci-chart-group
         }
 
         var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
