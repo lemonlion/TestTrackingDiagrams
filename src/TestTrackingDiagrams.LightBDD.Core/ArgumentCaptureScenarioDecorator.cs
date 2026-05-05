@@ -10,17 +10,23 @@ namespace TestTrackingDiagrams.LightBDD;
 /// This enables rich sub-table/expandable rendering for complex objects passed via framework-level
 /// attributes (e.g. MemberData, ClassData, TestCase, TestCaseSource) — using the same processing
 /// pipeline as the non-LightBDD adapters.
-/// Registered automatically by CreateStandardReportsWithDiagrams().
+/// Registered automatically by CreateStandardReportsWithDiagrams() when no framework-specific
+/// decorator is available. Framework-specific decorators (xUnit3, TUnit) should call
+/// <see cref="TryCaptureFromDescriptor"/> as a fallback when their native extraction fails.
 /// </summary>
 internal sealed class ArgumentCaptureScenarioDecorator : IScenarioDecorator
 {
     public Task ExecuteAsync(IScenario scenario, Func<Task> scenarioInvocation)
     {
-        TryCaptureArguments(scenario);
+        TryCaptureFromDescriptor(scenario);
         return scenarioInvocation();
     }
 
-    private static void TryCaptureArguments(IScenario scenario)
+    /// <summary>
+    /// Attempts to capture raw arguments from LightBDD's IScenario.Descriptor.Parameters.
+    /// Called directly by this decorator and also available as a fallback for framework-specific decorators.
+    /// </summary>
+    internal static void TryCaptureFromDescriptor(IScenario scenario)
     {
         try
         {

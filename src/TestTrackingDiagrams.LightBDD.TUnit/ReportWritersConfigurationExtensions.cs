@@ -28,18 +28,24 @@ public static class ReportWritersConfigurationExtensions
 
     /// <summary>
     /// Configures LightBDD to generate test tracking diagrams and reports with automatic raw argument capture.
-    /// This overload registers an <see cref="LightBDD.Core.Extensibility.Execution.IScenarioDecorator"/> that captures
-    /// raw test method arguments during scenario execution, enabling rich sub-table and expandable rendering
-    /// for complex objects (records, lists, nested types) passed via framework-level attributes (TestCase,
-    /// TestCaseSource, etc.) — using the same processing pipeline as the non-LightBDD TUnit adapter.
+    /// This overload registers a framework-specific <see cref="TUnitArgumentCaptureDecorator"/> that captures
+    /// raw test method arguments from TUnit's TestContext during scenario execution, enabling rich sub-table
+    /// and expandable rendering for complex objects (records, lists, nested types) passed via framework-level
+    /// attributes (Arguments, MethodDataSource, etc.) — using the same processing pipeline as the non-LightBDD
+    /// TUnit adapter.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static LightBddConfiguration CreateStandardReportsWithDiagrams(
         this LightBddConfiguration configuration,
         ReportConfigurationOptions options)
     {
+        // Register TUnit-specific decorator that uses TUnitArgumentExtractor
+        configuration.ExecutionExtensionsConfiguration()
+            .EnableScenarioDecorator<TUnitArgumentCaptureDecorator>();
+
         return LightBDD.ReportWritersConfigurationExtensions.CreateStandardReportsWithDiagramsInternal(
             configuration, options, System.Reflection.Assembly.GetCallingAssembly(),
-            assembly => assembly.CountNumberOfTestsInAssembly());
+            assembly => assembly.CountNumberOfTestsInAssembly(),
+            registerDefaultDecorator: false);
     }
 }

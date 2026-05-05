@@ -16,6 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="TestTrackingDiagrams.LightBDD.xUnit2" />
 		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests.xUnit2" />
 	</ItemGroup>
 

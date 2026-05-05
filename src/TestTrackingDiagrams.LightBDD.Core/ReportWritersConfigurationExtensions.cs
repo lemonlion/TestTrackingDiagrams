@@ -48,10 +48,14 @@ namespace TestTrackingDiagrams.LightBDD
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static LightBddConfiguration CreateStandardReportsWithDiagramsInternal(
-            LightBddConfiguration configuration, ReportConfigurationOptions options, Assembly testAssembly, Func<Assembly, int> testCountResolver)
+            LightBddConfiguration configuration, ReportConfigurationOptions options, Assembly testAssembly,
+            Func<Assembly, int> testCountResolver, bool registerDefaultDecorator = true)
         {
-            configuration.ExecutionExtensionsConfiguration()
-                .EnableScenarioDecorator<ArgumentCaptureScenarioDecorator>();
+            if (registerDefaultDecorator)
+            {
+                configuration.ExecutionExtensionsConfiguration()
+                    .EnableScenarioDecorator<ArgumentCaptureScenarioDecorator>();
+            }
 
             CreateStandardReportsWithDiagramsInternal(
                 configuration.ReportWritersConfiguration(), options, testAssembly, testCountResolver);

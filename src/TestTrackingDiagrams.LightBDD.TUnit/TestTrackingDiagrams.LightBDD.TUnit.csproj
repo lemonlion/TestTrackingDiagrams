@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams.LightBDD.Core\TestTrackingDiagrams.LightBDD.Core.csproj" />
+    <ProjectReference Include="..\TestTrackingDiagrams.TUnit\TestTrackingDiagrams.TUnit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

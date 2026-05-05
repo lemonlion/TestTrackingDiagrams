@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.8-beta] - 2026-05-05
+
+### Changed
+- **Framework-specific argument capture decorators for LightBDD.xUnit3 and LightBDD.TUnit**: Each package now registers its own `IScenarioDecorator` that extracts raw test method arguments directly from the underlying framework's test context (`XUnit3ArgumentExtractor` / `TUnitArgumentExtractor`), falling back to LightBDD's generic `IScenario.Descriptor.Parameters` extraction if the framework context is unavailable. This ensures the same argument extraction logic used by the non-LightBDD adapters is also used when running LightBDD on those frameworks.
+- **Added `TUnitArgumentExtractor` in `TestTrackingDiagrams.TUnit`**: Shared helper for extracting raw arguments from TUnit's `TestContext.Metadata.TestDetails.TestMethodArguments`, analogous to `XUnit3ArgumentExtractor` in the xUnit3 package.
+- **Added project references from LightBDD framework packages to their base packages**: `LightBDD.TUnit` → `TestTrackingDiagrams.TUnit`, `LightBDD.xUnit2` → `TestTrackingDiagrams.xUnit2`. Enables sharing of argument extractors, `CurrentTestInfo`, and other infrastructure.
+- **Core `ArgumentCaptureScenarioDecorator.TryCaptureFromDescriptor()` now `internal static`**: Framework-specific decorators can call this as a fallback when native extraction fails.
+- **`CreateStandardReportsWithDiagramsInternal` accepts `registerDefaultDecorator` parameter**: Framework packages that register their own decorator pass `false` to avoid redundant registration.
+
 ## [2.29.7-beta] - 2026-05-05
 
 ### Changed
