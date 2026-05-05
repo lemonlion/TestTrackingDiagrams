@@ -1,7 +1,50 @@
 <Project>
 
+  <!-- Auto-generate attribute source files into the intermediate output path -->
+  <Target Name="_GenerateAssertionRewriterAttributes"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TrackAssertionsEnabled)' == 'true'">
+
+    <PropertyGroup>
+      <_AssertionRewriterAttrDir>$(IntermediateOutputPath)AssertionRewriterAttributes\</_AssertionRewriterAttrDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_AssertionRewriterAttrDir)" />
+
+    <WriteLinesToFile
+      File="$(_AssertionRewriterAttrDir)TrackAssertionsAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Assembly)]
+    internal sealed class TrackAssertionsAttribute : Attribute { }
+}" />
+
+    <WriteLinesToFile
+      File="$(_AssertionRewriterAttrDir)SuppressAssertionTrackingAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class%2C Inherited = true)]
+    internal sealed class SuppressAssertionTrackingAttribute : Attribute { }
+}" />
+
+    <ItemGroup>
+      <Compile Include="$(_AssertionRewriterAttrDir)TrackAssertionsAttribute.g.cs" />
+      <Compile Include="$(_AssertionRewriterAttrDir)SuppressAssertionTrackingAttribute.g.cs" />
+    </ItemGroup>
+
+  </Target>
+
   <Target Name="_RewriteTrackAssertions"
           BeforeTargets="CoreCompile"
+          AfterTargets="_GenerateAssertionRewriterAttributes"
           Condition="'$(TrackAssertionsEnabled)' == 'true'">
 
     <TestTrackingDiagrams.AssertionRewriter.RewriteAssertionsTask
@@ -20,6 +63,7 @@
 
   <Target Name="_CleanAssertionRewrite" BeforeTargets="CoreClean">
     <RemoveDir Directories="$(IntermediateOutputPath)AssertionRewrite\" />
+    <RemoveDir Directories="$(IntermediateOutputPath)AssertionRewriterAttributes\" />
   </Target>
 
 </Project>

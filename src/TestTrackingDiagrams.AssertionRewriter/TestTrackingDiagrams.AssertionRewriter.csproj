@@ -30,12 +30,4 @@
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 
-  <!-- Include attribute source files as contentFiles (compiled into consumer) -->
-  <ItemGroup>
-    <None Include="Attributes\TrackAssertionsAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any\TestTrackingDiagrams.AssertionRewriter\" />
-    <None Include="Attributes\SuppressAssertionTrackingAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any\TestTrackingDiagrams.AssertionRewriter\" />
-    <Content Include="Attributes\TrackAssertionsAttribute.cs" Pack="false" />
-    <Content Include="Attributes\SuppressAssertionTrackingAttribute.cs" Pack="false" />
-  </ItemGroup>
-
 </Project>

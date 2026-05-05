@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.1] - 2026-05-05
+
+### Fixed
+- **AssertionRewriter: `TrackAssertionsAttribute` now auto-generated at build time** (fixes #31, #33): The `.targets` file now emits `TrackAssertionsAttribute` and `SuppressAssertionTrackingAttribute` source files into the intermediate output path and includes them as `<Compile>` items before compilation. Previously, these types were supposed to be delivered via NuGet `contentFiles` but the packaging was broken — the nupkg contained no `contentFiles/` directory and the nuspec had no `<contentFiles>` metadata section. Users can now just add `[assembly: TrackAssertions]` without defining the attribute type manually.
+- **AssertionRewriter: removed broken `contentFiles` packaging** from the `.csproj`. The `<None Pack="true" PackagePath="contentFiles\...">` items were never producing valid content files in the nupkg.
+
+### Documentation
+- **Wiki: AssertionRewriter correctly described as MSBuild task** (fixes #32): Replaced 4 incorrect references to "source generator" with accurate MSBuild task terminology. Updated the compatibility note to explain it runs `BeforeTargets="CoreCompile"` and coexists with all source generators. Updated Quick Start version reference and added note that attribute types are auto-generated.
+
 ## [2.30.0] - 2026-05-05
 
 ### Changed
