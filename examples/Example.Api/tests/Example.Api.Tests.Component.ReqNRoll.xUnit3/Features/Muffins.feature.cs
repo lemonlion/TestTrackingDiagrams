@@ -177,10 +177,10 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         [global::Xunit.TheoryAttribute(DisplayName="Different muffin recipes should produce the expected batch")]
         [global::Xunit.TraitAttribute("FeatureTitle", "Muffins Creation")]
         [global::Xunit.TraitAttribute("Description", "Different muffin recipes should produce the expected batch")]
-        [global::Xunit.InlineDataAttribute("Classic", "Plain Flour", "Granny Smith", "Ceylon", "180", "25", "Standard", "Streusel", "Icing Glaze", "1", new string[0])]
-        [global::Xunit.InlineDataAttribute("Rustic Wholesome", "Whole Wheat", "Honeycrisp", "Cassia", "175", "30", "Cast Iron", "Brown Sugar Crumb", "Maple Drizzle", "2", new string[0])]
-        [global::Xunit.InlineDataAttribute("Spiced Deluxe", "Almond", "Pink Lady", "Saigon", "190", "20", "Silicone", "Cinnamon Sugar", "Cream Cheese Swirl", "3", new string[0])]
-        public async global::System.Threading.Tasks.Task DifferentMuffinRecipesShouldProduceTheExpectedBatch(string recipeName, string flour, string appleVariety, string cinnamonType, string temperature, string duration, string panType, string topping1, string topping2, string @__pickleIndex, string[] exampleTags)
+        [global::Xunit.InlineDataAttribute("Classic", "Plain Flour", "Granny Smith", "Ceylon", "180", "25", "Standard", "Streusel", "Light", "Icing Glaze", "Drizzle", "5", "2", "1", new string[0])]
+        [global::Xunit.InlineDataAttribute("Rustic Wholesome", "Whole Wheat", "Honeycrisp", "Cassia", "175", "30", "Cast Iron", "Brown Sugar Crumb", "Heavy", "Maple Drizzle", "Light", "5", "2", "2", new string[0])]
+        [global::Xunit.InlineDataAttribute("Spiced Deluxe", "Almond Flour", "Pink Lady", "Saigon", "190", "20", "Silicone", "Cinnamon Sugar", "Heavy", "Cream Cheese Swirl", "Thick", "5", "2", "3", new string[0])]
+        public async global::System.Threading.Tasks.Task DifferentMuffinRecipesShouldProduceTheExpectedBatch(string recipeName, string flour, string appleVariety, string cinnamonType, string temperature, string duration, string panType, string topping1, string amount1, string topping2, string amount2, string expectedIngredientCount, string expectedToppingCount, string @__pickleIndex, string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
@@ -192,7 +192,11 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
             argumentsOfScenario.Add("Duration", duration);
             argumentsOfScenario.Add("PanType", panType);
             argumentsOfScenario.Add("Topping1", topping1);
+            argumentsOfScenario.Add("Amount1", amount1);
             argumentsOfScenario.Add("Topping2", topping2);
+            argumentsOfScenario.Add("Amount2", amount2);
+            argumentsOfScenario.Add("ExpectedIngredientCount", expectedIngredientCount);
+            argumentsOfScenario.Add("ExpectedToppingCount", expectedToppingCount);
             string pickleIndex = @__pickleIndex;
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Different muffin recipes should produce the expected batch", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
@@ -218,28 +222,39 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
 #line 13
         await testRunner.GivenAsync(string.Format("a muffin recipe \"{0}\" with the following ingredients:", recipeName), ((string)(null)), table1, "Given ");
 #line hidden
-#line 16
-        await testRunner.AndAsync(string.Format("with baking at {0} degrees for {1} minutes in a \"{2}\" pan", temperature, duration, panType), ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
                 global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
-                            "Name"});
+                            "Temperature",
+                            "Duration Minutes",
+                            "Pan Type"});
                 table2.AddRow(new string[] {
-                            string.Format("{0}", topping1)});
-                table2.AddRow(new string[] {
-                            string.Format("{0}", topping2)});
-#line 17
-        await testRunner.AndAsync("the following muffin toppings:", ((string)(null)), table2, "And ");
+                            string.Format("{0}", temperature),
+                            string.Format("{0}", duration),
+                            string.Format("{0}", panType)});
+#line 16
+        await testRunner.AndAsync("with the following baking profile:", ((string)(null)), table2, "And ");
 #line hidden
-#line 21
-        await testRunner.WhenAsync("the muffins are prepared", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 22
-        await testRunner.ThenAsync("the muffin batch should have 5 ingredients", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+                global::Reqnroll.Table table3 = new global::Reqnroll.Table(new string[] {
+                            "Name",
+                            "Amount"});
+                table3.AddRow(new string[] {
+                            string.Format("{0}", topping1),
+                            string.Format("{0}", amount1)});
+                table3.AddRow(new string[] {
+                            string.Format("{0}", topping2),
+                            string.Format("{0}", amount2)});
+#line 19
+        await testRunner.AndAsync("the following muffin toppings:", ((string)(null)), table3, "And ");
 #line hidden
 #line 23
-        await testRunner.AndAsync("the muffin response should include 2 toppings", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+        await testRunner.WhenAsync("the muffins are prepared", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 24
+        await testRunner.ThenAsync(string.Format("the muffin batch should have {0} ingredients", expectedIngredientCount), ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 25
+        await testRunner.AndAsync(string.Format("the muffin response should include {0} toppings", expectedToppingCount), ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 26
         await testRunner.AndAsync("the muffin response should include baking information", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }

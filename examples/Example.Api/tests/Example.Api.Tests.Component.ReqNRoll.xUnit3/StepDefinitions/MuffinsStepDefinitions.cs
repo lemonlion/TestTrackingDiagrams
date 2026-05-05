@@ -41,6 +41,15 @@ public class MuffinsStepDefinitions
         _cinnamonType = row["Cinnamon"];
     }
 
+    [Given("with the following baking profile:")]
+    public void GivenWithTheFollowingBakingProfile(Table table)
+    {
+        var row = table.Rows[0];
+        _temperature = int.Parse(row["Temperature"]);
+        _duration = int.Parse(row["Duration Minutes"]);
+        _panType = row["Pan Type"];
+    }
+
     [Given(@"with baking at (\d+) degrees for (\d+) minutes in a ""(.*)"" pan")]
     public void GivenWithBakingAtDegreesForMinutesInAPan(int temperature, int duration, string panType)
     {
@@ -54,7 +63,8 @@ public class MuffinsStepDefinitions
     {
         foreach (var row in table.Rows)
         {
-            _toppings.Add((row["Name"], "Light"));
+            var amount = table.Header.Contains("Amount") ? row["Amount"] : "Light";
+            _toppings.Add((row["Name"], amount));
         }
     }
 

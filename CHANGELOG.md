@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.10-beta] - 2026-05-05
+
+### Changed
+- **ExampleValueGrouper parent nesting**: When multiple step tables are detected and a parent concept is derivable from the step text (e.g. "a muffin recipe ... with the following ingredients:"), all table groups are now nested under a single parent column ("Recipe") as an expandable (R4) cell. This aligns ReqNRoll rendered output with xUnit3/LightBDD wrapper type rendering.
+- **ExampleValueGrouper scalar prefix grouping**: Unconsumed Example columns with a common prefix (e.g. `ExpectedIngredientCount`, `ExpectedToppingCount`) are automatically grouped into a sub-table (R3) column ("Expected") with simplified display names ("Ingredient Count", "Topping Count").
+- **Unified column headers across all 3 frameworks**: xUnit3, LightBDD, and ReqNRoll now all render as "Recipe Name | Recipe | Expected" for the muffin recipe example tests.
+- **Example test data unified**: All 3 framework example tests now use the same 3 recipes (Classic, Rustic Wholesome, Spiced Deluxe) with identical data values.
+
+### Fixed
+- **param-expand toggle prefix mismatch**: The `<details class="param-expand">` toggle event handler was constructing the wrong prefix (`'pg' + scenario.id`) instead of reading the correct prefix from the table's `data-prefix` attribute. This caused the detail panel to not become visible when clicking on an expandable cell within a parameterized row.
+
 ## [2.29.9-beta] - 2026-05-05
 
 ### Added

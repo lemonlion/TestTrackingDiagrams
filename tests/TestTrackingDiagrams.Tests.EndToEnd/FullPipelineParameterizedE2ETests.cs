@@ -131,13 +131,13 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task XUnit3_pipeline_renders_two_data_rows()
+    public async Task XUnit3_pipeline_renders_three_data_rows()
     {
         await NavigateToReport(_pipeline.XUnit3ReportPath);
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        Assert.Equal(2, await GetParamRows().CountAsync());
+        Assert.Equal(3, await GetParamRows().CountAsync());
     }
 
     [Fact]
@@ -150,9 +150,11 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         var rows = GetParamRows();
         var row1Text = await rows.Nth(0).InnerTextAsync();
         var row2Text = await rows.Nth(1).InnerTextAsync();
+        var row3Text = await rows.Nth(2).InnerTextAsync();
 
         Assert.Contains("Classic", row1Text);
-        Assert.Contains("Healthy", row2Text);
+        Assert.Contains("Rustic Wholesome", row2Text);
+        Assert.Contains("Spiced Deluxe", row3Text);
     }
 
     [Fact]
@@ -195,13 +197,13 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         var firstRow = GetParamRows().First;
         var rowHtml = await firstRow.InnerHTMLAsync();
 
-        // Toppings: Streusel, Icing Sugar
+        // Toppings: Streusel, Icing Glaze
         Assert.Contains("Streusel", rowHtml);
-        Assert.Contains("Icing Sugar", rowHtml);
+        Assert.Contains("Icing Glaze", rowHtml);
     }
 
     [Fact]
-    public async Task XUnit3_pipeline_renders_Healthy_recipe_data()
+    public async Task XUnit3_pipeline_renders_Rustic_Wholesome_recipe_data()
     {
         await NavigateToReport(_pipeline.XUnit3ReportPath);
         await ExpandAll();
@@ -213,10 +215,10 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         Assert.Contains("Whole Wheat", rowHtml);
         Assert.Contains("Honeycrisp", rowHtml);
         Assert.Contains("Cassia", rowHtml);
-        Assert.Contains("170", rowHtml);
+        Assert.Contains("175", rowHtml);
         Assert.Contains("30", rowHtml);
-        Assert.Contains("Silicone", rowHtml);
-        Assert.Contains("Oats", rowHtml);
+        Assert.Contains("Cast Iron", rowHtml);
+        Assert.Contains("Brown Sugar Crumb", rowHtml);
     }
 
     [Fact]
@@ -229,9 +231,12 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         var firstRow = GetParamRows().First;
         var rowHtml = await firstRow.InnerHTMLAsync();
 
-        // MuffinBatchExpectation(12, "Fluffy")
-        Assert.Contains("12", rowHtml);
-        Assert.Contains("Fluffy", rowHtml);
+        // MuffinBatchExpectation(5, 2, true)
+        Assert.Contains("ExpectedIngredientCount", rowHtml);
+        Assert.Contains("5", rowHtml);
+        Assert.Contains("ExpectedToppingCount", rowHtml);
+        Assert.Contains("HasBakingInfo", rowHtml);
+        Assert.Contains("True", rowHtml);
     }
 
     [Fact]
@@ -432,11 +437,10 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         for (var i = 0; i < await headers.CountAsync(); i++)
             headerTexts.Add(await headers.Nth(i).InnerTextAsync());
 
-        // After ExampleValueGrouper, flat columns are grouped: Flour/Apples/Cinnamon → "Ingredients", Topping1/Topping2 → "Toppings"
+        // After ExampleValueGrouper, tables nest under "Recipe", scalars group under "Expected"
+        Assert.Contains(headerTexts, h => h.Contains("Recipe Name", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(headerTexts, h => h.Contains("Recipe", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(headerTexts, h => h.Contains("Temperature", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(headerTexts, h => h.Contains("Ingredients", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(headerTexts, h => h.Contains("Toppings", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(headerTexts, h => h.Contains("Expected", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

@@ -255,14 +255,22 @@ internal static class ParameterValueRenderer
         if (dict.Count == 0)
             return "{ }";
 
+        // If any value is a complex type (nested dict/list), just show key summary
+        if (dict.Values.Any(v => v is IDictionary<string, object?> or IEnumerable<IDictionary<string, object?>>))
+        {
+            var keys = string.Join(", ", dict.Keys.Take(3));
+            var trail = dict.Count > 3 ? ", ..." : "";
+            return $"{{ {keys}{trail} }}";
+        }
+
         var parts = new List<string>();
         foreach (var kvp in dict.Take(3))
         {
             var formatted = FormatPreviewValue(kvp.Value);
             parts.Add($"{kvp.Key}: {formatted}");
         }
-        var trail = dict.Count > 3 ? ", ..." : "";
-        return $"{{ {string.Join(", ", parts)}{trail} }}";
+        var trail2 = dict.Count > 3 ? ", ..." : "";
+        return $"{{ {string.Join(", ", parts)}{trail2} }}";
     }
 
     private static string FormatPreviewValue(object? value)

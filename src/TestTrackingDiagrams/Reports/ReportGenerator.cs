@@ -846,8 +846,7 @@ public static class ReportGenerator
                                         var row = details.closest('tr');
                                         if (row) {
                                             var table = row.closest('table');
-                                            var scenario = table ? table.closest('.scenario-parameterized') : null;
-                                            var prefix = scenario ? 'pg' + scenario.id : '';
+                                            var prefix = table ? table.getAttribute('data-prefix') : '';
                                             selectRow(row, prefix);
                                         }
                                     });
@@ -2282,7 +2281,7 @@ public static class ReportGenerator
         body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{happyPathBadge}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
 
         // Parameter table
-        body.Append("<table class=\"param-test-table\"><thead>");
+        body.Append($"<table class=\"param-test-table\" data-prefix=\"{prefix}\"><thead>");
         if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
         {
             // R1/R2: Two-row header with master "Input Parameters" header

@@ -16,9 +16,8 @@ internal static class ExampleValueGrouper
 
     /// <summary>
     /// Builds structured ExampleValues and ExampleRawValues from flat Example columns and step table data.
-    /// Single-row tables produce Dictionary&lt;string, object?&gt; (R3 sub-table rendering).
-    /// Multi-row tables produce List&lt;Dictionary&lt;string, object?&gt;&gt; (R4 expandable rendering).
-    /// Remaining columns not consumed by any table stay as flat scalars.
+    /// Tables are grouped into a parent object when a step references a named concept (e.g. "recipe").
+    /// Remaining scalar columns with a common prefix (e.g. "Expected") are grouped into a sub-object.
     /// </summary>
     public static (Dictionary<string, string> ExampleValues, Dictionary<string, object?>? ExampleRawValues)
         BuildStructured(Dictionary<string, string> flatValues, List<ReqNRollStepInfo> steps)
@@ -27,8 +26,7 @@ internal static class ExampleValueGrouper
             return (flatValues, null);
 
         var consumedKeys = new HashSet<string>();
-        var groupedValues = new Dictionary<string, string>();
-        var groupedRawValues = new Dictionary<string, object?>();
+        var tableGroups = new List<(string Name, string DisplayValue, object RawValue, string StepText)>();
 
         // Process each step that has table data
         foreach (var step in steps)
@@ -40,36 +38,183 @@ internal static class ExampleValueGrouper
             if (tableResult is null)
                 continue;
 
-            groupedValues[tableResult.Value.Name] = tableResult.Value.DisplayValue;
-            groupedRawValues[tableResult.Value.Name] = tableResult.Value.RawValue;
+            tableGroups.Add((tableResult.Value.Name, tableResult.Value.DisplayValue, tableResult.Value.RawValue, step.Text));
         }
 
         // If no tables matched any columns, return flat values only
         if (consumedKeys.Count == 0)
             return (flatValues, null);
 
-        // Build final dictionaries: unconsumed scalars + grouped table data
+        // Determine the parent concept name from the first table's step text
+        var parentName = DeriveParentName(steps);
+
+        // Build final dictionaries
         var finalValues = new Dictionary<string, string>();
         var finalRawValues = new Dictionary<string, object?>();
 
-        // Add unconsumed scalar values first (preserving original order)
+        // Determine which unconsumed scalar keys should be grouped (e.g. "Expected*" → "Expected")
+        var ungroupedScalars = new List<KeyValuePair<string, string>>();
         foreach (var kvp in flatValues)
         {
             if (!consumedKeys.Contains(kvp.Key))
+                ungroupedScalars.Add(kvp);
+        }
+
+        // Try to group scalars with common prefix into sub-objects
+        var scalarGroups = GroupScalarsByPrefix(ungroupedScalars);
+
+        // Add non-grouped scalar values first
+        foreach (var kvp in scalarGroups.Ungrouped)
+        {
+            finalValues[kvp.Key] = kvp.Value;
+            finalRawValues[kvp.Key] = kvp.Value;
+        }
+
+        // Build the parent object combining all table groups
+        if (parentName is not null && tableGroups.Count > 1)
+        {
+            // Multiple tables → nest them all under the parent name
+            var parentDict = new Dictionary<string, object?>();
+            var parentDisplayParts = new List<string>();
+            foreach (var group in tableGroups)
             {
-                finalValues[kvp.Key] = kvp.Value;
-                finalRawValues[kvp.Key] = kvp.Value;
+                parentDict[group.Name] = group.RawValue;
+                parentDisplayParts.Add($"{group.Name}: {group.DisplayValue}");
+            }
+            finalValues[parentName] = string.Join("; ", parentDisplayParts);
+            finalRawValues[parentName] = parentDict;
+        }
+        else
+        {
+            // Single table or no parent detected → use flat grouping
+            foreach (var group in tableGroups)
+            {
+                finalValues[group.Name] = group.DisplayValue;
+                finalRawValues[group.Name] = group.RawValue;
             }
         }
 
-        // Add grouped values
-        foreach (var kvp in groupedValues)
-            finalValues[kvp.Key] = kvp.Value;
-        foreach (var kvp in groupedRawValues)
-            finalRawValues[kvp.Key] = kvp.Value;
+        // Add scalar groups (e.g. "Expected" sub-table)
+        foreach (var group in scalarGroups.Grouped)
+        {
+            var dict = new Dictionary<string, object?>();
+            var displayParts = new List<string>();
+            foreach (var kvp in group.Members)
+            {
+                dict[kvp.Key] = kvp.Value;
+                displayParts.Add($"{kvp.Key}: {kvp.Value}");
+            }
+            finalValues[group.Name] = string.Join(", ", displayParts);
+            finalRawValues[group.Name] = dict;
+        }
 
         return (finalValues, finalRawValues);
     }
+
+    /// <summary>
+    /// Derives a parent concept name from the step chain.
+    /// Looks for patterns like "a muffin recipe" or "a NOUN" in the first Given step with a table.
+    /// </summary>
+    private static string? DeriveParentName(List<ReqNRollStepInfo> steps)
+    {
+        var firstTableStep = steps.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.TableText));
+        if (firstTableStep is null)
+            return null;
+
+        // Pattern: "a/the X ... with the following Y:" → X is the parent
+        var match = Regex.Match(firstTableStep.Text,
+            @"(?:a|the)\s+(?:\w+\s+)?(\w+)\s+""[^""]*""\s+with\s+the\s+following",
+            RegexOptions.IgnoreCase);
+        if (match.Success && !IsGenericWord(match.Groups[1].Value))
+            return TitleCase(match.Groups[1].Value);
+
+        // Pattern: "a/the NOUN with ..." → NOUN is the parent
+        match = Regex.Match(firstTableStep.Text,
+            @"(?:a|the)\s+(\w+)\s+(?:with|that|having)",
+            RegexOptions.IgnoreCase);
+        if (match.Success && !IsGenericWord(match.Groups[1].Value))
+            return TitleCase(match.Groups[1].Value);
+
+        return null;
+    }
+
+    /// <summary>
+    /// Groups scalar columns by common prefix. E.g. "ExpectedIngredientCount" and "ExpectedToppingCount"
+    /// both start with "Expected" → grouped into an "Expected" sub-object with keys "IngredientCount" and "ToppingCount".
+    /// </summary>
+    private static (List<KeyValuePair<string, string>> Ungrouped, List<ScalarGroup> Grouped)
+        GroupScalarsByPrefix(List<KeyValuePair<string, string>> scalars)
+    {
+        if (scalars.Count < 2)
+            return (scalars, []);
+
+        // Find common prefixes (minimum 3 chars, must be followed by uppercase)
+        var prefixCandidates = new Dictionary<string, List<KeyValuePair<string, string>>>(StringComparer.Ordinal);
+        foreach (var kvp in scalars)
+        {
+            var prefix = ExtractPrefix(kvp.Key);
+            if (prefix is not null)
+            {
+                if (!prefixCandidates.ContainsKey(prefix))
+                    prefixCandidates[prefix] = [];
+                prefixCandidates[prefix].Add(kvp);
+            }
+        }
+
+        var grouped = new List<ScalarGroup>();
+        var groupedKeys = new HashSet<string>();
+
+        foreach (var (prefix, members) in prefixCandidates)
+        {
+            if (members.Count < 2) continue;
+
+            // Create the group with simplified member names
+            var groupMembers = new List<KeyValuePair<string, string>>();
+            foreach (var m in members)
+            {
+                var shortName = m.Key[prefix.Length..];
+                // Convert "IngredientCount" → "Ingredient Count" for display
+                shortName = AddSpacesBeforeCaps(shortName);
+                groupMembers.Add(new KeyValuePair<string, string>(shortName, m.Value));
+                groupedKeys.Add(m.Key);
+            }
+            grouped.Add(new ScalarGroup(TitleCase(prefix), groupMembers));
+        }
+
+        var ungrouped = scalars.Where(s => !groupedKeys.Contains(s.Key)).ToList();
+        return (ungrouped, grouped);
+    }
+
+    private static string? ExtractPrefix(string name)
+    {
+        // Find longest prefix followed by uppercase (e.g. "Expected" from "ExpectedIngredientCount")
+        for (var i = 3; i < name.Length; i++)
+        {
+            if (char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
+            {
+                var prefix = name[..i];
+                if (!IsGenericWord(prefix))
+                    return prefix;
+            }
+        }
+        return null;
+    }
+
+    private static string AddSpacesBeforeCaps(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        var sb = new System.Text.StringBuilder();
+        sb.Append(input[0]);
+        for (var i = 1; i < input.Length; i++)
+        {
+            if (char.IsUpper(input[i]) && char.IsLower(input[i - 1]))
+                sb.Append(' ');
+            sb.Append(input[i]);
+        }
+        return sb.ToString();
+    }
+
+    private record ScalarGroup(string Name, List<KeyValuePair<string, string>> Members);
 
     private static (string Name, string DisplayValue, object RawValue)?
         TryGroupFromTable(ReqNRollStepInfo step, Dictionary<string, string> flatValues, HashSet<string> consumedKeys)

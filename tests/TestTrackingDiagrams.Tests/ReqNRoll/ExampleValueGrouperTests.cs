@@ -101,7 +101,7 @@ public class ExampleValueGrouperTests
     }
 
     [Fact]
-    public void BuildStructured_MultipleTables_GroupsSeparately()
+    public void BuildStructured_MultipleTables_NestUnderParent()
     {
         var flatValues = new Dictionary<string, string>
         {
@@ -124,24 +124,25 @@ public class ExampleValueGrouperTests
 
         var (exampleValues, exampleRawValues) = ExampleValueGrouper.BuildStructured(flatValues, steps);
 
-        // Scalars
+        // Scalars: RecipeName stays, Temperature stays (not consumed by any table)
         Assert.Equal("Classic", exampleValues["RecipeName"]);
         Assert.Equal("180", exampleValues["Temperature"]);
 
-        // Grouped tables
-        Assert.True(exampleValues.ContainsKey("Ingredients"));
-        Assert.True(exampleValues.ContainsKey("Toppings"));
-
-        // Not flat anymore
+        // Multiple tables nested under parent "Recipe" (derived from "a recipe with")
+        Assert.True(exampleValues.ContainsKey("Recipe"));
         Assert.False(exampleValues.ContainsKey("Flour"));
         Assert.False(exampleValues.ContainsKey("Topping1"));
+        Assert.False(exampleValues.ContainsKey("Ingredients"));
+        Assert.False(exampleValues.ContainsKey("Toppings"));
 
         Assert.NotNull(exampleRawValues);
 
-        var ingredients = Assert.IsType<Dictionary<string, object?>>(exampleRawValues!["Ingredients"]);
+        // The parent dict contains the nested groups
+        var recipe = Assert.IsType<Dictionary<string, object?>>(exampleRawValues!["Recipe"]);
+        var ingredients = Assert.IsType<Dictionary<string, object?>>(recipe["Ingredients"]);
         Assert.Equal("Plain Flour", ingredients["Flour"]);
 
-        var toppings = Assert.IsType<List<Dictionary<string, object?>>>(exampleRawValues["Toppings"]);
+        var toppings = Assert.IsType<List<Dictionary<string, object?>>>(recipe["Toppings"]);
         Assert.Equal(2, toppings.Count);
     }
 
