@@ -6,16 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.29.18-beta] - 2026-05-05
+## [2.29.19-beta] - 2026-05-05
 
-### Added
-- **`CurrentTestInfo.SafeFetcher`** (TUnit): Non-throwing variant of `CurrentTestInfo.Fetcher` that returns a fallback `("Unknown", <new-guid>)` when `TestContext.Current` is null (e.g. during WebApplicationFactory warmup, assembly hooks, or background threads). Fixes #28.
+### Removed
+- **`CurrentTestInfo.SafeFetcher`** (TUnit): Reverted. The non-throwing fetcher prevented `TestInfoResolver` from falling through to `TestIdentityScope.Current`/`GlobalFallback` and caused `TestTrackingMessageHandler` to track warmup traffic under garbage identities. The throwing behavior of `Fetcher` is intentional — the exception is caught by all consumers and triggers the correct fallback behaviour. Closes #28 (not planned).
+
+## [2.29.18-beta] - 2026-05-05
 
 ### Fixed
 - **Vertical drag shaking on zoomed diagrams**: Use `e.clientY` instead of `e.pageY` for drag-to-scroll. `pageY` includes `window.scrollY`, causing oscillation after `scrollBy()` shifts the page.
 
 ### Changed
 - **Removed `[Obsolete]` from framework adapter `ServiceCollectionExtensions`**: The per-framework `TrackDependenciesForDiagrams` overloads (TUnit, xUnit3, xUnit2, NUnit4, MSTest, LightBDD, BDDfy, ReqNRoll) are no longer marked obsolete. They provide type-safe convenience overloads and are used by the project templates. Fixes #30.
+
+### Removed
+- **`CurrentTestInfo.SafeFetcher`** (TUnit): Reverted. The non-throwing fetcher prevented `TestInfoResolver` from falling through to `TestIdentityScope.Current`/`GlobalFallback` and caused `TestTrackingMessageHandler` to track warmup traffic under garbage identities. The throwing behavior of `Fetcher` is intentional — the exception is caught by all consumers and triggers the correct fallback behaviour.
 
 ## [2.29.17-beta] - 2026-05-06
 
