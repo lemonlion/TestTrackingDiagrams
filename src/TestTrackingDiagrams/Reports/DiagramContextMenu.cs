@@ -1393,7 +1393,7 @@ public static class DiagramContextMenu
                     dragging = true;
                     dragContainer = c;
                     startX = e.pageX;
-                    startY = e.pageY;
+                    startY = e.clientY;
                     scrollL = c.scrollLeft;
                     c.style.cursor = 'grabbing';
                     c.style.userSelect = 'none';
@@ -1402,8 +1402,8 @@ public static class DiagramContextMenu
                 document.addEventListener('mousemove', function(e) {
                     if (!dragging) return;
                     dragContainer.scrollLeft = scrollL - (e.pageX - startX);
-                    window.scrollBy(0, startY - e.pageY);
-                    startY = e.pageY;
+                    window.scrollBy(0, startY - e.clientY);
+                    startY = e.clientY;
                 });
                 document.addEventListener('mouseup', function() {
                     if (!dragging) return;

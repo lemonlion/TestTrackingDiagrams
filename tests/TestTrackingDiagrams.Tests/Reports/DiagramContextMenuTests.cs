@@ -759,7 +759,7 @@ public class DiagramContextMenuTests
         // Must have mousedown/mousemove/mouseup for drag panning
         Assert.Contains("cursor = 'grabbing'", _script);
         Assert.Contains("scrollLeft = scrollL - (e.pageX - startX)", _script);
-        Assert.Contains("window.scrollBy(0, startY - e.pageY)", _script);
+        Assert.Contains("window.scrollBy(0, startY - e.clientY)", _script);
     }
 
     [Fact]
