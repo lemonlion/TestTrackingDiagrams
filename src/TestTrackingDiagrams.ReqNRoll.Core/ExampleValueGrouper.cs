@@ -168,14 +168,11 @@ internal static class ExampleValueGrouper
         {
             if (members.Count < 2) continue;
 
-            // Create the group with simplified member names
+            // Create the group keeping original key names (matches typed object property names)
             var groupMembers = new List<KeyValuePair<string, string>>();
             foreach (var m in members)
             {
-                var shortName = m.Key[prefix.Length..];
-                // Convert "IngredientCount" → "Ingredient Count" for display
-                shortName = AddSpacesBeforeCaps(shortName);
-                groupMembers.Add(new KeyValuePair<string, string>(shortName, m.Value));
+                groupMembers.Add(new KeyValuePair<string, string>(m.Key, m.Value));
                 groupedKeys.Add(m.Key);
             }
             grouped.Add(new ScalarGroup(TitleCase(prefix), groupMembers));

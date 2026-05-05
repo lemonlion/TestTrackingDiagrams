@@ -41,13 +41,13 @@ public class MuffinsStepDefinitions
         _cinnamonType = row["Cinnamon"];
     }
 
-    [Given("with the following baking profile:")]
-    public void GivenWithTheFollowingBakingProfile(Table table)
+    [Given("the following baking:")]
+    public void GivenTheFollowingBaking(Table table)
     {
         var row = table.Rows[0];
         _temperature = int.Parse(row["Temperature"]);
-        _duration = int.Parse(row["Duration Minutes"]);
-        _panType = row["Pan Type"];
+        _duration = int.Parse(row["DurationMinutes"]);
+        _panType = row["PanType"];
     }
 
     [Given(@"with baking at (\d+) degrees for (\d+) minutes in a ""(.*)"" pan")]
@@ -105,11 +105,11 @@ public class MuffinsStepDefinitions
         _toppings.Count.Should().Be(_expectedToppingCount);
     }
 
-    [Then("the muffin response should include baking information")]
-    public void ThenTheMuffinResponseShouldIncludeBakingInformation()
+    [Then(@"the muffin response should have baking info (.*)")]
+    public void ThenTheMuffinResponseShouldHaveBakingInfo(string hasBakingInfo)
     {
-        _temperature.Should().BeGreaterThan(0);
-        _duration.Should().BeGreaterThan(0);
-        _panType.Should().NotBeNullOrEmpty();
+        var expected = bool.Parse(hasBakingInfo);
+        var actual = _temperature > 0 && _duration > 0 && !string.IsNullOrEmpty(_panType);
+        actual.Should().Be(expected);
     }
 }

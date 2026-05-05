@@ -177,10 +177,26 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         [global::Xunit.TheoryAttribute(DisplayName="Different muffin recipes should produce the expected batch")]
         [global::Xunit.TraitAttribute("FeatureTitle", "Muffins Creation")]
         [global::Xunit.TraitAttribute("Description", "Different muffin recipes should produce the expected batch")]
-        [global::Xunit.InlineDataAttribute("Classic", "Plain Flour", "Granny Smith", "Ceylon", "180", "25", "Standard", "Streusel", "Light", "Icing Glaze", "Drizzle", "5", "2", "1", new string[0])]
-        [global::Xunit.InlineDataAttribute("Rustic Wholesome", "Whole Wheat", "Honeycrisp", "Cassia", "175", "30", "Cast Iron", "Brown Sugar Crumb", "Heavy", "Maple Drizzle", "Light", "5", "2", "2", new string[0])]
-        [global::Xunit.InlineDataAttribute("Spiced Deluxe", "Almond Flour", "Pink Lady", "Saigon", "190", "20", "Silicone", "Cinnamon Sugar", "Heavy", "Cream Cheese Swirl", "Thick", "5", "2", "3", new string[0])]
-        public async global::System.Threading.Tasks.Task DifferentMuffinRecipesShouldProduceTheExpectedBatch(string recipeName, string flour, string appleVariety, string cinnamonType, string temperature, string duration, string panType, string topping1, string amount1, string topping2, string amount2, string expectedIngredientCount, string expectedToppingCount, string @__pickleIndex, string[] exampleTags)
+        [global::Xunit.InlineDataAttribute("Classic", "Plain Flour", "Granny Smith", "Ceylon", "180", "25", "Standard", "Streusel", "Light", "Icing Glaze", "Drizzle", "5", "2", "True", "1", new string[0])]
+        [global::Xunit.InlineDataAttribute("Rustic Wholesome", "Whole Wheat", "Honeycrisp", "Cassia", "175", "30", "Cast Iron", "Brown Sugar Crumb", "Heavy", "Maple Drizzle", "Light", "5", "2", "True", "2", new string[0])]
+        [global::Xunit.InlineDataAttribute("Spiced Deluxe", "Almond Flour", "Pink Lady", "Saigon", "190", "20", "Silicone", "Cinnamon Sugar", "Heavy", "Cream Cheese Swirl", "Thick", "5", "2", "True", "3", new string[0])]
+        public async global::System.Threading.Tasks.Task DifferentMuffinRecipesShouldProduceTheExpectedBatch(
+                    string recipeName, 
+                    string flour, 
+                    string appleVariety, 
+                    string cinnamonType, 
+                    string temperature, 
+                    string duration, 
+                    string panType, 
+                    string topping1, 
+                    string amount1, 
+                    string topping2, 
+                    string amount2, 
+                    string expectedIngredientCount, 
+                    string expectedToppingCount, 
+                    string expectedHasBakingInfo, 
+                    string @__pickleIndex, 
+                    string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
@@ -197,6 +213,7 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
             argumentsOfScenario.Add("Amount2", amount2);
             argumentsOfScenario.Add("ExpectedIngredientCount", expectedIngredientCount);
             argumentsOfScenario.Add("ExpectedToppingCount", expectedToppingCount);
+            argumentsOfScenario.Add("ExpectedHasBakingInfo", expectedHasBakingInfo);
             string pickleIndex = @__pickleIndex;
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Different muffin recipes should produce the expected batch", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
@@ -224,14 +241,14 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
 #line hidden
                 global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
                             "Temperature",
-                            "Duration Minutes",
-                            "Pan Type"});
+                            "DurationMinutes",
+                            "PanType"});
                 table2.AddRow(new string[] {
                             string.Format("{0}", temperature),
                             string.Format("{0}", duration),
                             string.Format("{0}", panType)});
 #line 16
-        await testRunner.AndAsync("with the following baking profile:", ((string)(null)), table2, "And ");
+        await testRunner.AndAsync("the following baking:", ((string)(null)), table2, "And ");
 #line hidden
                 global::Reqnroll.Table table3 = new global::Reqnroll.Table(new string[] {
                             "Name",
@@ -255,7 +272,7 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         await testRunner.AndAsync(string.Format("the muffin response should include {0} toppings", expectedToppingCount), ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 26
-        await testRunner.AndAsync("the muffin response should include baking information", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+        await testRunner.AndAsync(string.Format("the muffin response should have baking info {0}", expectedHasBakingInfo), ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.11-beta] - 2026-05-05
+
+### Fixed
+- **`FormatPreviewValue` now handles classes without custom ToString()**: When a nested property value is a class (not a record), and its `.ToString()` returns just the type name, the renderer now recursively generates a rich preview (e.g. `IngredientSet { Flour = Plain Flour, ... }`) instead of displaying the full qualified type name. This fixes LightBDD and any xUnit3 test using plain classes for test data.
+- **`GenerateNestedPreview` matches record ToString() style**: Nested previews no longer wrap string values in quotes, matching the output style of C# record auto-generated ToString().
+
+### Changed
+- **`GroupScalarsByPrefix` preserves original key names**: Grouped scalar columns now keep their full original names (e.g. `ExpectedIngredientCount`) instead of stripping the prefix and adding spaces (`Ingredient Count`). This matches how xUnit3/LightBDD render typed object property names.
+- **ReqNRoll feature file aligned**: Step text changed from "with the following baking profile:" to "the following baking:" so the derived group name is "Baking" (matching the xUnit3 property name). Table headers now use PascalCase (`DurationMinutes`, `PanType`) matching C# conventions. Added `ExpectedHasBakingInfo` column.
+
 ## [2.29.10-beta] - 2026-05-05
 
 ### Changed

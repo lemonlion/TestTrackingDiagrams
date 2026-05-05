@@ -278,7 +278,68 @@ internal static class ParameterValueRenderer
         if (value is null) return "null";
         if (value is string s) return $"\"{(s.Length > 30 ? s[..27] + "..." : s)}\"";
         if (value is bool b) return b ? "true" : "false";
-        return value.ToString() ?? "null";
+        if (IsScalarType(value.GetType()))
+            return value.ToString() ?? "null";
+
+        // For complex nested objects (classes without meaningful ToString), generate a recursive preview
+        var type = value.GetType();
+        var toString = value.ToString();
+        // If ToString() returns just the type name (default behavior for classes), recurse
+        if (toString == type.FullName || toString == type.Name || toString == type.ToString())
+        {
+            var props = GetReadableProperties(type);
+            if (props.Length > 0)
+                return GenerateNestedPreview(value, type, props);
+        }
+        return toString ?? "null";
+    }
+
+    private static string GenerateNestedPreview(object value, Type type, PropertyInfo[] props)
+    {
+        var parts = new List<string>();
+        foreach (var prop in props.Take(3))
+        {
+            try
+            {
+                var propValue = prop.GetValue(value);
+                string formatted;
+                if (propValue is ICollection col)
+                    formatted = $"{col.Count}";
+                else if (propValue is IEnumerable and not string)
+                    formatted = "[...]";
+                else
+                    formatted = FormatNestedPreviewValue(propValue);
+                parts.Add($"{prop.Name} = {formatted}");
+            }
+            catch
+            {
+                parts.Add($"{prop.Name} = ?");
+            }
+        }
+        var suffix = props.Length > 3 ? ", ..." : "";
+        return $"{type.Name} {{ {string.Join(", ", parts)}{suffix} }}";
+    }
+
+    /// <summary>
+    /// Formats a value for nested preview display (matching record ToString() style — no string quoting).
+    /// </summary>
+    private static string FormatNestedPreviewValue(object? value)
+    {
+        if (value is null) return "null";
+        if (value is string s) return s.Length > 30 ? s[..27] + "..." : s;
+        if (value is bool b) return b ? "True" : "False";
+        if (IsScalarType(value.GetType()))
+            return value.ToString() ?? "null";
+
+        var type = value.GetType();
+        var toString = value.ToString();
+        if (toString == type.FullName || toString == type.Name || toString == type.ToString())
+        {
+            var props = GetReadableProperties(type);
+            if (props.Length > 0)
+                return GenerateNestedPreview(value, type, props);
+        }
+        return toString ?? "null";
     }
 
     /// <summary>
