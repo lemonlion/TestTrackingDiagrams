@@ -40,15 +40,41 @@ public static class ClosureValueResolver
             if (!IsStandaloneToken(argsText, name))
                 continue;
 
+            // Check if the token is followed by a dotted property chain (e.g. "expected.Prop.Sub")
+            var dottedChain = ExtractDottedChain(argsText, name);
+            if (dottedChain is not null)
+            {
+                var fullKey = name + dottedChain;
+
+                if (IsInComputedExpression(argsText, fullKey))
+                {
+                    result.AddFallback(fullKey, "computed expression");
+                    continue;
+                }
+
+                var leafValue = WalkPropertyChain(value, dottedChain);
+                if (leafValue.Success)
+                {
+                    var displayValue = FormatValue(leafValue.Value, fullKey, result);
+                    if (displayValue is not null)
+                        result.ResolvedValues[fullKey] = displayValue;
+                }
+                else
+                {
+                    result.AddFallback(fullKey, leafValue.FailureReason ?? "property chain navigation failed");
+                }
+                continue;
+            }
+
             if (IsInComputedExpression(argsText, name))
             {
                 result.AddFallback(name, "computed expression");
                 continue;
             }
 
-            var displayValue = FormatValue(value, name, result);
-            if (displayValue is not null)
-                result.ResolvedValues[name] = displayValue;
+            var displayVal = FormatValue(value, name, result);
+            if (displayVal is not null)
+                result.ResolvedValues[name] = displayVal;
         }
 
         return result;
@@ -207,6 +233,76 @@ public static class ClosureValueResolver
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// If the token in argsText is followed by ".Property.Sub..." chains, extracts that suffix
+    /// (e.g. ".ExpectedIngredientCount"). Returns null if no dotted chain follows.
+    /// </summary>
+    private static string? ExtractDottedChain(string argsText, string token)
+    {
+        var idx = 0;
+        while (idx <= argsText.Length - token.Length)
+        {
+            idx = argsText.IndexOf(token, idx, StringComparison.Ordinal);
+            if (idx < 0)
+                return null;
+
+            var before = idx > 0 ? argsText[idx - 1] : ' ';
+            var afterPos = idx + token.Length;
+
+            if (!IsIdentifierChar(before) && afterPos < argsText.Length && argsText[afterPos] == '.')
+            {
+                // Extract the full dotted chain: .Prop1.Prop2...
+                var chainStart = afterPos;
+                var pos = chainStart + 1; // skip the first dot
+                while (pos < argsText.Length && (IsIdentifierChar(argsText[pos]) || argsText[pos] == '.'))
+                {
+                    // Don't end on a trailing dot
+                    if (argsText[pos] == '.' && (pos + 1 >= argsText.Length || !IsIdentifierChar(argsText[pos + 1])))
+                        break;
+                    pos++;
+                }
+
+                var chain = argsText[chainStart..pos];
+                if (chain.Length > 1) // must be ".X" at minimum
+                    return chain;
+            }
+
+            idx += token.Length;
+        }
+
+        return null;
+    }
+
+    private static (bool Success, object? Value, string? FailureReason) WalkPropertyChain(object? root, string chain)
+    {
+        // chain is e.g. ".ExpectedIngredientCount" or ".Inner.Value"
+        var segments = chain.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var current = root;
+
+        foreach (var segment in segments)
+        {
+            if (current is null)
+                return (true, null, null); // null in the middle → resolve as "null"
+
+            var prop = current.GetType().GetProperty(segment,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (prop is null)
+            {
+                var field = current.GetType().GetField(segment,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (field is null)
+                    return (false, null, $"property '{segment}' not found on {current.GetType().Name}");
+                current = field.GetValue(current);
+            }
+            else
+            {
+                current = prop.GetValue(current);
+            }
+        }
+
+        return (true, current, null);
     }
 
     private static string? FormatValue(object? value, string fieldName, ResolveResult result)

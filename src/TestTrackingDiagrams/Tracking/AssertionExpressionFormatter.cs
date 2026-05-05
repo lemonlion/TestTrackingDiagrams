@@ -158,8 +158,13 @@ public static partial class AssertionExpressionFormatter
 
     private static string SubstituteResolvedValues(string args, Dictionary<string, string> resolvedValues)
     {
-        foreach (var (name, value) in resolvedValues)
+        // Process longer keys first to prevent partial matches
+        // (e.g. "expected.ExpectedIngredientCount" before "expected")
+        var orderedKeys = resolvedValues.Keys.OrderByDescending(k => k.Length);
+
+        foreach (var name in orderedKeys)
         {
+            var value = resolvedValues[name];
             var idx = 0;
             while (idx <= args.Length - name.Length)
             {

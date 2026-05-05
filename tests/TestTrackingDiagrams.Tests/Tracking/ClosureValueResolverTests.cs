@@ -249,6 +249,80 @@ public class ClosureValueResolverTests
         Assert.Equal("test-id-123", result.ResolvedValues["_confirmationId"]);
     }
 
+    [Fact]
+    public void Resolves_dotted_property_chain_on_complex_object()
+    {
+        var expected = new MuffinBatchExpectation { ExpectedIngredientCount = 5 };
+        Action action = () => Dummy(expected);
+
+        var result = ClosureValueResolver.ResolveValues(
+            action, "() => x.Should().HaveCount(expected.ExpectedIngredientCount)");
+
+        Assert.Equal("5", result.ResolvedValues["expected.ExpectedIngredientCount"]);
+        Assert.DoesNotContain("expected", result.ResolvedValues.Keys);
+    }
+
+    [Fact]
+    public void Resolves_multi_level_dotted_property_chain()
+    {
+        var config = new OuterConfig { Inner = new InnerConfig { Value = 42 } };
+        Action action = () => Dummy(config);
+
+        var result = ClosureValueResolver.ResolveValues(
+            action, "() => x.Should().Be(config.Inner.Value)");
+
+        Assert.Equal("42", result.ResolvedValues["config.Inner.Value"]);
+    }
+
+    [Fact]
+    public void Falls_back_when_property_does_not_exist_on_chain()
+    {
+        var expected = new MuffinBatchExpectation { ExpectedIngredientCount = 5 };
+        Action action = () => Dummy(expected);
+
+        var result = ClosureValueResolver.ResolveValues(
+            action, "() => x.Should().Be(expected.NonExistentProperty)");
+
+        // Should not crash — falls back gracefully
+        Assert.DoesNotContain("expected.NonExistentProperty", result.ResolvedValues.Keys);
+        Assert.Single(result.Fallbacks);
+    }
+
+    [Fact]
+    public void Falls_back_when_property_chain_returns_null()
+    {
+        var config = new OuterConfig { Inner = null! };
+        Action action = () => Dummy(config);
+
+        var result = ClosureValueResolver.ResolveValues(
+            action, "() => x.Should().Be(config.Inner.Value)");
+
+        Assert.Equal("null", result.ResolvedValues["config.Inner.Value"]);
+    }
+
+    [Fact]
+    public void Simple_token_still_resolves_when_no_dot_follows()
+    {
+        var expected = "hello";
+        Action action = () => Dummy(expected);
+
+        var result = ClosureValueResolver.ResolveValues(action, "() => x.Should().Be(expected)");
+
+        Assert.Equal("hello", result.ResolvedValues["expected"]);
+    }
+
+    [Fact]
+    public void Resolves_string_property_on_object()
+    {
+        var expected = new MuffinBatchExpectation { ExpectedName = "chocolate" };
+        Action action = () => Dummy(expected);
+
+        var result = ClosureValueResolver.ResolveValues(
+            action, "() => x.Should().Be(expected.ExpectedName)");
+
+        Assert.Equal("chocolate", result.ResolvedValues["expected.ExpectedName"]);
+    }
+
     // --- Helpers ---
 
     private static void Dummy(object? _) { }
@@ -256,6 +330,22 @@ public class ClosureValueResolverTests
     private class UnformattableObject
     {
         // ToString() returns type name by default — exactly what we detect as "complex object"
+    }
+
+    private class MuffinBatchExpectation
+    {
+        public int ExpectedIngredientCount { get; set; }
+        public string? ExpectedName { get; set; }
+    }
+
+    private class OuterConfig
+    {
+        public InnerConfig Inner { get; set; } = new();
+    }
+
+    private class InnerConfig
+    {
+        public int Value { get; set; }
     }
 
     public class FieldHolder

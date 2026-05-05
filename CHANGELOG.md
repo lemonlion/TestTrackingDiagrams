@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.5-beta] - 2026-05-05
+
+### Fixed
+- **`Track.That()` now resolves dotted property chains on captured variables**: Previously, `Track.That(() => x.Should().HaveCount(expected.ExpectedIngredientCount))` would resolve `expected` to its full `ToString()` representation (e.g. `'MuffinBatchExpectation { ExpectedIngredientCount =...'.ExpectedIngredientCount`) instead of navigating the property chain to the leaf value. `ClosureValueResolver` now detects dotted property access (e.g. `expected.ExpectedIngredientCount`, `config.Inner.Value`) in the assertion args, walks the chain via reflection, and resolves to the leaf value (e.g. `'5'`). Falls back gracefully when properties don't exist or intermediate values are null.
+- **Assertion value substitution now processes longer keys first**: `SubstituteResolvedValues` now sorts resolved-value keys by length descending before substitution, preventing shorter keys (e.g. `expected`) from partially matching before their longer dotted variants (e.g. `expected.ExpectedIngredientCount`).
+
 ## [2.29.4-beta] - 2026-05-04
 
 ### Fixed

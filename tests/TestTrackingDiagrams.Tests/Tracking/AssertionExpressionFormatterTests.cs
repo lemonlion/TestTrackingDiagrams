@@ -201,4 +201,27 @@ public class AssertionExpressionFormatterTests
             "() => x.Should().Be(expected)", resolved);
         Assert.Equal("X should be 'null'", result);
     }
+
+    [Fact]
+    public void Format_substitutes_dotted_property_chain_value()
+    {
+        var resolved = new Dictionary<string, string> { ["expected.ExpectedIngredientCount"] = "5" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().HaveCount(expected.ExpectedIngredientCount)", resolved);
+        Assert.Equal("X should have count '5'", result);
+    }
+
+    [Fact]
+    public void Format_prefers_longer_key_over_shorter_key()
+    {
+        // Both keys present — longer dotted key must match first
+        var resolved = new Dictionary<string, string>
+        {
+            ["expected"] = "MuffinBatchExpectation { ... }",
+            ["expected.ExpectedIngredientCount"] = "5"
+        };
+        var result = AssertionExpressionFormatter.Format(
+            "() => x.Should().HaveCount(expected.ExpectedIngredientCount)", resolved);
+        Assert.Equal("X should have count '5'", result);
+    }
 }
