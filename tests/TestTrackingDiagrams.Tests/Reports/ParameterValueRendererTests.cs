@@ -251,7 +251,7 @@ public class ParameterValueRendererTests
 
         Assert.Contains("<details class=\"param-expand\">", html);
         Assert.Contains("<summary>", html);
-        Assert.Contains("NestedRecord", html);
+        Assert.Contains("Name:", html);
         Assert.Contains("<div class=\"expand-body\">", html);
         Assert.Contains("</details>", html);
     }
@@ -273,14 +273,15 @@ public class ParameterValueRendererTests
     #region GeneratePreview
 
     [Fact]
-    public void GeneratePreview_shows_type_name_and_properties()
+    public void GeneratePreview_shows_properties_without_type_name()
     {
         var obj = new SimpleScalarRecord("UK", 100, "GBP");
         var preview = ParameterValueRenderer.GeneratePreview(obj);
-        Assert.Contains("SimpleScalarRecord", preview);
+        Assert.DoesNotContain("SimpleScalarRecord", preview);
         Assert.Contains("Region: \"UK\"", preview);
         Assert.Contains("Amount: 100", preview);
         Assert.Contains("Currency: \"GBP\"", preview);
+        Assert.StartsWith("{", preview);
     }
 
     [Fact]

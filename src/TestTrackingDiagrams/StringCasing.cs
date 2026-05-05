@@ -14,7 +14,7 @@ public static partial class StringCasing
     // From Humanizer's StringHumanizeExtensions
     private const string PascalCaseWordPartsPattern =
         @"(\p{Lu}?\p{Ll}+|[0-9]+\p{Ll}*|\p{Lu}+(?=\p{Lu}|[0-9]|\b)|\p{Lo}+)[,;]?";
-    private const string FreestandingSpacingCharPattern = @"\s[-_]|[-_]\s";
+
 
     // From Humanizer's InflectorExtensions
     private const string PascalizePattern = @"(?:[ _-]+|^)(.)";
@@ -22,8 +22,6 @@ public static partial class StringCasing
     [GeneratedRegex(PascalCaseWordPartsPattern, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
     private static partial Regex PascalCaseWordPartsRegex();
 
-    [GeneratedRegex(FreestandingSpacingCharPattern)]
-    private static partial Regex FreestandingSpacingCharRegex();
 
     [GeneratedRegex(PascalizePattern)]
     private static partial Regex PascalizeRegex();
@@ -58,11 +56,8 @@ public static partial class StringCasing
         if (input.All(char.IsUpper))
             return input;
 
-        if (FreestandingSpacingCharRegex().IsMatch(input))
-            return FromPascalCase(FromUnderscoreDashSeparatedWords(input));
-
         if (input.IndexOfAny(['_', '-']) >= 0)
-            return FromUnderscoreDashSeparatedWords(input);
+            return FromPascalCase(FromUnderscoreDashSeparatedWords(input));
 
         return FromPascalCase(input);
     }

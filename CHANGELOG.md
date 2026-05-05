@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.12-beta] - 2026-05-05
+
+### Fixed
+- **Humanize bug for PascalCase+underscore names**: `StringCasing.Titleize()` now correctly splits PascalCase words in underscore-separated names (e.g. `ParameterizedDiagnostic_Feature` → "Parameterized Diagnostic Feature" instead of "Parameterizeddiagnostic Feature").
+- **Preview text no longer includes type name prefix**: `GeneratePreview()` now returns `{ Prop: val, ... }` instead of `TypeName { Prop: val, ... }`. Nested type names are still preserved (e.g. `Ingredients: IngredientSet { ... }`).
+- **`GenerateDictionaryPreview` shows nested values**: For dictionaries with nested dict/list values, the preview now shows `{ Key: { nested }, ... }` instead of just `{ Key1, Key2, Key3 }`.
+- **Combined table only renders for assertion scenarios**: The combined input→output table is now only shown when there are both setup (Given) and assertion (Then) phase tabular parameters. Pure-input scenarios render tables inline within their steps instead.
+
+### Changed
+- **ReqNRoll feature name aligned**: Changed from "Muffins Creation" to "Parameterized Diagnostic Feature" with endpoint `/diagnostic` to match xUnit3/LightBDD.
+
 ## [2.29.11-beta] - 2026-05-05
 
 ### Fixed

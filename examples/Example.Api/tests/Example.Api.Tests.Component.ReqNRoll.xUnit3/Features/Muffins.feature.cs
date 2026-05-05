@@ -17,8 +17,8 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
     
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::Xunit.TraitAttribute("Category", "endpoint:/muffins")]
-    public partial class MuffinsCreationFeature : object, Xunit.IClassFixture<MuffinsCreationFeature.FixtureData>, Xunit.IAsyncLifetime
+    [global::Xunit.TraitAttribute("Category", "endpoint:/diagnostic")]
+    public partial class ParameterizedDiagnosticFeatureFeature : object, Xunit.IClassFixture<ParameterizedDiagnosticFeatureFeature.FixtureData>, Xunit.IAsyncLifetime
     {
         
         private global::Reqnroll.ITestRunner testRunner;
@@ -26,14 +26,15 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         private Xunit.ITestOutputHelper _testOutputHelper;
         
         private static string[] featureTags = new string[] {
-                "endpoint:/muffins"};
+                "endpoint:/diagnostic"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Muffins Creation", "    /muffins - Creating apple cinnamon muffins with baking profiles and toppings", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Parameterized Diagnostic Feature", "    /diagnostic - Creating apple cinnamon muffins with baking profiles and toppin" +
+                "gs", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "Muffins.feature"
 #line hidden
         
-        public MuffinsCreationFeature(MuffinsCreationFeature.FixtureData fixtureData, Xunit.ITestOutputHelper testOutputHelper)
+        public ParameterizedDiagnosticFeatureFeature(ParameterizedDiagnosticFeatureFeature.FixtureData fixtureData, Xunit.ITestOutputHelper testOutputHelper)
         {
             this._testOutputHelper = testOutputHelper;
         }
@@ -136,7 +137,7 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         }
         
         [global::Xunit.FactAttribute(DisplayName="A valid apple cinnamon muffin request should return a fresh batch")]
-        [global::Xunit.TraitAttribute("FeatureTitle", "Muffins Creation")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Parameterized Diagnostic Feature")]
         [global::Xunit.TraitAttribute("Description", "A valid apple cinnamon muffin request should return a fresh batch")]
         [global::Xunit.TraitAttribute("Category", "happy-path")]
         public async global::System.Threading.Tasks.Task AValidAppleCinnamonMuffinRequestShouldReturnAFreshBatch()
@@ -175,7 +176,7 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
         }
         
         [global::Xunit.TheoryAttribute(DisplayName="Different muffin recipes should produce the expected batch")]
-        [global::Xunit.TraitAttribute("FeatureTitle", "Muffins Creation")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Parameterized Diagnostic Feature")]
         [global::Xunit.TraitAttribute("Description", "Different muffin recipes should produce the expected batch")]
         [global::Xunit.InlineDataAttribute("Classic", "Plain Flour", "Granny Smith", "Ceylon", "180", "25", "Standard", "Streusel", "Light", "Icing Glaze", "Drizzle", "5", "2", "True", "1", new string[0])]
         [global::Xunit.InlineDataAttribute("Rustic Wholesome", "Whole Wheat", "Honeycrisp", "Cassia", "175", "30", "Cast Iron", "Brown Sugar Crumb", "Heavy", "Maple Drizzle", "Light", "5", "2", "True", "2", new string[0])]
@@ -285,12 +286,12 @@ namespace Example.Api.Tests.Component.ReqNRoll.xUnit3.Features
             
             async System.Threading.Tasks.ValueTask Xunit.IAsyncLifetime.InitializeAsync()
             {
-                await MuffinsCreationFeature.FeatureSetupAsync();
+                await ParameterizedDiagnosticFeatureFeature.FeatureSetupAsync();
             }
             
             async System.Threading.Tasks.ValueTask System.IAsyncDisposable.DisposeAsync()
             {
-                await MuffinsCreationFeature.FeatureTearDownAsync();
+                await ParameterizedDiagnosticFeatureFeature.FeatureTearDownAsync();
             }
         }
     }

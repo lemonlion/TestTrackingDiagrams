@@ -1838,14 +1838,16 @@ public static class ReportGenerator
                 {
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
+                    var renderCombined = ShouldRenderCombinedTable(scenario.Steps);
                     for (var si = 0; si < scenario.Steps.Length; si++)
                     {
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, scenario.Steps[si], numberPrefix);
+                        RenderStep(body, scenario.Steps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
                     body.Append("</details>");
 
-                    RenderCombinedTabularParameters(body, scenario.Steps);
+                    if (renderCombined)
+                        RenderCombinedTabularParameters(body, scenario.Steps);
                 }
 
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
@@ -2417,13 +2419,15 @@ public static class ReportGenerator
                 {
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
+                    var renderCombined = ShouldRenderCombinedTable(s.Steps);
                     for (var si = 0; si < s.Steps.Length; si++)
                     {
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, s.Steps[si], numberPrefix);
+                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
                     body.Append("</details>");
-                    RenderCombinedTabularParameters(body, s.Steps);
+                    if (renderCombined)
+                        RenderCombinedTabularParameters(body, s.Steps);
                 }
 
                 if (s.Result == ExecutionResult.Failed)
@@ -2659,7 +2663,7 @@ public static class ReportGenerator
         }
     }
 
-    private static void RenderStep(StringBuilder body, ScenarioStep step, string? numberPrefix = null)
+    private static void RenderStep(StringBuilder body, ScenarioStep step, string? numberPrefix = null, bool skipTabularInline = true)
     {
         var statusClass = step.Status switch
         {
@@ -2760,7 +2764,7 @@ public static class ReportGenerator
         {
             foreach (var param in step.Parameters)
             {
-                if (param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
+                if (skipTabularInline && param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
                 RenderParameter(body, param);
             }
         }
@@ -2878,6 +2882,30 @@ public static class ReportGenerator
         }
 
         body.Append("</div>");
+    }
+
+    private static bool ShouldRenderCombinedTable(ScenarioStep[] steps)
+    {
+        var afterThen = false;
+        var hasSetupTable = false;
+        var hasAssertionTable = false;
+        foreach (var step in steps)
+        {
+            var keyword = step.Keyword?.Trim();
+            if (keyword?.Equals("Then", StringComparison.OrdinalIgnoreCase) == true)
+                afterThen = true;
+            else if (keyword?.Equals("Given", StringComparison.OrdinalIgnoreCase) == true ||
+                     keyword?.Equals("When", StringComparison.OrdinalIgnoreCase) == true)
+                afterThen = false;
+
+            var hasTabular = step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular && p.TabularValue is not null) == true;
+            if (hasTabular)
+            {
+                if (afterThen) hasAssertionTable = true;
+                else hasSetupTable = true;
+            }
+        }
+        return hasSetupTable && hasAssertionTable;
     }
 
     private static void RenderCombinedTabularParameters(StringBuilder body, ScenarioStep[] steps)

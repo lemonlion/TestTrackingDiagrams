@@ -1,6 +1,6 @@
-@endpoint:/muffins
-Feature: Muffins Creation
-    /muffins - Creating apple cinnamon muffins with baking profiles and toppings
+@endpoint:/diagnostic
+Feature: Parameterized Diagnostic Feature
+    /diagnostic - Creating apple cinnamon muffins with baking profiles and toppings
 
     @happy-path
     Scenario: A valid apple cinnamon muffin request should return a fresh batch

@@ -202,7 +202,7 @@ internal static class ParameterValueRenderer
 
     /// <summary>
     /// Generates a short preview string for the summary line.
-    /// Format: "TypeName { Prop1: val1, Prop2: val2, ... }"
+    /// Format: "{ Prop1: val1, Prop2: val2, ... }"
     /// </summary>
     internal static string GeneratePreview(object value)
     {
@@ -218,11 +218,10 @@ internal static class ParameterValueRenderer
         }
 
         var type = value.GetType();
-        var typeName = type.Name;
         var props = GetReadableProperties(type);
 
         if (props.Length == 0)
-            return typeName;
+            return type.Name;
 
         // Show up to 3 properties in the preview
         var previewParts = new List<string>();
@@ -247,30 +246,30 @@ internal static class ParameterValueRenderer
         }
 
         var suffix = props.Length > 3 ? ", ..." : "";
-        return $"{typeName} {{ {string.Join(", ", previewParts)}{suffix} }}";
+        return $"{{ {string.Join(", ", previewParts)}{suffix} }}";
     }
 
-    private static string GenerateDictionaryPreview(IDictionary<string, object?> dict)
+    private static string GenerateDictionaryPreview(IDictionary<string, object?> dict, bool isNested = false)
     {
         if (dict.Count == 0)
             return "{ }";
 
-        // If any value is a complex type (nested dict/list), just show key summary
-        if (dict.Values.Any(v => v is IDictionary<string, object?> or IEnumerable<IDictionary<string, object?>>))
-        {
-            var keys = string.Join(", ", dict.Keys.Take(3));
-            var trail = dict.Count > 3 ? ", ..." : "";
-            return $"{{ {keys}{trail} }}";
-        }
-
         var parts = new List<string>();
+        var separator = isNested ? " = " : ": ";
+
         foreach (var kvp in dict.Take(3))
         {
-            var formatted = FormatPreviewValue(kvp.Value);
-            parts.Add($"{kvp.Key}: {formatted}");
+            string formatted;
+            if (kvp.Value is IDictionary<string, object?> nestedDict)
+                formatted = GenerateDictionaryPreview(nestedDict, isNested: true);
+            else if (kvp.Value is IEnumerable<IDictionary<string, object?>> dictList)
+                formatted = $"{dictList.Count()}";
+            else
+                formatted = FormatNestedPreviewValue(kvp.Value);
+            parts.Add($"{kvp.Key}{separator}{formatted}");
         }
-        var trail2 = dict.Count > 3 ? ", ..." : "";
-        return $"{{ {string.Join(", ", parts)}{trail2} }}";
+        var trail = dict.Count > 3 ? ", ..." : "";
+        return $"{{ {string.Join(", ", parts)}{trail} }}";
     }
 
     private static string FormatPreviewValue(object? value)

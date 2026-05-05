@@ -130,7 +130,8 @@ public class ParameterRenderingReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("step-param-combined-table", content);
+        Assert.DoesNotContain("<div class=\"step-param-combined-table\"", content);
+        Assert.Contains("step-param-table", content);
         Assert.Contains("Alice", content);
         Assert.Contains("Age", content);
     }
@@ -434,8 +435,8 @@ public class ParameterRenderingReportTests
         };
 
         var content = GenerateReport(features);
-        Assert.Contains("step-param-combined-table", content);
-        Assert.DoesNotContain("<th class=\"combined-separator\">=</th>", content);
+        Assert.DoesNotContain("<div class=\"step-param-combined-table\"", content);
+        Assert.Contains("step-param-table", content);
         Assert.Contains("Alice", content);
     }
 
