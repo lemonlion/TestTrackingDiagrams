@@ -267,7 +267,7 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        Assert.Equal(2, await GetParamRows().CountAsync());
+        Assert.Equal(3, await GetParamRows().CountAsync());
     }
 
     [Fact]
@@ -277,13 +277,11 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        // Check both recipe names exist across the rows (order is non-deterministic)
-        var row1Html = await GetParamRows().First.InnerHTMLAsync();
-        var row2Html = await GetParamRows().Nth(1).InnerHTMLAsync();
-        var combined = row1Html + row2Html;
+        var tableHtml = await GetParameterizedGroup().First.Locator("table.param-test-table").First.InnerHTMLAsync();
 
-        Assert.Contains("Classic", combined);
-        Assert.Contains("Healthy", combined);
+        Assert.Contains("Classic", tableHtml);
+        Assert.Contains("Rustic Wholesome", tableHtml);
+        Assert.Contains("Spiced Deluxe", tableHtml);
     }
 
     [Fact]
@@ -323,30 +321,53 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        // With raw value capture, toppings should render as individual items (same as xUnit3)
+        // With raw value capture, toppings should render as individual items NOT "List<ToppingData>"
         var tableHtml = await GetParameterizedGroup().First.Locator("table.param-test-table").First.InnerHTMLAsync();
 
         Assert.Contains("Streusel", tableHtml);
-        Assert.Contains("Icing Sugar", tableHtml);
+        Assert.Contains("Icing Glaze", tableHtml);
+        Assert.DoesNotContain("List&lt;ToppingData&gt;", tableHtml);
     }
 
     [Fact]
-    public async Task LightBDD_pipeline_renders_Healthy_recipe_data()
+    public async Task LightBDD_pipeline_renders_toppings_for_all_recipes()
     {
         await NavigateToReport(_pipeline.LightBDDReportPath);
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        // Find all data across the table (order may vary)
+        var tableHtml = await GetParameterizedGroup().First.Locator("table.param-test-table").First.InnerHTMLAsync();
+
+        // Classic toppings
+        Assert.Contains("Streusel", tableHtml);
+        Assert.Contains("Icing Glaze", tableHtml);
+
+        // Rustic Wholesome toppings
+        Assert.Contains("Brown Sugar Crumb", tableHtml);
+        Assert.Contains("Maple Drizzle", tableHtml);
+
+        // Spiced Deluxe toppings
+        Assert.Contains("Cinnamon Sugar", tableHtml);
+        Assert.Contains("Cream Cheese Swirl", tableHtml);
+    }
+
+    [Fact]
+    public async Task LightBDD_pipeline_renders_Rustic_Wholesome_recipe_data()
+    {
+        await NavigateToReport(_pipeline.LightBDDReportPath);
+        await ExpandAll();
+        await OpenParameterizedGroup();
+
         var tableHtml = await GetParameterizedGroup().First.Locator("table.param-test-table").First.InnerHTMLAsync();
 
         Assert.Contains("Whole Wheat", tableHtml);
         Assert.Contains("Honeycrisp", tableHtml);
         Assert.Contains("Cassia", tableHtml);
-        Assert.Contains("170", tableHtml);
+        Assert.Contains("175", tableHtml);
         Assert.Contains("30", tableHtml);
-        Assert.Contains("Silicone", tableHtml);
-        Assert.Contains("Oats", tableHtml);
+        Assert.Contains("Cast Iron", tableHtml);
+        Assert.Contains("Brown Sugar Crumb", tableHtml);
+        Assert.Contains("Maple Drizzle", tableHtml);
     }
 
     [Fact]
@@ -356,11 +377,11 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         await ExpandAll();
         await OpenParameterizedGroup();
 
-        var firstRow = GetParamRows().First;
-        var rowHtml = await firstRow.InnerHTMLAsync();
+        var tableHtml = await GetParameterizedGroup().First.Locator("table.param-test-table").First.InnerHTMLAsync();
 
-        Assert.Contains("12", rowHtml);
-        Assert.Contains("Fluffy", rowHtml);
+        // MuffinBatchExpectation { ExpectedIngredientCount = 5, ExpectedToppingCount = 2, HasBakingInfo = true }
+        Assert.Contains("ExpectedIngredientCount", tableHtml);
+        Assert.Contains("5", tableHtml);
     }
 
     [Fact]

@@ -6,11 +6,39 @@ using LightBDD.XUnit3;
 
 namespace Example.Api.Tests.Component.LightBDD.xUnit3.Scenarios;
 
-public record IngredientSet(string Flour, string Apples, string Cinnamon);
-public record BakingProfileData(int Temperature, int DurationMinutes, string PanType);
-public record ToppingData(string Name, string Amount);
-public record MuffinRecipeTestData(IngredientSet Ingredients, BakingProfileData Baking, List<ToppingData> Toppings);
-public record MuffinBatchExpectation(int ExpectedCount, string ExpectedTexture);
+public class IngredientSet
+{
+    public required string Flour { get; init; }
+    public required string Apples { get; init; }
+    public required string Cinnamon { get; init; }
+}
+
+public class BakingProfileData
+{
+    public required int Temperature { get; init; }
+    public required int DurationMinutes { get; init; }
+    public required string PanType { get; init; }
+}
+
+public class ToppingData
+{
+    public required string Name { get; init; }
+    public required string Amount { get; init; }
+}
+
+public class MuffinRecipeTestData
+{
+    public required IngredientSet Ingredients { get; init; }
+    public required BakingProfileData Baking { get; init; }
+    public required List<ToppingData> Toppings { get; init; }
+}
+
+public class MuffinBatchExpectation
+{
+    public required int ExpectedIngredientCount { get; init; }
+    public required int ExpectedToppingCount { get; init; }
+    public required bool HasBakingInfo { get; init; }
+}
 
 [FeatureDescription("Parameterized Diagnostic")]
 public partial class ParameterizedDiagnostic_Feature : BaseFixture
@@ -20,20 +48,92 @@ public partial class ParameterizedDiagnostic_Feature : BaseFixture
         yield return
         [
             "Classic",
-            new MuffinRecipeTestData(
-                new IngredientSet("Plain Flour", "Granny Smith", "Ceylon"),
-                new BakingProfileData(180, 25, "Standard"),
-                [new ToppingData("Streusel", "Light"), new ToppingData("Icing Sugar", "Dusting")]),
-            new MuffinBatchExpectation(12, "Fluffy")
+            new MuffinRecipeTestData
+            {
+                Ingredients = new IngredientSet
+                {
+                    Flour = "Plain Flour",
+                    Apples = "Granny Smith",
+                    Cinnamon = "Ceylon"
+                },
+                Baking = new BakingProfileData
+                {
+                    Temperature = 180,
+                    DurationMinutes = 25,
+                    PanType = "Standard"
+                },
+                Toppings =
+                [
+                    new ToppingData { Name = "Streusel", Amount = "Light" },
+                    new ToppingData { Name = "Icing Glaze", Amount = "Drizzle" }
+                ]
+            },
+            new MuffinBatchExpectation
+            {
+                ExpectedIngredientCount = 5,
+                ExpectedToppingCount = 2,
+                HasBakingInfo = true
+            }
         ];
         yield return
         [
-            "Healthy",
-            new MuffinRecipeTestData(
-                new IngredientSet("Whole Wheat", "Honeycrisp", "Cassia"),
-                new BakingProfileData(170, 30, "Silicone"),
-                [new ToppingData("Oats", "Heavy")]),
-            new MuffinBatchExpectation(6, "Dense")
+            "Rustic Wholesome",
+            new MuffinRecipeTestData
+            {
+                Ingredients = new IngredientSet
+                {
+                    Flour = "Whole Wheat",
+                    Apples = "Honeycrisp",
+                    Cinnamon = "Cassia"
+                },
+                Baking = new BakingProfileData
+                {
+                    Temperature = 175,
+                    DurationMinutes = 30,
+                    PanType = "Cast Iron"
+                },
+                Toppings =
+                [
+                    new ToppingData { Name = "Brown Sugar Crumb", Amount = "Heavy" },
+                    new ToppingData { Name = "Maple Drizzle", Amount = "Light" }
+                ]
+            },
+            new MuffinBatchExpectation
+            {
+                ExpectedIngredientCount = 5,
+                ExpectedToppingCount = 2,
+                HasBakingInfo = true
+            }
+        ];
+        yield return
+        [
+            "Spiced Deluxe",
+            new MuffinRecipeTestData
+            {
+                Ingredients = new IngredientSet
+                {
+                    Flour = "Almond Flour",
+                    Apples = "Pink Lady",
+                    Cinnamon = "Saigon"
+                },
+                Baking = new BakingProfileData
+                {
+                    Temperature = 190,
+                    DurationMinutes = 20,
+                    PanType = "Silicone"
+                },
+                Toppings =
+                [
+                    new ToppingData { Name = "Cinnamon Sugar", Amount = "Heavy" },
+                    new ToppingData { Name = "Cream Cheese Swirl", Amount = "Thick" }
+                ]
+            },
+            new MuffinBatchExpectation
+            {
+                ExpectedIngredientCount = 5,
+                ExpectedToppingCount = 2,
+                HasBakingInfo = true
+            }
         ];
     }
 
@@ -64,6 +164,6 @@ public partial class ParameterizedDiagnostic_Feature : BaseFixture
     private async Task The_expected_batch_is_specified(MuffinBatchExpectation expected)
     {
         expected.Should().NotBeNull();
-        expected.ExpectedCount.Should().BeGreaterThan(0);
+        expected.ExpectedIngredientCount.Should().BeGreaterThan(0);
     }
 }

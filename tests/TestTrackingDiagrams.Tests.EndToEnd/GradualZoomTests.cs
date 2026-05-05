@@ -389,6 +389,71 @@ public class GradualZoomTests : PlaywrightTestBase
         Assert.True(newVal < 100, $"Ctrl+wheel down should zoom out from 100 but got {newVal}");
     }
 
+    [Fact]
+    public async Task Plain_wheel_zooms_selected_diagram_without_ctrl()
+    {
+        await SetupWideDiagram("PlainWheelZoom.html");
+
+        var container = GetDiagramContainer();
+
+        // Select the diagram first
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
+
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Dispatch a plain wheel event (no ctrlKey) over the selected diagram
+        await container.EvaluateAsync("""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: false,
+                    deltaY: -100,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.True(newVal > initialVal, $"Plain wheel up on selected diagram should zoom in: {initialVal} -> {newVal}");
+    }
+
+    [Fact]
+    public async Task Plain_wheel_does_not_zoom_unselected_diagram()
+    {
+        await SetupWideDiagram("PlainWheelNoZoom.html");
+
+        var container = GetDiagramContainer();
+        // Do NOT select the diagram
+
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Dispatch a plain wheel event (no ctrlKey) over the unselected diagram
+        await container.EvaluateAsync("""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: false,
+                    deltaY: -100,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        Assert.Equal(initialVal, newVal);
+    }
+
     // ── Zoom-to-Cursor (scroll adjustment) ──
 
     [Fact]

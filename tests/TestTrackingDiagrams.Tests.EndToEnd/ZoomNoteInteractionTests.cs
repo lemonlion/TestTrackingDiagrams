@@ -75,7 +75,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
 
     private async Task<string> GetContainerOverflow() =>
         await Page.EvaluateAsync<string>(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"]').style.overflow");
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"]').style.overflowX");
 
     // ── Zoom state preserved after note collapse ──
 

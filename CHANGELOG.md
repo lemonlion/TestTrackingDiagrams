@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.6-beta] - 2026-05-05
+
+### Fixed
+- **LightBDD adapter: raw argument capture is now automatic — no `[assembly: CaptureLightBddArguments]` attribute required**: Previously, users had to add an explicit assembly-level attribute to enable rich rendering of complex objects (records, lists, nested types) in parameterized LightBDD reports. Without it, class-based types that don't override `ToString()` (e.g. `List<ToppingData>`) rendered as opaque type names. The new `ArgumentCaptureScenarioDecorator` (an `IScenarioDecorator`) is registered automatically when using the `LightBddConfiguration.CreateStandardReportsWithDiagrams()` overload. It captures raw test method arguments from xUnit3's `TestContext.Current` during scenario execution, before arguments are cleared. The legacy `[assembly: CaptureLightBddArguments]` attribute still works but is no longer necessary.
+
+### Changed
+- **New `LightBddConfiguration.CreateStandardReportsWithDiagrams(options)` overload**: Direct extension on `LightBddConfiguration` that registers both the report pipeline and the argument capture decorator in one call. Replaces the previous pattern of `configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(options)` — use `configuration.CreateStandardReportsWithDiagrams(options)` instead.
+- **LightBDD example updated to class-based types**: Example now uses init-property classes (not records) with 3 recipe variations (Classic, Rustic Wholesome, Spiced Deluxe), matching real-world usage where `ToString()` returns just the type name.
+
 ## [2.29.5-beta] - 2026-05-05
 
 ### Fixed

@@ -1403,11 +1403,13 @@ public static class DiagramContextMenu
                 applyZoomLevel(container, newVal, cx, cy);
             });
 
-            // ── Mouse Wheel Zoom (Ctrl+Wheel) ──
+            // ── Mouse Wheel Zoom (selected diagram or Ctrl+Wheel) ──
 
             document.addEventListener('wheel', function(e) {
-                if (!e.ctrlKey && !e.metaKey) return;
                 var container = findDiagramContainer(e.target);
+                var isSelected = container && container.classList.contains('diagram-selected');
+                // Allow plain wheel on selected diagram, or Ctrl+wheel on any diagram
+                if (!isSelected && !e.ctrlKey && !e.metaKey) return;
                 if (!container) return;
                 var slider = container.querySelector('.diagram-zoom-slider');
                 if (!slider) return;

@@ -12,7 +12,6 @@ using Xunit.v3;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 [assembly: TestPipelineStartup(typeof(ConfiguredLightBddScope))]
-[assembly: CaptureLightBddArguments]
 namespace Example.Api.Tests.Component.LightBDD.xUnit3.Infrastructure;
 
 public class ConfiguredLightBddScope : LightBddScope
@@ -31,7 +30,7 @@ public class ConfiguredLightBddScope : LightBddScope
                 SeparateSetup = true,
             };
 
-        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(reportOptions);
+        configuration.CreateStandardReportsWithDiagrams(reportOptions);
 
         // To stop the output repeating the step name for each step
         configuration.ProgressNotifierConfiguration().Clear();
