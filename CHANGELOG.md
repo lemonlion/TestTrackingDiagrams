@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.20-beta] - 2026-05-05
+
+### Fixed
+- **Parameterized scenario group names not humanized**: When xUnit3 or TUnit tests use `[MemberData]`/`[MethodDataSource]` (tabular input), the scenario group heading in reports now correctly shows "My test scenario name" instead of raw method names like `My_test_scenario_name` or `MyTestScenarioName`. The `OutlineId` is now passed through `ScenarioTitleResolver.FormatScenarioDisplayName()` before being used as the group display name.
+
 ## [2.29.19-beta] - 2026-05-05
 
 ### Removed

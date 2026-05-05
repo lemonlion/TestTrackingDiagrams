@@ -49,7 +49,7 @@ public static class ParameterGrouper
             }
             else
             {
-                groups.Add(BuildGroup(og.Key, members, maxColumns, diagramComparer));
+                groups.Add(BuildGroup(ScenarioTitleResolver.FormatScenarioDisplayName(og.Key), members, maxColumns, diagramComparer));
             }
             foreach (var m in members) consumed.Add(m.Id);
         }

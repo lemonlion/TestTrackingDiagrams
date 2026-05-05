@@ -28,6 +28,36 @@ public class ParameterGrouperTests
     }
 
     [Fact]
+    public void OutlineId_with_underscores_is_humanized_in_group_display_name()
+    {
+        var s1 = MakeScenario("s1", "My test scenario name [region: UK]", outlineId: "My_test_scenario_name", exampleValues: new() { ["region"] = "UK" });
+        var s2 = MakeScenario("s2", "My test scenario name [region: US]", outlineId: "My_test_scenario_name", exampleValues: new() { ["region"] = "US" });
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal("My test scenario name", groups[0].GroupDisplayName);
+    }
+
+    [Fact]
+    public void OutlineId_with_PascalCase_is_humanized_in_group_display_name()
+    {
+        var s1 = MakeScenario("s1", "My test scenario name [region: UK]", outlineId: "MyTestScenarioName", exampleValues: new() { ["region"] = "UK" });
+        var s2 = MakeScenario("s2", "My test scenario name [region: US]", outlineId: "MyTestScenarioName", exampleValues: new() { ["region"] = "US" });
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal("My test scenario name", groups[0].GroupDisplayName);
+    }
+
+    [Fact]
+    public void OutlineId_already_humanized_stays_unchanged()
+    {
+        var s1 = MakeScenario("s1", "Calling create cake endpoint [flavour: Chocolate]", outlineId: "Calling create cake endpoint", exampleValues: new() { ["flavour"] = "Chocolate" });
+        var s2 = MakeScenario("s2", "Calling create cake endpoint [flavour: Vanilla]", outlineId: "Calling create cake endpoint", exampleValues: new() { ["flavour"] = "Vanilla" });
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Equal("Calling create cake endpoint", groups[0].GroupDisplayName);
+    }
+
+    [Fact]
     public void Three_scenarios_grouped_by_display_name_prefix()
     {
         var s1 = MakeScenario("s1", "Ns.Class.Method(a: 1)");
