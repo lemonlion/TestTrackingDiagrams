@@ -194,45 +194,52 @@ public class GradualZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Slider_syncs_when_zoom_button_clicked()
+    public async Task Slider_syncs_when_zoomed_via_keyboard()
     {
-        await SetupWideDiagram("SliderSyncButton.html");
+        await SetupWideDiagram("SliderSyncKeyboard.html");
 
         var container = GetDiagramContainer();
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
 
-        // Click zoom toggle button
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
 
-        // Slider should be at max (100)
-        var sliderVal = await Page.Locator(".diagram-zoom-slider").First
-            .EvaluateAsync<string>("e => e.value");
-        Assert.Equal("100", sliderVal);
+        // Press Ctrl+= to zoom in
+        await Page.Keyboard.PressAsync("Control+=");
 
-        // Click again to unzoom
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
-
-        // Slider should be at min
-        var sliderValAfter = await Page.Locator(".diagram-zoom-slider").First
-            .EvaluateAsync<string>("e => e.value");
-        var min = await Page.Locator(".diagram-zoom-slider").First
-            .EvaluateAsync<string>("e => e.min");
-        Assert.Equal(min, sliderValAfter);
+        var newVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+        Assert.True(newVal > initialVal, $"Slider value should increase from {initialVal} but got {newVal}");
     }
 
     [Fact]
-    public async Task Slider_syncs_when_double_click_zooms()
+    public async Task Slider_syncs_when_ctrl_wheel_zooms()
     {
-        await SetupWideDiagram("SliderSyncDblClick.html");
+        await SetupWideDiagram("SliderSyncWheel.html");
 
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
-        await svg.DblClickAsync();
+        var container = GetDiagramContainer();
 
-        // Slider should be at max after double-click zoom in
+        var initialVal = await Page.Locator(".diagram-zoom-slider").First
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+
+        // Ctrl+wheel up to zoom in
+        await container.EvaluateAsync("""
+            (c) => {
+                var rect = c.getBoundingClientRect();
+                c.dispatchEvent(new WheelEvent('wheel', {
+                    bubbles: true, cancelable: true,
+                    ctrlKey: true,
+                    deltaY: -100,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        """);
+
         var sliderVal = await Page.Locator(".diagram-zoom-slider").First
-            .EvaluateAsync<string>("e => e.value");
-        Assert.Equal("100", sliderVal);
+            .EvaluateAsync<int>("e => parseInt(e.value)");
+        Assert.True(sliderVal > initialVal, $"Slider should sync after Ctrl+wheel zoom: {initialVal} -> {sliderVal}");
     }
 
     [Fact]
@@ -524,45 +531,18 @@ public class GradualZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Double_click_zoom_scrolls_to_click_point()
+    public async Task Clicking_selected_diagram_deselects_it()
     {
-        await SetupWideDiagram("DblClickZoomToCursor.html");
+        await SetupWideDiagram("ClickToDeselect.html");
 
         var container = GetDiagramContainer();
 
-        // Get container rect for click coordinates
-        var rect = await container.EvaluateAsync<double[]>("""
-            c => {
-                var r = c.getBoundingClientRect();
-                return [r.left, r.top, r.width, r.height];
-            }
-        """);
-        var clickX = rect[0] + rect[2] * 0.7; // Click at 70% across to test scroll-to-point
+        // Click to select
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new Regex("diagram-selected"));
 
-        // Double-click at a specific X position
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
-        await svg.EvaluateAsync($$"""
-            (el) => {
-                el.dispatchEvent(new MouseEvent('dblclick', {
-                    bubbles: true, cancelable: true,
-                    clientX: {{clickX}},
-                    clientY: {{rect[1] + rect[3] / 2}}
-                }));
-            }
-        """);
-
-        // After zooming to natural size, the click point should be roughly at the same viewport position
-        var afterData = await container.EvaluateAsync<double[]>("""
-            c => {
-                var svg = c.querySelector('svg');
-                return [c.scrollLeft, svg.getBoundingClientRect().width, c.getBoundingClientRect().left];
-            }
-        """);
-        var scrollLeft = afterData[0];
-        var svgWidth = afterData[1];
-
-        // The scroll should be non-zero (scrolled to keep click point visible)
-        // For a wide diagram clicked at 70%, there should be meaningful scroll
-        Assert.True(scrollLeft > 0, $"Expected scrollLeft > 0 after double-click zoom at 70% but got {scrollLeft}");
+        // Click again to deselect
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).Not.ToHaveClassAsync(new Regex("diagram-selected"));
     }
 }

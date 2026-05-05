@@ -108,7 +108,8 @@ public static class DiagramContextMenu
         }
         .diagram-zoom-controls {
             position: sticky;
-            top: 6px;
+            top: 2em;
+            left: 2em;
             z-index: 10;
             display: flex;
             align-items: center;
@@ -118,7 +119,6 @@ public static class DiagramContextMenu
             transition: opacity 0.15s;
             height: 0;
             overflow: visible;
-            padding-left: 6px;
         }
         [data-diagram-type]:hover > .diagram-zoom-controls {
             opacity: 0.4;
@@ -131,18 +131,7 @@ public static class DiagramContextMenu
             opacity: 1;
             pointer-events: auto;
         }
-        .diagram-zoom-toggle {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(180, 180, 180, 0.6);
-            border-radius: 4px;
-            font-size: 18px;
-            line-height: 1;
-            padding: 2px 5px;
-            cursor: pointer;
-        }
-        .diagram-zoom-toggle:hover {
-            background: rgba(255, 255, 255, 0.95);
-        }
+
         .diagram-zoom-slider {
             width: 100px;
             height: 6px;
@@ -1161,7 +1150,11 @@ public static class DiagramContextMenu
             document.addEventListener('click', function(e) {
                 var container = findDiagramContainer(e.target);
                 if (container) {
-                    selectDiagram(container);
+                    if (container === selectedDiagram) {
+                        deselectDiagram();
+                    } else {
+                        selectDiagram(container);
+                    }
                 } else if (!e.target.closest('.diagram-zoom-controls')) {
                     deselectDiagram();
                 }
@@ -1290,37 +1283,14 @@ public static class DiagramContextMenu
                     container.classList.remove('diagram-natural-size');
                 }
 
-                // Update button icon
-                var btn = container.querySelector('.diagram-zoom-toggle');
-                if (btn) btn.textContent = isZoomed ? '\u2921' : '\u2922';
-
                 // Update slider
                 var slider = container.querySelector('.diagram-zoom-slider');
                 if (slider) slider.value = String(percent);
             }
 
-            // Toggle diagram between fit-to-width and natural size
-            function toggleDiagramZoom(container, cursorX, cursorY) {
-                var isCurrentlyZoomed = container.classList.contains('diagram-natural-size');
-                if (isCurrentlyZoomed) {
-                    applyZoomLevel(container, getFitPercent(container));
-                } else {
-                    applyZoomLevel(container, 100, cursorX, cursorY);
-                }
-            }
 
-            // Double-click SVG diagram to toggle zoom
-            document.addEventListener('dblclick', function(e) {
-                var container = findDiagramContainer(e.target);
-                if (!container) return;
-                if (!getSvg(container)) return;
-                if (!container.classList.contains('diagram-natural-size') && !isDiagramZoomable(container)) return;
-                e.preventDefault();
-                toggleDiagramZoom(container, e.clientX, e.clientY);
-                if (window.getSelection) window.getSelection().removeAllRanges();
-            });
 
-            // ── Zoom Controls (button + slider) ──
+            // ── Zoom Controls (slider) ──
 
             function addZoomButton(container) {
                 if (container.querySelector('.diagram-zoom-controls')) return;
@@ -1331,16 +1301,6 @@ public static class DiagramContextMenu
 
                 var controls = document.createElement('div');
                 controls.className = 'diagram-zoom-controls';
-
-                var btn = document.createElement('button');
-                btn.className = 'diagram-zoom-toggle';
-                btn.textContent = container.classList.contains('diagram-natural-size') ? '\u2921' : '\u2922';
-                btn.title = 'Toggle zoom (or double-click diagram)';
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    toggleDiagramZoom(container);
-                });
-                controls.appendChild(btn);
 
                 var fitPct = getFitPercent(container);
                 var slider = document.createElement('input');
@@ -1425,7 +1385,7 @@ public static class DiagramContextMenu
 
             // Drag-to-pan when zoomed
             (function() {
-                var dragging = false, dragContainer, startX, startY, scrollL, scrollT;
+                var dragging = false, dragContainer, startX, startY, scrollL;
                 document.addEventListener('mousedown', function(e) {
                     var c = findDiagramContainer(e.target);
                     if (!c || !c.classList.contains('diagram-natural-size')) return;
@@ -1435,7 +1395,6 @@ public static class DiagramContextMenu
                     startX = e.pageX;
                     startY = e.pageY;
                     scrollL = c.scrollLeft;
-                    scrollT = c.scrollTop;
                     c.style.cursor = 'grabbing';
                     c.style.userSelect = 'none';
                     e.preventDefault();
@@ -1443,7 +1402,8 @@ public static class DiagramContextMenu
                 document.addEventListener('mousemove', function(e) {
                     if (!dragging) return;
                     dragContainer.scrollLeft = scrollL - (e.pageX - startX);
-                    dragContainer.scrollTop = scrollT - (e.pageY - startY);
+                    window.scrollBy(0, startY - e.pageY);
+                    startY = e.pageY;
                 });
                 document.addEventListener('mouseup', function() {
                     if (!dragging) return;

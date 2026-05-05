@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.13-beta] - 2026-05-05
+
+### Changed
+- **Zoom UI simplified**: Removed the zoom toggle button and double-click-to-zoom. Only the zoom slider remains for controlling diagram zoom level.
+- **Click-to-deselect**: Clicking a selected diagram now deselects it (previously clicking always selected).
+- **Zoom slider repositioned**: Slider now floats at `2em` from top and left of the container (was `6px` from top with `6px` padding-left).
+- **Vertical drag scrolls page**: When dragging a zoomed diagram vertically, the page scrolls instead of the container (horizontal drag still pans the container).
+
 ## [2.29.12-beta] - 2026-05-05
 
 ### Fixed

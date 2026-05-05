@@ -12,27 +12,35 @@ public class DiagramZoomTests : PlaywrightTestBase
     private async Task<string> GetComputedStyle(ILocator el, string prop) =>
         await el.EvaluateAsync<string>($"(e, p) => window.getComputedStyle(e).getPropertyValue(p)", prop);
 
-    // ── Zoom toggle button ──
+    // ── Zoom slider ──
 
     [Fact]
-    public async Task Zoom_button_appears_on_diagram_container()
+    public async Task Zoom_slider_appears_on_diagram_container()
     {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomButtonExists.html"));
+        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomSliderExists.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var count = await Page.Locator(".diagram-zoom-toggle").CountAsync();
-        Assert.True(count > 0, "Zoom button should exist on diagram container");
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
+
+        var count = await Page.Locator(".diagram-zoom-slider").CountAsync();
+        Assert.True(count > 0, "Zoom slider should exist on diagram container");
     }
 
     [Fact]
-    public async Task Zoom_button_is_hidden_until_hover()
+    public async Task Zoom_controls_hidden_until_hover()
     {
         await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomHoverHidden.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
+
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-controls').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
         var zoomControls = Page.Locator(".diagram-zoom-controls").First;
         var opacity = await GetComputedStyle(zoomControls, "opacity");
@@ -40,57 +48,85 @@ public class DiagramZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Zoom_button_becomes_visible_on_container_hover()
+    public async Task Zoom_controls_become_visible_on_container_hover()
     {
         await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomHoverVisible.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-controls').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
+
         var container = GetDiagramContainer();
         await container.HoverAsync();
 
         await Page.WaitForFunctionAsync("""
             () => {
-                var btn = document.querySelector('.diagram-zoom-toggle');
-                return btn && window.getComputedStyle(btn).opacity !== '0';
+                var ctrl = document.querySelector('.diagram-zoom-controls');
+                return ctrl && window.getComputedStyle(ctrl).opacity !== '0';
             }
         """, null, new() { Timeout = 3000, PollingInterval = 200 });
     }
 
     [Fact]
-    public async Task Clicking_zoom_button_adds_natural_size_class()
+    public async Task Slider_at_max_adds_natural_size_class()
     {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomClickNatural.html"));
+        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomSliderNatural.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var container = GetDiagramContainer();
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+        var container = GetDiagramContainer();
+
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
 
         await Expect(container).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
     }
 
     [Fact]
-    public async Task Clicking_zoom_button_again_removes_natural_size_class()
+    public async Task Slider_at_min_removes_natural_size_class()
     {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomClickToggle.html"));
+        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomSliderToggle.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var container = GetDiagramContainer();
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+        var container = GetDiagramContainer();
+
+        // Zoom in
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         await Expect(container).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
 
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+        // Zoom back to min
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = slider.min;
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         await Expect(container).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
     }
 
@@ -102,11 +138,19 @@ public class DiagramZoomTests : PlaywrightTestBase
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var container = GetDiagramContainer();
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
+        var container = GetDiagramContainer();
+
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
 
         var overflowX = await container.EvaluateAsync<string>("e => e.style.overflowX");
         Assert.Equal("auto", overflowX);
@@ -122,124 +166,70 @@ public class DiagramZoomTests : PlaywrightTestBase
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var container = GetDiagramContainer();
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        // Zoom in then out
+        var container = GetDiagramContainer();
+
+        // Zoom in then out via slider
         await Page.EvaluateAsync("""
-            () => { var btn = document.querySelector('.diagram-zoom-toggle'); btn.click(); btn.click(); }
+            () => {
+                var slider = document.querySelector('.diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+                slider.value = slider.min;
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         """);
 
         var overflowX = await container.EvaluateAsync<string>("e => e.style.overflowX");
         Assert.True(overflowX is "" or "visible", $"Expected overflow-x to be cleared but got: {overflowX}");
     }
 
-    // ── Double-click zoom ──
+    // ── Click-to-deselect ──
 
     [Fact]
-    public async Task Double_click_on_svg_toggles_zoom()
+    public async Task Clicking_selected_diagram_deselects_it()
     {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomDblClick.html"));
+        await Page.GotoAsync(GenerateReportWithWideDiagram("ClickDeselect.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
-        await svg.DblClickAsync();
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.diagram-zoom-controls').length > 0",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        await Expect(GetDiagramContainer()).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
-    }
-
-    [Fact]
-    public async Task Double_click_again_unzooms()
-    {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomDblClickToggle.html"));
-        await Page.Locator("details.feature").First.WaitForAsync();
-        await ExpandFirstScenarioWithDiagram();
-        await WaitForDiagramSvg();
-
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
         var container = GetDiagramContainer();
 
-        await svg.DblClickAsync();
-        await Expect(container).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
+        // First click selects
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-selected"));
 
-        await svg.DblClickAsync();
-        await Expect(container).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));
-    }
-
-    // ── Zoom button icon changes ──
-
-    [Fact]
-    public async Task Zoom_button_icon_changes_when_zoomed()
-    {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomIcon.html"));
-        await Page.Locator("details.feature").First.WaitForAsync();
-        await ExpandFirstScenarioWithDiagram();
-        await WaitForDiagramSvg();
-
-        var container = GetDiagramContainer();
-        var zoomBtn = Page.Locator(".diagram-zoom-toggle").First;
-        var initialText = await zoomBtn.TextContentAsync();
-
-        await container.HoverAsync();
-        await Page.WaitForTimeoutAsync(200);
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
-
-        var zoomedText = await zoomBtn.TextContentAsync();
-        Assert.NotEqual(initialText, zoomedText);
-
-        await Page.EvaluateAsync("() => document.querySelector('.diagram-zoom-toggle').click()");
-        var revertedText = await zoomBtn.TextContentAsync();
-        Assert.Equal(initialText, revertedText);
+        // Second click deselects
+        await container.EvaluateAsync("el => el.click()");
+        await Expect(container).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-selected"));
     }
 
     // ── Non-zoomable diagrams ──
 
     [Fact]
-    public async Task Non_zoomable_diagram_has_no_zoom_button()
+    public async Task Non_zoomable_diagram_has_no_zoom_slider()
     {
-        await Page.GotoAsync(GenerateReport("NonZoomableNoButton.html"));
+        await Page.GotoAsync(GenerateReport("NonZoomableNoSlider.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var count = await Page.Locator(".diagram-zoom-toggle").CountAsync();
+        // Wait a bit for any zoom controls to potentially appear
+        await Page.WaitForTimeoutAsync(500);
+
+        var count = await Page.Locator(".diagram-zoom-slider").CountAsync();
         Assert.Equal(0, count);
     }
 
-    [Fact]
-    public async Task Double_click_on_non_zoomable_diagram_does_not_zoom()
-    {
-        await Page.GotoAsync(GenerateReport("NonZoomableDblClick.html"));
-        await Page.Locator("details.feature").First.WaitForAsync();
-        await ExpandFirstScenarioWithDiagram();
-        await WaitForDiagramSvg();
 
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
-        await svg.DblClickAsync();
-
-        var cls = await GetDiagramContainer().GetAttributeAsync("class") ?? "";
-        Assert.DoesNotContain("diagram-natural-size", cls);
-    }
-
-    // ── Text selection on double-click zoom ──
-
-    [Fact]
-    public async Task Double_click_zoom_does_not_select_text()
-    {
-        await Page.GotoAsync(GenerateReportWithWideDiagram("ZoomDblClickNoSelect.html"));
-        await Page.Locator("details.feature").First.WaitForAsync();
-        await ExpandFirstScenarioWithDiagram();
-        await WaitForDiagramSvg();
-
-        var svg = Page.Locator("[data-diagram-type='plantuml'] svg").First;
-        await svg.DblClickAsync();
-
-        var selectedText = await Page.EvaluateAsync<string>("() => window.getSelection().toString()");
-        Assert.Equal("", selectedText);
-    }
 
     [Fact]
     public async Task Text_in_steps_can_still_be_highlighted()
@@ -264,10 +254,10 @@ public class DiagramZoomTests : PlaywrightTestBase
         Assert.NotEqual("", selectedText.Trim());
     }
 
-    // ── Zoom button persists after note collapse ──
+    // ── Zoom slider persists after note collapse ──
 
     [Fact]
-    public async Task Zoom_button_persists_after_note_collapse()
+    public async Task Zoom_slider_persists_after_note_collapse()
     {
         await Page.GotoAsync(GenerateReportWithWideNoteDiagram("ZoomAfterNoteCollapse.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -275,11 +265,11 @@ public class DiagramZoomTests : PlaywrightTestBase
         await WaitForDiagramSvg();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelectorAll('.diagram-zoom-toggle').length > 0",
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
             null, new() { Timeout = 10000, PollingInterval = 200 });
 
         var container = GetDiagramContainer();
-        var before = await container.Locator(".diagram-zoom-toggle").CountAsync();
+        var before = await container.Locator(".diagram-zoom-slider").CountAsync();
         Assert.Equal(1, before);
 
         // Collapse notes
@@ -289,16 +279,16 @@ public class DiagramZoomTests : PlaywrightTestBase
             () => {
                 var c = document.querySelector('[data-diagram-type="plantuml"]');
                 var svg = c && c.querySelector('svg');
-                return svg && svg.offsetParent !== null && c.querySelectorAll('.diagram-zoom-toggle').length > 0;
+                return svg && svg.offsetParent !== null && c.querySelectorAll('.diagram-zoom-slider').length > 0;
             }
         """, null, new() { Timeout = 15000, PollingInterval = 200 });
 
-        var after = await container.Locator(".diagram-zoom-toggle").CountAsync();
+        var after = await container.Locator(".diagram-zoom-slider").CountAsync();
         Assert.Equal(1, after);
     }
 
     [Fact]
-    public async Task Zoom_button_works_after_note_collapse()
+    public async Task Zoom_slider_works_after_note_collapse()
     {
         await Page.GotoAsync(GenerateReportWithWideNoteDiagram("ZoomWorksAfterNoteCollapse.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -306,7 +296,7 @@ public class DiagramZoomTests : PlaywrightTestBase
         await WaitForDiagramSvg();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelectorAll('.diagram-zoom-toggle').length > 0",
+            "() => document.querySelectorAll('.diagram-zoom-slider').length > 0",
             null, new() { Timeout = 10000, PollingInterval = 200 });
 
         // Collapse notes
@@ -316,13 +306,17 @@ public class DiagramZoomTests : PlaywrightTestBase
             () => {
                 var c = document.querySelector('[data-diagram-type="plantuml"]');
                 var svg = c && c.querySelector('svg');
-                return svg && svg.offsetParent !== null && c.querySelectorAll('.diagram-zoom-toggle').length > 0;
+                return svg && svg.offsetParent !== null && c.querySelectorAll('.diagram-zoom-slider').length > 0;
             }
         """, null, new() { Timeout = 15000, PollingInterval = 200 });
 
-        // Click the zoom button
+        // Zoom via slider
         await Page.EvaluateAsync("""
-            () => document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-toggle').click()
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         """);
 
         await Expect(GetDiagramContainer()).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("diagram-natural-size"));

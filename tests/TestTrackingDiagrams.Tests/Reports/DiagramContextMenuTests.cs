@@ -725,10 +725,10 @@ public class DiagramContextMenuTests
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void ZoomButton_hidden_by_default_shown_on_container_hover()
+    public void ZoomControls_hidden_by_default_shown_on_container_hover()
     {
         var css = DiagramContextMenu.GetInlineSvgStyles();
-        // Button should be invisible by default
+        // Controls should be invisible by default
         Assert.Contains("opacity: 0", css);
         Assert.Contains("pointer-events: none", css);
         // Container hover reveals the controls
@@ -759,7 +759,7 @@ public class DiagramContextMenuTests
         // Must have mousedown/mousemove/mouseup for drag panning
         Assert.Contains("cursor = 'grabbing'", _script);
         Assert.Contains("scrollLeft = scrollL - (e.pageX - startX)", _script);
-        Assert.Contains("scrollTop = scrollT - (e.pageY - startY)", _script);
+        Assert.Contains("window.scrollBy(0, startY - e.pageY)", _script);
     }
 
     [Fact]
@@ -789,9 +789,9 @@ public class DiagramContextMenuTests
     }
 
     [Fact]
-    public void DblClick_skips_zoom_for_non_zoomable_diagrams()
+    public void ZoomControls_skipped_for_non_zoomable_diagrams()
     {
-        // Double-click handler should check isDiagramZoomable (allowing unzoom if already zoomed)
+        // Zoom controls should check isDiagramZoomable
         Assert.Contains("!isDiagramZoomable(container)", _script);
         Assert.Contains("diagram-natural-size", _script);
     }

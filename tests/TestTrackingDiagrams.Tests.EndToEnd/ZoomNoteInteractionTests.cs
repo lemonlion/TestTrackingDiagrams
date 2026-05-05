@@ -19,10 +19,15 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
 
         var container = GetDiagramContainer();
         await Page.WaitForFunctionAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle') !== null",
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider') !== null",
             null, new() { Timeout = 10000, PollingInterval = 200 });
-        await Page.EvaluateAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         await Page.WaitForFunctionAsync(
             "() => document.querySelector('[data-diagram-type=\"plantuml\"]').classList.contains('diagram-natural-size')",
             null, new() { Timeout = 5000, PollingInterval = 200 });
@@ -152,9 +157,14 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await ClickRadioButton("collapsed");
         await WaitForReRender();
 
-        // Toggle zoom OFF
-        await Page.EvaluateAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
+        // Toggle zoom OFF via slider
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = slider.min;
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         Assert.False(await IsZoomedIn(), "Should have zoomed out");
         Assert.Equal("100%", await GetSvgMaxWidth());
         Assert.Equal("", await GetContainerOverflow());
@@ -172,14 +182,24 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await ClickRadioButton("collapsed");
         await WaitForReRender();
 
-        // Zoom out
-        await Page.EvaluateAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
+        // Zoom out via slider
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = slider.min;
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         Assert.False(await IsZoomedIn());
 
-        // Zoom in again
-        await Page.EvaluateAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
+        // Zoom in again via slider
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
         Assert.True(await IsZoomedIn());
         Assert.Equal("none", await GetSvgMaxWidth());
     }
@@ -265,10 +285,15 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await WaitForReRender();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle') !== null",
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider') !== null",
             null, new() { Timeout = 10000, PollingInterval = 200 });
-        await Page.EvaluateAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').click()");
+        await Page.EvaluateAsync("""
+            () => {
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                slider.value = '100';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        """);
 
         Assert.True(await IsZoomedIn());
         Assert.Equal("none", await GetSvgMaxWidth());
@@ -285,14 +310,17 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await WaitForDiagramSvg();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle') !== null",
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider') !== null",
             null, new() { Timeout = 10000, PollingInterval = 200 });
 
-        // Toggle 4 times rapidly (should end up unzoomed)
+        // Toggle zoom state rapidly via slider (max, min, max, min -> ends unzoomed)
         await Page.EvaluateAsync("""
             () => {
-                var btn = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-toggle');
-                for (var i = 0; i < 4; i++) btn.click();
+                var slider = document.querySelector('[data-diagram-type="plantuml"] .diagram-zoom-slider');
+                for (var i = 0; i < 4; i++) {
+                    slider.value = (i % 2 === 0) ? '100' : slider.min;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
             }
         """);
 
@@ -301,9 +329,9 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Zoom_icon_correct_after_collapse_re_render()
+    public async Task Zoom_slider_value_correct_after_collapse_re_render()
     {
-        await Page.GotoAsync(GenerateReport("ZoomIconAfterCollapse.html"));
+        await Page.GotoAsync(GenerateReport("ZoomSliderAfterCollapse.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
@@ -313,17 +341,17 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await WaitForReRender();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle') !== null",
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider') !== null",
             null, new() { Timeout = 10000, PollingInterval = 200 });
-        var iconText = await Page.EvaluateAsync<string>(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').textContent");
-        Assert.Equal("\u2921", iconText); // ⤡ = zoomed-in icon
+        var sliderVal = await Page.EvaluateAsync<string>(
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider').value");
+        Assert.Equal("100", sliderVal); // Should still be at max
     }
 
     [Fact]
-    public async Task Zoom_icon_correct_when_unzoomed_after_collapse()
+    public async Task Zoom_slider_at_min_when_unzoomed_after_collapse()
     {
-        await Page.GotoAsync(GenerateReport("ZoomIconUnzoomedCollapse.html"));
+        await Page.GotoAsync(GenerateReport("ZoomSliderUnzoomedCollapse.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
@@ -332,11 +360,13 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await WaitForReRender();
 
         await Page.WaitForFunctionAsync(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle') !== null",
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider') !== null",
             null, new() { Timeout = 10000, PollingInterval = 200 });
-        var iconText = await Page.EvaluateAsync<string>(
-            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-toggle').textContent");
-        Assert.Equal("\u2922", iconText); // ⤢ = unzoomed icon
+        var sliderVal = await Page.EvaluateAsync<string>(
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider').value");
+        var sliderMin = await Page.EvaluateAsync<string>(
+            "() => document.querySelector('[data-diagram-type=\"plantuml\"] .diagram-zoom-slider').min");
+        Assert.Equal(sliderMin, sliderVal); // Should be at min (fit-to-width)
     }
 
     // ── Report-level controls ──
