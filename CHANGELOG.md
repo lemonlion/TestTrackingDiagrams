@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.29.21-beta] - 2026-05-05
+## [2.30.0] - 2026-05-05
 
 ### Changed
 - **Mouse wheel zoom now requires Ctrl key**: Previously, scrolling the mouse wheel over a selected diagram would zoom without requiring any modifier key. Now `Ctrl+wheel` (or `Cmd+wheel` on macOS) is always required to zoom diagrams, regardless of selection state. Plain mouse wheel scrolling passes through to the page as normal. This prevents accidental zoom when scrolling through reports.
