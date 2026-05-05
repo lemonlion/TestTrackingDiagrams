@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.17-beta] - 2026-05-06
+
+### Added
+- **AssertionRewriter package** (`TestTrackingDiagrams.AssertionRewriter`): Roslyn-based MSBuild task that automatically wraps `.Should()` expression statements in `Track.That(() => ...)` at compile time. Opt in with `[assembly: TrackAssertions]`. Supports `[SuppressAssertionTracking]` attribute and `#pragma warning disable` regions for selective opt-out.
+- **Project templates** (`TestTrackingDiagrams.Templates`): 12 `dotnet new` templates for scaffolding component test projects pre-configured with dependency tracking, report generation, and automatic assertion rewriting. Templates: `ttd-xunit3`, `ttd-xunit2`, `ttd-tunit`, `ttd-nunit4`, `ttd-mstest`, `ttd-lightbdd-xunit3`, `ttd-lightbdd-xunit2`, `ttd-lightbdd-tunit`, `ttd-bddfy-xunit3`, `ttd-reqnroll-xunit3`, `ttd-reqnroll-xunit2`, `ttd-reqnroll-tunit`.
+
 ## [2.29.16-beta] - 2026-05-05
 
 ### Changed

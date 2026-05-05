@@ -21,8 +21,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
     <PackageReference Include="MSTest.TestFramework" Version="3.9.2" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.9.2" />
-    <PackageReference Include="TestTrackingDiagrams.MSTest" Version="2.29.15-beta" />
-    <PackageReference Include="TestTrackingDiagrams.AssertionRewriter" Version="2.29.15-beta" />
+    <PackageReference Include="TestTrackingDiagrams.MSTest" Version="2.29.17-beta" />
+    <PackageReference Include="TestTrackingDiagrams.AssertionRewriter" Version="2.29.17-beta" />
   </ItemGroup>
 
   <!-- TODO: Add a ProjectReference to your API project here -->
