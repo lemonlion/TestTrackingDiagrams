@@ -6,7 +6,6 @@ namespace TestTrackingDiagrams.NUnit4;
 /// <summary>
 /// Provides extension methods for configuring dependency tracking on <see cref="IServiceCollection"/> for NUnit tests.
 /// </summary>
-[Obsolete("Use TestTrackingDiagrams.ServiceCollectionExtensions instead. This wrapper will be removed in a future version.")]
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection TrackDependenciesForDiagrams(this IServiceCollection services, NUnitTestTrackingMessageHandlerOptions options)
