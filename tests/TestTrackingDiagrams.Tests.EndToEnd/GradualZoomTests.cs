@@ -398,7 +398,7 @@ public class GradualZoomTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Plain_wheel_zooms_selected_diagram_without_ctrl()
+    public async Task Plain_wheel_does_not_zoom_even_when_selected()
     {
         await SetupWideDiagram("PlainWheelZoom.html");
 
@@ -428,7 +428,7 @@ public class GradualZoomTests : PlaywrightTestBase
         var newVal = await Page.Locator(".diagram-zoom-slider").First
             .EvaluateAsync<int>("e => parseInt(e.value)");
 
-        Assert.True(newVal > initialVal, $"Plain wheel up on selected diagram should zoom in: {initialVal} -> {newVal}");
+        Assert.Equal(initialVal, newVal);
     }
 
     [Fact]
