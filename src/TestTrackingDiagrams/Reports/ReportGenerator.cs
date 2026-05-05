@@ -835,6 +835,32 @@ public static class ReportGenerator
                                         activeFlame.style.display = '';
                                         if (window._renderFlameCharts) window._renderFlameCharts(activeFlame);
                                     }
+                                    // Highlight step-table columns matching parameter table headers
+                                    if (activePanel) {
+                                        var headerRow = table.querySelector('thead tr:last-child') || table.querySelector('thead tr');
+                                        var paramCols = [];
+                                        if (headerRow) {
+                                            headerRow.querySelectorAll('th.sub-header').forEach(function(th) {
+                                                paramCols.push(th.textContent.trim());
+                                            });
+                                        }
+                                        activePanel.querySelectorAll('.step-param-table').forEach(function(spt) {
+                                            var cols = (spt.getAttribute('data-columns') || '').split(',');
+                                            var tbl = spt.querySelector('table');
+                                            if (!tbl) return;
+                                            var ths = tbl.querySelectorAll('thead th');
+                                            var trs = tbl.querySelectorAll('tbody tr');
+                                            for (var ci = 0; ci < ths.length; ci++) {
+                                                var colName = ths[ci].textContent.trim();
+                                                var isMatch = paramCols.indexOf(colName) >= 0;
+                                                ths[ci].classList.toggle('col-highlight', isMatch);
+                                                trs.forEach(function(tr) {
+                                                    var td = tr.children[ci];
+                                                    if (td) td.classList.toggle('col-highlight', isMatch);
+                                                });
+                                            }
+                                        });
+                                    }
                                 }
                                 """;
 
@@ -854,6 +880,14 @@ public static class ReportGenerator
                                 });
                                 document.querySelectorAll('.cell-subtable').forEach(function(el) {
                                     el.addEventListener('click', function(e) { e.stopPropagation(); });
+                                });
+                                // Trigger column highlighting for initially active rows
+                                document.querySelectorAll('.param-test-table').forEach(function(table) {
+                                    var activeRow = table.querySelector('tbody tr.row-active');
+                                    if (activeRow) {
+                                        var prefix = table.getAttribute('data-prefix') || '';
+                                        selectRow(activeRow, prefix);
+                                    }
                                 });
                             });
                             """;
@@ -2286,6 +2320,51 @@ public static class ReportGenerator
         body.Append($"<details class=\"scenario scenario-parameterized{happyPathClass}\" data-status=\"{overallStatus}\"{depsAttr}{searchAttr}{durationAttr}{categoriesAttr}{labelsAttr} id=\"{anchorId}\" tabindex=\"0\">");
         body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{happyPathBadge}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
 
+        // Detail panels (steps, failure) — rendered above the parameter table
+        var hasAnyDetail = scenarios.Any(s => s.Steps is { Length: > 0 } || s.Result == ExecutionResult.Failed);
+        if (hasAnyDetail)
+        {
+            body.Append($"<div class=\"param-detail-panels\">");
+            for (var ri = 0; ri < scenarios.Length; ri++)
+            {
+                var s = scenarios[ri];
+                var display = ri == 0 ? "" : " style=\"display:none\"";
+                body.Append($"<div class=\"param-detail-panel\" id=\"{prefix}-detail-{ri}\"{display}>");
+
+                if (s.Steps is { Length: > 0 })
+                {
+                    body.Append("""<details class="scenario-steps" open>""");
+                    body.Append("""<summary class="h4">Steps</summary>""");
+                    var renderCombined = ShouldRenderCombinedTable(s.Steps);
+                    for (var si = 0; si < s.Steps.Length; si++)
+                    {
+                        var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
+                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
+                    }
+                    body.Append("</details>");
+                    if (renderCombined)
+                        RenderCombinedTabularParameters(body, s.Steps);
+                }
+
+                if (s.Result == ExecutionResult.Failed)
+                {
+                    var diffHtml = "";
+                    var diffResult = ErrorDiffParser.TryParseExpectedActual(s.ErrorMessage);
+                    if (diffResult is not null)
+                        diffHtml = ErrorDiffParser.GenerateDiffHtml(diffResult.Expected, diffResult.Actual);
+                    body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
+                    if (s.ErrorMessage is not null)
+                        body.Append($"Failure Cause: {s.ErrorMessage}\n\n");
+                    if (s.ErrorStackTrace is not null)
+                        body.Append(s.ErrorStackTrace);
+                    body.Append($"</pre>{diffHtml}</details>");
+                }
+
+                body.Append("</div>");
+            }
+            body.Append("</div>");
+        }
+
         // Parameter table
         body.Append($"<table class=\"param-test-table\" data-prefix=\"{prefix}\"><thead>");
         if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
@@ -2407,51 +2486,6 @@ public static class ReportGenerator
             body.Append("</tr>");
         }
         body.Append("</tbody></table>");
-
-        // Detail panels (steps, failure, tabular params)
-        var hasAnyDetail = scenarios.Any(s => s.Steps is { Length: > 0 } || s.Result == ExecutionResult.Failed);
-        if (hasAnyDetail)
-        {
-            body.Append($"<div class=\"param-detail-panels\">");
-            for (var ri = 0; ri < scenarios.Length; ri++)
-            {
-                var s = scenarios[ri];
-                var display = ri == 0 ? "" : " style=\"display:none\"";
-                body.Append($"<div class=\"param-detail-panel\" id=\"{prefix}-detail-{ri}\"{display}>");
-
-                if (s.Steps is { Length: > 0 })
-                {
-                    body.Append("""<details class="scenario-steps" open>""");
-                    body.Append("""<summary class="h4">Steps</summary>""");
-                    var renderCombined = ShouldRenderCombinedTable(s.Steps);
-                    for (var si = 0; si < s.Steps.Length; si++)
-                    {
-                        var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
-                    }
-                    body.Append("</details>");
-                    if (renderCombined)
-                        RenderCombinedTabularParameters(body, s.Steps);
-                }
-
-                if (s.Result == ExecutionResult.Failed)
-                {
-                    var diffHtml = "";
-                    var diffResult = ErrorDiffParser.TryParseExpectedActual(s.ErrorMessage);
-                    if (diffResult is not null)
-                        diffHtml = ErrorDiffParser.GenerateDiffHtml(diffResult.Expected, diffResult.Actual);
-                    body.Append("<details class=\"failure-result\" open><summary class=\"h4\">Failure Result</summary><pre>");
-                    if (s.ErrorMessage is not null)
-                        body.Append($"Failure Cause: {s.ErrorMessage}\n\n");
-                    if (s.ErrorStackTrace is not null)
-                        body.Append(s.ErrorStackTrace);
-                    body.Append($"</pre>{diffHtml}</details>");
-                }
-
-                body.Append("</div>");
-            }
-            body.Append("</div>");
-        }
 
         // Compute whole-test-flow content per scenario
         var wholeTestContents = new (string ActivityHtml, string FlameHtml, int SpanCount)?[scenarios.Length];
@@ -2704,8 +2738,10 @@ public static class ReportGenerator
         };
 
         var hasSubSteps = step.SubSteps is { Length: > 0 };
+        var hasInlineTable = !skipTabularInline &&
+            step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular && p.TabularValue is not null) == true;
 
-        if (hasSubSteps)
+        if (hasSubSteps || hasInlineTable)
         {
             body.Append("<details class=\"step step-collapsible\">");
             body.Append("<summary>");
@@ -2743,7 +2779,7 @@ public static class ReportGenerator
             body.Append($" <span class=\"step-duration\">({FormatDurationBadge(step.Duration.Value)})</span>");
         }
 
-        if (hasSubSteps)
+        if (hasSubSteps || hasInlineTable)
         {
             body.Append("</summary>");
         }
@@ -2792,6 +2828,10 @@ public static class ReportGenerator
             body.Append("</div>");
             body.Append("</details>");
         }
+        else if (hasInlineTable)
+        {
+            body.Append("</details>");
+        }
         else
         {
             body.Append("</div>");
@@ -2818,7 +2858,8 @@ public static class ReportGenerator
                 break;
 
             case StepParameterKind.Tabular when param.TabularValue is not null:
-                body.Append($"<div class=\"step-param-table\"><table><thead><tr><th></th>");
+                var colNames = string.Join(",", param.TabularValue.Columns.Select(c => c.Name));
+                body.Append($"<div class=\"step-param-table\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\"><table><thead><tr><th></th>");
                 foreach (var col in param.TabularValue.Columns)
                 {
                     body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");

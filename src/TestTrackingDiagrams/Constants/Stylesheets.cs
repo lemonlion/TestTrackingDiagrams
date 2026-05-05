@@ -889,6 +889,10 @@ public class Stylesheets
                     font-weight: bold;
                     text-decoration: underline;
                 }
+                .step-param-table th.col-highlight, .step-param-table td.col-highlight {
+                    background-color: #e8f4fd;
+                    border-color: #90caf9;
+                }
 
                 .step-param-combined-table {
                     margin: 8px 0 4px 24px;

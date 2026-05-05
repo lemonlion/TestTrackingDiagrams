@@ -59,15 +59,19 @@ internal static class FeatureResultExtensions
         {
             // Use LightBDD's structured NameFormat to extract all parameters,
             // including those substituted inline into the scenario name
-            displayName = nameInfo.ToString();
+            displayName = StripNamespacesFromText(nameInfo.ToString());
             (outlineId, exampleValues) = ExtractScenarioParameters(nameInfo.NameFormat, nameParams);
 
-            // Try to look up captured raw parameter values
+            // Try to look up captured raw parameter values (before stripping, values are used as keys)
             exampleRawValues = TryGetCapturedRawValues(nameParams, exampleValues);
+
+            // Strip namespaces from extracted parameter values
+            foreach (var key in exampleValues.Keys.ToArray())
+                exampleValues[key] = StripNamespacesFromText(exampleValues[key]);
         }
         else
         {
-            displayName = nameInfo.ToString();
+            displayName = StripNamespacesFromText(nameInfo.ToString());
             var parsed = ParameterParser.Parse(displayName);
             outlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null;
             exampleValues = parsed is { Count: > 0 } ? parsed : null;
@@ -218,6 +222,9 @@ internal static class FeatureResultExtensions
             text = text[keyword.Length..].TrimStart();
         }
 
+        // Strip fully-qualified type names (e.g. "Namespace.TypeName" → "TypeName")
+        text = StripNamespacesFromText(text);
+
         var comments = step.Comments?.ToArray();
         var attachments = step.FileAttachments?
             .Select(a => new Reports.FileAttachment(a.Name, a.RelativePath))
@@ -353,5 +360,14 @@ internal static class FeatureResultExtensions
                 return subException;
         }
         return null;
+    }
+
+    private static string StripNamespacesFromText(string text)
+    {
+        // Replace quoted fully-qualified type names like "Namespace.Sub.TypeName" with just "TypeName"
+        return System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"""([A-Za-z_]\w*\.)+([A-Za-z_]\w*)""",
+            @"""$2""");
     }
 }

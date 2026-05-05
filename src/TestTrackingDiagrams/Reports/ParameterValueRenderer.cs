@@ -192,7 +192,11 @@ internal static class ParameterValueRenderer
     internal static void RenderExpandable(StringBuilder body, object value)
     {
         var preview = GeneratePreview(value);
+        if (preview.Length > 300)
+            preview = preview[..297] + "...";
         var jsonBody = GenerateHighlightedJson(value, 0);
+        if (jsonBody.Length > 10000)
+            jsonBody = jsonBody[..10000] + "<span class=\"prop-val\">… (truncated)</span>";
 
         body.Append("<details class=\"param-expand\">");
         body.Append($"<summary>{System.Net.WebUtility.HtmlEncode(preview)}</summary>");
@@ -600,7 +604,11 @@ internal static class ParameterValueRenderer
     internal static void RenderExpandableFromParsed(StringBuilder body, string originalValue, Dictionary<string, string> parsed)
     {
         var preview = GeneratePreviewFromParsed(originalValue, parsed);
+        if (preview.Length > 300)
+            preview = preview[..297] + "...";
         var jsonBody = GenerateHighlightedJsonFromParsed(parsed);
+        if (jsonBody.Length > 10000)
+            jsonBody = jsonBody[..10000] + "<span class=\"prop-val\">… (truncated)</span>";
 
         body.Append("<details class=\"param-expand\">");
         body.Append($"<summary>{System.Net.WebUtility.HtmlEncode(preview)}</summary>");

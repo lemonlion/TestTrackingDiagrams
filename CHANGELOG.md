@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.15-beta] - 2026-05-06
+
+### Fixed
+- **LightBDD namespace stripping**: Fully-qualified type names (e.g. `Example.Api.Tests.Component.LightBDD.xUnit3.MuffinBatchExpectation`) are now stripped to short names in both scenario display names (timeline labels) and step text. Previously only step text was stripped, leaving namespaces visible in timeline scenario labels and example values.
+
+### Changed
+- **Expandable parameter truncation**: Preview text is now truncated to 300 characters (was unlimited), and full JSON content is truncated to 10,000 characters to prevent massive DOM nodes from slow-rendering large payloads.
+- **Steps rendered above parameter table**: In scenario detail panels, the step list and failure diagnostics now appear above the parameter table (previously below), improving readability for scenarios with large data tables.
+- **Collapsible step tables**: Steps containing inline parameter tables (e.g. ReqNRoll `<table>` arguments) are now rendered inside collapsible `<details>` elements. Column headers are highlighted on hover for easier scanning of wide tables.
+
 ## [2.29.14-beta] - 2026-05-05
 
 ### Changed
