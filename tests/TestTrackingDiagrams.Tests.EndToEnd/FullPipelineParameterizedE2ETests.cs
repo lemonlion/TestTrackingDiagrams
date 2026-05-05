@@ -432,9 +432,11 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         for (var i = 0; i < await headers.CountAsync(); i++)
             headerTexts.Add(await headers.Nth(i).InnerTextAsync());
 
+        // After ExampleValueGrouper, flat columns are grouped: Flour/Apples/Cinnamon → "Ingredients", Topping1/Topping2 → "Toppings"
         Assert.Contains(headerTexts, h => h.Contains("Recipe", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(headerTexts, h => h.Contains("Flour", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(headerTexts, h => h.Contains("Temperature", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(headerTexts, h => h.Contains("Ingredients", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(headerTexts, h => h.Contains("Toppings", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -499,21 +501,19 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task ReqNRoll_pipeline_all_cells_are_plain_scalar()
+    public async Task ReqNRoll_pipeline_has_subtable_and_expandable_cells()
     {
         await NavigateToReport(_pipeline.ReqNRollReportPath);
         await ExpandAll();
         await OpenParameterizedGroup("Different muffin recipes");
 
         var firstRow = GetParamRows().First;
-        var cells = firstRow.Locator(":scope > td");
+        var tableHtml = await firstRow.InnerHTMLAsync();
 
-        for (var i = 0; i < await cells.CountAsync(); i++)
-        {
-            var cell = cells.Nth(i);
-            Assert.Equal(0, await cell.Locator("table.cell-subtable").CountAsync());
-            Assert.Equal(0, await cell.Locator("details.param-expand").CountAsync());
-        }
+        // Ingredients column renders as a sub-table (R3)
+        Assert.Contains("cell-subtable", tableHtml);
+        // Toppings column renders as an expandable (R4)
+        Assert.Contains("param-expand", tableHtml);
     }
 
     [Fact]

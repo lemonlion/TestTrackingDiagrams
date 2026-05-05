@@ -42,6 +42,12 @@ internal static class ParameterValueRenderer
     {
         if (value is null || IsScalarType(value.GetType()))
             return false;
+
+        // Treat IDictionary<string, object?> as a complex object (not as IEnumerable)
+        if (value is IDictionary<string, object?> dict)
+            return dict.Count > 0 && dict.Count <= maxProperties &&
+                   dict.Values.All(IsScalarValue);
+
         if (value is IEnumerable)
             return false;
 
@@ -58,11 +64,14 @@ internal static class ParameterValueRenderer
 
     /// <summary>
     /// Returns true if the object is complex (not scalar) — suitable for R4 expandable rendering.
+    /// Dictionaries and lists of dictionaries are considered complex.
     /// </summary>
     internal static bool IsComplexValue(object? value)
     {
         if (value is null)
             return false;
+        if (value is IDictionary<string, object?>)
+            return true;
         return !IsScalarType(value.GetType());
     }
 
@@ -75,6 +84,17 @@ internal static class ParameterValueRenderer
     {
         if (value is null || IsScalarType(value.GetType()))
             return null;
+
+        // Treat IDictionary<string, object?> as flattenable if all values are scalar
+        if (value is IDictionary<string, object?> dict)
+        {
+            if (dict.Count == 0 || dict.Count > maxColumns)
+                return null;
+            if (!dict.Values.All(IsScalarValue))
+                return null;
+            return dict.Keys.ToArray();
+        }
+
         if (value is IEnumerable)
             return null;
 
@@ -93,14 +113,24 @@ internal static class ParameterValueRenderer
     /// </summary>
     internal static Dictionary<string, string> FlattenToStringValues(object value, string[] propertyNames)
     {
-        var result = new Dictionary<string, string>();
-        var type = value.GetType();
-        foreach (var name in propertyNames)
+        if (value is IDictionary<string, object?> dict)
         {
-            var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            result[name] = prop?.GetValue(value)?.ToString() ?? "";
+            var result = new Dictionary<string, string>();
+            foreach (var name in propertyNames)
+                result[name] = dict.TryGetValue(name, out var v) ? v?.ToString() ?? "" : "";
+            return result;
         }
-        return result;
+
+        {
+            var result = new Dictionary<string, string>();
+            var type = value.GetType();
+            foreach (var name in propertyNames)
+            {
+                var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+                result[name] = prop?.GetValue(value)?.ToString() ?? "";
+            }
+            return result;
+        }
     }
 
     /// <summary>
@@ -108,14 +138,24 @@ internal static class ParameterValueRenderer
     /// </summary>
     internal static Dictionary<string, object?> FlattenToRawValues(object value, string[] propertyNames)
     {
-        var result = new Dictionary<string, object?>();
-        var type = value.GetType();
-        foreach (var name in propertyNames)
+        if (value is IDictionary<string, object?> dict)
         {
-            var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            result[name] = prop?.GetValue(value);
+            var result = new Dictionary<string, object?>();
+            foreach (var name in propertyNames)
+                result[name] = dict.TryGetValue(name, out var v) ? v : null;
+            return result;
         }
-        return result;
+
+        {
+            var result = new Dictionary<string, object?>();
+            var type = value.GetType();
+            foreach (var name in propertyNames)
+            {
+                var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+                result[name] = prop?.GetValue(value);
+            }
+            return result;
+        }
     }
 
     /// <summary>
@@ -123,13 +163,26 @@ internal static class ParameterValueRenderer
     /// </summary>
     internal static void RenderSubTable(StringBuilder body, object value)
     {
-        var props = GetReadableProperties(value.GetType());
         body.Append("<table class=\"cell-subtable\">");
-        foreach (var prop in props)
+
+        if (value is IDictionary<string, object?> dict)
         {
-            var propValue = prop.GetValue(value)?.ToString() ?? "";
-            body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(prop.Name)}</th><td>{System.Net.WebUtility.HtmlEncode(propValue)}</td></tr>");
+            foreach (var kvp in dict)
+            {
+                var propValue = kvp.Value?.ToString() ?? "";
+                body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(kvp.Key)}</th><td>{System.Net.WebUtility.HtmlEncode(propValue)}</td></tr>");
+            }
         }
+        else
+        {
+            var props = GetReadableProperties(value.GetType());
+            foreach (var prop in props)
+            {
+                var propValue = prop.GetValue(value)?.ToString() ?? "";
+                body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(prop.Name)}</th><td>{System.Net.WebUtility.HtmlEncode(propValue)}</td></tr>");
+            }
+        }
+
         body.Append("</table>");
     }
 
@@ -153,6 +206,17 @@ internal static class ParameterValueRenderer
     /// </summary>
     internal static string GeneratePreview(object value)
     {
+        // Handle dictionaries as object-like previews
+        if (value is IDictionary<string, object?> dict)
+            return GenerateDictionaryPreview(dict);
+
+        // Handle lists/collections of dictionaries (e.g. from ReqNRoll multi-row tables)
+        if (value is IEnumerable<IDictionary<string, object?>> dictEnumerable)
+        {
+            var count = dictEnumerable.Count();
+            return $"{count} {(count == 1 ? "item" : "items")}";
+        }
+
         var type = value.GetType();
         var typeName = type.Name;
         var props = GetReadableProperties(type);
@@ -186,6 +250,21 @@ internal static class ParameterValueRenderer
         return $"{typeName} {{ {string.Join(", ", previewParts)}{suffix} }}";
     }
 
+    private static string GenerateDictionaryPreview(IDictionary<string, object?> dict)
+    {
+        if (dict.Count == 0)
+            return "{ }";
+
+        var parts = new List<string>();
+        foreach (var kvp in dict.Take(3))
+        {
+            var formatted = FormatPreviewValue(kvp.Value);
+            parts.Add($"{kvp.Key}: {formatted}");
+        }
+        var trail = dict.Count > 3 ? ", ..." : "";
+        return $"{{ {string.Join(", ", parts)}{trail} }}";
+    }
+
     private static string FormatPreviewValue(object? value)
     {
         if (value is null) return "null";
@@ -204,6 +283,10 @@ internal static class ParameterValueRenderer
 
         if (IsScalarType(value.GetType()))
             return FormatHighlightedScalar(value);
+
+        // Handle dictionaries as objects (before the IEnumerable check)
+        if (value is IDictionary<string, object?> dict)
+            return GenerateHighlightedDictionary(dict, indent);
 
         if (value is IEnumerable enumerable and not string)
             return GenerateHighlightedArray(enumerable, indent);
@@ -290,6 +373,36 @@ internal static class ParameterValueRenderer
                 sb.Append($"<span class=\"prop-key\">\"{System.Net.WebUtility.HtmlEncode(prop.Name)}\"</span>: ");
                 sb.Append(GenerateHighlightedJson(propValue, indent + 1));
                 if (i < props.Length - 1) sb.Append(',');
+                sb.Append('\n');
+            }
+            sb.Append(indentStr);
+            sb.Append('}');
+        }
+
+        return sb.ToString();
+    }
+
+    private static string GenerateHighlightedDictionary(IDictionary<string, object?> dict, int indent)
+    {
+        var sb = new StringBuilder();
+        var indentStr = new string(' ', indent * 2);
+        var innerIndent = new string(' ', (indent + 1) * 2);
+
+        sb.Append('{');
+        if (dict.Count == 0)
+        {
+            sb.Append('}');
+        }
+        else
+        {
+            sb.Append('\n');
+            var entries = dict.ToArray();
+            for (var i = 0; i < entries.Length; i++)
+            {
+                sb.Append(innerIndent);
+                sb.Append($"<span class=\"prop-key\">\"{System.Net.WebUtility.HtmlEncode(entries[i].Key)}\"</span>: ");
+                sb.Append(GenerateHighlightedJson(entries[i].Value, indent + 1));
+                if (i < entries.Length - 1) sb.Append(',');
                 sb.Append('\n');
             }
             sb.Append(indentStr);

@@ -66,11 +66,16 @@ public class ReqNRollTrackingHooks
 
         var arguments = _scenarioContext.ScenarioInfo.Arguments;
         Dictionary<string, string>? exampleValues = null;
+        Dictionary<string, object?>? exampleRawValues = null;
         if (arguments is { Count: > 0 })
         {
-            exampleValues = new Dictionary<string, string>();
+            var flatValues = new Dictionary<string, string>();
             foreach (System.Collections.DictionaryEntry entry in arguments)
-                exampleValues[entry.Key?.ToString() ?? ""] = entry.Value?.ToString() ?? "";
+                flatValues[entry.Key?.ToString() ?? ""] = entry.Value?.ToString() ?? "";
+
+            // Build structured ExampleValues/ExampleRawValues by grouping flat columns
+            // based on step table data
+            (exampleValues, exampleRawValues) = ExampleValueGrouper.BuildStructured(flatValues, steps);
         }
 
         ReqNRollScenarioCollector.Collect(new ReqNRollScenarioInfo
@@ -87,7 +92,8 @@ public class ReqNRollTrackingHooks
             Steps = steps,
             Rule = _scenarioContext.RuleInfo?.Title,
             OutlineId = exampleValues is not null ? _scenarioContext.ScenarioInfo.Title : null,
-            ExampleValues = exampleValues
+            ExampleValues = exampleValues,
+            ExampleRawValues = exampleRawValues
         });
 
         ReqNRollTestContext.CurrentTestInfo = null;

@@ -68,6 +68,7 @@ internal static class ScenarioInfoEnumerableExtensions
                                 Rule = x.Rule,
                                 OutlineId = x.OutlineId,
                                 ExampleValues = x.ExampleValues,
+                                ExampleRawValues = x.ExampleRawValues,
                             };
                         }).ToArray()
                 };

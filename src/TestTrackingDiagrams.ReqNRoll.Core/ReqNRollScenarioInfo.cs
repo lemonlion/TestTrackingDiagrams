@@ -20,4 +20,5 @@ public record ReqNRollScenarioInfo
     public string? Rule { get; init; }
     public string? OutlineId { get; init; }
     public Dictionary<string, string>? ExampleValues { get; init; }
+    public Dictionary<string, object?>? ExampleRawValues { get; init; }
 }

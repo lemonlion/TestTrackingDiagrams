@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.9-beta] - 2026-05-05
+
+### Added
+- **ReqNRoll structured data rendering via `ExampleValueGrouper`**: ReqNRoll Scenario Outline step tables are now automatically grouped into structured objects for rich rendering in the parameterized examples table. Single-row step tables render as sub-tables (R3), multi-row step tables render as expandable details (R4) — matching the same visual output produced by xUnit3 MemberData with complex object parameters.
+- **`IDictionary<string, object?>` support in `ParameterValueRenderer`**: All rendering methods (`IsSmallComplexObject`, `IsComplexValue`, `RenderSubTable`, `GeneratePreview`, `GenerateHighlightedJson`, `TryGetFlattenableProperties`, `FlattenToStringValues`, `FlattenToRawValues`) now handle dictionaries as object-like values rather than collections, enabling dictionary-based structured parameter rendering.
+- **`ExampleRawValues` property on `ReqNRollScenarioInfo`**: Carries structured raw values (dictionaries/lists) alongside the existing flat `ExampleValues` string dictionary.
+
+### Changed
+- **`ReqNRollTrackingHooks.AfterScenario`**: Now calls `ExampleValueGrouper.BuildStructured()` to produce grouped `ExampleValues` and `ExampleRawValues` from flat Example columns and step table data.
+- **E2E tests updated**: `ReqNRoll_pipeline_renders_all_scalar_column_headers` and `ReqNRoll_pipeline_all_cells_are_plain_scalar` updated to verify the new structured column headers and rich cell rendering.
+
 ## [2.29.8-beta] - 2026-05-05
 
 ### Changed

@@ -443,4 +443,138 @@ public class ParameterValueRendererTests
     }
 
     #endregion
+
+    #region Dictionary Support
+
+    [Fact]
+    public void IsSmallComplexObject_DictionaryWithScalarValues_ReturnsTrue()
+    {
+        var dict = new Dictionary<string, object?> { ["Name"] = "Alice", ["Age"] = 30 };
+        Assert.True(ParameterValueRenderer.IsSmallComplexObject(dict));
+    }
+
+    [Fact]
+    public void IsSmallComplexObject_DictionaryOverMaxProperties_ReturnsFalse()
+    {
+        var dict = new Dictionary<string, object?>
+        {
+            ["A"] = "1", ["B"] = "2", ["C"] = "3",
+            ["D"] = "4", ["E"] = "5", ["F"] = "6"
+        };
+        Assert.False(ParameterValueRenderer.IsSmallComplexObject(dict));
+    }
+
+    [Fact]
+    public void IsSmallComplexObject_EmptyDictionary_ReturnsFalse()
+    {
+        var dict = new Dictionary<string, object?>();
+        Assert.False(ParameterValueRenderer.IsSmallComplexObject(dict));
+    }
+
+    [Fact]
+    public void IsComplexValue_DictionaryReturnsTrue()
+    {
+        var dict = new Dictionary<string, object?> { ["Key"] = "Value" };
+        Assert.True(ParameterValueRenderer.IsComplexValue(dict));
+    }
+
+    [Fact]
+    public void RenderSubTable_Dictionary_RendersKeyValuePairs()
+    {
+        var dict = new Dictionary<string, object?> { ["Flour"] = "Plain", ["Apples"] = "Granny Smith" };
+        var sb = new System.Text.StringBuilder();
+
+        ParameterValueRenderer.RenderSubTable(sb, dict);
+
+        var html = sb.ToString();
+        Assert.Contains("cell-subtable", html);
+        Assert.Contains("<th>Flour</th>", html);
+        Assert.Contains("<td>Plain</td>", html);
+        Assert.Contains("<th>Apples</th>", html);
+        Assert.Contains("<td>Granny Smith</td>", html);
+    }
+
+    [Fact]
+    public void GeneratePreview_Dictionary_ShowsKeyValueFormat()
+    {
+        var dict = new Dictionary<string, object?> { ["Name"] = "Classic", ["Size"] = "Large" };
+        var preview = ParameterValueRenderer.GeneratePreview(dict);
+
+        Assert.Contains("Name:", preview);
+        Assert.Contains("Classic", preview);
+    }
+
+    [Fact]
+    public void GenerateHighlightedJson_Dictionary_RendersAsObject()
+    {
+        var dict = new Dictionary<string, object?> { ["Flour"] = "Plain" };
+        var json = ParameterValueRenderer.GenerateHighlightedJson(dict, 0);
+
+        Assert.Contains("\"Flour\"", json);
+        Assert.Contains("\"Plain\"", json);
+        Assert.Contains("prop-key", json);
+        Assert.Contains("prop-val", json);
+    }
+
+    [Fact]
+    public void GenerateHighlightedJson_ListOfDictionaries_RendersAsArrayOfObjects()
+    {
+        var list = new List<Dictionary<string, object?>>
+        {
+            new() { ["Name"] = "Streusel" },
+            new() { ["Name"] = "Icing" }
+        };
+        var json = ParameterValueRenderer.GenerateHighlightedJson(list, 0);
+
+        Assert.Contains("[", json);
+        Assert.Contains("\"Streusel\"", json);
+        Assert.Contains("\"Icing\"", json);
+        Assert.Contains("prop-key", json);
+    }
+
+    [Fact]
+    public void GeneratePreview_ListOfDictionaries_ShowsItemCount()
+    {
+        var list = new List<Dictionary<string, object?>>
+        {
+            new() { ["Name"] = "A" },
+            new() { ["Name"] = "B" }
+        };
+        var preview = ParameterValueRenderer.GeneratePreview(list);
+
+        Assert.Equal("2 items", preview);
+    }
+
+    [Fact]
+    public void TryGetFlattenableProperties_DictionaryWithScalars_ReturnKeys()
+    {
+        var dict = new Dictionary<string, object?> { ["Flour"] = "Plain", ["Apples"] = "Granny Smith" };
+        var props = ParameterValueRenderer.TryGetFlattenableProperties(dict, 10);
+
+        Assert.NotNull(props);
+        Assert.Contains("Flour", props!);
+        Assert.Contains("Apples", props);
+    }
+
+    [Fact]
+    public void FlattenToStringValues_Dictionary_ReturnsStringDict()
+    {
+        var dict = new Dictionary<string, object?> { ["Flour"] = "Plain", ["Apples"] = "Granny Smith" };
+        var result = ParameterValueRenderer.FlattenToStringValues(dict, ["Flour", "Apples"]);
+
+        Assert.Equal("Plain", result["Flour"]);
+        Assert.Equal("Granny Smith", result["Apples"]);
+    }
+
+    [Fact]
+    public void FlattenToRawValues_Dictionary_ReturnsRawDict()
+    {
+        var dict = new Dictionary<string, object?> { ["Flour"] = "Plain", ["Apples"] = "Granny Smith" };
+        var result = ParameterValueRenderer.FlattenToRawValues(dict, ["Flour", "Apples"]);
+
+        Assert.Equal("Plain", result["Flour"]);
+        Assert.Equal("Granny Smith", result["Apples"]);
+    }
+
+    #endregion
 }
