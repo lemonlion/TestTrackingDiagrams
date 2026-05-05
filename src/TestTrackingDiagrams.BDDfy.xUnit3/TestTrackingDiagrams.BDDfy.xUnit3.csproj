@@ -13,11 +13,10 @@
 
   <ItemGroup>
     <PackageReference Include="TestStack.BDDfy" Version="8.0.1.3" />
-    <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+    <ProjectReference Include="..\TestTrackingDiagrams.xUnit3\TestTrackingDiagrams.xUnit3.csproj" />
   </ItemGroup>
 
   <ItemGroup>

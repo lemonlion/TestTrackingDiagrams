@@ -34,7 +34,31 @@ internal static class ScenarioInfoExtensions
                                          && !t.StartsWith(BDDfyConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
                                 .ToArray();
 
-                            var parsed = ParameterParser.Parse(x.ScenarioTitle);
+                            // Prefer structured extraction from raw arguments (same mechanism as the
+                            // non-BDDfy adapters) for rich sub-table rendering of complex objects.
+                            // Fall back to string-based parsing of the scenario title.
+                            Dictionary<string, string>? exampleValues = null;
+                            Dictionary<string, object?>? exampleRawValues = null;
+                            string? outlineId = null;
+
+                            var structured = ParameterParser.ExtractStructuredParametersWithRaw(
+                                x.RawArguments, x.ParameterNames);
+
+                            if (structured is not null)
+                            {
+                                exampleValues = structured.Value.StringValues;
+                                exampleRawValues = structured.Value.RawValues;
+                                outlineId = ParameterParser.ExtractBaseName(x.ScenarioTitle);
+                            }
+                            else
+                            {
+                                var parsed = ParameterParser.Parse(x.ScenarioTitle);
+                                if (parsed is { Count: > 0 })
+                                {
+                                    exampleValues = parsed;
+                                    outlineId = ParameterParser.ExtractBaseName(x.ScenarioTitle);
+                                }
+                            }
 
                             return new Scenario
                             {
@@ -49,8 +73,9 @@ internal static class ScenarioInfoExtensions
                                     ? MapSteps(x.Steps)
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
-                                OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(x.ScenarioTitle) : null,
-                                ExampleValues = parsed is { Count: > 0 } ? parsed : null,
+                                OutlineId = outlineId,
+                                ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
+                                ExampleRawValues = exampleRawValues,
                             };
                         }).ToArray())
                 };

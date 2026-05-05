@@ -13,6 +13,13 @@ namespace TestTrackingDiagrams.LightBDD
     /// </summary>
     public static class ReportWritersConfigurationExtensions
     {
+        /// <summary>
+        /// Configures LightBDD to generate test tracking diagrams and reports.
+        /// This overload operates on <see cref="ReportWritersConfiguration"/> only and does NOT register
+        /// the automatic argument capture decorator.
+        /// Prefer the <see cref="LightBddConfiguration"/> overload for automatic raw argument capture.
+        /// </summary>
+        [Obsolete("Use the LightBddConfiguration.CreateStandardReportsWithDiagrams() overload instead, which also registers automatic argument capture for rich rendering of complex parameters.")]
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static ReportWritersConfiguration CreateStandardReportsWithDiagrams(
             this ReportWritersConfiguration configuration,
@@ -20,6 +27,36 @@ namespace TestTrackingDiagrams.LightBDD
             Func<Assembly, int> testCountResolver)
         {
             return CreateStandardReportsWithDiagramsInternal(configuration, options, Assembly.GetCallingAssembly(), testCountResolver);
+        }
+
+        /// <summary>
+        /// Configures LightBDD to generate test tracking diagrams and reports with automatic raw argument capture.
+        /// This overload registers an <see cref="LightBDD.Core.Extensibility.Execution.IScenarioDecorator"/> that captures
+        /// raw test method arguments during scenario execution, enabling rich sub-table and expandable rendering
+        /// for complex objects (records, lists, nested types) passed via framework-level attributes (MemberData, ClassData,
+        /// TestCase, TestCaseSource, etc.) — using the same processing pipeline as the non-LightBDD adapters.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static LightBddConfiguration CreateStandardReportsWithDiagrams(
+            this LightBddConfiguration configuration,
+            ReportConfigurationOptions options,
+            Func<Assembly, int> testCountResolver)
+        {
+            return CreateStandardReportsWithDiagramsInternal(
+                configuration, options, Assembly.GetCallingAssembly(), testCountResolver);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static LightBddConfiguration CreateStandardReportsWithDiagramsInternal(
+            LightBddConfiguration configuration, ReportConfigurationOptions options, Assembly testAssembly, Func<Assembly, int> testCountResolver)
+        {
+            configuration.ExecutionExtensionsConfiguration()
+                .EnableScenarioDecorator<ArgumentCaptureScenarioDecorator>();
+
+            CreateStandardReportsWithDiagramsInternal(
+                configuration.ReportWritersConfiguration(), options, testAssembly, testCountResolver);
+
+            return configuration;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

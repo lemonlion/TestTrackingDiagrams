@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.7-beta] - 2026-05-05
+
+### Changed
+- **Framework-agnostic `ArgumentCaptureScenarioDecorator` moved to `LightBDD.Core`**: The decorator now uses `IScenario.Descriptor.Parameters` (LightBDD's own API) to capture raw arguments, making it fully framework-agnostic. Enables rich sub-table rendering for all LightBDD adapters (xUnit3, TUnit, xUnit2) with zero framework-specific code.
+- **`LightBddConfiguration.CreateStandardReportsWithDiagrams()` overload added to all LightBDD packages** (xUnit3, TUnit, xUnit2): Consistent API across all frameworks — registers both the report pipeline and the argument capture decorator automatically.
+- **`ReportWritersConfiguration.CreateStandardReportsWithDiagrams()` deprecated** across all packages: The old overload still works but produces a compiler warning directing users to the `LightBddConfiguration` overload.
+- **`[CaptureLightBddArguments]` attribute deprecated** (xUnit3): The assembly-level attribute is no longer needed when using the new API.
+- **BDDfy adapter now captures raw test method arguments**: `DiagramCapturingProcessor` captures `TestMethodArguments` from xUnit3's test context, passing them through `ParameterParser.ExtractStructuredParametersWithRaw()` — the same pipeline used by the non-BDDfy xUnit3 adapter. Enables rich rendering of complex objects in BDDfy parameterized tests.
+- **Consolidated shared xUnit3 argument extraction code**: Created `XUnit3ArgumentExtractor` in `TestTrackingDiagrams.xUnit3` — a single shared helper for extracting raw arguments from `XunitTest`/`XunitTestCase`. Used by all three xUnit3-based packages (xUnit3, BDDfy.xUnit3, LightBDD.xUnit3) instead of duplicating the extraction pattern.
+- **Added project references for code sharing**: `TestTrackingDiagrams.BDDfy.xUnit3` and `TestTrackingDiagrams.LightBDD.xUnit3` now reference `TestTrackingDiagrams.xUnit3` directly, enabling shared infrastructure (argument extraction, `CurrentTestInfo`) and eliminating code duplication that would be difficult to keep in sync.
+- **BDDfy `CurrentTestInfo` delegates to xUnit3 implementation**: Eliminates near-identical copy in the BDDfy package.
+
 ## [2.29.6-beta] - 2026-05-05
 
 ### Fixed

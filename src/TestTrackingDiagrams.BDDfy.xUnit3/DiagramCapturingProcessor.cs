@@ -1,5 +1,6 @@
 using System.Reflection;
 using TestStack.BDDfy;
+using TestTrackingDiagrams.xUnit3;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
@@ -30,6 +31,11 @@ public class DiagramCapturingProcessor : IProcessor
 
         var testClassSimpleName = testContext.TestClass?.TestClassSimpleName;
         var testMethodName = testContext.TestMethod?.MethodName;
+
+        // Capture raw test method arguments from xUnit3's TestContext — same mechanism
+        // as the non-BDDfy xUnit3 adapter for consistent processing of framework-level
+        // parameterized data (MemberData, ClassData, InlineData, etc.)
+        var (rawArgs, paramNames) = XUnit3ArgumentExtractor.Extract(testContext);
 
         foreach (var scenario in story.Scenarios)
         {
@@ -70,7 +76,9 @@ public class DiagramCapturingProcessor : IProcessor
                 Result = scenario.Result,
                 Duration = scenario.Duration,
                 ErrorMessage = failedException?.Message,
-                ErrorStackTrace = failedException?.StackTrace
+                ErrorStackTrace = failedException?.StackTrace,
+                RawArguments = rawArgs,
+                ParameterNames = paramNames,
             });
         }
     }

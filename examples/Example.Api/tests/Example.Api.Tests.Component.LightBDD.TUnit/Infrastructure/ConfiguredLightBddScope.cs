@@ -29,7 +29,7 @@ public class ConfiguredLightBddScopeAttribute : LightBddScopeAttribute
                 SeparateSetup = true,
             };
 
-        configuration.ReportWritersConfiguration().CreateStandardReportsWithDiagrams(reportOptions);
+        configuration.CreateStandardReportsWithDiagrams(reportOptions);
 
         // To stop the output repeating the step name for each step
         configuration.ProgressNotifierConfiguration().Clear();

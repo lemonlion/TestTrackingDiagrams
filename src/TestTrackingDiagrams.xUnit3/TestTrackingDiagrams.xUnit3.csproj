@@ -19,4 +19,10 @@
 		<ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="TestTrackingDiagrams.BDDfy.xUnit3" />
+		<InternalsVisibleTo Include="TestTrackingDiagrams.LightBDD.xUnit3" />
+		<InternalsVisibleTo Include="TestTrackingDiagrams.Tests" />
+	</ItemGroup>
+
 </Project>
