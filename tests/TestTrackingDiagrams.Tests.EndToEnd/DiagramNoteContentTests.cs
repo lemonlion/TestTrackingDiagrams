@@ -5,6 +5,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// not just that the button icons change. Covers edge cases around
 /// state consistency between _noteSteps and the rendered SVG.
 /// </summary>
+[Collection(PlaywrightCollections.Notes)]
 public class DiagramNoteContentTests : DiagramNotePlaywrightBase
 {
     public DiagramNoteContentTests(PlaywrightFixture fixture) : base(fixture) { }

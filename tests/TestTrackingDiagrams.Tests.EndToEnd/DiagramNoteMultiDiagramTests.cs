@@ -5,6 +5,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// These tests verify that note state changes work correctly when
 /// multiple diagrams are present in the same scenario or report.
 /// </summary>
+[Collection(PlaywrightCollections.Notes)]
 public class DiagramNoteMultiDiagramTests : DiagramNotePlaywrightBase
 {
     public DiagramNoteMultiDiagramTests(PlaywrightFixture fixture) : base(fixture) { }

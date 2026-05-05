@@ -4,6 +4,7 @@ using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class ParameterizedGroupTests : PlaywrightTestBase
 {
     public ParameterizedGroupTests(PlaywrightFixture fixture) : base(fixture) { }

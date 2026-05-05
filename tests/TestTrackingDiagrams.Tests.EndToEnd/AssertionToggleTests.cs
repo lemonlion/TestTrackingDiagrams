@@ -7,6 +7,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// Verifies that toggling assertions on one scenario does NOT affect other scenarios (bug fix).
 /// Also tests combinations with other radio buttons (Details, Headers) and hover buttons.
 /// </summary>
+[Collection(PlaywrightCollections.Diagrams)]
 public class AssertionToggleTests : DiagramNotePlaywrightBase
 {
     public AssertionToggleTests(PlaywrightFixture fixture) : base(fixture) { }

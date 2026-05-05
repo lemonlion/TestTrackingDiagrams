@@ -4,6 +4,7 @@ using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Scenarios)]
 public class FailureClusterLinkTests : PlaywrightTestBase
 {
     public FailureClusterLinkTests(PlaywrightFixture fixture) : base(fixture) { }

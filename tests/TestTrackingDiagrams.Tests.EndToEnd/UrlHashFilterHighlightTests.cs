@@ -2,6 +2,7 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Search)]
 public class UrlHashFilterHighlightTests : PlaywrightTestBase
 {
     public UrlHashFilterHighlightTests(PlaywrightFixture fixture) : base(fixture) { }

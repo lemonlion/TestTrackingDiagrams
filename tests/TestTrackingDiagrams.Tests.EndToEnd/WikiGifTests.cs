@@ -16,6 +16,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 ///
 /// Requirements: Chromium (Playwright), ImageMagick (magick on PATH)
 /// </summary>
+[Collection(PlaywrightCollections.Scenarios)]
 public class WikiGifTests : PlaywrightTestBase
 {
     private readonly string _wikiGifDir;

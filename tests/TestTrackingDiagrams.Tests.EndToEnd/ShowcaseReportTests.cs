@@ -9,6 +9,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// Run: dotnet test TestTrackingDiagrams.Tests.EndToEnd --filter "ShowcaseReportTests"
 /// Output goes to PlaywrightOutput/showcase-frames/
 /// </summary>
+[Collection(PlaywrightCollections.Scenarios)]
 public class ShowcaseReportTests : PlaywrightTestBase
 {
     private readonly string _framesDir;

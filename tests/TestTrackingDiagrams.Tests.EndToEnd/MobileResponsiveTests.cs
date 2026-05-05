@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class MobileResponsiveTests : PlaywrightTestBase
 {
     public MobileResponsiveTests(PlaywrightFixture fixture) : base(fixture) { }

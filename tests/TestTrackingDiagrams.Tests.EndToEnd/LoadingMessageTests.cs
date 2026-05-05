@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class LoadingMessageTests : PlaywrightTestBase
 {
     public LoadingMessageTests(PlaywrightFixture fixture) : base(fixture) { }

@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Scenarios)]
 public class JumpToFailureTests : PlaywrightTestBase
 {
     public JumpToFailureTests(PlaywrightFixture fixture) : base(fixture) { }

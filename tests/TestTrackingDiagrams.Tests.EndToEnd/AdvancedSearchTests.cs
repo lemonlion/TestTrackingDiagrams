@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Search)]
 public class AdvancedSearchTests : PlaywrightTestBase
 {
     public AdvancedSearchTests(PlaywrightFixture fixture) : base(fixture) { }

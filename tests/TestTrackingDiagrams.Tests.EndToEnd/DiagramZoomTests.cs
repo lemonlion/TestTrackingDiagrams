@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Zoom)]
 public class DiagramZoomTests : PlaywrightTestBase
 {
     public DiagramZoomTests(PlaywrightFixture fixture) : base(fixture) { }

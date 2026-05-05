@@ -1,0 +1,25 @@
+<Project>
+
+  <Target Name="_RewriteTrackAssertions"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TrackAssertionsEnabled)' == 'true'">
+
+    <TestTrackingDiagrams.AssertionRewriter.RewriteAssertionsTask
+      SourceFiles="@(Compile)"
+      IntermediateDir="$(IntermediateOutputPath)AssertionRewrite\">
+      <Output TaskParameter="RewrittenFiles" ItemName="_RewrittenCompile" />
+    </TestTrackingDiagrams.AssertionRewriter.RewriteAssertionsTask>
+
+    <!-- Replace Compile items with rewritten versions -->
+    <ItemGroup>
+      <Compile Remove="@(Compile)" />
+      <Compile Include="@(_RewrittenCompile)" />
+    </ItemGroup>
+
+  </Target>
+
+  <Target Name="_CleanAssertionRewrite" BeforeTargets="CoreClean">
+    <RemoveDir Directories="$(IntermediateOutputPath)AssertionRewrite\" />
+  </Target>
+
+</Project>

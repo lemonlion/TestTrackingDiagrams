@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Aryeh Citron",
+  "classifications": ["Test", "xUnit", "TestTrackingDiagrams", "Component Test"],
+  "identity": "TestTrackingDiagrams.xUnit3.CSharp",
+  "groupIdentity": "TestTrackingDiagrams.Test",
+  "name": "TTD Component Tests (xUnit v3)",
+  "shortName": "ttd-xunit3",
+  "description": "A component test project using xUnit v3 with TestTrackingDiagrams for automatic sequence diagram and report generation.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "TTD.xUnit3",
+  "preferNameDirectory": true,
+  "symbols": {
+    "serviceName": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "MyApi",
+      "replaces": "SERVICE_NAME",
+      "description": "Name of the service under test (used in diagram labels and report titles)",
+      "displayName": "Service Name"
+    },
+    "downstreamService": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "DownstreamService",
+      "replaces": "DOWNSTREAM_SERVICE",
+      "description": "Name of a downstream dependency service (used in diagram labels)",
+      "displayName": "Downstream Service Name"
+    },
+    "downstreamPort": {
+      "type": "parameter",
+      "datatype": "int",
+      "defaultValue": "15050",
+      "replaces": "15050",
+      "description": "Port number for the downstream service HTTP fake",
+      "displayName": "Downstream Service Port"
+    },
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "net8.0", "description": ".NET 8" },
+        { "choice": "net9.0", "description": ".NET 9" },
+        { "choice": "net10.0", "description": ".NET 10" }
+      ],
+      "defaultValue": "net10.0",
+      "replaces": "net10.0",
+      "description": "Target framework version",
+      "displayName": "Target Framework"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": ["**/bin/**", "**/obj/**"]
+        }
+      ]
+    }
+  ]
+}

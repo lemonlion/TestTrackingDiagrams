@@ -3,6 +3,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Zoom)]
 public class GradualZoomTests : PlaywrightTestBase
 {
     public GradualZoomTests(PlaywrightFixture fixture) : base(fixture) { }

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Aryeh Citron",
+  "classifications": ["Test", "TUnit", "TestTrackingDiagrams", "Component Test"],
+  "identity": "TestTrackingDiagrams.TUnit.CSharp",
+  "groupIdentity": "TestTrackingDiagrams.Test",
+  "name": "TTD Component Tests (TUnit)",
+  "shortName": "ttd-tunit",
+  "description": "A component test project using TUnit with TestTrackingDiagrams for automatic sequence diagram and report generation.",
+  "tags": { "language": "C#", "type": "project" },
+  "sourceName": "TTD.TUnit",
+  "preferNameDirectory": true,
+  "symbols": {
+    "serviceName": { "type": "parameter", "datatype": "string", "defaultValue": "MyApi", "replaces": "SERVICE_NAME", "description": "Name of the service under test" },
+    "downstreamService": { "type": "parameter", "datatype": "string", "defaultValue": "DownstreamService", "replaces": "DOWNSTREAM_SERVICE", "description": "Name of a downstream dependency service" },
+    "downstreamPort": { "type": "parameter", "datatype": "int", "defaultValue": "15050", "replaces": "15050", "description": "Port number for the downstream service HTTP fake" },
+    "Framework": { "type": "parameter", "datatype": "choice", "choices": [{ "choice": "net8.0" }, { "choice": "net9.0" }, { "choice": "net10.0" }], "defaultValue": "net10.0", "replaces": "net10.0" }
+  },
+  "sources": [{ "modifiers": [{ "exclude": ["**/bin/**", "**/obj/**"] }] }]
+}

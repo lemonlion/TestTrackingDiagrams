@@ -6,6 +6,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// path+text groups that were previously misidentified as notes, causing
 /// click-on-note-N to collapse note-M instead.
 /// </summary>
+[Collection(PlaywrightCollections.Notes)]
 public class DiagramNoteMixedParticipantTests : DiagramNotePlaywrightBase
 {
     public DiagramNoteMixedParticipantTests(PlaywrightFixture fixture) : base(fixture) { }

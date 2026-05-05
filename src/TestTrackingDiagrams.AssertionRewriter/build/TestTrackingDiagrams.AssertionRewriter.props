@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <TrackAssertionsEnabled Condition="'$(TrackAssertionsEnabled)' == ''">true</TrackAssertionsEnabled>
+    <_AssertionRewriterTaskDir>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\</_AssertionRewriterTaskDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="TestTrackingDiagrams.AssertionRewriter.RewriteAssertionsTask"
+             AssemblyFile="$(_AssertionRewriterTaskDir)TestTrackingDiagrams.AssertionRewriter.dll" />
+
+</Project>

@@ -3,6 +3,7 @@ using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Search)]
 public class FilterPerformanceTests : PlaywrightTestBase
 {
     public FilterPerformanceTests(PlaywrightFixture fixture) : base(fixture) { }

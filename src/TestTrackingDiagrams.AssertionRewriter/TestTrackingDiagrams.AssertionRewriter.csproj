@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Title>Test Tracking Diagrams Assertion Rewriter</Title>
+    <Description>MSBuild task that automatically wraps FluentAssertions .Should() expressions in Track.That() at compile time. Activated via [assembly: TrackAssertions]. Zero runtime footprint — operates on source files before compilation.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+    <!-- MSBuild task packaging: output DLLs to tasks/ folder in nupkg -->
+    <BuildOutputTargetFolder>tasks</BuildOutputTargetFolder>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+
+    <!-- Do not multi-target; MSBuild tasks must be netstandard2.0 -->
+    <MultiTargetFrameworks />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.0.0" PrivateAssets="all" ExcludeAssets="Runtime" />
+  </ItemGroup>
+
+  <!-- Include MSBuild integration files in the package -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\" />
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <!-- Include attribute source files as contentFiles (compiled into consumer) -->
+  <ItemGroup>
+    <None Include="Attributes\TrackAssertionsAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any\TestTrackingDiagrams.AssertionRewriter\" />
+    <None Include="Attributes\SuppressAssertionTrackingAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any\TestTrackingDiagrams.AssertionRewriter\" />
+    <Content Include="Attributes\TrackAssertionsAttribute.cs" Pack="false" />
+    <Content Include="Attributes\SuppressAssertionTrackingAttribute.cs" Pack="false" />
+  </ItemGroup>
+
+</Project>

@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Diagrams)]
 public class DependencyColoringTests : PlaywrightTestBase
 {
     public DependencyColoringTests(PlaywrightFixture fixture) : base(fixture) { }

@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Notes)]
 public class DiagramNotePartitionTests : DiagramNotePlaywrightBase
 {
     public DiagramNotePartitionTests(PlaywrightFixture fixture) : base(fixture) { }

@@ -5,8 +5,8 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// <summary>
 /// Base class for all report-level Playwright tests.
 /// Each test gets its own BrowserContext and Page (full isolation, parallel-safe).
+/// Concrete test classes must apply [Collection("Playwright.Xxx")] to assign a parallel group.
 /// </summary>
-[Collection(PlaywrightCollection.Name)]
 public abstract class PlaywrightTestBase : IAsyncLifetime
 {
     private readonly PlaywrightFixture _fixture;

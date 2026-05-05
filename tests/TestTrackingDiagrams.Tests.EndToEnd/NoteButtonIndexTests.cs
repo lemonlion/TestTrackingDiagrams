@@ -7,6 +7,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// (e.g., header-only notes with "Headers: Hidden"). Verifies that the index mapping
 /// between SVG note groups and PlantUML source note blocks remains aligned.
 /// </summary>
+[Collection(PlaywrightCollections.Notes)]
 public class NoteButtonIndexTests : PlaywrightTestBase
 {
     public NoteButtonIndexTests(PlaywrightFixture fixture) : base(fixture) { }

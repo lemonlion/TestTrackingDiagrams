@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Diagrams)]
 public class ComponentFlowPopupTests : PlaywrightTestBase
 {
     public ComponentFlowPopupTests(PlaywrightFixture fixture) : base(fixture) { }

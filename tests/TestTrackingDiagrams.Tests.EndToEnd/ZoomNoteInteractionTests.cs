@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Zoom)]
 public class ZoomNoteInteractionTests : PlaywrightTestBase
 {
     public ZoomNoteInteractionTests(PlaywrightFixture fixture) : base(fixture) { }

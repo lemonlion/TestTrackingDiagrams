@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class WholeTestFlowTests : PlaywrightTestBase
 {
     public WholeTestFlowTests(PlaywrightFixture fixture) : base(fixture) { }

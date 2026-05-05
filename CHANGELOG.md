@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.29.16-beta] - 2026-05-05
+
+### Changed
+- **E2E test parallelization**: Split 388 Playwright tests from a single sequential collection into 6 parallel collections (Zoom, Notes, Search, Diagrams, Reports, Scenarios) + existing FullPipeline. Increased `maxParallelThreads` from 4 to 8. Reduces local E2E execution time from ~20 min to ~9.5 min.
+
 ## [2.29.15-beta] - 2026-05-06
 
 ### Fixed

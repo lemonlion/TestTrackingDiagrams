@@ -4,6 +4,7 @@ using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class HeadersDetailsInterferenceTests : PlaywrightTestBase
 {
     public HeadersDetailsInterferenceTests(PlaywrightFixture fixture) : base(fixture) { }

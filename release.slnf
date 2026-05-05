@@ -50,7 +50,9 @@
       "src/TestTrackingDiagrams.ReqNRoll.xUnit3/TestTrackingDiagrams.ReqNRoll.xUnit3.csproj",
       "src/TestTrackingDiagrams.TUnit/TestTrackingDiagrams.TUnit.csproj",
       "src/TestTrackingDiagrams.xUnit2/TestTrackingDiagrams.xUnit2.csproj",
-      "src/TestTrackingDiagrams.xUnit3/TestTrackingDiagrams.xUnit3.csproj"
+      "src/TestTrackingDiagrams.xUnit3/TestTrackingDiagrams.xUnit3.csproj",
+      "src/TestTrackingDiagrams.AssertionRewriter/TestTrackingDiagrams.AssertionRewriter.csproj",
+      "templates/TestTrackingDiagrams.Templates.csproj"
     ]
   }
 }

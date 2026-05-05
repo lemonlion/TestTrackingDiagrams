@@ -5,6 +5,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// Run: dotnet test TestTrackingDiagrams.Tests.EndToEnd --filter "WikiScreenshotTests"
 /// Output goes to PlaywrightOutput/wiki-screenshots/
 /// </summary>
+[Collection(PlaywrightCollections.Scenarios)]
 public class WikiScreenshotTests : PlaywrightTestBase
 {
     private readonly string _screenshotDir;

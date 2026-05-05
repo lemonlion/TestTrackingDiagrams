@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Diagrams)]
 public class ContextMenuExtendedTests : PlaywrightTestBase
 {
     public ContextMenuExtendedTests(PlaywrightFixture fixture) : base(fixture) { }

@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Scenarios)]
 public class ScenarioInteractionTests : PlaywrightTestBase
 {
     public ScenarioInteractionTests(PlaywrightFixture fixture) : base(fixture) { }

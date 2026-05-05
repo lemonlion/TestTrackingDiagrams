@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Aryeh Citron",
+  "classifications": ["Test", "LightBDD", "TUnit", "TestTrackingDiagrams", "Component Test", "BDD"],
+  "identity": "TestTrackingDiagrams.LightBDD.TUnit.CSharp",
+  "groupIdentity": "TestTrackingDiagrams.Test",
+  "name": "TTD Component Tests (LightBDD + TUnit)",
+  "shortName": "ttd-lightbdd-tunit",
+  "description": "A component test project using LightBDD with TUnit and TestTrackingDiagrams for automatic sequence diagram and report generation.",
+  "tags": { "language": "C#", "type": "project" },
+  "sourceName": "TTD.LightBDD.TUnit",
+  "preferNameDirectory": true,
+  "symbols": {
+    "serviceName": { "type": "parameter", "datatype": "string", "defaultValue": "MyApi", "replaces": "SERVICE_NAME", "description": "Name of the service under test" },
+    "downstreamService": { "type": "parameter", "datatype": "string", "defaultValue": "DownstreamService", "replaces": "DOWNSTREAM_SERVICE", "description": "Name of a downstream dependency service" },
+    "downstreamPort": { "type": "parameter", "datatype": "int", "defaultValue": "15050", "replaces": "15050", "description": "Port for downstream service" },
+    "Framework": { "type": "parameter", "datatype": "choice", "choices": [{ "choice": "net8.0" }, { "choice": "net9.0" }, { "choice": "net10.0" }], "defaultValue": "net10.0", "replaces": "net10.0" }
+  },
+  "sources": [{ "modifiers": [{ "exclude": ["**/bin/**", "**/obj/**"] }] }]
+}

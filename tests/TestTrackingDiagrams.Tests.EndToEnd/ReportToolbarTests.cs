@@ -1,5 +1,6 @@
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
+[Collection(PlaywrightCollections.Reports)]
 public class ReportToolbarTests : PlaywrightTestBase
 {
     public ReportToolbarTests(PlaywrightFixture fixture) : base(fixture) { }

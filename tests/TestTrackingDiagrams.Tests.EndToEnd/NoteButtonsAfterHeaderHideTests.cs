@@ -6,6 +6,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 /// Tests verifying that note hover button click behavior (plus/minus/dblclick
 /// 3-state cycle) works correctly AFTER toggling headers to "hidden".
 /// </summary>
+[Collection(PlaywrightCollections.Notes)]
 public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
 {
     public NoteButtonsAfterHeaderHideTests(PlaywrightFixture fixture) : base(fixture) { }
