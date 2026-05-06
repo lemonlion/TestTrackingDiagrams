@@ -211,4 +211,89 @@ public class AssertionWeaverTests
         var ex = Record.Exception(() => method.Invoke(instance, null));
         ex.Should().BeNull();
     }
+
+    [Fact]
+    public void Weave_AsyncMethod_InstrumentsAssertions()
+    {
+        // Synchronous assertions inside async methods should be instrumented.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncMethod",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    await Task.Delay(1);
+                    var x = 42;
+                    x.Should().Be(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        // The assertion inside the async method IS instrumented
+        result.WeavedCount.Should().Be(1);
+
+        // The weaved assembly should be loadable and executable without error
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        // Invoke the async method and await its result
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_AsyncMethod_MultipleAssertions_InstrumentsAll()
+    {
+        // Multiple assertions in an async method should all be instrumented
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncMultiple",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var x = await Task.FromResult(42);
+                    x.Should().Be(42);
+                    
+                    var y = await Task.FromResult("hello");
+                    y.Should().StartWith("h");
+                    y.Should().HaveLength(5);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(3);
+
+        // Verify execution works
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+    }
 }

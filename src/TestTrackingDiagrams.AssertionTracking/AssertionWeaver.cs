@@ -65,9 +65,6 @@ public class AssertionWeaver
                     continue;
                 if (HasSuppressAttribute(method))
                     continue;
-                // Skip async state machine MoveNext for now (complex)
-                if (IsAsyncStateMachine(method))
-                    continue;
 
                 var assertions = FindAssertionStatements(method, result);
                 if (assertions.Count == 0)
@@ -105,15 +102,6 @@ public class AssertionWeaver
             return false;
         return provider.CustomAttributes.Any(a =>
             a.AttributeType.Name == "SuppressAssertionTrackingAttribute");
-    }
-
-    private static bool IsAsyncStateMachine(MethodDefinition method)
-    {
-        // Check if the method's declaring type implements IAsyncStateMachine
-        if (method.Name == "MoveNext" && method.DeclaringType.Interfaces.Any(i =>
-                i.InterfaceType.FullName == "System.Runtime.CompilerServices.IAsyncStateMachine"))
-            return true;
-        return false;
     }
 
     private (MethodReference Passed, MethodReference Failed) GetTrackMethodReferences(AssemblyDefinition assembly)
@@ -209,21 +197,33 @@ public class AssertionWeaver
             if (!hasShouldCall)
                 continue;
 
-            // Collect any branches jumping outside the statement range.
-            // These come from null-propagation (?.) which generates branches that
-            // would cross try/catch boundaries. We'll retarget them during wrapping.
+            // Collect conditional/unconditional branches jumping outside the statement range.
+            // These come from null-propagation (?.) which generates brfalse/brtrue that skip
+            // past the expression. We exclude leave/leave.s since those are structural control
+            // flow for exception handling (e.g. async state machine's outer try/catch exit).
             var outboundBranches = statementInstructions
-                .Where(i => i.Operand is Instruction target &&
+                .Where(i => i.OpCode != OpCodes.Leave && i.OpCode != OpCodes.Leave_S &&
+                    i.Operand is Instruction target &&
                     (target.Offset < startOffset || target.Offset >= endOffset))
                 .ToList();
 
             // Read the source text for this statement
             var sourceText = ReadSourceText(sp);
 
+            // Exclude trailing leave/leave.s from the statement. In async state machines,
+            // the compiler places a leave at the end of user code to exit the outer try.
+            // This leave is NOT part of the assertion — it should remain after our wrapper.
+            var lastInstr = statementInstructions.Last();
+            while (lastInstr != statementInstructions.First() &&
+                   (lastInstr.OpCode == OpCodes.Leave || lastInstr.OpCode == OpCodes.Leave_S))
+            {
+                lastInstr = lastInstr.Previous;
+            }
+
             results.Add(new AssertionStatement
             {
                 FirstInstruction = statementInstructions.First(),
-                LastInstruction = statementInstructions.Last(),
+                LastInstruction = lastInstr,
                 SequencePoint = sp,
                 SourceText = sourceText,
                 OutboundBranches = outboundBranches
@@ -417,7 +417,11 @@ public class AssertionWeaver
             il.Append(afterCatch);
         }
 
-        // Add exception handler
+        // Add exception handler at the correct position.
+        // CLR requires nested handlers to appear BEFORE their containing handlers.
+        // In async state machines, the compiler's outer try/catch wraps all user code,
+        // so our inner handler must be inserted before it. Since our handlers always
+        // wrap single statements (innermost), inserting at position 0 is correct.
         var handler = new ExceptionHandler(ExceptionHandlerType.Catch)
         {
             TryStart = tryStart,
@@ -426,7 +430,7 @@ public class AssertionWeaver
             HandlerEnd = afterCatch,
             CatchType = exceptionTypeRef
         };
-        body.ExceptionHandlers.Add(handler);
+        body.ExceptionHandlers.Insert(0, handler);
 
         // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
         // This keeps the branch inside the try block: when ?. short-circuits, execution

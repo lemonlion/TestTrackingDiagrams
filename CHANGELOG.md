@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.9] - 2026-05-06
+
+### Added
+- **AssertionTracking: async method support** — The IL weaver now instruments assertions inside `async` methods. Previously, async state machine `MoveNext` methods were skipped entirely. The weaver now correctly handles the compiler-generated try/catch structure by inserting exception handlers in proper nesting order (before containing handlers) and excluding trailing `leave` instructions from assertion statement boundaries.
+
+### Fixed
+- **AssertionTracking: outbound branch detection excludes `leave` instructions** — The null-propagation branch retargeting now only retargets conditional/unconditional branches (`brfalse`, `brtrue`, `br`, etc.), not `leave`/`leave.s` instructions which are structural control flow for exception handling in async state machines.
+
 ## [2.30.8] - 2026-05-07
 
 ### Fixed

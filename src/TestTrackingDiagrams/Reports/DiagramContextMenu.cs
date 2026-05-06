@@ -2624,40 +2624,15 @@ public static class DiagramContextMenu
                 return locs;
             }
 
-            // Find assertion note groups in SVG by their distinctive fill colors
+            // Find assertion note groups in SVG by note shape + first text
+            // starting with ✓ or ✗ (theme-independent detection)
             function findAssertionNoteGroups(svg) {
-                var mainG = null;
-                for (var i = 0; i < svg.children.length; i++) {
-                    if (svg.children[i].tagName === 'g') { mainG = svg.children[i]; break; }
-                }
-                if (!mainG) return [];
-                var children = Array.from(mainG.children);
-                var groups = [];
-                var assertionFills = ['#d4edda', '#f8d7da'];
-                var ci = 0;
-                while (ci < children.length) {
-                    if (children[ci].tagName === 'path') {
-                        var fill = (children[ci].getAttribute('fill') || '').toLowerCase().trim();
-                        if (assertionFills.indexOf(fill) >= 0) {
-                            var grp = { paths: [children[ci]], texts: [] };
-                            ci++;
-                            while (ci < children.length && children[ci].tagName === 'path') {
-                                grp.paths.push(children[ci]);
-                                ci++;
-                            }
-                            while (ci < children.length && children[ci].tagName === 'text') {
-                                grp.texts.push(children[ci]);
-                                ci++;
-                            }
-                            if (grp.paths.length > 0) groups.push(grp);
-                        } else {
-                            ci++;
-                        }
-                    } else {
-                        ci++;
-                    }
-                }
-                return groups;
+                var allGroups = findNoteGroups(svg);
+                return allGroups.filter(function(grp) {
+                    if (grp.texts.length === 0) return false;
+                    var firstChar = (grp.texts[0].textContent || '').trim().charAt(0);
+                    return firstChar === '\u2713' || firstChar === '\u2717';
+                });
             }
 
             // Add source-location tooltips to assertion note SVG groups
