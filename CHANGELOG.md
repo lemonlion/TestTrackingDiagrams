@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.10] - 2026-05-06
+
+### Fixed
+- **Assertion tooltips: theme-independent SVG detection** — The `findAssertionNoteGroups()` function now identifies assertion notes by reusing the existing `findNoteGroups()` shape detection and filtering to groups whose first text starts with ✓ or ✗, instead of matching hardcoded fill colors (`#d4edda`/`#f8d7da`). This makes assertion source-location tooltips resilient to PlantUML theme changes.
+
 ## [2.30.9] - 2026-05-06
 
 ### Added
