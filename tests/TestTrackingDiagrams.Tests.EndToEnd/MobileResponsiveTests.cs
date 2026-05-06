@@ -260,4 +260,59 @@ public class MobileResponsiveTests : PlaywrightTestBase
             Assert.Equal("center", textAlign);
         }
     }
+
+    // ── Zoom controls hidden on mobile ──
+
+    [Fact]
+    public async Task Zoom_controls_hidden_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileZoomHidden.html"));
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        var zoomControls = Page.Locator(".diagram-zoom-controls");
+        if (await zoomControls.CountAsync() > 0)
+        {
+            var display = await GetComputedStyle(zoomControls.First, "display");
+            Assert.Equal("none", display);
+        }
+    }
+
+    // ── Context menu is bottom-sheet on mobile ──
+
+    [Fact]
+    public async Task Context_menu_renders_as_bottom_sheet_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileContextMenu.html"));
+        await ExpandFirstScenarioWithDiagram();
+        var svg = await WaitForDiagramSvg();
+
+        // Trigger context menu via JS dispatchEvent
+        await svg.EvaluateAsync("""
+            (el) => el.dispatchEvent(new MouseEvent('contextmenu', {
+                bubbles: true, cancelable: true, clientX: 100, clientY: 100
+            }))
+        """);
+
+        var menu = Page.Locator(".diagram-ctx-menu");
+        await menu.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+        // Verify the menu spans the full viewport width (bottom-sheet style)
+        var box = await menu.BoundingBoxAsync();
+        var viewportWidth = await Page.EvaluateAsync<long>("() => window.innerWidth");
+        Assert.True(box!.Width >= viewportWidth - 2,
+            $"Menu width ({box.Width}) should span full viewport ({viewportWidth})");
+
+        // Verify it's anchored at the bottom of the viewport
+        var viewportHeight = await Page.EvaluateAsync<long>("() => window.innerHeight");
+        var menuBottom = box.Y + box.Height;
+        Assert.True(menuBottom >= viewportHeight - 2,
+            $"Menu bottom ({menuBottom}) should be at viewport bottom ({viewportHeight})");
+
+        // Verify menu items have larger tap targets
+        var item = menu.Locator("> div").First;
+        var padding = await GetComputedStyle(item, "padding-top");
+        var paddingPx = double.Parse(padding.Replace("px", ""));
+        Assert.True(paddingPx >= 10, $"Menu item padding too small for touch: {padding}");
+    }
 }

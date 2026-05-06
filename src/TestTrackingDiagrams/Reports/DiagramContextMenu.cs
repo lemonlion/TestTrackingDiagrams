@@ -73,6 +73,54 @@ public static class DiagramContextMenu
         .diagram-ctx-menu .submenu > div:hover {
             background: #e8f0fe;
         }
+        @media (max-width: 768px) {
+            .diagram-ctx-menu {
+                position: fixed;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                top: auto !important;
+                width: 100%;
+                max-width: 100%;
+                border-radius: 12px 12px 0 0;
+                box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+                padding: 8px 0 env(safe-area-inset-bottom, 8px);
+                min-width: unset;
+                animation: ctx-slide-up 0.2s ease-out;
+            }
+            @keyframes ctx-slide-up {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+            .diagram-ctx-menu > div {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+            .diagram-ctx-menu .submenu-parent {
+                padding-right: 40px;
+            }
+            .diagram-ctx-menu .submenu {
+                position: fixed;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                top: auto !important;
+                width: 100%;
+                max-width: 100%;
+                border-radius: 12px 12px 0 0;
+                box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+                padding: 8px 0 env(safe-area-inset-bottom, 8px);
+                min-width: unset;
+            }
+            .diagram-ctx-menu .submenu > div {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+            .diagram-ctx-menu .submenu.flip-left {
+                left: 0;
+                right: 0;
+            }
+        }
         """;
 
     public static string GetInlineSvgStyles() => """
@@ -137,6 +185,11 @@ public static class DiagramContextMenu
             height: 6px;
             cursor: pointer;
             accent-color: rgb(59, 130, 246);
+        }
+        @media (max-width: 768px) {
+            .diagram-zoom-controls {
+                display: none !important;
+            }
         }
         """;
 
@@ -776,6 +829,12 @@ public static class DiagramContextMenu
                     if (rect.right > window.innerWidth) sub.classList.add('flip-left');
                     else sub.classList.remove('flip-left');
                 });
+                parent.addEventListener('click', function(e) {
+                    if (window.matchMedia('(max-width: 768px)').matches) {
+                        e.stopPropagation();
+                        sub.style.display = sub.style.display === 'block' ? '' : 'block';
+                    }
+                });
                 return parent;
             }
 
@@ -1110,15 +1169,17 @@ public static class DiagramContextMenu
 
                 document.body.appendChild(menu);
 
-                var rect = menu.getBoundingClientRect();
-                var x = e.clientX;
-                var y = e.clientY;
-                if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 4;
-                if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 4;
-                if (x < 0) x = 0;
-                if (y < 0) y = 0;
-                menu.style.left = x + 'px';
-                menu.style.top = y + 'px';
+                if (!window.matchMedia('(max-width: 768px)').matches) {
+                    var rect = menu.getBoundingClientRect();
+                    var x = e.clientX;
+                    var y = e.clientY;
+                    if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 4;
+                    if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 4;
+                    if (x < 0) x = 0;
+                    if (y < 0) y = 0;
+                    menu.style.left = x + 'px';
+                    menu.style.top = y + 'px';
+                }
             });
 
             document.addEventListener('click', function(e) {

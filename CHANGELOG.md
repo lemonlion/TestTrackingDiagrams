@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.3] - 2026-05-06
+
+### Changed
+- **Mobile: zoom controls hidden** — The diagram zoom slider is now hidden on mobile viewports (≤768px) since mobile devices use native pinch-to-zoom.
+- **Mobile: context menu as bottom sheet** — The right-click diagram context menu now renders as a bottom-anchored sheet on mobile with larger tap targets (12px padding, 15px font), full-width layout, and slide-up animation. Submenus open on tap instead of hover.
+
 ## [2.30.2] - 2026-05-05
 
 ### Fixed

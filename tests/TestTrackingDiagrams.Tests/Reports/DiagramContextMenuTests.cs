@@ -797,6 +797,51 @@ public class DiagramContextMenuTests
     }
 
     // ═══════════════════════════════════════════════════════════
+    // Mobile — zoom controls hidden, context menu bottom-sheet
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ZoomControls_hidden_on_mobile_via_media_query()
+    {
+        var css = DiagramContextMenu.GetInlineSvgStyles();
+        Assert.Contains("@media (max-width: 768px)", css);
+        Assert.Contains(".diagram-zoom-controls", css);
+        Assert.Contains("display: none !important", css);
+    }
+
+    [Fact]
+    public void ContextMenu_mobile_styles_render_as_bottom_sheet()
+    {
+        var css = DiagramContextMenu.GetStyles();
+        Assert.Contains("@media (max-width: 768px)", css);
+        Assert.Contains("bottom: 0 !important", css);
+        Assert.Contains("top: auto !important", css);
+        Assert.Contains("border-radius: 12px 12px 0 0", css);
+    }
+
+    [Fact]
+    public void ContextMenu_mobile_items_have_larger_tap_targets()
+    {
+        var css = DiagramContextMenu.GetStyles();
+        Assert.Contains("padding: 12px 20px", css);
+        Assert.Contains("font-size: 15px", css);
+    }
+
+    [Fact]
+    public void ContextMenu_submenu_click_handler_for_mobile()
+    {
+        Assert.Contains("max-width: 768px", _script);
+        Assert.Contains("sub.style.display", _script);
+    }
+
+    [Fact]
+    public void ContextMenu_positioning_skipped_on_mobile()
+    {
+        // On mobile, the CSS bottom-sheet positioning takes over
+        Assert.Contains("!window.matchMedia('(max-width: 768px)').matches", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // PlantUML CDN — deferred loading
     // ═══════════════════════════════════════════════════════════
 
