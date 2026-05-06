@@ -89,11 +89,50 @@ internal static class ScenarioInfoEnumerableExtensions
                 Duration = steps[i].Duration,
                 DocString = steps[i].DocString,
                 Parameters = ParseTableText(steps[i].TableText),
+                TextSegments = BuildTextSegments(steps[i]),
             };
             if (steps[i].Status == ScenarioExecutionStatus.TestError || steps[i].Status == ScenarioExecutionStatus.BindingError)
                 priorFailure = true;
         }
         return mapped;
+    }
+
+    private static StepTextSegment[]? BuildTextSegments(ReqNRollStepInfo step)
+    {
+        if (step.InlineParams is not { Length: > 0 })
+            return null;
+
+        var segments = new List<StepTextSegment>();
+        var text = step.Text;
+        var lastEnd = 0;
+
+        // Sort by offset to process left-to-right
+        var sortedParams = step.InlineParams.OrderBy(p => p.StartOffset).ToArray();
+
+        foreach (var param in sortedParams)
+        {
+            // Add literal text before this parameter
+            if (param.StartOffset > lastEnd)
+            {
+                segments.Add(StepTextSegment.Literal(text[lastEnd..param.StartOffset]));
+            }
+
+            var paramValue = new InlineParameterValue(
+                param.Value,
+                null,
+                VerificationStatus.NotApplicable);
+            segments.Add(StepTextSegment.Param(param.Name, paramValue));
+
+            lastEnd = param.StartOffset + param.Length;
+        }
+
+        // Add remaining literal text
+        if (lastEnd < text.Length)
+        {
+            segments.Add(StepTextSegment.Literal(text[lastEnd..]));
+        }
+
+        return segments.Count > 0 ? segments.ToArray() : null;
     }
 
     private static StepParameter[]? ParseTableText(string? tableText)

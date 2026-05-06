@@ -48,13 +48,43 @@ public class ReqNRollTrackingHooks
         var steps = (List<ReqNRollStepInfo>)_scenarioContext[ReqNRollConstants.StepsCollectionKey];
         var tableText = stepContext.StepInfo.Table?.ToString();
         var docString = stepContext.StepInfo.MultilineText;
+
+        // Capture inline parameter positions from binding match
+        InlineParamCapture[]? inlineParams = null;
+        var bindingMatch = stepContext.StepInfo.BindingMatch;
+        if (bindingMatch is { Success: true, Arguments.Length: > 0 })
+        {
+            var stepText = stepContext.StepInfo.Text;
+            var captures = new List<InlineParamCapture>();
+            var methodParams = bindingMatch.StepBinding?.Method?.Parameters?.ToArray();
+            for (var i = 0; i < bindingMatch.Arguments.Length; i++)
+            {
+                var arg = bindingMatch.Arguments[i];
+                if (arg.StartOffset is not null && arg.Value is string strValue)
+                {
+                    var offset = arg.StartOffset.Value;
+                    var length = strValue.Length;
+                    if (offset >= 0 && offset + length <= stepText.Length)
+                    {
+                        string? name = null;
+                        if (methodParams != null && i < methodParams.Length)
+                            name = methodParams[i].ParameterName;
+                        captures.Add(new InlineParamCapture(offset, length, strValue, name));
+                    }
+                }
+            }
+            if (captures.Count > 0)
+                inlineParams = captures.ToArray();
+        }
+
         steps.Add(new ReqNRollStepInfo(
             stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(),
             stepContext.StepInfo.Text,
             stepContext.Status,
             stepStopwatch.Elapsed,
             tableText,
-            docString));
+            docString,
+            inlineParams));
     }
 
     [AfterScenario(Order = int.MaxValue)]

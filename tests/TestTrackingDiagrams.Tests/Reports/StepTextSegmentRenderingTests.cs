@@ -213,4 +213,70 @@ public class StepTextSegmentRenderingTests
         var paramCount = content.Split("<span class=\"step-param-inline").Length - 1;
         Assert.Equal(1, paramCount);
     }
+
+    [Fact]
+    public void TableRef_segment_renders_toggle_button()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Then",
+            Text = "step verifies items",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("step verifies "),
+                StepTextSegment.TableRef("items")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "items",
+                    Kind = StepParameterKind.Tabular,
+                    TabularValue = new TabularParameterValue(
+                        [new TabularColumn("Name", false)],
+                        [new TabularRow(TableRowType.Matching, [new TabularCell("X", null, VerificationStatus.NotApplicable)])])
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Verify toggle button is rendered
+        Assert.Contains("step-table-ref", content);
+        Assert.Contains("data-param=\"items\"", content);
+        Assert.Contains("toggle_table_ref", content);
+    }
+
+    [Fact]
+    public void TableRef_segment_makes_table_start_collapsed()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Then",
+            Text = "step verifies items",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("step verifies "),
+                StepTextSegment.TableRef("items")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "items",
+                    Kind = StepParameterKind.Tabular,
+                    TabularValue = new TabularParameterValue(
+                        [new TabularColumn("Name", false)],
+                        [new TabularRow(TableRowType.Matching, [new TabularCell("X", null, VerificationStatus.NotApplicable)])])
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Table should start collapsed when a TableRef button exists for it
+        Assert.Contains("step-param-table-collapsed", content);
+    }
 }

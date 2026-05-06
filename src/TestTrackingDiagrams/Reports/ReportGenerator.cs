@@ -750,6 +750,18 @@ public static class ReportGenerator
                                         }
                                         """;
 
+        var toggleTableRefFunction = """
+                                     function toggle_table_ref(btn) {
+                                         var paramName = btn.getAttribute('data-param');
+                                         var step = btn.closest('.step');
+                                         if (!step) return;
+                                         var table = step.querySelector('.step-param-table[data-param="' + paramName + '"]');
+                                         if (!table) return;
+                                         var collapsed = table.classList.toggle('step-param-table-collapsed');
+                                         btn.innerHTML = paramName + (collapsed ? ' &#9662;' : ' &#9652;');
+                                     }
+                                     """;
+
         var sortTableFunction = """
                                 function sort_table(col) {
                                     var table = document.querySelector('.feature-summary-table');
@@ -1309,6 +1321,7 @@ public static class ReportGenerator
                                 {{categoryFilterFunction}}
                                 {{statusFilterFunction}}
                                 {{collapseExpandAllFunction}}
+                                {{toggleTableRefFunction}}
                                 {{sortTableFunction}}
                                 {{copyScenarioNameFunction}}
                                 {{toggleExamplesDetailFunction}}
@@ -2790,6 +2803,13 @@ public static class ReportGenerator
                         : "";
                     body.Append($"<span class=\"step-param-inline {paramStatusClass}\"{titleAttr}>{display}</span>");
                 }
+                else if (seg.TableReference is not null)
+                {
+                    // Table references render outside the step-text span — close and reopen
+                    body.Append("</span>");
+                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)} &#9662;</button>");
+                    body.Append("<span class=\"step-text\">");
+                }
                 else if (seg.Text is not null)
                 {
                     body.Append(System.Net.WebUtility.HtmlEncode(seg.Text));
@@ -2836,11 +2856,18 @@ public static class ReportGenerator
 
         if (step.Parameters is { Length: > 0 })
         {
+            // Determine which tabular params have a matching TableRef toggle button
+            var tableRefNames = step.TextSegments?
+                .Where(s => s.TableReference is not null)
+                .Select(s => s.TableReference!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             foreach (var param in step.Parameters)
             {
                 if (skipTabularInline && param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
                 if (step.TextSegments is { Length: > 0 } && param.Kind == StepParameterKind.Inline) continue; // Already rendered inline in text segments
-                RenderParameter(body, param);
+                var collapsible = tableRefNames?.Contains(param.Name) == true;
+                RenderParameter(body, param, collapsible);
             }
         }
 
@@ -2873,7 +2900,7 @@ public static class ReportGenerator
         }
     }
 
-    private static void RenderParameter(StringBuilder body, StepParameter param)
+    private static void RenderParameter(StringBuilder body, StepParameter param, bool collapsible = false)
     {
         switch (param.Kind)
         {
@@ -2894,7 +2921,9 @@ public static class ReportGenerator
 
             case StepParameterKind.Tabular when param.TabularValue is not null:
                 var colNames = string.Join(",", param.TabularValue.Columns.Select(c => c.Name));
-                body.Append($"<div class=\"step-param-table\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\"><table><thead><tr><th></th>");
+                var collapsedClass = collapsible ? " step-param-table-collapsed" : "";
+                body.Append($"<div class=\"step-param-table{collapsedClass}\" data-param=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\">");
+                body.Append("<table><thead><tr><th></th>");
                 foreach (var col in param.TabularValue.Columns)
                 {
                     body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");

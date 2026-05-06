@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.15] - 2026-05-07
+
+### Added
+- **ReqNRoll inline parameter highlighting**: Step text in HTML reports now renders ReqNRoll step parameters inline within the prose, highlighted as distinct values. Uses `BindingMatch.Arguments[].StartOffset` from the ReqNRoll runtime to precisely identify parameter positions — works with both regex and cucumber expression bindings.
+- **Clickable tabular param references (LightBDD)**: When a LightBDD step has a bracket-appended tabular/tree parameter (e.g. `[items: "<$items>"]`), the report now renders a clickable toggle button instead of silently stripping the reference. Clicking the button expands/collapses the associated parameter table inline below the step.
+
 ## [2.30.14] - 2026-05-07
 
 ### Fixed

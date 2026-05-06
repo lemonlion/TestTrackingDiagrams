@@ -11,4 +11,10 @@ public record ReqNRollStepInfo(
     ScenarioExecutionStatus Status = ScenarioExecutionStatus.OK,
     TimeSpan? Duration = null,
     string? TableText = null,
-    string? DocString = null);
+    string? DocString = null,
+    InlineParamCapture[]? InlineParams = null);
+
+/// <summary>
+/// Captures a single inline parameter's position and value within the step text.
+/// </summary>
+public record InlineParamCapture(int StartOffset, int Length, string Value, string? Name);

@@ -266,7 +266,16 @@ internal static class FeatureResultExtensions
             nameFormat = nameFormat[keyword.Length..].TrimStart();
         }
 
-        // Strip bracket-appended params from format (they're not inline text params)
+        // Identify bracket-appended params [paramName: "{N}"] — these are tabular/tree params
+        // that we want to render as clickable table references instead of stripping
+        var bracketParams = new Dictionary<int, string>(); // paramIndex → paramName
+        foreach (Match bm in BracketParamPattern.Matches(nameFormat))
+        {
+            var paramName = bm.Groups[1].Value;
+            if (int.TryParse(bm.Groups[2].Value, out var idx))
+                bracketParams[idx] = paramName;
+        }
+        // Remove bracket params from format text (they'll be emitted as TableRef segments at the end)
         nameFormat = BracketParamPattern.Replace(nameFormat, "");
 
         // Build a lookup from IStepResult.Parameters for expectations (inline params by position)
@@ -300,6 +309,13 @@ internal static class FeatureResultExtensions
 
             if (int.TryParse(match.Groups[1].Value, out var paramIndex) && paramIndex < nameParams.Length)
             {
+                // Skip bracket params — they're rendered as TableRef below
+                if (bracketParams.ContainsKey(paramIndex))
+                {
+                    lastEnd = match.Index + match.Length;
+                    continue;
+                }
+
                 var nameParam = nameParams[paramIndex];
                 var expectation = inlineExpectations.GetValueOrDefault(paramIndex);
                 var paramValue = new InlineParameterValue(
@@ -328,6 +344,12 @@ internal static class FeatureResultExtensions
             var literal = nameFormat[lastEnd..];
             literal = StripNamespacesFromText(literal);
             segments.Add(StepTextSegment.Literal(literal));
+        }
+
+        // Append TableRef segments for bracket-appended params
+        foreach (var (_, paramName) in bracketParams.OrderBy(kv => kv.Key))
+        {
+            segments.Add(StepTextSegment.TableRef(paramName));
         }
 
         return segments.Count > 0 ? segments.ToArray() : null;

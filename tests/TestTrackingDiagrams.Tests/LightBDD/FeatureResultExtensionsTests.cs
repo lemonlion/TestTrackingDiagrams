@@ -2,6 +2,7 @@ using LightBDD.Core.Results;
 using LightBDD.Core.Formatting.NameDecorators;
 using LightBDD.Core.Metadata;
 using LightBDD.Core.Results.Parameters;
+using LightBDD.Core.Results.Parameters.Tabular;
 using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.Reports;
 using FileAttachment = LightBDD.Core.Results.FileAttachment;
@@ -415,6 +416,49 @@ public class FeatureResultExtensionsTests
         Assert.Equal(VerificationStatus.Failure, paramSeg.Parameter!.Status);
     }
 
+    [Fact]
+    public void MapStep_TextSegments_emits_TableRef_for_bracket_params()
+    {
+        // NameFormat: "Then step verifies \"{0}\" [items: \"{1}\"]"
+        // Param 0 is inline, param 1 is bracket (tabular)
+        var stepResult = new StubStepResult("Then", "Then step verifies \"{0}\" [items: \"{1}\"]",
+            [new StubNameParam("OK", ParameterVerificationStatus.Success), new StubNameParam("<$items>")],
+            ExecutionStatus.Passed)
+            .WithParameters(
+                new StubParameterResult("result", new StubInlineDetails("OK", null)),
+                new StubParameterResult("items", new StubTabularDetails()));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        // Should have: literal "step verifies " + param "OK" + TableRef "items"
+        var tableRef = step.TextSegments!.FirstOrDefault(s => s.TableReference != null);
+        Assert.NotNull(tableRef);
+        Assert.Equal("items", tableRef!.TableReference);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_no_TableRef_when_no_bracket_params()
+    {
+        var stepResult = new StubStepResult("Given", "Given customer has \"{0}\" in account",
+            [new StubNameParam("105", ParameterVerificationStatus.Success)],
+            ExecutionStatus.Passed)
+            .WithParameters(new StubParameterResult("amount", new StubInlineDetails("105", null)));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        Assert.DoesNotContain(step.TextSegments!, s => s.TableReference != null);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult
@@ -715,5 +759,13 @@ public class FeatureResultExtensionsTests
         public string Expectation { get; }
         public string VerificationMessage => "";
         public ParameterVerificationStatus VerificationStatus { get; }
+    }
+
+    private class StubTabularDetails : ITabularParameterDetails
+    {
+        public IReadOnlyList<ITabularParameterColumn> Columns => Array.Empty<ITabularParameterColumn>();
+        public IReadOnlyList<ITabularParameterRow> Rows => Array.Empty<ITabularParameterRow>();
+        public string VerificationMessage => "";
+        public ParameterVerificationStatus VerificationStatus => ParameterVerificationStatus.NotApplicable;
     }
 }

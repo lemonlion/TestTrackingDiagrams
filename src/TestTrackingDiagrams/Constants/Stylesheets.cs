@@ -893,6 +893,25 @@ public class Stylesheets
                     background-color: #e8f4fd;
                     border-color: #90caf9;
                 }
+                .step-param-table-collapsed {
+                    display: none;
+                }
+                .step-table-ref {
+                    display: inline-block;
+                    margin-left: 6px;
+                    padding: 1px 7px;
+                    border: 1px solid #b0bec5;
+                    border-radius: 3px;
+                    background: #eceff1;
+                    font-size: 0.82em;
+                    font-family: inherit;
+                    cursor: pointer;
+                    vertical-align: middle;
+                    color: #37474f;
+                }
+                .step-table-ref:hover {
+                    background: #cfd8dc;
+                }
 
                 .step-param-combined-table {
                     margin: 8px 0 4px 24px;
