@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace TestTrackingDiagrams.Tracking;
@@ -139,6 +141,205 @@ public static class Track
     {
         LogAssertion(expression, passed: false, failureMessage, callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
     }
+
+    /// <summary>
+    /// Called by the IL weaver (AssertionWeaver) to log a passing assertion with runtime variable values.
+    /// The weaver emits arrays of variable names and their boxed values; this method resolves
+    /// dotted property paths and substitutes formatted values into the expression text.
+    /// </summary>
+    public static void AssertionPassedWithValues(string expression, string[] varNames, object?[] varValues, string? callerFilePath = null, int callerLineNumber = 0)
+    {
+        var resolved = ResolveVariableValues(expression, varNames, varValues);
+        LogAssertion(expression, passed: true, resolvedValues: resolved,
+            callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
+    }
+
+    /// <summary>
+    /// Called by the IL weaver (AssertionWeaver) to log a failing assertion with runtime variable values.
+    /// The weaver emits arrays of variable names and their boxed values; this method resolves
+    /// dotted property paths and substitutes formatted values into the expression text.
+    /// </summary>
+    public static void AssertionFailedWithValues(string expression, string failureMessage, string[] varNames, object?[] varValues, string? callerFilePath = null, int callerLineNumber = 0)
+    {
+        var resolved = ResolveVariableValues(expression, varNames, varValues);
+        LogAssertion(expression, passed: false, failureMessage, resolved,
+            callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
+    }
+
+    private const int MaxValueLength = 50;
+
+    internal static string? FormatValue(object? value)
+    {
+        if (value is null)
+            return "null";
+
+        if (value is string s)
+            return s.Length > MaxValueLength
+                ? s[..MaxValueLength] + "..."
+                : s;
+
+        if (value is IEnumerable enumerable)
+        {
+            var count = 0;
+            foreach (var _ in enumerable)
+            {
+                count++;
+                if (count > 1000) break;
+            }
+            return $"[{count} items]";
+        }
+
+        try
+        {
+            var str = value.ToString();
+            var typeName = value.GetType().FullName;
+            var shortTypeName = value.GetType().Name;
+
+            if (str is null || str == typeName || str == shortTypeName)
+                return null;
+
+            return str.Length > MaxValueLength
+                ? str[..MaxValueLength] + "..."
+                : str;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static Dictionary<string, string>? ResolveVariableValues(string expression, string[] varNames, object?[] varValues)
+    {
+        if (varNames.Length == 0)
+            return null;
+
+        try
+        {
+            var resolved = new Dictionary<string, string>();
+
+            for (var i = 0; i < varNames.Length; i++)
+            {
+                var name = varNames[i];
+                var value = i < varValues.Length ? varValues[i] : null;
+
+                // Resolve dotted paths in the expression (up to 3 levels deep)
+                ResolveDottedPaths(expression, name, value, resolved);
+
+                // Also add the root variable's formatted value
+                var formatted = FormatValue(value);
+                if (formatted is not null)
+                    resolved.TryAdd(name, formatted);
+            }
+
+            return resolved.Count > 0 ? resolved : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void ResolveDottedPaths(string expression, string rootName, object? rootValue, Dictionary<string, string> resolved)
+    {
+        if (rootValue is null)
+            return;
+
+        // Scan expression for patterns like rootName.Prop or rootName.Prop.Sub (up to 3 levels)
+        var searchStart = 0;
+        while (true)
+        {
+            var idx = expression.IndexOf(rootName, searchStart, StringComparison.Ordinal);
+            if (idx < 0) break;
+
+            // Ensure it's a word boundary before
+            if (idx > 0 && IsIdentifierChar(expression[idx - 1]))
+            {
+                searchStart = idx + rootName.Length;
+                continue;
+            }
+
+            var afterRoot = idx + rootName.Length;
+            if (afterRoot >= expression.Length || expression[afterRoot] != '.')
+            {
+                searchStart = afterRoot;
+                continue;
+            }
+
+            // We have rootName. — extract the dotted path (up to 3 segments)
+            var path = ExtractDottedPath(expression, afterRoot, maxSegments: 3);
+            if (path is not null)
+            {
+                var fullPath = rootName + path;
+                if (!resolved.ContainsKey(fullPath))
+                {
+                    var walked = WalkPropertyChain(rootValue, path[1..]); // skip leading '.'
+                    var formatted = FormatValue(walked);
+                    if (formatted is not null)
+                        resolved[fullPath] = formatted;
+                }
+            }
+
+            searchStart = afterRoot;
+        }
+    }
+
+    private static string? ExtractDottedPath(string expression, int dotIndex, int maxSegments)
+    {
+        var pos = dotIndex;
+        var segments = 0;
+        var result = "";
+
+        while (segments < maxSegments && pos < expression.Length && expression[pos] == '.')
+        {
+            pos++; // skip '.'
+            var segStart = pos;
+            while (pos < expression.Length && IsIdentifierChar(expression[pos]))
+                pos++;
+
+            if (pos == segStart) break; // empty segment
+
+            result += "." + expression[segStart..pos];
+            segments++;
+        }
+
+        return segments > 0 ? result : null;
+    }
+
+    private static object? WalkPropertyChain(object? root, string path)
+    {
+        if (root is null) return null;
+
+        var current = root;
+        var segments = path.Split('.');
+
+        foreach (var segment in segments)
+        {
+            if (current is null) return null;
+
+            var type = current.GetType();
+            var prop = type.GetProperty(segment, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (prop is not null)
+            {
+                try { current = prop.GetValue(current); }
+                catch { return null; }
+                continue;
+            }
+
+            var field = type.GetField(segment, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (field is not null)
+            {
+                try { current = field.GetValue(current); }
+                catch { return null; }
+                continue;
+            }
+
+            return null; // segment not found
+        }
+
+        return current;
+    }
+
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 
     private static Dictionary<string, string>? ResolveClosureValues(Delegate assertion, string? expression)
     {

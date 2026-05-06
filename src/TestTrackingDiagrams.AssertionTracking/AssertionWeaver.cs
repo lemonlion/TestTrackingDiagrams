@@ -48,6 +48,8 @@ public class AssertionWeaver
         var trackMethods = GetTrackMethodReferences(assembly);
         var passedRef = trackMethods.Passed;
         var failedRef = trackMethods.Failed;
+        var passedWithValuesRef = trackMethods.PassedWithValues;
+        var failedWithValuesRef = trackMethods.FailedWithValues;
 
         // Also need Exception.get_Message
         var exceptionType = assembly.MainModule.ImportReference(typeof(Exception));
@@ -70,7 +72,7 @@ public class AssertionWeaver
                 if (assertions.Count == 0)
                     continue;
 
-                WrapAssertions(method, assertions, passedRef, failedRef, getMessageMethod, exceptionType);
+                WrapAssertions(method, assertions, passedRef, failedRef, passedWithValuesRef, failedWithValuesRef, getMessageMethod, exceptionType);
                 result.WeavedCount += assertions.Count;
                 result.MethodCount++;
             }
@@ -104,7 +106,7 @@ public class AssertionWeaver
             a.AttributeType.Name == "SuppressAssertionTrackingAttribute");
     }
 
-    private (MethodReference Passed, MethodReference Failed) GetTrackMethodReferences(AssemblyDefinition assembly)
+    private (MethodReference Passed, MethodReference Failed, MethodReference PassedWithValues, MethodReference FailedWithValues) GetTrackMethodReferences(AssemblyDefinition assembly)
     {
         var module = assembly.MainModule;
 
@@ -150,7 +152,34 @@ public class AssertionWeaver
         failedMethod.Parameters.Add(new ParameterDefinition("callerFilePath", ParameterAttributes.None, stringType));
         failedMethod.Parameters.Add(new ParameterDefinition("callerLineNumber", ParameterAttributes.None, int32Type));
 
-        return (passedMethod, failedMethod);
+        // AssertionPassedWithValues(string expression, string[] varNames, object?[] varValues, string? callerFilePath, int callerLineNumber)
+        var stringArrayType = new ArrayType(stringType);
+        var objectType = module.TypeSystem.Object;
+        var objectArrayType = new ArrayType(objectType);
+
+        var passedWithValuesMethod = new MethodReference("AssertionPassedWithValues", voidType, trackTypeRef)
+        {
+            HasThis = false,
+        };
+        passedWithValuesMethod.Parameters.Add(new ParameterDefinition("expression", ParameterAttributes.None, stringType));
+        passedWithValuesMethod.Parameters.Add(new ParameterDefinition("varNames", ParameterAttributes.None, stringArrayType));
+        passedWithValuesMethod.Parameters.Add(new ParameterDefinition("varValues", ParameterAttributes.None, objectArrayType));
+        passedWithValuesMethod.Parameters.Add(new ParameterDefinition("callerFilePath", ParameterAttributes.None, stringType));
+        passedWithValuesMethod.Parameters.Add(new ParameterDefinition("callerLineNumber", ParameterAttributes.None, int32Type));
+
+        // AssertionFailedWithValues(string expression, string failureMessage, string[] varNames, object?[] varValues, string? callerFilePath, int callerLineNumber)
+        var failedWithValuesMethod = new MethodReference("AssertionFailedWithValues", voidType, trackTypeRef)
+        {
+            HasThis = false,
+        };
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("expression", ParameterAttributes.None, stringType));
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("failureMessage", ParameterAttributes.None, stringType));
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("varNames", ParameterAttributes.None, stringArrayType));
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("varValues", ParameterAttributes.None, objectArrayType));
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("callerFilePath", ParameterAttributes.None, stringType));
+        failedWithValuesMethod.Parameters.Add(new ParameterDefinition("callerLineNumber", ParameterAttributes.None, int32Type));
+
+        return (passedMethod, failedMethod, passedWithValuesMethod, failedWithValuesMethod);
     }
 
     /// <summary>
@@ -226,7 +255,8 @@ public class AssertionWeaver
                 LastInstruction = lastInstr,
                 SequencePoint = sp,
                 SourceText = sourceText,
-                OutboundBranches = outboundBranches
+                OutboundBranches = outboundBranches,
+                CapturedVariables = DetectCapturedVariables(method, statementInstructions, sourceText)
             });
         }
 
@@ -275,6 +305,185 @@ public class AssertionWeaver
     }
 
     /// <summary>
+    /// Detects variables loaded as arguments AFTER the .Should() call in a statement.
+    /// These are arguments to assertion methods (e.g. .Be(expected), .BeInRange(min, max)).
+    /// </summary>
+    private static List<CapturedVariable> DetectCapturedVariables(
+        MethodDefinition method,
+        List<Instruction> statementInstructions,
+        string sourceText)
+    {
+        var captured = new List<CapturedVariable>();
+        var seenNames = new HashSet<string>(StringComparer.Ordinal);
+
+        // Find the Should call index
+        var shouldIdx = -1;
+        for (var i = 0; i < statementInstructions.Count; i++)
+        {
+            var instr = statementInstructions[i];
+            if ((instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt) &&
+                instr.Operand is MethodReference mr &&
+                mr.Name == "Should" &&
+                IsFluentAssertionsType(mr.DeclaringType))
+            {
+                shouldIdx = i;
+                break;
+            }
+        }
+
+        if (shouldIdx < 0)
+            return captured;
+
+        // Build local variable name map from debug info
+        var localNames = GetLocalVariableNames(method);
+
+        // Scan instructions after Should
+        for (var i = shouldIdx + 1; i < statementInstructions.Count; i++)
+        {
+            var instr = statementInstructions[i];
+
+            // ldloc / ldloc.s / ldloc.0-3 — regular local variable
+            if (IsLdloc(instr, out var localIndex))
+            {
+                if (!localNames.TryGetValue(localIndex, out var name))
+                    continue;
+                if (!NameAppearsInExpression(name, sourceText))
+                    continue;
+                if (!seenNames.Add(name))
+                    continue;
+
+                var varType = method.Body.Variables[localIndex].VariableType;
+                captured.Add(new CapturedVariable
+                {
+                    Name = name,
+                    LocalIndex = localIndex,
+                    NeedsBoxing = varType.IsValueType,
+                    Type = varType
+                });
+            }
+            // ldarg.0 + ldfld — async state machine field access
+            else if (instr.OpCode == OpCodes.Ldarg_0 &&
+                     i + 1 < statementInstructions.Count &&
+                     statementInstructions[i + 1].OpCode == OpCodes.Ldfld &&
+                     statementInstructions[i + 1].Operand is FieldReference fieldRef)
+            {
+                var name = GetStateFieldOriginalName(fieldRef);
+                if (name == null)
+                    continue;
+                if (!NameAppearsInExpression(name, sourceText))
+                    continue;
+                if (!seenNames.Add(name))
+                    continue;
+
+                captured.Add(new CapturedVariable
+                {
+                    Name = name,
+                    StateField = fieldRef,
+                    NeedsBoxing = fieldRef.FieldType.IsValueType,
+                    Type = fieldRef.FieldType
+                });
+                i++; // skip the ldfld instruction
+            }
+        }
+
+        return captured;
+    }
+
+    private static bool IsLdloc(Instruction instr, out int index)
+    {
+        if (instr.OpCode == OpCodes.Ldloc_0) { index = 0; return true; }
+        if (instr.OpCode == OpCodes.Ldloc_1) { index = 1; return true; }
+        if (instr.OpCode == OpCodes.Ldloc_2) { index = 2; return true; }
+        if (instr.OpCode == OpCodes.Ldloc_3) { index = 3; return true; }
+        if (instr.OpCode == OpCodes.Ldloc || instr.OpCode == OpCodes.Ldloc_S)
+        {
+            if (instr.Operand is VariableDefinition varDef)
+            {
+                index = varDef.Index;
+                return true;
+            }
+            if (instr.Operand is int idx)
+            {
+                index = idx;
+                return true;
+            }
+        }
+        index = -1;
+        return false;
+    }
+
+    private static Dictionary<int, string> GetLocalVariableNames(MethodDefinition method)
+    {
+        var names = new Dictionary<int, string>();
+        if (!method.DebugInformation.HasSequencePoints)
+            return names;
+
+        var scope = method.DebugInformation.Scope;
+        if (scope == null)
+            return names;
+
+        CollectVariableNames(scope, names);
+        return names;
+    }
+
+    private static void CollectVariableNames(ScopeDebugInformation scope, Dictionary<int, string> names)
+    {
+        if (scope.HasVariables)
+        {
+            foreach (var v in scope.Variables)
+            {
+                if (!v.IsDebuggerHidden && !names.ContainsKey(v.Index))
+                    names[v.Index] = v.Name;
+            }
+        }
+
+        if (scope.HasScopes)
+        {
+            foreach (var child in scope.Scopes)
+                CollectVariableNames(child, names);
+        }
+    }
+
+    /// <summary>
+    /// Extracts the original variable name from a state machine field.
+    /// Pattern: &lt;name&gt;5__N → name
+    /// </summary>
+    private static string? GetStateFieldOriginalName(FieldReference field)
+    {
+        var fieldName = field.Name;
+        if (fieldName.StartsWith("<") && fieldName.Contains(">"))
+        {
+            var end = fieldName.IndexOf('>');
+            return fieldName.Substring(1, end - 1);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Checks whether a variable name appears in the expression as a whole word
+    /// (not as a substring of a larger identifier).
+    /// </summary>
+    private static bool NameAppearsInExpression(string name, string expression)
+    {
+        var idx = 0;
+        while (true)
+        {
+            idx = expression.IndexOf(name, idx, StringComparison.Ordinal);
+            if (idx < 0) return false;
+
+            var before = idx > 0 ? expression[idx - 1] : ' ';
+            var after = idx + name.Length < expression.Length ? expression[idx + name.Length] : ' ';
+
+            if (!IsIdentifierChar(before) && !IsIdentifierChar(after))
+                return true;
+
+            idx += name.Length;
+        }
+    }
+
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    /// <summary>
     /// Wraps each assertion statement in: try { [original] ; AssertionPassed(...) } catch(Exception ex) { AssertionFailed(..., ex.Message); throw; }
     /// </summary>
     private void WrapAssertions(
@@ -282,6 +491,8 @@ public class AssertionWeaver
         List<AssertionStatement> assertions,
         MethodReference passedRef,
         MethodReference failedRef,
+        MethodReference passedWithValuesRef,
+        MethodReference failedWithValuesRef,
         MethodReference getMessageRef,
         TypeReference exceptionTypeRef)
     {
@@ -292,7 +503,8 @@ public class AssertionWeaver
         for (var i = assertions.Count - 1; i >= 0; i--)
         {
             var assertion = assertions[i];
-            WrapSingleAssertion(method, il, assertion, passedRef, failedRef, getMessageRef, exceptionTypeRef);
+            WrapSingleAssertion(method, il, assertion, passedRef, failedRef,
+                passedWithValuesRef, failedWithValuesRef, getMessageRef, exceptionTypeRef);
         }
 
         method.Body.OptimizeMacros();
@@ -304,10 +516,14 @@ public class AssertionWeaver
         AssertionStatement assertion,
         MethodReference passedRef,
         MethodReference failedRef,
+        MethodReference passedWithValuesRef,
+        MethodReference failedWithValuesRef,
         MethodReference getMessageRef,
         TypeReference exceptionTypeRef)
     {
         var body = method.Body;
+        var module = method.Module;
+        var hasValues = assertion.CapturedVariables.Count > 0;
 
         // Expression string and file/line for tracking
         var expressionText = assertion.SourceText;
@@ -317,25 +533,6 @@ public class AssertionWeaver
         // Get the file name only (for shorter display)
         var separatorIdx = filePath.LastIndexOfAny(new[] { '/', '\\' });
         var fileName = separatorIdx >= 0 ? filePath.Substring(separatorIdx + 1) : filePath;
-
-        // We need to insert:
-        // 1. A nop as try-start before the first instruction
-        // 2. After the last instruction of the assertion:
-        //    - ldstr expressionText
-        //    - ldstr filePath
-        //    - ldc.i4 lineNumber
-        //    - call Track.AssertionPassed(string, string, int)
-        //    - leave afterCatch
-        // 3. Catch handler:
-        //    - stloc exVar
-        //    - ldstr expressionText
-        //    - ldloc exVar
-        //    - callvirt Exception.get_Message()
-        //    - ldstr filePath  
-        //    - ldc.i4 lineNumber
-        //    - call Track.AssertionFailed(string, string, string, int)
-        //    - rethrow
-        // 4. afterCatch: nop
 
         var firstInstr = assertion.FirstInstruction;
         var lastInstr = assertion.LastInstruction;
@@ -347,26 +544,99 @@ public class AssertionWeaver
         var tryStart = il.Create(OpCodes.Nop);
         il.InsertBefore(firstInstr, tryStart);
 
-        // Create the "after assertion" block: call AssertionPassed
-        var ldExprPassed = il.Create(OpCodes.Ldstr, expressionText);
-        var ldFilePassed = il.Create(OpCodes.Ldstr, filePath);
-        var ldLinePassed = il.Create(OpCodes.Ldc_I4, lineNumber);
-        var callPassed = il.Create(OpCodes.Call, passedRef);
+        // If we have captured variables, build arrays at try-start so both paths can use them
+        VariableDefinition? namesLocal = null;
+        VariableDefinition? valuesLocal = null;
 
-        // Insert after last instruction of assertion
+        if (hasValues)
+        {
+            var stringArrayType = new ArrayType(module.TypeSystem.String);
+            var objectArrayType = new ArrayType(module.TypeSystem.Object);
+            namesLocal = new VariableDefinition(stringArrayType);
+            valuesLocal = new VariableDefinition(objectArrayType);
+            body.Variables.Add(namesLocal);
+            body.Variables.Add(valuesLocal);
+
+            // Build names array: new string[N] { "var1", "var2", ... }
+            var count = assertion.CapturedVariables.Count;
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Ldc_I4, count));
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Newarr, module.TypeSystem.String));
+            for (var vi = 0; vi < count; vi++)
+            {
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Dup));
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Ldc_I4, vi));
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Ldstr, assertion.CapturedVariables[vi].Name));
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Stelem_Ref));
+            }
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Stloc, namesLocal));
+
+            // Build values array: new object[N] { var1, var2, ... } (with boxing if needed)
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Ldc_I4, count));
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Newarr, module.TypeSystem.Object));
+            for (var vi = 0; vi < count; vi++)
+            {
+                var cv = assertion.CapturedVariables[vi];
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Dup));
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Ldc_I4, vi));
+
+                // Load the variable
+                if (cv.StateField != null)
+                {
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldarg_0));
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.StateField));
+                }
+                else
+                {
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldloc, body.Variables[cv.LocalIndex]));
+                }
+
+                // Box value types
+                if (cv.NeedsBoxing)
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Box, cv.Type));
+
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Stelem_Ref));
+            }
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Stloc, valuesLocal));
+        }
+
+        // Create the "after assertion success" block
         if (afterLastInstr != null)
         {
-            il.InsertBefore(afterLastInstr, ldExprPassed);
-            il.InsertBefore(afterLastInstr, ldFilePassed);
-            il.InsertBefore(afterLastInstr, ldLinePassed);
-            il.InsertBefore(afterLastInstr, callPassed);
+            if (hasValues)
+            {
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, expressionText));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, namesLocal!));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, valuesLocal!));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, filePath));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Call, passedWithValuesRef));
+            }
+            else
+            {
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, expressionText));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, filePath));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Call, passedRef));
+            }
         }
         else
         {
-            il.Append(ldExprPassed);
-            il.Append(ldFilePassed);
-            il.Append(ldLinePassed);
-            il.Append(callPassed);
+            if (hasValues)
+            {
+                il.Append(il.Create(OpCodes.Ldstr, expressionText));
+                il.Append(il.Create(OpCodes.Ldloc, namesLocal!));
+                il.Append(il.Create(OpCodes.Ldloc, valuesLocal!));
+                il.Append(il.Create(OpCodes.Ldstr, filePath));
+                il.Append(il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.Append(il.Create(OpCodes.Call, passedWithValuesRef));
+            }
+            else
+            {
+                il.Append(il.Create(OpCodes.Ldstr, expressionText));
+                il.Append(il.Create(OpCodes.Ldstr, filePath));
+                il.Append(il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.Append(il.Create(OpCodes.Call, passedRef));
+            }
         }
 
         // leave to after the catch
@@ -378,50 +648,60 @@ public class AssertionWeaver
         else
             il.Append(leaveInstr);
 
-        // Catch handler: store exception, call AssertionFailed, rethrow
-        // Add exception local variable
+        // Catch handler: store exception, call AssertionFailed/FailedWithValues, rethrow
         var exVar = new VariableDefinition(exceptionTypeRef);
         body.Variables.Add(exVar);
 
         var catchStart = il.Create(OpCodes.Stloc, exVar);
-        var ldExprFailed = il.Create(OpCodes.Ldstr, expressionText);
-        var ldExVar = il.Create(OpCodes.Ldloc, exVar);
-        var callGetMessage = il.Create(OpCodes.Callvirt, getMessageRef);
-        var ldFileFailed = il.Create(OpCodes.Ldstr, filePath);
-        var ldLineFailed = il.Create(OpCodes.Ldc_I4, lineNumber);
-        var callFailed = il.Create(OpCodes.Call, failedRef);
-        var rethrow = il.Create(OpCodes.Rethrow);
 
         if (afterLastInstr != null)
         {
             il.InsertBefore(afterLastInstr, catchStart);
-            il.InsertBefore(afterLastInstr, ldExprFailed);
-            il.InsertBefore(afterLastInstr, ldExVar);
-            il.InsertBefore(afterLastInstr, callGetMessage);
-            il.InsertBefore(afterLastInstr, ldFileFailed);
-            il.InsertBefore(afterLastInstr, ldLineFailed);
-            il.InsertBefore(afterLastInstr, callFailed);
-            il.InsertBefore(afterLastInstr, rethrow);
+            il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, expressionText));
+            il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, exVar));
+            il.InsertBefore(afterLastInstr, il.Create(OpCodes.Callvirt, getMessageRef));
+            if (hasValues)
+            {
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, namesLocal!));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, valuesLocal!));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, filePath));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Call, failedWithValuesRef));
+            }
+            else
+            {
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, filePath));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Call, failedRef));
+            }
+            il.InsertBefore(afterLastInstr, il.Create(OpCodes.Rethrow));
             il.InsertBefore(afterLastInstr, afterCatch);
         }
         else
         {
             il.Append(catchStart);
-            il.Append(ldExprFailed);
-            il.Append(ldExVar);
-            il.Append(callGetMessage);
-            il.Append(ldFileFailed);
-            il.Append(ldLineFailed);
-            il.Append(callFailed);
-            il.Append(rethrow);
+            il.Append(il.Create(OpCodes.Ldstr, expressionText));
+            il.Append(il.Create(OpCodes.Ldloc, exVar));
+            il.Append(il.Create(OpCodes.Callvirt, getMessageRef));
+            if (hasValues)
+            {
+                il.Append(il.Create(OpCodes.Ldloc, namesLocal!));
+                il.Append(il.Create(OpCodes.Ldloc, valuesLocal!));
+                il.Append(il.Create(OpCodes.Ldstr, filePath));
+                il.Append(il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.Append(il.Create(OpCodes.Call, failedWithValuesRef));
+            }
+            else
+            {
+                il.Append(il.Create(OpCodes.Ldstr, filePath));
+                il.Append(il.Create(OpCodes.Ldc_I4, lineNumber));
+                il.Append(il.Create(OpCodes.Call, failedRef));
+            }
+            il.Append(il.Create(OpCodes.Rethrow));
             il.Append(afterCatch);
         }
 
-        // Add exception handler at the correct position.
-        // CLR requires nested handlers to appear BEFORE their containing handlers.
-        // In async state machines, the compiler's outer try/catch wraps all user code,
-        // so our inner handler must be inserted before it. Since our handlers always
-        // wrap single statements (innermost), inserting at position 0 is correct.
+        // Add exception handler (innermost first for CLR nesting rules)
         var handler = new ExceptionHandler(ExceptionHandlerType.Catch)
         {
             TryStart = tryStart,
@@ -433,8 +713,6 @@ public class AssertionWeaver
         body.ExceptionHandlers.Insert(0, handler);
 
         // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
-        // This keeps the branch inside the try block: when ?. short-circuits, execution
-        // leaves the try cleanly via 'leave' without tracking (correct — no assertion ran).
         foreach (var branch in assertion.OutboundBranches)
         {
             branch.Operand = leaveInstr;
@@ -454,6 +732,24 @@ public class AssertionStatement
     /// the try block to avoid InvalidProgramException.
     /// </summary>
     public List<Instruction> OutboundBranches { get; set; } = new List<Instruction>();
+    /// <summary>
+    /// Variables used as arguments after the .Should() call that can be captured
+    /// at runtime for value resolution in the assertion diagram note.
+    /// </summary>
+    public List<CapturedVariable> CapturedVariables { get; set; } = new List<CapturedVariable>();
+}
+
+public class CapturedVariable
+{
+    public string Name { get; set; } = "";
+    /// <summary>Local variable index for ldloc-based access. -1 if using a state machine field.</summary>
+    public int LocalIndex { get; set; } = -1;
+    /// <summary>State machine field reference (async methods). Null for regular locals.</summary>
+    public FieldReference? StateField { get; set; }
+    /// <summary>Whether the variable needs boxing (value type) when stored in object[].</summary>
+    public bool NeedsBoxing { get; set; }
+    /// <summary>The type of the variable (for boxing emission).</summary>
+    public TypeReference Type { get; set; } = null!;
 }
 
 public class WeaveResult

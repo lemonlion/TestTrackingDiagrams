@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.12] - 2026-05-07
+
+### Added
+- **AssertionTracking: runtime variable value resolution** — The IL weaver now captures local variable values at assertion time and resolves them into the diagram note text. Previously, assertion notes showed raw variable names (e.g. `expected`); now they show the actual runtime values (e.g. `'42'`). Supports regular local variables, async state machine fields, dotted property chain walking (up to 3 levels deep), null display, string truncation (50 chars), and collection count display. When no capturable variables are detected (all constant arguments), the zero-overhead path is used.
+
 ## [2.30.11] - 2026-05-06
 
 ### Fixed

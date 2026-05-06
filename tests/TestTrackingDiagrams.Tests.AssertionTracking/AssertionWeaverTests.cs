@@ -3,6 +3,7 @@ using FluentAssertions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using TestTrackingDiagrams.AssertionTracking;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.AssertionTracking;
 
@@ -295,5 +296,224 @@ public class AssertionWeaverTests
         var task = (Task)method.Invoke(instance, null)!;
         var ex = Record.Exception(() => task.GetAwaiter().GetResult());
         ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_WithLocalVariable_CapturesVariableForValueResolution()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LocalVar",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var expected = 42;
+                    var result = 42;
+                    result.Should().Be(expected);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        // Execute and verify it calls AssertionPassedWithValues (doesn't throw)
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        // Set up Track to capture the assertion
+        var testId = $"LocalVar_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        // Verify the PlantUML output contains the resolved value
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'42'", "the variable value should be resolved");
+    }
+
+    [Fact]
+    public void Weave_WithMultipleVariables_CapturesAll()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "MultiVar",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var min = 1;
+                    var max = 100;
+                    var result = 50;
+                    result.Should().BeInRange(min, max);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"MultiVar_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'1'", "min should be resolved");
+        logs[0].PlantUml.Should().Contain("'100'", "max should be resolved");
+    }
+
+    [Fact]
+    public void Weave_WithConstantArg_DoesNotEmitArrays()
+    {
+        // When all arguments are constants (like .Be(42)), no variable capture is needed
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ConstArg",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var x = 42;
+                    x.Should().Be(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        // Verify assembly runs without error (using simple AssertionPassed path)
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_AsyncMethod_WithVariable_CapturesStateField()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncVar",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var expected = "hello";
+                    var result = await Task.FromResult("hello");
+                    result.Should().Be(expected);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"AsyncVar_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'hello'", "async variable value should be resolved from state machine field");
+    }
+
+    [Fact]
+    public void Weave_WithNullVariable_ShowsNull()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "NullVar",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    string? expected = null;
+                    string? result = null;
+                    result.Should().Be(expected);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"NullVar_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'null'", "null variable should be resolved as 'null'");
     }
 }
