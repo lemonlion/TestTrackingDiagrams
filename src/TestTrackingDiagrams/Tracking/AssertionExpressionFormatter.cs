@@ -139,13 +139,13 @@ public static partial class AssertionExpressionFormatter
         if (string.IsNullOrWhiteSpace(args))
             return "";
 
-        // Wrap lambda expressions in square brackets for readability
-        if (args.Contains("=>"))
-            return $"[{args}]";
-
         // Substitute resolved values for standalone variable tokens in the args
         if (resolvedValues is { Count: > 0 })
             args = SubstituteResolvedValues(args, resolvedValues);
+
+        // Wrap lambda expressions in square brackets for readability
+        if (args.Contains("=>"))
+            return $"[{args}]";
 
         // Strip enum prefixes: TaskStatus.RanToCompletion → RanToCompletion, HttpStatusCode.OK → OK
         // But preserve complex expressions like DateTime.UtcNow, TimeSpan.FromSeconds(5)

@@ -1454,9 +1454,9 @@ public class Stylesheets
                 .search-help-panel { border-color: #5B21B6; background: #1E1534; }
                 .search-help-table th { border-bottom-color: #5B21B6; }
                 .search-help-table td { border-bottom-color: #2E2048; }
-                .search-help-table code { background: #2E2048; }
+                .search-help-table code { }
                 .search-help-note { color: #A78BFA; }
-                .search-help-note kbd { background: #2E2048; border-color: #5B21B6; }
+                .search-help-note kbd { border-color: #5B21B6; }
                 .sub-steps { border-left-color: #DDD6FE; }
                 .feature-summary-table th { background: #F5F3FF; }
                 .param-success { background: #EDE9FE; }

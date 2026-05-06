@@ -342,9 +342,40 @@ public class AssertionWeaver
         {
             var instr = statementInstructions[i];
 
-            // ldloc / ldloc.s / ldloc.0-3 — regular local variable
+            // ldloc / ldloc.s / ldloc.0-3 — regular local variable or display class
             if (IsLdloc(instr, out var localIndex))
             {
+                var varType = method.Body.Variables[localIndex].VariableType;
+
+                // Check if this is a display class (closure) load
+                if (IsDisplayClassType(varType))
+                {
+                    // Resolve the display class type to enumerate its fields
+                    var displayClassType = ResolveDisplayClassType(varType, method);
+                    if (displayClassType != null)
+                    {
+                        foreach (var field in displayClassType.Fields)
+                        {
+                            var fieldName = field.Name;
+                            if (!NameAppearsInExpression(fieldName, sourceText))
+                                continue;
+                            if (!seenNames.Add(fieldName))
+                                continue;
+
+                            var fieldRef = new FieldReference(field.Name, field.FieldType, varType);
+                            captured.Add(new CapturedVariable
+                            {
+                                Name = fieldName,
+                                ClosureLocalIndex = localIndex,
+                                ClosureField = fieldRef,
+                                NeedsBoxing = field.FieldType.IsValueType,
+                                Type = field.FieldType
+                            });
+                        }
+                    }
+                    continue;
+                }
+
                 if (!localNames.TryGetValue(localIndex, out var name))
                     continue;
                 if (!NameAppearsInExpression(name, sourceText))
@@ -352,7 +383,6 @@ public class AssertionWeaver
                 if (!seenNames.Add(name))
                     continue;
 
-                var varType = method.Body.Variables[localIndex].VariableType;
                 captured.Add(new CapturedVariable
                 {
                     Name = name,
@@ -367,6 +397,36 @@ public class AssertionWeaver
                      statementInstructions[i + 1].OpCode == OpCodes.Ldfld &&
                      statementInstructions[i + 1].Operand is FieldReference fieldRef)
             {
+                // Check if the field type is a display class (closure inside async method)
+                if (IsDisplayClassType(fieldRef.FieldType))
+                {
+                    var displayClassType = ResolveDisplayClassType(fieldRef.FieldType, method);
+                    if (displayClassType != null)
+                    {
+                        foreach (var field in displayClassType.Fields)
+                        {
+                            var fieldName = field.Name;
+                            if (!NameAppearsInExpression(fieldName, sourceText))
+                                continue;
+                            if (!seenNames.Add(fieldName))
+                                continue;
+
+                            // For async+closure: load this->displayClassField->valueField
+                            captured.Add(new CapturedVariable
+                            {
+                                Name = fieldName,
+                                StateField = fieldRef, // the display class field on state machine
+                                ClosureLocalIndex = -1,
+                                ClosureField = new FieldReference(field.Name, field.FieldType, fieldRef.FieldType),
+                                NeedsBoxing = field.FieldType.IsValueType,
+                                Type = field.FieldType
+                            });
+                        }
+                    }
+                    i++; // skip the ldfld instruction
+                    continue;
+                }
+
                 var name = GetStateFieldOriginalName(fieldRef);
                 if (name == null)
                     continue;
@@ -484,6 +544,41 @@ public class AssertionWeaver
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 
     /// <summary>
+    /// Checks whether a type is a compiler-generated display class (closure container).
+    /// Display classes are named like &lt;&gt;c__DisplayClass0_0.
+    /// </summary>
+    private static bool IsDisplayClassType(TypeReference type)
+    {
+        var name = type.Name;
+        return name.Contains("<>c__DisplayClass") || name.Contains("<>c__");
+    }
+
+    /// <summary>
+    /// Resolves a display class TypeReference to its TypeDefinition to enumerate fields.
+    /// </summary>
+    private static TypeDefinition? ResolveDisplayClassType(TypeReference typeRef, MethodDefinition method)
+    {
+        // Try to resolve directly
+        try
+        {
+            var resolved = typeRef.Resolve();
+            if (resolved != null)
+                return resolved;
+        }
+        catch { /* fall through to search */ }
+
+        // Search in the declaring type's nested types
+        var declaringType = method.DeclaringType;
+        foreach (var nested in declaringType.NestedTypes)
+        {
+            if (nested.Name == typeRef.Name || nested.FullName == typeRef.FullName)
+                return nested;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Wraps each assertion statement in: try { [original] ; AssertionPassed(...) } catch(Exception ex) { AssertionFailed(..., ex.Message); throw; }
     /// </summary>
     private void WrapAssertions(
@@ -580,7 +675,20 @@ public class AssertionWeaver
                 il.InsertBefore(firstInstr, il.Create(OpCodes.Ldc_I4, vi));
 
                 // Load the variable
-                if (cv.StateField != null)
+                if (cv.ClosureField != null && cv.ClosureLocalIndex >= 0)
+                {
+                    // Closure in non-async: ldloc displayClass; ldfld field
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldloc, body.Variables[cv.ClosureLocalIndex]));
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.ClosureField));
+                }
+                else if (cv.ClosureField != null && cv.StateField != null)
+                {
+                    // Closure in async: ldarg.0; ldfld stateField (display class); ldfld closureField
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldarg_0));
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.StateField));
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.ClosureField));
+                }
+                else if (cv.StateField != null)
                 {
                     il.InsertBefore(firstInstr, il.Create(OpCodes.Ldarg_0));
                     il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.StateField));
@@ -742,10 +850,14 @@ public class AssertionStatement
 public class CapturedVariable
 {
     public string Name { get; set; } = "";
-    /// <summary>Local variable index for ldloc-based access. -1 if using a state machine field.</summary>
+    /// <summary>Local variable index for ldloc-based access. -1 if using a state machine field or closure.</summary>
     public int LocalIndex { get; set; } = -1;
-    /// <summary>State machine field reference (async methods). Null for regular locals.</summary>
+    /// <summary>State machine field reference (async methods). Null for regular locals and closures.</summary>
     public FieldReference? StateField { get; set; }
+    /// <summary>Local variable index of the display class instance for closure captures. -1 if not a closure.</summary>
+    public int ClosureLocalIndex { get; set; } = -1;
+    /// <summary>Display class field reference for closure captures. Null if not a closure.</summary>
+    public FieldReference? ClosureField { get; set; }
     /// <summary>Whether the variable needs boxing (value type) when stored in object[].</summary>
     public bool NeedsBoxing { get; set; }
     /// <summary>The type of the variable (for boxing emission).</summary>

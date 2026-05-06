@@ -516,4 +516,214 @@ public class AssertionWeaverTests
         logs.Should().HaveCount(1);
         logs[0].PlantUml.Should().Contain("'null'", "null variable should be resolved as 'null'");
     }
+
+    [Fact]
+    public void Weave_LambdaClosure_SingleVariable_ResolvesValue()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LambdaClosure",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Item
+            {
+                public string Id { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var expectedId = "abc";
+                    var list = new List<Item> { new Item { Id = "abc" } };
+                    list.Should().Contain(x => x.Id == expectedId);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"LambdaClosure_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'abc'", "closure variable should be resolved from display class field");
+    }
+
+    [Fact]
+    public void Weave_LambdaClosure_MultipleVariables_ResolvesAll()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LambdaClosureMulti",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Item
+            {
+                public string Id { get; set; } = "";
+                public string Foo { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var expectedId = "abc";
+                    var expectedFoo = "xyz";
+                    var list = new List<Item> { new Item { Id = "abc", Foo = "xyz" } };
+                    list.Should().Contain(x => x.Id == expectedId && x.Foo == expectedFoo);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"LambdaClosureMulti_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'abc'", "expectedId should be resolved");
+        logs[0].PlantUml.Should().Contain("'xyz'", "expectedFoo should be resolved");
+    }
+
+    [Fact]
+    public void Weave_LambdaClosure_OrCondition_ResolvesValue()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LambdaClosureOr",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Item
+            {
+                public string Id { get; set; } = "";
+                public string Foo { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var expectedId = "abc";
+                    var list = new List<Item> { new Item { Id = "abc", Foo = "other" } };
+                    list.Should().Contain(x => x.Id == expectedId || x.Foo == expectedId);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"LambdaClosureOr_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'abc'", "closure variable should be resolved even with || condition");
+    }
+
+    [Fact]
+    public void Weave_AsyncMethod_LambdaClosure_ResolvesValue()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncLambdaClosure",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Item
+            {
+                public string Id { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var expectedId = "abc";
+                    var list = await Task.FromResult(new List<Item> { new Item { Id = "abc" } });
+                    list.Should().Contain(x => x.Id == expectedId);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"AsyncLambdaClosure_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'abc'", "async closure variable should be resolved");
+    }
 }

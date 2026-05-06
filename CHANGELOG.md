@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.13] - 2026-05-07
+
+### Added
+- **AssertionTracking: lambda closure variable resolution** — The IL weaver now resolves captured variables inside lambda predicates (e.g. `list.Should().Contain(x => x.Id == expectedId)` shows `'abc'` instead of `expectedId`). Supports single and multiple captured variables, `||`/`&&` conditions, and async method closures. The display class field loading works for both regular methods (local display class) and async state machines (state field → display class field).
+
+### Fixed
+- **AssertionExpressionFormatter: lambda args now get value substitution** — Previously, `FormatArgs()` returned early for lambda expressions (wrapping in `[]` brackets) before calling `SubstituteResolvedValues`, so resolved variable values were never substituted into lambda argument text. The substitution now runs before the lambda bracket wrapping.
+
 ## [2.30.12] - 2026-05-07
 
 ### Added
