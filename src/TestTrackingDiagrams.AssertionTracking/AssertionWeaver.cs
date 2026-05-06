@@ -18,6 +18,7 @@ namespace TestTrackingDiagrams.AssertionTracking;
 public class AssertionWeaver
 {
     private readonly TaskLoggingHelper? _log;
+    private readonly Dictionary<string, string[]?> _sourceFileCache = new(StringComparer.Ordinal);
 
     public AssertionWeaver(TaskLoggingHelper? log = null)
     {
@@ -212,6 +213,25 @@ public class AssertionWeaver
             return results;
         }
 
+        // Fast-path: scan all instructions once for ANY .Should() call.
+        // This avoids the expensive per-sequence-point analysis for the vast majority
+        // of methods (async state machines, closures, framework code) that have no assertions.
+        var hasAnyShouldCall = false;
+        foreach (var instr in method.Body.Instructions)
+        {
+            if ((instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt) &&
+                instr.Operand is MethodReference mr &&
+                mr.Name == "Should" &&
+                IsFluentAssertionsType(mr.DeclaringType))
+            {
+                hasAnyShouldCall = true;
+                break;
+            }
+        }
+
+        if (!hasAnyShouldCall)
+            return results;
+
         var sequencePoints = method.DebugInformation.SequencePoints.ToList();
         var instructions = method.Body.Instructions.ToList();
 
@@ -289,15 +309,21 @@ public class AssertionWeaver
                ns.StartsWith("AwesomeAssertions", StringComparison.Ordinal);
     }
 
-    private static string ReadSourceText(SequencePoint sp)
+    private string ReadSourceText(SequencePoint sp)
     {
         try
         {
             var documentUrl = sp.Document.Url;
-            if (!File.Exists(documentUrl))
+
+            if (!_sourceFileCache.TryGetValue(documentUrl, out var lines))
+            {
+                lines = File.Exists(documentUrl) ? File.ReadAllLines(documentUrl) : null;
+                _sourceFileCache[documentUrl] = lines;
+            }
+
+            if (lines == null)
                 return $"assertion at line {sp.StartLine}";
 
-            var lines = File.ReadAllLines(documentUrl);
             if (sp.StartLine < 1 || sp.StartLine > lines.Length)
                 return $"assertion at line {sp.StartLine}";
 

@@ -51,14 +51,23 @@ public class WeaveAssertionsTask : Microsoft.Build.Utilities.Task
             return true;
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         var weaver = new AssertionWeaver(Log);
         var result = weaver.Weave(AssemblyPath, pdbPath);
+        sw.Stop();
 
         if (result.WeavedCount > 0)
         {
             Log.LogMessage(MessageImportance.Normal,
-                "TestTrackingDiagrams.AssertionTracking: Instrumented {0} assertion(s) in {1} method(s)",
-                result.WeavedCount, result.MethodCount);
+                "TestTrackingDiagrams.AssertionTracking: Instrumented {0} assertion(s) in {1} method(s) ({2}ms)",
+                result.WeavedCount, result.MethodCount, sw.ElapsedMilliseconds);
+        }
+        else
+        {
+            Log.LogMessage(MessageImportance.Low,
+                "TestTrackingDiagrams.AssertionTracking: Completed in {0}ms (no assertions found{1})",
+                sw.ElapsedMilliseconds,
+                result.SkipReason != null ? $" - {result.SkipReason}" : "");
         }
 
         return true;

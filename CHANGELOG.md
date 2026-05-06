@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.19] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: catastrophic O(n²) weaver performance on large assemblies** — The IL weaver now performs a single O(n) scan of each method's instructions for `.Should()` calls before doing any detailed per-sequence-point analysis. Previously, every method (including thousands of compiler-generated async state machines, closures, and framework code) had its instructions materialized into a List and filtered per sequence point — causing O(methods × sequence_points × instructions) time complexity. On large Debug-mode test assemblies (LightBDD, TUnit, xUnit3, etc.) this caused build times to exceed 12+ minutes on CI runners. The fast-path exits in microseconds for methods without assertions (99%+ of all methods). Also added a source file cache to avoid redundant disk reads when multiple assertions reference the same file, and timing diagnostics that log elapsed milliseconds after weaving completes.
+
 ## [2.30.18] - 2026-05-07
 
 ### Changed
