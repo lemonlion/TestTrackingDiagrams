@@ -46,10 +46,15 @@ public class AssertionWeaver
 
         // Find or construct method references for Track.AssertionPassed/AssertionFailed
         var trackMethods = GetTrackMethodReferences(assembly);
-        var passedRef = trackMethods.Passed;
-        var failedRef = trackMethods.Failed;
-        var passedWithValuesRef = trackMethods.PassedWithValues;
-        var failedWithValuesRef = trackMethods.FailedWithValues;
+        if (trackMethods == null)
+        {
+            result.SkipReason = "TestTrackingDiagrams core library version too old";
+            return result;
+        }
+        var passedRef = trackMethods.Value.Passed;
+        var failedRef = trackMethods.Value.Failed;
+        var passedWithValuesRef = trackMethods.Value.PassedWithValues;
+        var failedWithValuesRef = trackMethods.Value.FailedWithValues;
 
         // Also need Exception.get_Message
         var exceptionType = assembly.MainModule.ImportReference(typeof(Exception));
@@ -106,7 +111,7 @@ public class AssertionWeaver
             a.AttributeType.Name == "SuppressAssertionTrackingAttribute");
     }
 
-    private (MethodReference Passed, MethodReference Failed, MethodReference PassedWithValues, MethodReference FailedWithValues) GetTrackMethodReferences(AssemblyDefinition assembly)
+    private (MethodReference Passed, MethodReference Failed, MethodReference PassedWithValues, MethodReference FailedWithValues)? GetTrackMethodReferences(AssemblyDefinition assembly)
     {
         var module = assembly.MainModule;
 
@@ -122,6 +127,17 @@ public class AssertionWeaver
             module.AssemblyReferences.Add(ttdAssemblyRef);
             _log?.LogMessage(MessageImportance.Low,
                 "AssertionTracking: Added TestTrackingDiagrams assembly reference");
+        }
+        else if (ttdAssemblyRef.Version != new Version(0, 0, 0, 0) &&
+                 ttdAssemblyRef.Version < new Version(2, 30, 7, 0))
+        {
+            // Track.AssertionPassed/Failed were introduced in v2.30.7.
+            // If the referenced core library is older, the weaved code will fail at runtime.
+            _log?.LogError(
+                "TestTrackingDiagrams.AssertionTracking requires TestTrackingDiagrams >= 2.30.7, " +
+                $"but the project references version {ttdAssemblyRef.Version}. " +
+                "Please update all TestTrackingDiagrams packages to the same version.");
+            return null;
         }
 
         // Construct the Track type reference
@@ -239,12 +255,14 @@ public class AssertionWeaver
             // Read the source text for this statement
             var sourceText = ReadSourceText(sp);
 
-            // Exclude trailing leave/leave.s from the statement. In async state machines,
+            // Exclude trailing leave/leave.s and ret from the statement. In async state machines,
             // the compiler places a leave at the end of user code to exit the outer try.
-            // This leave is NOT part of the assertion — it should remain after our wrapper.
+            // A ret instruction cannot be inside a try block (CLR verifier rejects it).
+            // These instructions should remain after our wrapper.
             var lastInstr = statementInstructions.Last();
             while (lastInstr != statementInstructions.First() &&
-                   (lastInstr.OpCode == OpCodes.Leave || lastInstr.OpCode == OpCodes.Leave_S))
+                   (lastInstr.OpCode == OpCodes.Leave || lastInstr.OpCode == OpCodes.Leave_S ||
+                    lastInstr.OpCode == OpCodes.Ret))
             {
                 lastInstr = lastInstr.Previous;
             }

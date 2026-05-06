@@ -35,6 +35,49 @@ public class AssertionWeaverTests
     }
 
     [Fact]
+    public void Weave_OldCoreLibraryVersion_SkipsWithError()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "OldVersion",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method() { 1.Should().Be(1); }
+            }
+            """);
+
+        // Add an old-version TestTrackingDiagrams assembly reference to simulate version mismatch
+        using (var asmDef = AssemblyDefinition.ReadAssembly(assemblyPath,
+            new ReaderParameters { ReadWrite = true, ReadSymbols = true }))
+        {
+            var ttdRef = asmDef.MainModule.AssemblyReferences
+                .FirstOrDefault(r => r.Name == "TestTrackingDiagrams");
+            if (ttdRef != null)
+            {
+                ttdRef.Version = new Version(2, 30, 1, 0);
+            }
+            else
+            {
+                // Attribute is defined inline, so add the reference manually with old version
+                asmDef.MainModule.AssemblyReferences.Add(
+                    new AssemblyNameReference("TestTrackingDiagrams", new Version(2, 30, 1, 0)));
+            }
+            asmDef.Write(new WriterParameters { WriteSymbols = true });
+        }
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(0);
+        result.SkipReason.Should().Contain("version too old");
+    }
+
+    [Fact]
     public void Weave_WithAttribute_InstrumentsShould()
     {
         var assemblyPath = TestAssemblyBuilder.Build(
@@ -725,5 +768,45 @@ public class AssertionWeaverTests
             .ToList();
         logs.Should().HaveCount(1);
         logs[0].PlantUml.Should().Contain("'abc'", "async closure variable should be resolved");
+    }
+
+    [Fact]
+    public void Weave_AssertionAsLastStatement_DoesNotProduceInvalidIL()
+    {
+        // This test verifies that when the assertion is the last statement in a method
+        // (immediately followed by ret), the weaver does not place ret inside a try block.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LastStatement",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var x = 42;
+                    x.Should().Be(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        // Load and execute — InvalidProgramException would be thrown here if ret is inside try
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"LastStmt_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull("weaved method should run without InvalidProgramException");
     }
 }

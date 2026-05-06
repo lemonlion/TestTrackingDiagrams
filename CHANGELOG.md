@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.14] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: version mismatch detection** — The IL weaver now checks the version of the referenced `TestTrackingDiagrams` core library before weaving. If the core library is older than v2.30.7 (when `Track.AssertionPassed` was introduced), the weaver emits a clear build error instead of producing weaved IL that would crash at runtime with `MissingMethodException`. Fixes #43.
+- **AssertionTracking: exclude `ret` from try blocks** — The weaver now excludes trailing `ret` instructions from assertion statement boundaries (alongside the existing `leave`/`leave.s` exclusion). A `ret` inside a try block is invalid IL that causes `InvalidProgramException` at runtime. This could occur when the assertion is the last statement in a sync method.
+
 ## [2.30.13] - 2026-05-07
 
 ### Added
