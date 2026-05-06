@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.2] - 2026-05-05
+
+### Fixed
+- **Report header: CI metadata alignment** — When CI metadata is present, the CI metadata + pie chart group now aligns to the top of the test-summary panel (previously it was vertically centered). When CI metadata is absent, the pie chart remains centered both vertically and horizontally.
+
 ## [2.30.1] - 2026-05-05
 
 ### Fixed

@@ -125,7 +125,7 @@ public class Stylesheets
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    justify-content: center;
+                    align-self: flex-start;
                     flex-shrink: 0;
                     gap: 0.5em;
                 }
