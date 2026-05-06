@@ -264,6 +264,76 @@ public class TrackThatTests : IDisposable
         Assert.NotEmpty(logs);
         Assert.Contains("'async-value'", logs[0].PlantUml!);
     }
+
+    [Fact]
+    public void That_embeds_source_location_as_plantuml_comment()
+    {
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+    }
+
+    [Fact]
+    public void That_generic_embeds_source_location_as_plantuml_comment()
+    {
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
+
+        Track.That(() => 42);
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+    }
+
+    [Fact]
+    public async Task ThatAsync_embeds_source_location_as_plantuml_comment()
+    {
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
+
+        await Track.ThatAsync(async () =>
+        {
+            await Task.Yield();
+            Assert.True(true);
+        });
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+    }
+
+    [Fact]
+    public void That_source_location_uses_filename_only_not_full_path()
+    {
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
+
+        Track.That(() => Assert.True(true));
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        // Should contain just the filename, not a full path with directory separators before it
+        var locMatch = System.Text.RegularExpressions.Regex.Match(logs[0].PlantUml!, @"'__assertionLoc__:([^:]+):L(\d+)");
+        Assert.True(locMatch.Success);
+        var fileName = locMatch.Groups[1].Value;
+        Assert.Equal("TrackThatTests.cs", fileName);
+        Assert.DoesNotContain("/", fileName);
+        Assert.DoesNotContain("\\", fileName);
+    }
+
+    [Fact]
+    public void That_explicitly_passed_caller_info_overrides_automatic()
+    {
+        using var scope = TestIdentityScope.Begin(_testId, _testId);
+
+        Track.That(() => Assert.True(true), callerFilePath: @"C:\some\path\MyFile.cs", callerLineNumber: 99);
+
+        var logs = GetAssertionLogs();
+        Assert.NotEmpty(logs);
+        Assert.Contains("'__assertionLoc__:MyFile.cs:L99", logs[0].PlantUml!);
+    }
 }
 
 /// <summary>

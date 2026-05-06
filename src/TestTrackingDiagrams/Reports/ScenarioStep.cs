@@ -15,4 +15,32 @@ public record ScenarioStep
     public FileAttachment[]? Attachments { get; set; }
     public string? DocString { get; set; }
     public string? DocStringMediaType { get; set; }
+
+    /// <summary>
+    /// Structured representation of the step text with inline parameter values embedded.
+    /// When set, the renderer uses this instead of <see cref="Text"/> to produce highlighted
+    /// parameter values within the prose (matching LightBDD's native report rendering).
+    /// </summary>
+    public StepTextSegment[]? TextSegments { get; set; }
+}
+
+/// <summary>
+/// A segment of step text — either literal prose or an inline parameter value.
+/// </summary>
+public record StepTextSegment
+{
+    /// <summary>Literal text content (mutually exclusive with <see cref="Parameter"/>).</summary>
+    public string? Text { get; init; }
+
+    /// <summary>An inline parameter value to render highlighted (mutually exclusive with <see cref="Text"/>).</summary>
+    public InlineParameterValue? Parameter { get; init; }
+
+    /// <summary>The parameter name (for tooltip), only set when <see cref="Parameter"/> is set.</summary>
+    public string? ParameterName { get; init; }
+
+    /// <summary>Creates a literal text segment.</summary>
+    public static StepTextSegment Literal(string text) => new() { Text = text };
+
+    /// <summary>Creates a parameter segment with value, verification status, and name.</summary>
+    public static StepTextSegment Param(string name, InlineParameterValue value) => new() { Parameter = value, ParameterName = name };
 }

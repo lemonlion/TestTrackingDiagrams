@@ -70,7 +70,7 @@ public class RewriteAssertionsTask : Microsoft.Build.Utilities.Task
             var sourceText = File.ReadAllText(filePath);
             var tree = CSharpSyntaxTree.ParseText(sourceText);
             var root = tree.GetRoot();
-            var rewriter = new AssertionWrappingRewriter();
+            var rewriter = new AssertionWrappingRewriter { OriginalFilePath = filePath };
             var newRoot = rewriter.Visit(root);
 
             if (rewriter.ChangeCount == 0)

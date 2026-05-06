@@ -47,18 +47,22 @@ public static class Track
     /// </summary>
     public static void That(
         Action assertion,
-        [CallerArgumentExpression(nameof(assertion))] string? expression = null)
+        [CallerArgumentExpression(nameof(assertion))] string? expression = null,
+        [CallerFilePath] string? callerFilePath = null,
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         try
         {
             assertion();
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: true, resolvedValues: resolved);
+            LogAssertion(expression, passed: true, resolvedValues: resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
         }
         catch (Exception ex)
         {
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: false, ex.Message, resolved);
+            LogAssertion(expression, passed: false, ex.Message, resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
             throw;
         }
     }
@@ -68,19 +72,23 @@ public static class Track
     /// </summary>
     public static T That<T>(
         Func<T> assertion,
-        [CallerArgumentExpression(nameof(assertion))] string? expression = null)
+        [CallerArgumentExpression(nameof(assertion))] string? expression = null,
+        [CallerFilePath] string? callerFilePath = null,
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         try
         {
             var result = assertion();
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: true, resolvedValues: resolved);
+            LogAssertion(expression, passed: true, resolvedValues: resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
             return result;
         }
         catch (Exception ex)
         {
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: false, ex.Message, resolved);
+            LogAssertion(expression, passed: false, ex.Message, resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
             throw;
         }
     }
@@ -90,18 +98,22 @@ public static class Track
     /// </summary>
     public static async Task ThatAsync(
         Func<Task> assertion,
-        [CallerArgumentExpression(nameof(assertion))] string? expression = null)
+        [CallerArgumentExpression(nameof(assertion))] string? expression = null,
+        [CallerFilePath] string? callerFilePath = null,
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         try
         {
             await assertion();
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: true, resolvedValues: resolved);
+            LogAssertion(expression, passed: true, resolvedValues: resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
         }
         catch (Exception ex)
         {
             var resolved = ResolveClosureValues(assertion, expression);
-            LogAssertion(expression, passed: false, ex.Message, resolved);
+            LogAssertion(expression, passed: false, ex.Message, resolved,
+                callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
             throw;
         }
     }
@@ -129,7 +141,7 @@ public static class Track
     }
 
     private static void LogAssertion(string? expression, bool passed, string? failureMessage = null,
-        Dictionary<string, string>? resolvedValues = null)
+        Dictionary<string, string>? resolvedValues = null, string? callerFilePath = null, int callerLineNumber = 0)
     {
         var testId = ResolveTestId();
         if (testId is null)
@@ -147,6 +159,13 @@ public static class Track
             : $"{symbol} {formatted}\n{failureMessage}";
 
         var plantUml = $"hnote across <<assertionNote>> {color}\n{noteContent}\nend note";
+
+        // Append source location as a PlantUML comment (invisible in rendered output)
+        if (!string.IsNullOrEmpty(callerFilePath))
+        {
+            var fileName = System.IO.Path.GetFileName(callerFilePath);
+            plantUml += $"\n'__assertionLoc__:{fileName}:L{callerLineNumber}";
+        }
 
         DefaultTrackingDiagramOverride.InsertPlantUml(testId, plantUml);
     }

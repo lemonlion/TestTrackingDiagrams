@@ -344,4 +344,84 @@ public class AssertionWrappingRewriterTests
         result.Should().NotContain("Track.That");
         RewriterTestHelper.GetChangeCount(source).Should().Be(0);
     }
+
+    [Fact]
+    public void With_OriginalFilePath_Includes_CallerFilePath_Argument()
+    {
+        var source = """
+            using TestTrackingDiagrams.Tracking;
+            class Test
+            {
+                void Method()
+                {
+                    x.Should().Be(1);
+                }
+            }
+            """;
+
+        var result = RewriterTestHelper.Rewrite(source, @"C:\src\MyTests.cs");
+
+        result.Should().Contain("callerFilePath:");
+        result.Should().Contain(@"C:\src\MyTests.cs");
+    }
+
+    [Fact]
+    public void With_OriginalFilePath_Includes_CallerLineNumber_Argument()
+    {
+        var source = """
+            using TestTrackingDiagrams.Tracking;
+            class Test
+            {
+                void Method()
+                {
+                    x.Should().Be(1);
+                }
+            }
+            """;
+
+        var result = RewriterTestHelper.Rewrite(source, @"C:\src\MyTests.cs");
+
+        result.Should().Contain("callerLineNumber:");
+    }
+
+    [Fact]
+    public void Without_OriginalFilePath_Does_Not_Include_CallerInfo()
+    {
+        var source = """
+            using TestTrackingDiagrams.Tracking;
+            class Test
+            {
+                void Method()
+                {
+                    x.Should().Be(1);
+                }
+            }
+            """;
+
+        var result = RewriterTestHelper.Rewrite(source);
+
+        result.Should().NotContain("callerFilePath:");
+        result.Should().NotContain("callerLineNumber:");
+    }
+
+    [Fact]
+    public void Async_With_OriginalFilePath_Includes_CallerInfo()
+    {
+        var source = """
+            using TestTrackingDiagrams.Tracking;
+            class Test
+            {
+                async Task Method()
+                {
+                    await act.Should().ThrowAsync<Exception>();
+                }
+            }
+            """;
+
+        var result = RewriterTestHelper.Rewrite(source, @"C:\src\AsyncTests.cs");
+
+        result.Should().Contain("callerFilePath:");
+        result.Should().Contain(@"C:\src\AsyncTests.cs");
+        result.Should().Contain("callerLineNumber:");
+    }
 }

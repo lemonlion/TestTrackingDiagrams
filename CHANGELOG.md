@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.4] - 2026-05-06
+
+### Added
+- **Assertion source-location tooltips**: `Track.That()`, `Track.That<T>()`, and `Track.ThatAsync()` now capture `[CallerFilePath]` and `[CallerLineNumber]`. The source location is embedded as a PlantUML comment (`'__assertionLoc__:Filename.cs:L42`) in the diagram source. When assertion notes are visible in the HTML report, hovering over an assertion note displays a native browser tooltip showing the source file and line number (e.g. "MyTests.cs L42").
+- **AssertionRewriter: caller info pass-through**: When `OriginalFilePath` is set on the rewriter, the generated `Track.That()`/`Track.ThatAsync()` calls include explicit `callerFilePath` and `callerLineNumber` named arguments pointing to the original source file and line, so tooltips reference the correct file even though compilation runs from rewritten intermediate files.
+
 ## [2.30.3] - 2026-05-06
 
 ### Changed

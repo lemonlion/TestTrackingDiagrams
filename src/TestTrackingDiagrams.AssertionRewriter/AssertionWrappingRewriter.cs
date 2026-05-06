@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,6 +12,13 @@ namespace TestTrackingDiagrams.AssertionRewriter;
 public class AssertionWrappingRewriter : CSharpSyntaxRewriter
 {
     private bool _disabled;
+
+    /// <summary>
+    /// The original source file path. When set, the rewriter embeds this as an explicit
+    /// <c>callerFilePath</c> argument so that assertion tooltips reference the original file
+    /// rather than the rewritten intermediate file.
+    /// </summary>
+    public string? OriginalFilePath { get; set; }
 
     /// <summary>
     /// Number of expression statements that were wrapped.
@@ -58,7 +66,7 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
             return node;
 
         // Wrap the expression
-        var wrappedExpression = WrapExpression(node.Expression);
+        var wrappedExpression = WrapExpression(node.Expression, node.GetLocation());
         ChangeCount++;
 
         return node.WithExpression(wrappedExpression)
@@ -83,16 +91,18 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
         if (IsAlreadyWrapped(node.Expression))
             return node;
 
-        var wrappedExpression = WrapExpression(node.Expression);
+        var wrappedExpression = WrapExpression(node.Expression, node.GetLocation());
         ChangeCount++;
 
         return node.WithExpression(wrappedExpression);
     }
 
-    private ExpressionSyntax WrapExpression(ExpressionSyntax expression)
+    private ExpressionSyntax WrapExpression(ExpressionSyntax expression, Location? location)
     {
+        var callerArgs = BuildCallerInfoArguments(location);
+
         // Handle await expressions: await x.Should().ThrowAsync<T>()
-        // -> await Track.ThatAsync(async () => await x.Should().ThrowAsync<T>())
+        // -> await Track.ThatAsync(async () => await x.Should().ThrowAsync<T>(), callerFilePath: "...", callerLineNumber: N)
         if (expression is AwaitExpressionSyntax awaitExpr)
         {
             var awaitInner = SyntaxFactory.AwaitExpression(
@@ -107,21 +117,23 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
                     .WithLeadingTrivia(SyntaxFactory.Space)
                     .WithTrailingTrivia(SyntaxFactory.Space));
 
+            var args = new List<ArgumentSyntax> { SyntaxFactory.Argument(asyncLambda) };
+            args.AddRange(callerArgs);
+
             var invocation = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.IdentifierName("Track"),
                     SyntaxFactory.IdentifierName("ThatAsync")),
                 SyntaxFactory.ArgumentList(
-                    SyntaxFactory.SingletonSeparatedList(
-                        SyntaxFactory.Argument(asyncLambda))));
+                    SyntaxFactory.SeparatedList(args)));
 
             return SyntaxFactory.AwaitExpression(
                 SyntaxFactory.Token(SyntaxKind.AwaitKeyword).WithTrailingTrivia(SyntaxFactory.Space),
                 invocation);
         }
 
-        // Normal case: x.Should().Be(1) -> Track.That(() => x.Should().Be(1))
+        // Normal case: x.Should().Be(1) -> Track.That(() => x.Should().Be(1), callerFilePath: "...", callerLineNumber: N)
         var lambda = SyntaxFactory.ParenthesizedLambdaExpression(
                 SyntaxFactory.ParameterList(),
                 (CSharpSyntaxNode)expression.WithoutLeadingTrivia().WithoutTrailingTrivia())
@@ -129,14 +141,44 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
                 .WithLeadingTrivia(SyntaxFactory.Space)
                 .WithTrailingTrivia(SyntaxFactory.Space));
 
+        var normalArgs = new List<ArgumentSyntax> { SyntaxFactory.Argument(lambda) };
+        normalArgs.AddRange(callerArgs);
+
         return SyntaxFactory.InvocationExpression(
             SyntaxFactory.MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 SyntaxFactory.IdentifierName("Track"),
                 SyntaxFactory.IdentifierName("That")),
             SyntaxFactory.ArgumentList(
-                SyntaxFactory.SingletonSeparatedList(
-                    SyntaxFactory.Argument(lambda))));
+                SyntaxFactory.SeparatedList(normalArgs)));
+    }
+
+    private List<ArgumentSyntax> BuildCallerInfoArguments(Location? location)
+    {
+        var args = new List<ArgumentSyntax>();
+        if (OriginalFilePath == null || location == null)
+            return args;
+
+        var lineSpan = location.GetLineSpan();
+        var lineNumber = lineSpan.StartLinePosition.Line + 1; // 1-based
+
+        // callerFilePath: @"C:\path\to\file.cs"
+        args.Add(SyntaxFactory.Argument(
+                SyntaxFactory.LiteralExpression(
+                    SyntaxKind.StringLiteralExpression,
+                    SyntaxFactory.Literal($"@\"{OriginalFilePath.Replace("\"", "\"\"")}\"", OriginalFilePath)))
+            .WithNameColon(SyntaxFactory.NameColon("callerFilePath")
+                .WithTrailingTrivia(SyntaxFactory.Space)));
+
+        // callerLineNumber: N
+        args.Add(SyntaxFactory.Argument(
+                SyntaxFactory.LiteralExpression(
+                    SyntaxKind.NumericLiteralExpression,
+                    SyntaxFactory.Literal(lineNumber)))
+            .WithNameColon(SyntaxFactory.NameColon("callerLineNumber")
+                .WithTrailingTrivia(SyntaxFactory.Space)));
+
+        return args;
     }
 
     private static bool ContainsShouldInvocation(ExpressionSyntax expression)

@@ -420,6 +420,7 @@ public static class DiagramContextMenu
                         item.el.dataset.rendered = '1';
                         bindIflowLinks(item.el, item.source);
                         if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
+                        if (window._addAssertionTooltips) window._addAssertionTooltips(item.el);
                         requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
                         rendering = false;
                         window._plantumlRendering = false;
@@ -2529,6 +2530,7 @@ public static class DiagramContextMenu
                     container.innerHTML = _svgCache[newSource];
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
+                    addAssertionTooltips(container);
                     requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                     return;
                 }
@@ -2545,6 +2547,7 @@ public static class DiagramContextMenu
                     window._plantumlRendering = false;
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
+                    addAssertionTooltips(container);
                     requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                 }
 
@@ -2564,6 +2567,7 @@ public static class DiagramContextMenu
                     // Render failed — restore previous step and sync buttons
                     container._noteSteps[noteIdx] = oldStep;
                     makeNotesCollapsible(container);
+                    addAssertionTooltips(container);
                 }
 
                 var pollCount = 0;
@@ -2584,6 +2588,7 @@ public static class DiagramContextMenu
                         // Render timed out — restore previous step and sync buttons
                         container._noteSteps[noteIdx] = oldStep;
                         makeNotesCollapsible(container);
+                        addAssertionTooltips(container);
                     }
                 }, 250);
             }
@@ -2606,6 +2611,75 @@ public static class DiagramContextMenu
             function applyAssertionFilter(source, showing) {
                 return showing ? source : stripAssertionNotes(source);
             }
+
+            // Parse assertion source locations from PlantUML comments
+            function parseAssertionLocations(source) {
+                if (!source) return [];
+                var locs = [];
+                var re = /^'__assertionLoc__:(.+)$/gm;
+                var m;
+                while ((m = re.exec(source)) !== null) {
+                    locs.push(m[1]);
+                }
+                return locs;
+            }
+
+            // Find assertion note groups in SVG by their distinctive fill colors
+            function findAssertionNoteGroups(svg) {
+                var mainG = null;
+                for (var i = 0; i < svg.children.length; i++) {
+                    if (svg.children[i].tagName === 'g') { mainG = svg.children[i]; break; }
+                }
+                if (!mainG) return [];
+                var children = Array.from(mainG.children);
+                var groups = [];
+                var assertionFills = ['#d4edda', '#f8d7da'];
+                var ci = 0;
+                while (ci < children.length) {
+                    if (children[ci].tagName === 'path') {
+                        var fill = (children[ci].getAttribute('fill') || '').toLowerCase().trim();
+                        if (assertionFills.indexOf(fill) >= 0) {
+                            var grp = { paths: [children[ci]], texts: [] };
+                            ci++;
+                            while (ci < children.length && children[ci].tagName === 'path') {
+                                grp.paths.push(children[ci]);
+                                ci++;
+                            }
+                            while (ci < children.length && children[ci].tagName === 'text') {
+                                grp.texts.push(children[ci]);
+                                ci++;
+                            }
+                            if (grp.paths.length > 0) groups.push(grp);
+                        } else {
+                            ci++;
+                        }
+                    } else {
+                        ci++;
+                    }
+                }
+                return groups;
+            }
+
+            // Add source-location tooltips to assertion note SVG groups
+            function addAssertionTooltips(container) {
+                var svg = container.querySelector('svg');
+                if (!svg) return;
+                var source = container._noteOriginalSource || container.getAttribute('data-plantuml');
+                if (!source) return;
+                var locs = parseAssertionLocations(source);
+                if (locs.length === 0) return;
+                var groups = findAssertionNoteGroups(svg);
+                var count = Math.min(locs.length, groups.length);
+                for (var i = 0; i < count; i++) {
+                    var titleEl = document.createElementNS(SVGNS, 'title');
+                    titleEl.textContent = locs[i].replace(/:L/, ' L');
+                    // Add tooltip to main path of the note
+                    var existing = groups[i].paths[0].querySelector('title');
+                    if (existing) existing.remove();
+                    groups[i].paths[0].appendChild(titleEl);
+                }
+            }
+            window._addAssertionTooltips = addAssertionTooltips;
 
             // Pre-process source before initial render — applies current report-level defaults
             window._preProcessSource = function(el, source) {
@@ -2654,6 +2728,7 @@ public static class DiagramContextMenu
                         container.innerHTML = _svgCache[newSource];
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
+                        addAssertionTooltips(container);
                         requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                         processNext();
                         return;
@@ -2669,6 +2744,7 @@ public static class DiagramContextMenu
                         window._plantumlRendering = false;
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
+                        addAssertionTooltips(container);
                         requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(container); });
                         processNext();
                     }
