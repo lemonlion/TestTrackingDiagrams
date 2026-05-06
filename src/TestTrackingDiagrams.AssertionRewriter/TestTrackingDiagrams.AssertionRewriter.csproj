@@ -30,4 +30,12 @@
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 
+  <!-- Bundle Roslyn and other dependency DLLs alongside the task DLL in the nupkg -->
+  <Target Name="_IncludeTaskDependenciesInPackage" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <_TaskDependency Include="$(OutputPath)*.dll" Exclude="$(OutputPath)TestTrackingDiagrams.AssertionRewriter.dll" />
+      <_PackageFiles Include="@(_TaskDependency)" PackagePath="tasks\netstandard2.0\" />
+    </ItemGroup>
+  </Target>
+
 </Project>

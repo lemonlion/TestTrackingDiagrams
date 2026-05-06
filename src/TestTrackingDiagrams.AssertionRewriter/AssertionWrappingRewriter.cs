@@ -65,13 +65,45 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
         if (IsAlreadyWrapped(node.Expression))
             return node;
 
+        // Skip if expression references out/ref/in parameters (can't capture in lambda)
+        if (ReferencesOutRefInParameter(node.Expression, node))
+            return node;
+
         // Wrap the expression
         var wrappedExpression = WrapExpression(node.Expression, node.GetLocation());
         ChangeCount++;
 
+        // Surround with #pragma warning disable/restore for nullable warnings
+        // that arise from lambda capture breaking flow analysis (CS8602/CS8604/CS8629)
+        var pragmaDisable = SyntaxFactory.Trivia(
+            SyntaxFactory.PragmaWarningDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.DisableKeyword), true)
+                .WithErrorCodes(SyntaxFactory.SeparatedList<ExpressionSyntax>(new[]
+                {
+                    SyntaxFactory.IdentifierName("CS8602"),
+                    SyntaxFactory.IdentifierName("CS8604"),
+                    SyntaxFactory.IdentifierName("CS8629")
+                }))
+                .WithEndOfDirectiveToken(SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.EndOfDirectiveToken, SyntaxFactory.TriviaList(SyntaxFactory.LineFeed))));
+
+        var pragmaRestore = SyntaxFactory.Trivia(
+            SyntaxFactory.PragmaWarningDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.RestoreKeyword), true)
+                .WithErrorCodes(SyntaxFactory.SeparatedList<ExpressionSyntax>(new[]
+                {
+                    SyntaxFactory.IdentifierName("CS8602"),
+                    SyntaxFactory.IdentifierName("CS8604"),
+                    SyntaxFactory.IdentifierName("CS8629")
+                }))
+                .WithEndOfDirectiveToken(SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.EndOfDirectiveToken, SyntaxFactory.TriviaList(SyntaxFactory.LineFeed))));
+
+        var existingLeading = node.GetLeadingTrivia();
+        var existingTrailing = node.GetTrailingTrivia();
+
+        var newLeading = existingLeading.Add(pragmaDisable);
+        var newTrailing = existingTrailing.Insert(0, pragmaRestore);
+
         return node.WithExpression(wrappedExpression)
-            .WithLeadingTrivia(node.GetLeadingTrivia())
-            .WithTrailingTrivia(node.GetTrailingTrivia());
+            .WithLeadingTrivia(newLeading)
+            .WithTrailingTrivia(newTrailing);
     }
 
     public override SyntaxNode? VisitArrowExpressionClause(ArrowExpressionClauseSyntax node)
@@ -112,6 +144,34 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
             var asyncLambda = SyntaxFactory.ParenthesizedLambdaExpression(
                     SyntaxFactory.ParameterList(),
                     (CSharpSyntaxNode)awaitInner)
+                .WithAsyncKeyword(SyntaxFactory.Token(SyntaxKind.AsyncKeyword).WithTrailingTrivia(SyntaxFactory.Space))
+                .WithArrowToken(SyntaxFactory.Token(SyntaxKind.EqualsGreaterThanToken)
+                    .WithLeadingTrivia(SyntaxFactory.Space)
+                    .WithTrailingTrivia(SyntaxFactory.Space));
+
+            var args = new List<ArgumentSyntax> { SyntaxFactory.Argument(asyncLambda) };
+            args.AddRange(callerArgs);
+
+            var invocation = SyntaxFactory.InvocationExpression(
+                SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.IdentifierName("Track"),
+                    SyntaxFactory.IdentifierName("ThatAsync")),
+                SyntaxFactory.ArgumentList(
+                    SyntaxFactory.SeparatedList(args)));
+
+            return SyntaxFactory.AwaitExpression(
+                SyntaxFactory.Token(SyntaxKind.AwaitKeyword).WithTrailingTrivia(SyntaxFactory.Space),
+                invocation);
+        }
+
+        // Non-top-level await: expression contains await in arguments (e.g. string interpolation)
+        // -> await Track.ThatAsync(async () => x.Should().Be(await Foo()), ...)
+        if (ContainsAwaitExpression(expression))
+        {
+            var asyncLambda = SyntaxFactory.ParenthesizedLambdaExpression(
+                    SyntaxFactory.ParameterList(),
+                    (CSharpSyntaxNode)expression.WithoutLeadingTrivia().WithoutTrailingTrivia())
                 .WithAsyncKeyword(SyntaxFactory.Token(SyntaxKind.AsyncKeyword).WithTrailingTrivia(SyntaxFactory.Space))
                 .WithArrowToken(SyntaxFactory.Token(SyntaxKind.EqualsGreaterThanToken)
                     .WithLeadingTrivia(SyntaxFactory.Space)
@@ -189,6 +249,56 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
                 invocation.Expression is MemberAccessExpressionSyntax memberAccess &&
                 memberAccess.Name.Identifier.ValueText == "Should" &&
                 invocation.ArgumentList.Arguments.Count == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAwaitExpression(ExpressionSyntax expression)
+    {
+        foreach (var node in expression.DescendantNodes())
+        {
+            if (node is AwaitExpressionSyntax)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ReferencesOutRefInParameter(ExpressionSyntax expression, SyntaxNode containingNode)
+    {
+        // Find the containing method declaration
+        var method = containingNode.FirstAncestorOrSelf<MethodDeclarationSyntax>();
+        if (method == null)
+            return false;
+
+        // Collect names of out/ref/in parameters
+        var refParamNames = new HashSet<string>();
+        foreach (var param in method.ParameterList.Parameters)
+        {
+            foreach (var modifier in param.Modifiers)
+            {
+                if (modifier.IsKind(SyntaxKind.OutKeyword) ||
+                    modifier.IsKind(SyntaxKind.RefKeyword) ||
+                    modifier.IsKind(SyntaxKind.InKeyword))
+                {
+                    refParamNames.Add(param.Identifier.ValueText);
+                    break;
+                }
+            }
+        }
+
+        if (refParamNames.Count == 0)
+            return false;
+
+        // Check if the expression references any of those parameter names
+        foreach (var node in expression.DescendantNodesAndSelf())
+        {
+            if (node is IdentifierNameSyntax identifier &&
+                refParamNames.Contains(identifier.Identifier.ValueText))
             {
                 return true;
             }

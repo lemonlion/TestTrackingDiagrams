@@ -1,5 +1,12 @@
 <Project>
 
+  <!-- Validate .NET SDK version (Roslyn 4.12.0 requires .NET 9 SDK or later) -->
+  <Target Name="_CheckAssertionRewriterSdkVersion"
+          BeforeTargets="_RewriteTrackAssertions"
+          Condition="'$(TrackAssertionsEnabled)' == 'true' AND '$(NETCoreSdkVersion)' != '' AND $([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '9.0.0'))">
+    <Error Text="TestTrackingDiagrams.AssertionRewriter requires .NET SDK 9.0 or later. Current SDK: $(NETCoreSdkVersion). Update your global.json or install the .NET 9 SDK. Your projects can still target net8.0 or earlier — only the build SDK needs to be 9.0+." />
+  </Target>
+
   <!-- Auto-generate attribute source files into the intermediate output path -->
   <Target Name="_GenerateAssertionRewriterAttributes"
           BeforeTargets="CoreCompile"

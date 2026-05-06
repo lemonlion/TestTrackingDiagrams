@@ -233,6 +233,8 @@ internal static class FeatureResultExtensions
             ? step.Parameters.Select(MapParameter).ToArray()
             : null;
 
+        var textSegments = BuildTextSegments(step, keyword);
+
         return new ScenarioStep
         {
             Keyword = keyword,
@@ -243,7 +245,92 @@ internal static class FeatureResultExtensions
             Comments = comments is { Length: > 0 } ? comments : null,
             Attachments = attachments is { Length: > 0 } ? attachments : null,
             Parameters = parameters,
+            TextSegments = textSegments,
         };
+    }
+
+    // Matches "{N}" placeholders (with surrounding quotes) in NameFormat
+    private static readonly Regex FormatPlaceholderPattern = new(@"""?\{(\d+)\}""?", RegexOptions.Compiled);
+
+    private static StepTextSegment[]? BuildTextSegments(IStepResult step, string? keyword)
+    {
+        var nameParams = step.Info.Name.Parameters.ToArray();
+        if (nameParams.Length == 0)
+            return null;
+
+        var nameFormat = step.Info.Name.NameFormat;
+
+        // Strip keyword prefix from the format string (same as we do for Text)
+        if (keyword != null && nameFormat.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+        {
+            nameFormat = nameFormat[keyword.Length..].TrimStart();
+        }
+
+        // Strip bracket-appended params from format (they're not inline text params)
+        nameFormat = BracketParamPattern.Replace(nameFormat, "");
+
+        // Build a lookup from IStepResult.Parameters for expectations (inline params by position)
+        var inlineExpectations = new Dictionary<int, string?>();
+        var resultParams = step.Parameters?.ToArray();
+        if (resultParams != null)
+        {
+            var inlineIndex = 0;
+            foreach (var rp in resultParams)
+            {
+                if (rp.Details is IInlineParameterDetails inline)
+                {
+                    inlineExpectations[inlineIndex] = inline.Expectation;
+                    inlineIndex++;
+                }
+            }
+        }
+
+        var segments = new List<StepTextSegment>();
+        var lastEnd = 0;
+
+        foreach (Match match in FormatPlaceholderPattern.Matches(nameFormat))
+        {
+            // Add literal text before this placeholder
+            if (match.Index > lastEnd)
+            {
+                var literal = nameFormat[lastEnd..match.Index];
+                literal = StripNamespacesFromText(literal);
+                segments.Add(StepTextSegment.Literal(literal));
+            }
+
+            if (int.TryParse(match.Groups[1].Value, out var paramIndex) && paramIndex < nameParams.Length)
+            {
+                var nameParam = nameParams[paramIndex];
+                var expectation = inlineExpectations.GetValueOrDefault(paramIndex);
+                var paramValue = new InlineParameterValue(
+                    nameParam.FormattedValue ?? "",
+                    expectation,
+                    MapVerificationStatus(nameParam.VerificationStatus));
+
+                // Try to get param name from result parameters
+                string? paramName = null;
+                if (resultParams != null)
+                {
+                    var inlineResults = resultParams.Where(rp => rp.Details is IInlineParameterDetails).ToArray();
+                    if (paramIndex < inlineResults.Length)
+                        paramName = inlineResults[paramIndex].Name;
+                }
+
+                segments.Add(StepTextSegment.Param(paramName, paramValue));
+            }
+
+            lastEnd = match.Index + match.Length;
+        }
+
+        // Add remaining literal text after the last placeholder
+        if (lastEnd < nameFormat.Length)
+        {
+            var literal = nameFormat[lastEnd..];
+            literal = StripNamespacesFromText(literal);
+            segments.Add(StepTextSegment.Literal(literal));
+        }
+
+        return segments.Count > 0 ? segments.ToArray() : null;
     }
 
     private static ExecutionResult MapStatus(ExecutionStatus status)

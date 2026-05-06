@@ -356,6 +356,65 @@ public class FeatureResultExtensionsTests
         Assert.Equal("Caller Uses Endpoint With Invalid NewPasscode", features[0].Scenarios[0].OutlineId);
     }
 
+    [Fact]
+    public void MapStep_populates_TextSegments_from_NameFormat_with_params()
+    {
+        // NameFormat: "Given customer has \"{0}\" in account" with keyword "Given"
+        var stepResult = new StubStepResult("Given", "Given customer has \"{0}\" in account",
+            [new StubNameParam("105", ParameterVerificationStatus.Success)],
+            ExecutionStatus.Passed)
+            .WithParameters(new StubParameterResult("amount", new StubInlineDetails("105", null)));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        Assert.Equal(3, step.TextSegments!.Length);
+        Assert.Equal("customer has ", step.TextSegments[0].Text);
+        Assert.NotNull(step.TextSegments[1].Parameter);
+        Assert.Equal("105", step.TextSegments[1].Parameter!.Value);
+        Assert.Equal(VerificationStatus.Success, step.TextSegments[1].Parameter!.Status);
+        Assert.Equal("amount", step.TextSegments[1].ParameterName);
+        Assert.Equal(" in account", step.TextSegments[2].Text);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_null_when_no_name_params()
+    {
+        var stepResult = new StubStepResult("Given", "customer logs in", ExecutionStatus.Passed);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.Null(step.TextSegments);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_maps_expectation_from_inline_parameter_details()
+    {
+        var stepResult = new StubStepResult("Then", "Then balance is \"{0}\"",
+            [new StubNameParam("200", ParameterVerificationStatus.Failure)],
+            ExecutionStatus.Failed)
+            .WithParameters(new StubParameterResult("balance", new StubInlineDetails("200", "300")));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        var paramSeg = step.TextSegments!.First(s => s.Parameter != null);
+        Assert.Equal("200", paramSeg.Parameter!.Value);
+        Assert.Equal("300", paramSeg.Parameter!.Expectation);
+        Assert.Equal(VerificationStatus.Failure, paramSeg.Parameter!.Status);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult
@@ -429,6 +488,7 @@ public class FeatureResultExtensionsTests
     private class StubStepResult : IStepResult
     {
         private readonly List<IStepResult> _subSteps = [];
+        private IReadOnlyList<IParameterResult> _parameters = Array.Empty<IParameterResult>();
 
         public StubStepResult(string? keyword, string text,
             ExecutionStatus status,
@@ -448,19 +508,42 @@ public class FeatureResultExtensionsTests
             ExecutionException = executionException;
         }
 
+        public StubStepResult(string? keyword, string nameFormat, INameParameterInfo[] nameParams,
+            ExecutionStatus status,
+            TimeSpan? duration = null,
+            string[]? comments = null,
+            FileAttachment[]? attachments = null,
+            Exception? executionException = null)
+        {
+            Info = new StubStepInfo(keyword, nameFormat, nameParams);
+            Status = status;
+            ExecutionTime = duration.HasValue
+                ? new ExecutionTime(DateTimeOffset.UtcNow, duration.Value)
+                : null;
+            Comments = comments ?? [];
+            FileAttachments = attachments ?? [];
+            ExecutionException = executionException;
+        }
+
         public IStepInfo Info { get; }
         public ExecutionStatus Status { get; }
         public string? StatusDetails => null;
         public ExecutionTime? ExecutionTime { get; }
         public IEnumerable<string> Comments { get; }
         public Exception? ExecutionException { get; }
-        public IReadOnlyList<IParameterResult> Parameters => Array.Empty<IParameterResult>();
+        public IReadOnlyList<IParameterResult> Parameters => _parameters;
         public IEnumerable<FileAttachment> FileAttachments { get; }
         public IEnumerable<IStepResult> GetSubSteps() => _subSteps;
 
         public StubStepResult WithSubStep(StubStepResult subStep)
         {
             _subSteps.Add(subStep);
+            return this;
+        }
+
+        public StubStepResult WithParameters(params IParameterResult[] parameters)
+        {
+            _parameters = parameters;
             return this;
         }
     }
@@ -515,6 +598,12 @@ public class FeatureResultExtensionsTests
             RuntimeId = Guid.NewGuid();
         }
 
+        public StubStepInfo(string? keyword, string nameFormat, INameParameterInfo[] nameParams)
+        {
+            Name = new StubStepNameInfo(keyword, nameFormat, nameParams);
+            RuntimeId = Guid.NewGuid();
+        }
+
         public IStepNameInfo Name { get; }
         INameInfo IMetadataInfo.Name => Name;
         public Guid RuntimeId { get; }
@@ -527,19 +616,30 @@ public class FeatureResultExtensionsTests
     private class StubStepNameInfo : IStepNameInfo
     {
         private readonly string _fullText;
+        private readonly INameParameterInfo[] _params;
 
-        public StubStepNameInfo(string? keyword, string fullText)
+        public StubStepNameInfo(string? keyword, string fullText) : this(keyword, fullText, []) { }
+
+        public StubStepNameInfo(string? keyword, string nameFormat, INameParameterInfo[] nameParams)
         {
             StepTypeName = keyword != null ? new StubStepTypeNameInfo(keyword) : null;
-            _fullText = fullText;
+            _fullText = nameFormat;
+            _params = nameParams;
         }
 
         public IStepTypeNameInfo? StepTypeName { get; }
         public string NameFormat => _fullText;
-        public IEnumerable<INameParameterInfo> Parameters => [];
-        public override string ToString() => _fullText;
-        public string Format(INameDecorator decorator) => _fullText;
-        public string Format(IStepNameDecorator decorator) => _fullText;
+        public IEnumerable<INameParameterInfo> Parameters => _params;
+        public override string ToString()
+        {
+            if (_params.Length == 0) return _fullText;
+            var result = _fullText;
+            for (var i = 0; i < _params.Length; i++)
+                result = result.Replace($"\"{{{i}}}\"", $"\"{_params[i].FormattedValue}\"");
+            return result;
+        }
+        public string Format(INameDecorator decorator) => ToString();
+        public string Format(IStepNameDecorator decorator) => ToString();
     }
 
     private class StubStepTypeNameInfo : IStepTypeNameInfo
@@ -581,9 +681,39 @@ public class FeatureResultExtensionsTests
 
     private class StubNameParam : INameParameterInfo
     {
-        public StubNameParam(string value) { FormattedValue = value; }
+        public StubNameParam(string value, ParameterVerificationStatus status = ParameterVerificationStatus.NotApplicable)
+        {
+            FormattedValue = value;
+            VerificationStatus = status;
+        }
         public bool IsEvaluated => true;
-        public ParameterVerificationStatus VerificationStatus => ParameterVerificationStatus.NotApplicable;
+        public ParameterVerificationStatus VerificationStatus { get; }
         public string FormattedValue { get; }
+    }
+
+    private class StubParameterResult : IParameterResult
+    {
+        public StubParameterResult(string name, IParameterDetails details)
+        {
+            Name = name;
+            Details = details;
+        }
+        public string Name { get; }
+        public IParameterDetails Details { get; }
+    }
+
+    private class StubInlineDetails : IInlineParameterDetails
+    {
+        public StubInlineDetails(string value, string? expectation,
+            ParameterVerificationStatus status = ParameterVerificationStatus.NotApplicable)
+        {
+            Value = value;
+            Expectation = expectation ?? "";
+            VerificationStatus = status;
+        }
+        public string Value { get; }
+        public string Expectation { get; }
+        public string VerificationMessage => "";
+        public ParameterVerificationStatus VerificationStatus { get; }
     }
 }

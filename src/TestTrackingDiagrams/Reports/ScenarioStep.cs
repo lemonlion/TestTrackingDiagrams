@@ -42,5 +42,5 @@ public record StepTextSegment
     public static StepTextSegment Literal(string text) => new() { Text = text };
 
     /// <summary>Creates a parameter segment with value, verification status, and name.</summary>
-    public static StepTextSegment Param(string name, InlineParameterValue value) => new() { Parameter = value, ParameterName = name };
+    public static StepTextSegment Param(string? name, InlineParameterValue value) => new() { Parameter = value, ParameterName = name };
 }

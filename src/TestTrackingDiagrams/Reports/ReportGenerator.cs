@@ -2766,13 +2766,47 @@ public static class ReportGenerator
             body.Append($"<span class=\"step-keyword\">{System.Net.WebUtility.HtmlEncode(step.Keyword)}</span> ");
         }
 
-        var stepText = step.Text;
+        // Render step text — either structured segments with inline params, or plain text
+        if (step.TextSegments is { Length: > 0 })
+        {
+            body.Append("<span class=\"step-text\">");
+            foreach (var seg in step.TextSegments)
+            {
+                if (seg.Parameter is not null)
+                {
+                    var paramStatusClass = seg.Parameter.Status switch
+                    {
+                        VerificationStatus.Success => "param-success",
+                        VerificationStatus.Failure => "param-failure",
+                        VerificationStatus.Exception => "param-exception",
+                        VerificationStatus.NotProvided => "param-not-provided",
+                        _ => "param-na"
+                    };
+                    var display = seg.Parameter.Expectation is not null
+                        ? $"{System.Net.WebUtility.HtmlEncode(seg.Parameter.Value)}/{System.Net.WebUtility.HtmlEncode(seg.Parameter.Expectation)}"
+                        : System.Net.WebUtility.HtmlEncode(seg.Parameter.Value);
+                    var titleAttr = seg.ParameterName is not null
+                        ? $" title=\"{System.Net.WebUtility.HtmlEncode(seg.ParameterName)}\""
+                        : "";
+                    body.Append($"<span class=\"step-param-inline {paramStatusClass}\"{titleAttr}>{display}</span>");
+                }
+                else if (seg.Text is not null)
+                {
+                    body.Append(System.Net.WebUtility.HtmlEncode(seg.Text));
+                }
+            }
+            body.Append("</span>");
+        }
+        else
+        {
+            var stepText = step.Text;
 
-        // Strip tabular parameter reference suffixes like [paramName: "<$paramName>"] from step text
-        if (step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular) == true)
-            stepText = StripTabularParamSuffixRegex().Replace(stepText, "").TrimEnd();
+            // Strip tabular parameter reference suffixes like [paramName: "<$paramName>"] from step text
+            if (step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular) == true)
+                stepText = StripTabularParamSuffixRegex().Replace(stepText, "").TrimEnd();
 
-        body.Append($"<span class=\"step-text\">{System.Net.WebUtility.HtmlEncode(stepText)}</span>");
+            body.Append($"<span class=\"step-text\">{System.Net.WebUtility.HtmlEncode(stepText)}</span>");
+        }
 
         if (step.Duration.HasValue)
         {
@@ -2805,6 +2839,7 @@ public static class ReportGenerator
             foreach (var param in step.Parameters)
             {
                 if (skipTabularInline && param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
+                if (step.TextSegments is { Length: > 0 } && param.Kind == StepParameterKind.Inline) continue; // Already rendered inline in text segments
                 RenderParameter(body, param);
             }
         }

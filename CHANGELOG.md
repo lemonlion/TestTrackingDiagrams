@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.5] - 2026-05-06
+
+### Added
+- **LightBDD inline parameter highlighting**: Step text in the HTML report now renders LightBDD parameters inline within the prose (e.g. "customer has `105` in account" with the value highlighted) instead of appending them as separate badges after the step text. This matches LightBDD's native HTML report behaviour and eliminates the previous duplicative display. Parameters are color-coded by verification status (success/failure/exception) and show a tooltip with the parameter name. When `TextSegments` are present on a step, separate inline parameter badges are suppressed.
+
 ## [2.30.4] - 2026-05-06
 
 ### Added
