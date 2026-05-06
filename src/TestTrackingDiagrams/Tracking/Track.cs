@@ -163,7 +163,10 @@ public static class Track
         // Append source location as a PlantUML comment (invisible in rendered output)
         if (!string.IsNullOrEmpty(callerFilePath))
         {
-            var fileName = System.IO.Path.GetFileName(callerFilePath);
+            // Use LastIndexOfAny to handle both / and \ separators cross-platform
+            // (Path.GetFileName doesn't recognize \ on Linux)
+            var separatorIndex = callerFilePath.LastIndexOfAny(['/', '\\']);
+            var fileName = separatorIndex >= 0 ? callerFilePath[(separatorIndex + 1)..] : callerFilePath;
             plantUml += $"\n'__assertionLoc__:{fileName}:L{callerLineNumber}";
         }
 

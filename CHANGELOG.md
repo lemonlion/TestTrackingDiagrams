@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.6] - 2026-05-06
+
+### Fixed
+- **Cross-platform caller file path extraction**: `Track.That()` source-location extraction now handles Windows-style backslash paths correctly on Linux. Previously, `Path.GetFileName()` on Linux would not strip directory components from paths containing `\`, causing assertion location tooltips to display the full path instead of just the filename.
+
 ## [2.30.5] - 2026-05-06
 
 ### Added
