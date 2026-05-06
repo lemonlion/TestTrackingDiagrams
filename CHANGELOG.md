@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.20] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: weaver hanging on Linux CI runners** — Three root causes addressed: (1) Replaced Cecil `ReadWrite=true` file mode with read-into-memory + write-to-new-file approach, eliminating exclusive file locks that could stall on overlay/virtual filesystems used by CI runners. (2) Added double-weave detection via a sentinel module attribute (`__AssertionTrackingWeaved__`) — if the assembly was already instrumented (e.g. MSBuild re-evaluation without recompilation), the weaver exits immediately instead of processing the already-weaved IL which would exponentially grow the instruction count. (3) Added `Inputs/Outputs` to the MSBuild target so it only runs when the intermediate assembly is newer than the weave marker file, preventing unnecessary re-execution on incremental builds. Also replaced the O(seqpoints × instructions) LINQ filtering with a single-pass pre-indexed boundary lookup, and added per-phase timing diagnostics (read/setup/weave/write milliseconds) logged at Low importance.
+
 ## [2.30.19] - 2026-05-07
 
 ### Fixed

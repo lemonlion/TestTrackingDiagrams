@@ -45,11 +45,15 @@ namespace TestTrackingDiagrams.Tracking
   <!-- Run IL weaving AFTER compilation to instrument .Should() calls -->
   <Target Name="_WeaveAssertionTracking"
           AfterTargets="CoreCompile"
-          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'">
+          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'"
+          Inputs="@(IntermediateAssembly)"
+          Outputs="@(IntermediateAssembly);$(IntermediateOutputPath)__assertion_tracking_weaved__.marker">
 
     <WeaveAssertionsTask
       AssemblyPath="@(IntermediateAssembly)"
       SourceRoots="@(SourceRoot)" />
+
+    <Touch Files="$(IntermediateOutputPath)__assertion_tracking_weaved__.marker" AlwaysCreate="true" />
 
   </Target>
 
