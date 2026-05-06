@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.8] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: null-propagation support via branch retargeting** — Null-conditional (`?.`) assertion chains are now fully instrumented instead of being skipped. The weaver retargets outbound branches from `?.` operators to the `leave` instruction inside the try block, so when `?.` short-circuits (value is null), execution exits the try cleanly without tracking (correct — no assertion ran). This replaces the previous approach of skipping these statements entirely.
+
 ## [2.30.7] - 2026-05-07
 
 ### Added

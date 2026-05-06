@@ -168,10 +168,12 @@ public class AssertionWeaverTests
     }
 
     [Fact]
-    public void Weave_NullPropagation_SkipsStatementToPreserveSemantics()
+    public void Weave_NullPropagation_PreservesSemantics()
     {
-        // Null propagation (?.) generates branches that exit the statement range.
-        // The weaver skips these to avoid producing invalid IL.
+        // The whole point of IL weaving: null propagation works correctly.
+        // The ?. branch is retargeted to the leave instruction inside the try block,
+        // so when Name is null the ?. short-circuits cleanly (no assertion tracked,
+        // no InvalidProgramException).
         var assemblyPath = TestAssemblyBuilder.Build(
             "NullProp",
             """
@@ -193,17 +195,19 @@ public class AssertionWeaverTests
         var weaver = new AssertionWeaver();
         var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
 
-        // Null-propagation statements are skipped (outbound branches make try/catch invalid)
-        result.WeavedCount.Should().Be(0,
-            $"SkipReason: {result.SkipReason}, Diag: [{string.Join("; ", result.DiagMessages)}]");
+        // The assertion IS instrumented (not skipped)
+        result.WeavedCount.Should().Be(1);
 
-        // The assembly should still be valid and executable
+        // The weaved assembly should be loadable and executable without error
+        // when Name is null (null propagation short-circuits cleanly)
         var asm = Assembly.LoadFrom(assemblyPath);
         var testType = asm.GetType("Tests")!;
         var instance = Activator.CreateInstance(testType)!;
         var method = testType.GetMethod("Method")!;
 
-        // Should NOT throw — null propagation is preserved, no invalid IL
+        // Should NOT throw NullReferenceException or InvalidProgramException
+        // Null propagation means .Should() never gets called — the ?. branch
+        // hits the leave instruction and exits the try block cleanly
         var ex = Record.Exception(() => method.Invoke(instance, null));
         ex.Should().BeNull();
     }

@@ -209,21 +209,13 @@ public class AssertionWeaver
             if (!hasShouldCall)
                 continue;
 
-            // Skip statements that have branches jumping outside the statement range.
-            // This happens with null-propagation (?.) which generates branches that
-            // exit the try region, causing InvalidProgramException.
-            var hasOutboundBranch = statementInstructions.Any(i =>
-                i.Operand is Instruction target &&
-                (target.Offset < startOffset || target.Offset >= endOffset));
-result.SkippedDueToBranch++;
-                result.DiagMessages.Add($"Skipped line {sp.StartLine} (outbound branch, range {startOffset}-{endOffset})");
-                
-            if (hasOutboundBranch)
-            {
-                _log?.LogMessage(MessageImportance.Low,
-                    $"AssertionTracking: Skipping statement at line {sp.StartLine} due to outbound branch (likely null-propagation)");
-                continue;
-            }
+            // Collect any branches jumping outside the statement range.
+            // These come from null-propagation (?.) which generates branches that
+            // would cross try/catch boundaries. We'll retarget them during wrapping.
+            var outboundBranches = statementInstructions
+                .Where(i => i.Operand is Instruction target &&
+                    (target.Offset < startOffset || target.Offset >= endOffset))
+                .ToList();
 
             // Read the source text for this statement
             var sourceText = ReadSourceText(sp);
@@ -233,7 +225,8 @@ result.SkippedDueToBranch++;
                 FirstInstruction = statementInstructions.First(),
                 LastInstruction = statementInstructions.Last(),
                 SequencePoint = sp,
-                SourceText = sourceText
+                SourceText = sourceText,
+                OutboundBranches = outboundBranches
             });
         }
 
@@ -434,6 +427,14 @@ result.SkippedDueToBranch++;
             CatchType = exceptionTypeRef
         };
         body.ExceptionHandlers.Add(handler);
+
+        // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
+        // This keeps the branch inside the try block: when ?. short-circuits, execution
+        // leaves the try cleanly via 'leave' without tracking (correct — no assertion ran).
+        foreach (var branch in assertion.OutboundBranches)
+        {
+            branch.Operand = leaveInstr;
+        }
     }
 }
 
@@ -443,6 +444,12 @@ public class AssertionStatement
     public Instruction LastInstruction { get; set; } = null!;
     public SequencePoint SequencePoint { get; set; } = null!;
     public string SourceText { get; set; } = "";
+    /// <summary>
+    /// Branch instructions within this statement that jump outside the statement range
+    /// (e.g. null-propagation ?. short-circuit). These must be retargeted to land inside
+    /// the try block to avoid InvalidProgramException.
+    /// </summary>
+    public List<Instruction> OutboundBranches { get; set; } = new List<Instruction>();
 }
 
 public class WeaveResult
@@ -450,6 +457,5 @@ public class WeaveResult
     public int WeavedCount { get; set; }
     public int MethodCount { get; set; }
     public string? SkipReason { get; set; }
-    public int SkippedDueToBranch { get; set; }
     public List<string> DiagMessages { get; set; } = new List<string>();
 }
