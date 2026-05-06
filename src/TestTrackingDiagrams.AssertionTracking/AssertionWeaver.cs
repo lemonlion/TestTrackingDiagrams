@@ -28,20 +28,40 @@ public class AssertionWeaver
     public WeaveResult Weave(string assemblyPath, string pdbPath)
     {
         var result = new WeaveResult();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        // Read assembly from a byte array to avoid holding file locks (ReadWrite=true
+        // can stall on Linux overlay filesystems used by CI runners).
+        var assemblyBytes = File.ReadAllBytes(assemblyPath);
+        var pdbBytes = File.ReadAllBytes(pdbPath);
 
         var readerParams = new ReaderParameters
         {
-            ReadWrite = true,
             ReadSymbols = true,
-            SymbolReaderProvider = new DefaultSymbolReaderProvider(throwIfNoSymbol: false)
+            SymbolReaderProvider = new DefaultSymbolReaderProvider(throwIfNoSymbol: false),
+            ReadingMode = ReadingMode.Immediate,
+            AssemblyResolver = new DefaultAssemblyResolver()
         };
+        readerParams.SymbolStream = new MemoryStream(pdbBytes);
 
-        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParams);
+        using var assemblyStream = new MemoryStream(assemblyBytes);
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyStream, readerParams);
+
+        var readMs = sw.ElapsedMilliseconds;
 
         // Fast-path: check for [assembly: TrackAssertionsBeta]
         if (!HasTrackAssertionsBetaAttribute(assembly))
         {
             result.SkipReason = "No TrackAssertionsBeta attribute found";
+            return result;
+        }
+
+        // Guard against double-weaving: check for our sentinel module attribute
+        if (HasAlreadyBeenWeaved(assembly))
+        {
+            result.SkipReason = "Assembly already weaved (sentinel found)";
+            _log?.LogMessage(MessageImportance.Normal,
+                "TestTrackingDiagrams.AssertionTracking: Skipping — assembly was already weaved");
             return result;
         }
 
@@ -61,6 +81,8 @@ public class AssertionWeaver
         var exceptionType = assembly.MainModule.ImportReference(typeof(Exception));
         var getMessageMethod = assembly.MainModule.ImportReference(
             typeof(Exception).GetProperty("Message")!.GetGetMethod()!);
+
+        var setupMs = sw.ElapsedMilliseconds;
 
         foreach (var type in assembly.MainModule.GetTypes())
         {
@@ -84,17 +106,67 @@ public class AssertionWeaver
             }
         }
 
+        var weaveMs = sw.ElapsedMilliseconds;
+
         if (result.WeavedCount > 0)
         {
+            // Add sentinel attribute to prevent double-weaving
+            AddWeavedSentinel(assembly);
+
+            using var outputAssembly = new MemoryStream();
+            using var outputPdb = new MemoryStream();
+
             var writerParams = new WriterParameters
             {
                 WriteSymbols = true,
-                SymbolWriterProvider = new DefaultSymbolWriterProvider()
+                SymbolWriterProvider = new PortablePdbWriterProvider(),
+                SymbolStream = outputPdb
             };
-            assembly.Write(writerParams);
+            assembly.Write(outputAssembly, writerParams);
+
+            var writeMs = sw.ElapsedMilliseconds;
+
+            // Write back to disk
+            File.WriteAllBytes(assemblyPath, outputAssembly.ToArray());
+            File.WriteAllBytes(pdbPath, outputPdb.ToArray());
+
+            _log?.LogMessage(MessageImportance.Low,
+                "AssertionTracking timing: read={0}ms setup={1}ms weave={2}ms write={3}ms total={4}ms",
+                readMs, setupMs - readMs, weaveMs - setupMs, writeMs - weaveMs, sw.ElapsedMilliseconds);
         }
 
         return result;
+    }
+
+    private static bool HasAlreadyBeenWeaved(AssemblyDefinition assembly)
+    {
+        return assembly.MainModule.CustomAttributes.Any(a =>
+            a.AttributeType.Name == "__AssertionTrackingWeaved__");
+    }
+
+    private static void AddWeavedSentinel(AssemblyDefinition assembly)
+    {
+        var module = assembly.MainModule;
+        // Create a minimal attribute type in the module itself
+        var attrType = new TypeDefinition(
+            "TestTrackingDiagrams.AssertionTracking.Internal",
+            "__AssertionTrackingWeaved__",
+            Mono.Cecil.TypeAttributes.NotPublic | Mono.Cecil.TypeAttributes.Sealed,
+            module.TypeSystem.Object);
+        module.Types.Add(attrType);
+
+        // Add a parameterless constructor
+        var ctor = new MethodDefinition(
+            ".ctor",
+            Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig |
+            Mono.Cecil.MethodAttributes.SpecialName | Mono.Cecil.MethodAttributes.RTSpecialName,
+            module.TypeSystem.Void);
+        ctor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+        attrType.Methods.Add(ctor);
+
+        // Apply [module: __AssertionTrackingWeaved__]
+        var attrInstance = new CustomAttribute(ctor);
+        module.CustomAttributes.Add(attrInstance);
     }
 
     private static bool HasTrackAssertionsBetaAttribute(AssemblyDefinition assembly)
@@ -233,7 +305,33 @@ public class AssertionWeaver
             return results;
 
         var sequencePoints = method.DebugInformation.SequencePoints.ToList();
-        var instructions = method.Body.Instructions.ToList();
+        var instructions = method.Body.Instructions;
+
+        // Build instruction list indexed by offset for O(1) range lookups.
+        // Walk the linked list once and bucket instructions by sequence point ranges.
+        var instrByOffset = new List<Instruction>(instructions.Count);
+        foreach (var instr in instructions)
+            instrByOffset.Add(instr);
+
+        // Pre-compute instruction index boundaries for each sequence point
+        // using a single pass through the instruction list.
+        var spBoundaries = new int[sequencePoints.Count + 1];
+        {
+            var spIdx2 = 0;
+            for (var i = 0; i < instrByOffset.Count && spIdx2 < sequencePoints.Count; i++)
+            {
+                while (spIdx2 < sequencePoints.Count && instrByOffset[i].Offset >= sequencePoints[spIdx2].Offset)
+                {
+                    spBoundaries[spIdx2] = i;
+                    spIdx2++;
+                }
+            }
+            while (spIdx2 <= sequencePoints.Count)
+            {
+                spBoundaries[spIdx2] = instrByOffset.Count;
+                spIdx2++;
+            }
+        }
 
         // Group instructions by sequence point (each sequence point = one source statement)
         for (var spIdx = 0; spIdx < sequencePoints.Count; spIdx++)
@@ -242,15 +340,19 @@ public class AssertionWeaver
             if (sp.IsHidden)
                 continue;
 
-            var startOffset = sp.Offset;
-            var endOffset = spIdx + 1 < sequencePoints.Count
-                ? sequencePoints[spIdx + 1].Offset
-                : int.MaxValue;
+            // Use pre-computed boundaries for O(1) range access
+            var startIdx = spBoundaries[spIdx];
+            var endIdx = spIdx + 1 < sequencePoints.Count
+                ? spBoundaries[spIdx + 1]
+                : instrByOffset.Count;
 
             // Get instructions in this statement range
-            var statementInstructions = instructions
-                .Where(i => i.Offset >= startOffset && i.Offset < endOffset)
-                .ToList();
+            var statementInstructions = new List<Instruction>(endIdx - startIdx);
+            for (var i = startIdx; i < endIdx; i++)
+                statementInstructions.Add(instrByOffset[i]);
+
+            if (statementInstructions.Count == 0)
+                continue;
 
             // Check if any instruction is a call to .Should()
             var hasShouldCall = statementInstructions.Any(i =>
@@ -266,6 +368,10 @@ public class AssertionWeaver
             // These come from null-propagation (?.) which generates brfalse/brtrue that skip
             // past the expression. We exclude leave/leave.s since those are structural control
             // flow for exception handling (e.g. async state machine's outer try/catch exit).
+            var startOffset = statementInstructions[0].Offset;
+            var endOffset = statementInstructions.Count > 0
+                ? statementInstructions[statementInstructions.Count - 1].Offset + 1
+                : startOffset;
             var outboundBranches = statementInstructions
                 .Where(i => i.OpCode != OpCodes.Leave && i.OpCode != OpCodes.Leave_S &&
                     i.Operand is Instruction target &&
