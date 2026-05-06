@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.16] - 2026-05-07
+
+### Fixed
+- **BDDfy.xUnit3: `CurrentTestInfo.Fetcher` was permanently null** — The static initializer `xUnit3.CurrentTestInfo.Fetcher` resolved to the same class (self-reference) because namespace `TestTrackingDiagrams.BDDfy` contains child namespace `xUnit3`, causing C# name resolution to bind `xUnit3.CurrentTestInfo` to `TestTrackingDiagrams.BDDfy.xUnit3.CurrentTestInfo` instead of the intended `TestTrackingDiagrams.xUnit3.CurrentTestInfo`. The self-referencing read returned null during static construction, permanently disabling HTTP tracking in all BDDfy + xUnit3 projects. Fixed by fully qualifying the reference. Fixes #44.
+
 ## [2.30.15] - 2026-05-07
 
 ### Added

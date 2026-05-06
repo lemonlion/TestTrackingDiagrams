@@ -11,5 +11,5 @@ public static class CurrentTestInfo
     /// Assign to <c>CurrentTestInfoFetcher</c> on any tracking options class.
     /// </summary>
     public static Func<(string Name, string Id)> Fetcher { get; } =
-        xUnit3.CurrentTestInfo.Fetcher;
+        TestTrackingDiagrams.xUnit3.CurrentTestInfo.Fetcher;
 }
