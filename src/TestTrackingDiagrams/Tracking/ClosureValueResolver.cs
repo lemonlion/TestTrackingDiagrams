@@ -315,17 +315,42 @@ public static class ClosureValueResolver
                 ? s[..MaxValueLength] + "..."
                 : s;
 
-        // Collections — show count
+        // Collections — show inline values for small scalar collections, count for others
         if (value is IEnumerable enumerable and not string)
         {
-            var count = 0;
-            foreach (var _ in enumerable)
+            var items = new List<object?>();
+            var allScalar = true;
+            foreach (var item in enumerable)
             {
-                count++;
-                if (count > 1000) break; // safety cap
+                items.Add(item);
+                if (items.Count > 10)
+                {
+                    allScalar = false;
+                    break;
+                }
+                if (item != null && !IsScalarType(item.GetType()))
+                    allScalar = false;
             }
 
-            return $"[{count} items]";
+            if (items.Count == 0)
+                return "[0 items]";
+
+            if (allScalar && items.Count <= 10)
+            {
+                var formatted = items.Select(i =>
+                    i is null ? "null" :
+                    i is string str2 ? $"\"{str2}\"" :
+                    i.ToString() ?? "null");
+                return $"[ {string.Join(", ", formatted)} ]";
+            }
+
+            if (items.Count > 10)
+            {
+                if (enumerable is System.Collections.ICollection collection)
+                    return $"[{collection.Count} items]";
+                return $"[{items.Count} items]";
+            }
+            return $"[{items.Count} items]";
         }
 
         var str = value.ToString();
@@ -345,6 +370,15 @@ public static class ClosureValueResolver
     }
 
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    private static bool IsScalarType(Type type)
+    {
+        return type.IsPrimitive || type.IsEnum || type == typeof(string)
+            || type == typeof(decimal) || type == typeof(Guid)
+            || type == typeof(DateTime) || type == typeof(DateTimeOffset)
+            || type == typeof(TimeSpan) || type == typeof(DateOnly)
+            || type == typeof(TimeOnly);
+    }
 }
 
 /// <summary>

@@ -52,16 +52,58 @@ public class TrackValueResolutionTests : IDisposable
     }
 
     [Fact]
-    public void FormatValue_collection_returns_item_count()
+    public void FormatValue_small_int_collection_shows_inline_values()
     {
         var list = new List<int> { 1, 2, 3 };
-        Assert.Equal("[3 items]", Track.FormatValue(list));
+        Assert.Equal("[ 1, 2, 3 ]", Track.FormatValue(list));
+    }
+
+    [Fact]
+    public void FormatValue_small_string_collection_shows_quoted_values()
+    {
+        var list = new List<string> { "Milk", "Sugar", "Brandy" };
+        Assert.Equal("""[ "Milk", "Sugar", "Brandy" ]""", Track.FormatValue(list));
+    }
+
+    [Fact]
+    public void FormatValue_small_enum_collection_shows_names()
+    {
+        var list = new[] { DayOfWeek.Monday, DayOfWeek.Friday };
+        Assert.Equal("[ Monday, Friday ]", Track.FormatValue(list));
     }
 
     [Fact]
     public void FormatValue_empty_collection_returns_zero_items()
     {
         Assert.Equal("[0 items]", Track.FormatValue(Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void FormatValue_large_collection_shows_count_only()
+    {
+        var list = Enumerable.Range(1, 11).ToList();
+        Assert.Equal("[11 items]", Track.FormatValue(list));
+    }
+
+    [Fact]
+    public void FormatValue_collection_with_complex_objects_shows_count()
+    {
+        var list = new List<object> { new ObjectWithBadToString(), new ObjectWithBadToString() };
+        Assert.Equal("[2 items]", Track.FormatValue(list));
+    }
+
+    [Fact]
+    public void FormatValue_collection_with_null_items_shows_inline()
+    {
+        var list = new List<string?> { "hello", null, "world" };
+        Assert.Equal("""[ "hello", null, "world" ]""", Track.FormatValue(list));
+    }
+
+    [Fact]
+    public void FormatValue_exactly_10_items_shows_inline()
+    {
+        var list = Enumerable.Range(1, 10).ToList();
+        Assert.Equal("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]", Track.FormatValue(list));
     }
 
     [Fact]

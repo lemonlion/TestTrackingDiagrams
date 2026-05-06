@@ -180,13 +180,44 @@ public static class Track
 
         if (value is IEnumerable enumerable)
         {
-            var count = 0;
-            foreach (var _ in enumerable)
+            var items = new List<object?>();
+            var allScalar = true;
+            foreach (var item in enumerable)
             {
-                count++;
-                if (count > 1000) break;
+                items.Add(item);
+                if (items.Count > 10)
+                {
+                    allScalar = false;
+                    break;
+                }
+                if (item != null && !IsScalarType(item.GetType()))
+                    allScalar = false;
             }
-            return $"[{count} items]";
+
+            if (items.Count == 0)
+                return "[0 items]";
+
+            if (allScalar && items.Count <= 10)
+            {
+                var formatted = items.Select(i =>
+                    i is null ? "null" :
+                    i is string str ? $"\"{str}\"" :
+                    i.ToString() ?? "null");
+                return $"[ {string.Join(", ", formatted)} ]";
+            }
+
+            // For >10 items, we already collected 11 but need the full count.
+            // Re-enumerate for IEnumerable that may not be re-iterable.
+            // For collections implementing ICollection, use Count directly.
+            if (items.Count > 10)
+            {
+                if (enumerable is System.Collections.ICollection collection)
+                    return $"[{collection.Count} items]";
+
+                // Already have items.Count from the first pass (stopped at 11+)
+                return $"[{items.Count} items]";
+            }
+            return $"[{items.Count} items]";
         }
 
         try
@@ -206,6 +237,15 @@ public static class Track
         {
             return null;
         }
+    }
+
+    private static bool IsScalarType(Type type)
+    {
+        return type.IsPrimitive || type.IsEnum || type == typeof(string)
+            || type == typeof(decimal) || type == typeof(Guid)
+            || type == typeof(DateTime) || type == typeof(DateTimeOffset)
+            || type == typeof(TimeSpan) || type == typeof(DateOnly)
+            || type == typeof(TimeOnly);
     }
 
     private static Dictionary<string, string>? ResolveVariableValues(string expression, string[] varNames, object?[] varValues)

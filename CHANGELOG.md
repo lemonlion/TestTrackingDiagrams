@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.17] - 2026-05-07
+
+### Changed
+- **Assertion value resolution: smart collection formatting** — Small collections (≤10 items) containing only scalar values (primitives, enums, strings, Guid, DateTime, etc.) are now displayed inline with their actual values (e.g. `[ 1, 2, 3 ]`, `[ "Milk", "Sugar", "Brandy" ]`, `[ Monday, Friday ]`) instead of the generic `[N items]` count. Strings are quoted, nulls display as `null`. Collections with >10 items or containing complex objects still show the count format. Empty collections remain `[0 items]`.
+
 ## [2.30.16] - 2026-05-07
 
 ### Fixed

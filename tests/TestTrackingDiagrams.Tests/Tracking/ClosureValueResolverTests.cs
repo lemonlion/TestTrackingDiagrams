@@ -160,7 +160,7 @@ public class ClosureValueResolverTests
 
         var result = ClosureValueResolver.ResolveValues(action, "() => x.Should().Be(items)");
 
-        Assert.Equal("[3 items]", result.ResolvedValues["items"]);
+        Assert.Equal("[ 1, 2, 3 ]", result.ResolvedValues["items"]);
     }
 
     [Fact]
