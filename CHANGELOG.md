@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.11] - 2026-05-06
+
+### Fixed
+- **Parameter preview: remove type name from nested object summaries** — The `GenerateNestedPreview` and `FormatPreviewValue` methods no longer prepend the type name (e.g. `IngredientSet { ... }`) to nested complex object previews in expandable parameter cells. Nested objects now display as `{ Prop = Val, ... }` matching the top-level preview format. Also strips type name prefix from C# record `ToString()` output used in nested previews.
+
 ## [2.30.10] - 2026-05-06
 
 ### Fixed

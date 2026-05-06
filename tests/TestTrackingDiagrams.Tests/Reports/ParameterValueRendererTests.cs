@@ -292,6 +292,16 @@ public class ParameterValueRendererTests
         Assert.Contains("...", preview);
     }
 
+    [Fact]
+    public void GeneratePreview_nested_object_does_not_include_type_name()
+    {
+        var obj = new NestedRecord("Test Corp", new SmallComplexRecord("Acme", "12-34-56", "12345678"));
+        var preview = ParameterValueRenderer.GeneratePreview(obj);
+        Assert.DoesNotContain("SmallComplexRecord", preview);
+        Assert.Contains("Name = Acme", preview);
+        Assert.StartsWith("{", preview);
+    }
+
     #endregion
 
     #region GenerateHighlightedJson

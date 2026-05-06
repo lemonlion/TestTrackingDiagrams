@@ -294,6 +294,10 @@ internal static class ParameterValueRenderer
             if (props.Length > 0)
                 return GenerateNestedPreview(value, type, props);
         }
+        // Strip type name prefix from record-style ToString (e.g. "TypeName { Prop = Val, ... }")
+        var recordPrefix = type.Name + " { ";
+        if (toString != null && toString.StartsWith(recordPrefix) && toString.EndsWith(" }"))
+            return toString[type.Name.Length..];
         return toString ?? "null";
     }
 
@@ -320,7 +324,7 @@ internal static class ParameterValueRenderer
             }
         }
         var suffix = props.Length > 3 ? ", ..." : "";
-        return $"{type.Name} {{ {string.Join(", ", parts)}{suffix} }}";
+        return $"{{ {string.Join(", ", parts)}{suffix} }}";
     }
 
     /// <summary>
@@ -342,6 +346,10 @@ internal static class ParameterValueRenderer
             if (props.Length > 0)
                 return GenerateNestedPreview(value, type, props);
         }
+        // Strip type name prefix from record-style ToString (e.g. "TypeName { Prop = Val, ... }")
+        var recordPrefix = type.Name + " { ";
+        if (toString != null && toString.StartsWith(recordPrefix) && toString.EndsWith(" }"))
+            return toString[type.Name.Length..];
         return toString ?? "null";
     }
 
