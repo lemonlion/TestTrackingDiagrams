@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.18] - 2026-05-07
+
+### Changed
+- **Parameterized scenario layout: steps moved below input parameters table** — In parameterized scenario detail panels (tests using `[MemberData]`, `[MethodDataSource]`, Scenario Outlines, etc.), the input parameters table now renders above the steps and failure diagnostics. Previously (since v2.29.15-beta), steps were rendered above the table. The new ordering prioritises the varying inputs — which are the primary differentiator between parameterized rows — with the shared step execution details below.
+
 ## [2.30.17] - 2026-05-07
 
 ### Changed

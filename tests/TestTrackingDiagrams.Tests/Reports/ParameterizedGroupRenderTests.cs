@@ -214,6 +214,28 @@ public class ParameterizedGroupRenderTests
     }
 
     [Fact]
+    public void Parameter_table_renders_above_detail_panels()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(a: 1)", outlineId: "Test",
+                exampleValues: new() { ["a"] = "1" },
+                steps: [new ScenarioStep { Text = "Given a setup", Keyword = "Given" }]),
+            MakeScenario("s2", "Test(a: 2)", outlineId: "Test",
+                exampleValues: new() { ["a"] = "2" },
+                steps: [new ScenarioStep { Text = "Given a setup", Keyword = "Given" }])
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Find the actual rendered HTML elements (not CSS/JS references)
+        var tableIndex = content.IndexOf("<table class=\"param-test-table\"");
+        var panelIndex = content.IndexOf("<div class=\"param-detail-panels\">");
+        Assert.True(tableIndex > 0, "<table class=\"param-test-table\" not found");
+        Assert.True(panelIndex > 0, "<div class=\"param-detail-panels\"> not found");
+        Assert.True(tableIndex < panelIndex, "Parameter table should render before (above) detail panels");
+    }
+
+    [Fact]
     public void Identical_diagrams_show_badge()
     {
         var puml = "@startuml\nA -> B: hello\n@enduml";
