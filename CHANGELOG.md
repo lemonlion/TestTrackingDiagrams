@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.7] - 2026-05-07
+
+### Added
+- **AssertionTracking package** (TestTrackingDiagrams.AssertionTracking): Cecil-based IL weaver that instruments FluentAssertions .Should() call chains post-compilation with assertion tracking. Operates on compiled IL preserving full C# semantics including null propagation. Activated via [assembly: TrackAssertionsBeta].
+  - [SuppressAssertionTracking] attribute works on method and class level
+  - Safely skips async state machine methods (MoveNext)
+  - Detects and skips null-propagation (?.) statements that would produce invalid IL
+  - Auto-generates TrackAssertionsBetaAttribute and SuppressAssertionTrackingAttribute via MSBuild targets
+  - Runs AfterTargets=CoreCompile - no impact on IntelliSense or source generation
+
 ## [2.30.6] - 2026-05-06
 
 ### Fixed

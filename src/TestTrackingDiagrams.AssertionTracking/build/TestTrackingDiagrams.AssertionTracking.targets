@@ -1,0 +1,61 @@
+<Project>
+
+  <!-- Auto-generate the TrackAssertionsBeta attribute source into intermediate output -->
+  <Target Name="_GenerateAssertionTrackingAttributes"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'">
+
+    <PropertyGroup>
+      <_AssertionTrackingAttrDir>$(IntermediateOutputPath)AssertionTrackingAttributes\</_AssertionTrackingAttrDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_AssertionTrackingAttrDir)" />
+
+    <WriteLinesToFile
+      File="$(_AssertionTrackingAttrDir)TrackAssertionsBetaAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Assembly)]
+    internal sealed class TrackAssertionsBetaAttribute : Attribute { }
+}" />
+
+    <WriteLinesToFile
+      File="$(_AssertionTrackingAttrDir)SuppressAssertionTrackingAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class%2C Inherited = true)]
+    internal sealed class SuppressAssertionTrackingAttribute : Attribute { }
+}" />
+
+    <ItemGroup>
+      <Compile Include="$(_AssertionTrackingAttrDir)TrackAssertionsBetaAttribute.g.cs" />
+      <Compile Include="$(_AssertionTrackingAttrDir)SuppressAssertionTrackingAttribute.g.cs" />
+    </ItemGroup>
+
+  </Target>
+
+  <!-- Run IL weaving AFTER compilation to instrument .Should() calls -->
+  <Target Name="_WeaveAssertionTracking"
+          AfterTargets="CoreCompile"
+          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'">
+
+    <WeaveAssertionsTask
+      AssemblyPath="@(IntermediateAssembly)"
+      SourceRoots="@(SourceRoot)" />
+
+  </Target>
+
+  <!-- Clean generated attributes -->
+  <Target Name="_CleanAssertionTracking" BeforeTargets="CoreClean">
+    <RemoveDir Directories="$(IntermediateOutputPath)AssertionTrackingAttributes\" />
+  </Target>
+
+</Project>

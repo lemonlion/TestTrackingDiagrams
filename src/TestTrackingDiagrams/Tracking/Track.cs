@@ -118,6 +118,28 @@ public static class Track
         }
     }
 
+    /// <summary>
+    /// Called by the IL weaver (AssertionWeaver) to log a passing assertion.
+    /// Unlike <see cref="That(Action, string?, string?, int)"/>, this does NOT wrap
+    /// the assertion in a lambda — the original code runs unchanged with full semantic
+    /// fidelity (null propagation, ref params, etc.).
+    /// </summary>
+    public static void AssertionPassed(string expression, string? callerFilePath = null, int callerLineNumber = 0)
+    {
+        LogAssertion(expression, passed: true, callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
+    }
+
+    /// <summary>
+    /// Called by the IL weaver (AssertionWeaver) to log a failing assertion.
+    /// Unlike <see cref="That(Action, string?, string?, int)"/>, this does NOT wrap
+    /// the assertion in a lambda — the original code runs unchanged with full semantic
+    /// fidelity (null propagation, ref params, etc.).
+    /// </summary>
+    public static void AssertionFailed(string expression, string failureMessage, string? callerFilePath = null, int callerLineNumber = 0)
+    {
+        LogAssertion(expression, passed: false, failureMessage, callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
+    }
+
     private static Dictionary<string, string>? ResolveClosureValues(Delegate assertion, string? expression)
     {
         try

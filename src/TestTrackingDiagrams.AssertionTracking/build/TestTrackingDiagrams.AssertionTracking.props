@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <TrackAssertionsBetaEnabled Condition="'$(TrackAssertionsBetaEnabled)' == ''">true</TrackAssertionsBetaEnabled>
+    <_AssertionTrackingTaskDir>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\</_AssertionTrackingTaskDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="TestTrackingDiagrams.AssertionTracking.WeaveAssertionsTask"
+             AssemblyFile="$(_AssertionTrackingTaskDir)TestTrackingDiagrams.AssertionTracking.dll" />
+
+</Project>
