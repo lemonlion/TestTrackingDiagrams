@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.25] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: InvalidProgramException in Release-compiled async methods with multiple assertions** — In Release mode, the C# compiler leaves values on the evaluation stack across sequence point boundaries (e.g. `GetResult()` return value feeds directly into `Should()` without an intermediate local, and `dup` provides copies for multiple assertions). The CLR requires the stack to be empty at try block entry points, and `leave` clears the stack. Added stack spill/restore logic: (1) computes stack depth at the assertion's first instruction and spills incoming values before the try block, reloading them inside; (2) computes exit stack depth after the assertion and spills outgoing values before the `leave`, reloading them after the catch handler. Also fixed generic type parameter resolution (e.g. `TaskAwaiter<int>.GetResult()` returning `!0`) when determining spill local types.
+
 ## [2.30.24] - 2026-05-07
 
 ### Fixed

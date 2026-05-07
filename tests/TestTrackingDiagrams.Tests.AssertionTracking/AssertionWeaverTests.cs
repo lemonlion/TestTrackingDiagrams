@@ -453,6 +453,50 @@ public class AssertionWeaverTests
     }
 
     [Fact]
+    public void Weave_AsyncMethod_MultipleAssertions_Release_InstrumentsAll()
+    {
+        // Same as above but compiled with Release optimizations — the CI builds
+        // in Release mode and the state machine IL is significantly different.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncMultipleRelease",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var x = await Task.FromResult(42);
+                    x.Should().Be(42);
+                    
+                    var y = await Task.FromResult("hello");
+                    y.Should().StartWith("h");
+                    y.Should().HaveLength(5);
+                }
+            }
+            """,
+            OptimizationLevel.Release);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(3);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull("Release-compiled async method with multiple assertions should not throw InvalidProgramException");
+    }
+
+    [Fact]
     public void Weave_WithLocalVariable_CapturesVariableForValueResolution()
     {
         var assemblyPath = TestAssemblyBuilder.Build(

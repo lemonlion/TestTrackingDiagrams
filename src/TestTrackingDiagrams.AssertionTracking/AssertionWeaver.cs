@@ -798,6 +798,254 @@ public class AssertionWeaver
         method.Body.OptimizeMacros();
     }
 
+    /// <summary>
+    /// In Release builds, the compiler can leave values on the evaluation stack across statement
+    /// boundaries (e.g. GetResult() return value is consumed directly by Should() without an
+    /// intermediate stloc/ldloc). The CLR requires the stack to be empty at try block entry.
+    /// This method detects a non-empty stack at firstInstr and inserts stloc instructions to
+    /// spill the stack values. The caller must emit corresponding ldloc instructions after the
+    /// tryStart nop to reload them inside the try block.
+    /// </summary>
+    private static List<VariableDefinition>? SpillStackIfNeeded(
+        MethodBody body, ILProcessor il, Instruction firstInstr)
+    {
+        // Compute stack depth at firstInstr by walking forward from the nearest
+        // known-zero point (branch target, handler start, or method start).
+        var depth = ComputeStackDepthAt(body, firstInstr);
+        if (depth <= 0)
+            return null;
+
+        // Determine the types on the stack by walking backwards from firstInstr.
+        // Each value we encounter (in reverse) corresponds to a stack slot.
+        var spillTypes = new TypeReference[depth];
+        var current = firstInstr.Previous;
+        var remaining = depth;
+        while (current != null && remaining > 0)
+        {
+            var pushCount = GetInstructionPushCount(current);
+            var popCount = GetInstructionPopCount(current, body);
+
+            // This instruction pushes values — those are our spill candidates
+            for (var p = 0; p < pushCount && remaining > 0; p++)
+            {
+                remaining--;
+                spillTypes[remaining] = GetPushedType(current, body, p);
+            }
+
+            if (remaining <= 0) break;
+
+            // If this instruction also pops, we'd need to go further back
+            // which is complex. For the common case (single push), we stop here.
+            if (popCount > 0) break;
+
+            current = current.Previous;
+        }
+
+        // Fill any remaining unknown types with object
+        for (var i = 0; i < depth; i++)
+            spillTypes[i] ??= body.Method.Module.TypeSystem.Object;
+
+        // Emit stloc instructions BEFORE firstInstr (in reverse order — top of stack first)
+        var spillLocals = new List<VariableDefinition>(depth);
+        for (var i = depth - 1; i >= 0; i--)
+        {
+            var local = new VariableDefinition(spillTypes[i]);
+            body.Variables.Add(local);
+            spillLocals.Insert(0, local);
+            il.InsertBefore(firstInstr, il.Create(OpCodes.Stloc, local));
+        }
+
+        return spillLocals;
+    }
+
+    /// <summary>
+    /// Computes the net stack depth at the exit of an assertion (after lastInstr).
+    /// This is the entry stack depth + the net delta of all instructions from firstInstr to lastInstr.
+    /// If positive, the assertion leaves values on the stack for subsequent code.
+    /// </summary>
+    private static int ComputeExitStackDepth(MethodBody body, Instruction firstInstr, Instruction lastInstr)
+    {
+        var entryDepth = ComputeStackDepthAt(body, firstInstr);
+        var netDelta = 0;
+        var current = firstInstr;
+        while (current != null)
+        {
+            netDelta += GetInstructionPushCount(current) - GetInstructionPopCount(current, body);
+            if (current == lastInstr) break;
+            current = current.Next;
+        }
+        var exitDepth = entryDepth + netDelta;
+        return exitDepth > 0 ? exitDepth : 0;
+    }
+
+    /// <summary>
+    /// Computes the evaluation stack depth at a target instruction by finding the nearest
+    /// known-zero point and walking forward. Known-zero points: branch targets from leave/br,
+    /// exception handler boundaries, method entry after state dispatch.
+    /// </summary>
+    private static int ComputeStackDepthAt(MethodBody body, Instruction target)
+    {
+        // Collect all branch targets and handler starts — these have stack depth 0
+        var zeroPoints = new HashSet<Instruction>();
+        foreach (var handler in body.ExceptionHandlers)
+        {
+            if (handler.TryStart != null) zeroPoints.Add(handler.TryStart);
+            if (handler.HandlerStart != null) zeroPoints.Add(handler.HandlerStart);
+            if (handler.FilterStart != null) zeroPoints.Add(handler.FilterStart);
+        }
+        foreach (var instr in body.Instructions)
+        {
+            if (instr.Operand is Instruction brTarget)
+                zeroPoints.Add(brTarget);
+            if (instr.Operand is Instruction[] targets)
+                foreach (var t in targets) zeroPoints.Add(t);
+        }
+
+        // Find the nearest zero-point at or before target and walk forward
+        Instruction? startFrom = body.Instructions.Count > 0 ? body.Instructions[0] : null;
+        var depth = 0;
+        var found = false;
+
+        foreach (var instr in body.Instructions)
+        {
+            if (instr == target)
+                return depth;
+
+            if (zeroPoints.Contains(instr))
+                depth = 0;
+
+            depth += GetInstructionPushCount(instr) - GetInstructionPopCount(instr, body);
+
+            // After unconditional transfer, reset — the next instruction is reachable only
+            // from a branch (stack = 0 or = 1 for catch handler push)
+            if (instr.OpCode == OpCodes.Ret || instr.OpCode == OpCodes.Throw ||
+                instr.OpCode == OpCodes.Rethrow ||
+                instr.OpCode == OpCodes.Leave || instr.OpCode == OpCodes.Leave_S)
+            {
+                depth = 0;
+            }
+        }
+
+        return 0;
+    }
+
+    private static int GetInstructionPushCount(Instruction instr)
+    {
+        var code = instr.OpCode;
+        if (code.StackBehaviourPush == StackBehaviour.Push0)
+            return 0;
+        if (code.StackBehaviourPush == StackBehaviour.Push1 ||
+            code.StackBehaviourPush == StackBehaviour.Pushi ||
+            code.StackBehaviourPush == StackBehaviour.Pushi8 ||
+            code.StackBehaviourPush == StackBehaviour.Pushr4 ||
+            code.StackBehaviourPush == StackBehaviour.Pushr8 ||
+            code.StackBehaviourPush == StackBehaviour.Pushref)
+            return 1;
+        if (code.StackBehaviourPush == StackBehaviour.Push1_push1)
+            return 2;
+        if (code.StackBehaviourPush == StackBehaviour.Varpush)
+        {
+            // call/callvirt/newobj: push 1 if non-void return, 0 otherwise
+            if (instr.Operand is MethodReference mr)
+                return mr.ReturnType.FullName == "System.Void" ? 0 : 1;
+            return 0;
+        }
+        return 0;
+    }
+
+    private static int GetInstructionPopCount(Instruction instr, MethodBody body)
+    {
+        var code = instr.OpCode;
+        if (code.StackBehaviourPop == StackBehaviour.Pop0)
+            return 0;
+        if (code.StackBehaviourPop == StackBehaviour.Pop1 ||
+            code.StackBehaviourPop == StackBehaviour.Popi ||
+            code.StackBehaviourPop == StackBehaviour.Popref)
+            return 1;
+        if (code.StackBehaviourPop == StackBehaviour.Pop1_pop1 ||
+            code.StackBehaviourPop == StackBehaviour.Popi_pop1 ||
+            code.StackBehaviourPop == StackBehaviour.Popi_popi ||
+            code.StackBehaviourPop == StackBehaviour.Popi_popi8 ||
+            code.StackBehaviourPop == StackBehaviour.Popi_popr4 ||
+            code.StackBehaviourPop == StackBehaviour.Popi_popr8 ||
+            code.StackBehaviourPop == StackBehaviour.Popref_pop1 ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi)
+            return 2;
+        if (code.StackBehaviourPop == StackBehaviour.Popi_popi_popi ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi_popi ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi_popi8 ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi_popr4 ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi_popr8 ||
+            code.StackBehaviourPop == StackBehaviour.Popref_popi_popref)
+            return 3;
+        if (code.StackBehaviourPop == StackBehaviour.Varpop)
+        {
+            // call/callvirt/newobj: pop param count + (instance ? 1 : 0)
+            if (instr.Operand is MethodReference mr)
+            {
+                var count = mr.Parameters.Count;
+                if (mr.HasThis && code != OpCodes.Newobj)
+                    count++;
+                return count;
+            }
+            // ret: pops 1 if method has non-void return
+            if (code == OpCodes.Ret)
+                return body.Method.ReturnType.FullName == "System.Void" ? 0 : 1;
+            return 0;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Determines the type pushed by an instruction (for creating the spill local).
+    /// </summary>
+    private static TypeReference GetPushedType(Instruction instr, MethodBody body, int index)
+    {
+        var module = body.Method.Module;
+
+        if (instr.Operand is MethodReference mr && mr.ReturnType.FullName != "System.Void")
+        {
+            var returnType = mr.ReturnType;
+            // Resolve generic parameters (e.g. TaskAwaiter<int>.GetResult() returns !0 → int)
+            if (returnType is GenericParameter gp)
+            {
+                if (mr.DeclaringType is GenericInstanceType git && gp.Position < git.GenericArguments.Count)
+                    return git.GenericArguments[gp.Position];
+                if (mr is GenericInstanceMethod gim && gp.Type == GenericParameterType.Method &&
+                    gp.Position < gim.GenericArguments.Count)
+                    return gim.GenericArguments[gp.Position];
+            }
+            return returnType;
+        }
+        if (instr.Operand is FieldReference fr)
+            return fr.FieldType;
+        if (instr.OpCode == OpCodes.Ldloc || instr.OpCode == OpCodes.Ldloc_S)
+            return ((VariableDefinition)instr.Operand).VariableType;
+        if (instr.OpCode == OpCodes.Ldloc_0) return body.Variables[0].VariableType;
+        if (instr.OpCode == OpCodes.Ldloc_1) return body.Variables[1].VariableType;
+        if (instr.OpCode == OpCodes.Ldloc_2) return body.Variables[2].VariableType;
+        if (instr.OpCode == OpCodes.Ldloc_3) return body.Variables[3].VariableType;
+        if (instr.OpCode == OpCodes.Dup) return module.TypeSystem.Object; // approximate
+        if (instr.OpCode == OpCodes.Ldarg_0) return body.Method.DeclaringType;
+
+        // For integer/string/etc constants
+        if (instr.OpCode == OpCodes.Ldc_I4 || instr.OpCode == OpCodes.Ldc_I4_S ||
+            instr.OpCode == OpCodes.Ldc_I4_M1 ||
+            instr.OpCode == OpCodes.Ldc_I4_0 || instr.OpCode == OpCodes.Ldc_I4_1 ||
+            instr.OpCode == OpCodes.Ldc_I4_2 || instr.OpCode == OpCodes.Ldc_I4_3 ||
+            instr.OpCode == OpCodes.Ldc_I4_4 || instr.OpCode == OpCodes.Ldc_I4_5 ||
+            instr.OpCode == OpCodes.Ldc_I4_6 || instr.OpCode == OpCodes.Ldc_I4_7 ||
+            instr.OpCode == OpCodes.Ldc_I4_8)
+            return module.TypeSystem.Int32;
+        if (instr.OpCode == OpCodes.Ldc_I8) return module.TypeSystem.Int64;
+        if (instr.OpCode == OpCodes.Ldc_R4) return module.TypeSystem.Single;
+        if (instr.OpCode == OpCodes.Ldc_R8) return module.TypeSystem.Double;
+        if (instr.OpCode == OpCodes.Ldstr) return module.TypeSystem.String;
+        if (instr.OpCode == OpCodes.Ldnull) return module.TypeSystem.Object;
+
+        return module.TypeSystem.Object;
+    }
+
     private void WrapSingleAssertion(
         MethodDefinition method,
         ILProcessor il,
@@ -828,9 +1076,22 @@ public class AssertionWeaver
         // Find the instruction AFTER the last assertion instruction
         var afterLastInstr = lastInstr.Next;
 
+        // In Release builds, the compiler may leave values on the evaluation stack across
+        // sequence point boundaries (e.g. GetResult() return value feeds directly into Should()).
+        // The CLR requires the stack to be empty at try block entry points. Detect this case
+        // and spill any stack values into temp locals, reloading them inside the try block.
+        var spillLocals = SpillStackIfNeeded(body, il, firstInstr);
+
         // Create try-start nop (we'll insert before the first instruction)
         var tryStart = il.Create(OpCodes.Nop);
         il.InsertBefore(firstInstr, tryStart);
+
+        // Reload spilled values after tryStart (inside the try block, before firstInstr)
+        if (spillLocals != null)
+        {
+            foreach (var spillLocal in spillLocals)
+                il.InsertBefore(firstInstr, il.Create(OpCodes.Ldloc, spillLocal));
+        }
 
         // Fix handler nesting: if any existing exception handler's TryStart references
         // firstInstr, retarget it to our tryStart nop. Without this, our inner try region
@@ -913,8 +1174,27 @@ public class AssertionWeaver
         }
 
         // Create the "after assertion success" block
+        // First, compute exit stack depth: if the assertion leaves values on the stack for
+        // subsequent code (Release-mode dup patterns), we must spill them before our leave
+        // (which clears the stack) and reload them after the catch handler.
+        var exitStackDepth = ComputeExitStackDepth(body, firstInstr, lastInstr);
+        var exitSpillLocals = new List<VariableDefinition>();
+        if (exitStackDepth > 0)
+        {
+            for (var i = 0; i < exitStackDepth; i++)
+            {
+                var local = new VariableDefinition(module.TypeSystem.Object);
+                body.Variables.Add(local);
+                exitSpillLocals.Add(local);
+            }
+        }
+
         if (afterLastInstr != null)
         {
+            // Spill exit stack values (top first) before AssertionPassed
+            for (var i = exitSpillLocals.Count - 1; i >= 0; i--)
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Stloc, exitSpillLocals[i]));
+
             if (hasValues)
             {
                 il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, expressionText));
@@ -1024,6 +1304,23 @@ public class AssertionWeaver
             CatchType = exceptionTypeRef
         };
         body.ExceptionHandlers.Insert(0, handler);
+
+        // Reload exit-spilled values after the catch handler (restoration for subsequent code).
+        // The leave clears the evaluation stack, so we reload from our temp locals.
+        if (exitSpillLocals.Count > 0)
+        {
+            if (afterLastInstr != null)
+            {
+                // Insert ldloc after afterCatch (which is already before afterLastInstr)
+                for (var i = 0; i < exitSpillLocals.Count; i++)
+                    il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, exitSpillLocals[i]));
+            }
+            else
+            {
+                for (var i = 0; i < exitSpillLocals.Count; i++)
+                    il.Append(il.Create(OpCodes.Ldloc, exitSpillLocals[i]));
+            }
+        }
 
         // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
         foreach (var branch in assertion.OutboundBranches)
