@@ -65,7 +65,9 @@ internal static class ScenarioInfoExtensions
                                 Id = x.TestId,
                                 DisplayName = x.ScenarioTitle,
                                 IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
-                                Result = x.Result.ToExecutionResult(),
+                                Result = x.Steps.Count == 0 && x.Result == TestStack.BDDfy.Result.NotExecuted
+                                    ? ExecutionResult.Passed
+                                    : x.Result.ToExecutionResult(),
                                 ErrorMessage = x.ErrorMessage,
                                 ErrorStackTrace = x.ErrorStackTrace,
                                 Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,

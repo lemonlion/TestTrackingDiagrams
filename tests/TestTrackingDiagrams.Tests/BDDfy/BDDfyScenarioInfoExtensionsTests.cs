@@ -278,4 +278,46 @@ public class BDDfyScenarioInfoExtensionsTests
         Assert.Equal("First scenario", names[0]);
         Assert.Equal("Second scenario", names[1]);
     }
+
+    // ─── Inline scenario result mapping (Issue #45) ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_not_executed_with_empty_steps_to_passed()
+    {
+        // When BDDfy scenarios use inline code (no step methods), Steps is empty
+        // and Result is NotExecuted. Since the test completed (reached the Report processor),
+        // this should map to Passed, not Skipped.
+        var info = MakeScenario(steps: [], result: TestStack.BDDfy.Result.NotExecuted);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Passed, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_not_executed_with_steps_to_skipped()
+    {
+        // When steps exist but result is NotExecuted (shouldn't normally happen with
+        // non-empty steps, but verify we don't break existing behavior)
+        var info = MakeScenario(
+            steps: [new BDDfyStepInfo("Given", "something", TestStack.BDDfy.Result.NotExecuted)],
+            result: TestStack.BDDfy.Result.NotExecuted);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Skipped, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_passed_with_empty_steps_to_passed()
+    {
+        var info = MakeScenario(steps: [], result: TestStack.BDDfy.Result.Passed);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Passed, features[0].Scenarios[0].Result);
+    }
+
+    [Fact]
+    public void ToFeatures_maps_failed_with_empty_steps_to_failed()
+    {
+        // Even with empty steps, if BDDfy marks it Failed, respect that
+        var info = MakeScenario(steps: [], result: TestStack.BDDfy.Result.Failed);
+        var features = new[] { info }.ToFeatures();
+        Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Result);
+    }
 }

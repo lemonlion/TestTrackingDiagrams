@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.28] - 2026-05-07
+
+### Fixed
+- **BDDfy: inline scenarios reported as Skipped instead of Passed** — When BDDfy tests use inline code (no `Given_`/`When_`/`Then_` step methods) and call `this.BDDfy()` at the end, BDDfy’s `Scenario.Result` returns `NotExecuted` because `Steps` is empty. This was mapped to `ExecutionResult.Skipped`, causing all inline scenarios to appear skipped in TTD reports despite passing. Now, when `Steps` is empty and `Result` is `NotExecuted`, the scenario is mapped to `Passed` — since reaching the Report processor means the test completed successfully. Fixes #45.
+
 ## [2.30.27] - 2026-05-07
 
 ### Added
