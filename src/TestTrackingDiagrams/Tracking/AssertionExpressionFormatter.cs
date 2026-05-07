@@ -67,7 +67,7 @@ public static partial class AssertionExpressionFormatter
         for (var i = 0; i < segments.Length; i++)
         {
             if (i > 0) sb.Append(' ');
-            var segment = segments[i].TrimStart('_');
+            var segment = segments[i].Trim('_');
             sb.Append(SplitPascalCase(segment).ToLowerInvariant());
         }
 
@@ -147,6 +147,9 @@ public static partial class AssertionExpressionFormatter
         if (args.Contains("=>"))
             return $"[{args}]";
 
+        // Simplify dotted member access chains: _eggsSteps.EggsResponse.Eggs → 'Eggs'
+        args = SimplifyMemberAccessPaths(args);
+
         // Strip enum prefixes: TaskStatus.RanToCompletion → RanToCompletion, HttpStatusCode.OK → OK
         // But preserve complex expressions like DateTime.UtcNow, TimeSpan.FromSeconds(5)
         // Only strip if no substitutions were made (resolved values are already formatted)
@@ -209,6 +212,74 @@ public static partial class AssertionExpressionFormatter
     }
 
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    private static string SimplifyMemberAccessPaths(string args)
+    {
+        // If already contains quotes (resolved values), don't re-process
+        if (args.Contains('\''))
+            return args;
+
+        // Handle comma-separated args by processing each individually
+        if (args.Contains(','))
+        {
+            var parts = SplitTopLevelCommas(args);
+            var simplified = new string[parts.Length];
+            for (var i = 0; i < parts.Length; i++)
+                simplified[i] = SimplifySingleMemberAccess(parts[i].Trim());
+            return string.Join(", ", simplified);
+        }
+
+        return SimplifySingleMemberAccess(args);
+    }
+
+    private static string SimplifySingleMemberAccess(string arg)
+    {
+        // Skip if it contains parens, quotes, operators, or spaces — not a simple member access
+        if (arg.Contains('(') || arg.Contains('"') || arg.Contains('\'') ||
+            arg.Contains(' ') || arg.Contains('+') || arg.Contains('-'))
+            return arg;
+
+        // Must contain a dot to be a member access path
+        if (!arg.Contains('.'))
+            return arg;
+
+        var segments = arg.Split('.');
+
+        // Two-segment paths where both start with uppercase and no underscore prefix
+        // are likely enums (HttpStatusCode.OK) — leave for StripSimpleEnumPrefixes
+        if (segments.Length == 2 && !arg.StartsWith("_") &&
+            segments[0].Length > 0 && char.IsUpper(segments[0][0]) &&
+            segments[1].Length > 0 && char.IsUpper(segments[1][0]))
+            return arg;
+
+        // For multi-segment paths or underscore-prefixed paths, extract last segment
+        var lastSegment = segments[^1].Trim('_');
+        if (string.IsNullOrEmpty(lastSegment))
+            return arg;
+
+        return $"'{lastSegment}'";
+    }
+
+    private static string[] SplitTopLevelCommas(string text)
+    {
+        var parts = new List<string>();
+        var depth = 0;
+        var start = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            switch (text[i])
+            {
+                case '(' or '<': depth++; break;
+                case ')' or '>': depth--; break;
+                case ',' when depth == 0:
+                    parts.Add(text[start..i]);
+                    start = i + 1;
+                    break;
+            }
+        }
+        parts.Add(text[start..]);
+        return parts.ToArray();
+    }
 
     private static string StripSimpleEnumPrefixes(string args)
     {

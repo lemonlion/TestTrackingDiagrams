@@ -496,6 +496,178 @@ public class AssertionWeaverTests
         ex.Should().BeNull("Release-compiled async method with multiple assertions should not throw InvalidProgramException");
     }
 
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_TernaryAssertion_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Reproduces BreakfastProvider CI failure: async method with multiple assertions
+        // including a ternary expression used as the subject of .Should().BeTrue()
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncTernary{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class ExpectedResult
+            {
+                public int ExpectedCount { get; set; }
+                public bool HasInfo { get; set; }
+            }
+
+            public class Response
+            {
+                public int Count { get; set; }
+                public int Temperature { get; set; }
+            }
+
+            public class Steps
+            {
+                public Response Response { get; set; } = new();
+                public async Task ParseResponse() { await Task.CompletedTask; }
+            }
+
+            public class Tests
+            {
+                private Steps _steps = new Steps { Response = new Response { Count = 5, Temperature = 180 } };
+
+                public async Task Method(ExpectedResult expected)
+                {
+                    _steps.Response.Count.Should().Be(5);
+                    await _steps.ParseResponse();
+                    _steps.Response.Count.Should().Be(expected.ExpectedCount);
+                    _steps.Response.Temperature.Should().BeGreaterThan(0);
+                    (expected.HasInfo
+                        ? _steps.Response.Temperature > 0
+                        : _steps.Response.Temperature == 0).Should().BeTrue();
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var expected = Activator.CreateInstance(asm.GetType("ExpectedResult")!)!;
+        expected.GetType().GetProperty("ExpectedCount")!.SetValue(expected, 5);
+        expected.GetType().GetProperty("HasInfo")!.SetValue(expected, true);
+
+        var task = (Task)method.Invoke(instance, new[] { expected })!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull($"{optimization}-compiled async method with ternary assertion should not throw InvalidProgramException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_NullConditionalInArgs_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Reproduces BreakfastProvider CI pattern: assertion with ?. in arguments
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncNullCond{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    string? responseBody = await Task.FromResult<string?>("hello world");
+                    var isValid = responseBody != null;
+                    isValid.Should().BeTrue(
+                        $"body: {responseBody?.Substring(0, Math.Min(responseBody.Length, 10))}");
+                    responseBody!.Should().Contain("hello");
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull($"{optimization}-compiled async method with null-conditional in assertion args should not throw");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_LoopWithTryCatch_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Reproduces BreakfastProvider CI pattern: assertions after a retry loop with try/catch
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncLoopTryCatch{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    string? result = null;
+                    for (var attempt = 1; attempt <= 3; attempt++)
+                    {
+                        try
+                        {
+                            result = await Task.FromResult("success");
+                            break;
+                        }
+                        catch (Exception) when (attempt < 3)
+                        {
+                        }
+                    }
+
+                    result.Should().NotBeNull();
+                    result!.Should().Be("success");
+                    result!.Length.Should().BeGreaterThan(0);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(3);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull($"{optimization}-compiled async method with loop+try/catch should not throw");
+    }
+
     [Fact]
     public void Weave_WithLocalVariable_CapturesVariableForValueResolution()
     {

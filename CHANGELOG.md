@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.26] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: InvalidProgramException with null-conditional (?.) in assertion arguments (Release mode)** — Three fixes:
+  1. **Spill local type inference**: `GetPushedType` did not handle comparison operators (`cgt.un`, `ceq`, etc.) that push integers via `StackBehaviour.Pushi`. When the C# compiler in Release mode leaves a comparison result directly on the stack (no intermediate `stloc`/`ldloc`), the spill local was typed as `System.Object` (reference type) but received an `Int32` (value type), failing IL verification.
+  2. **Exit stack depth with internal branches**: `ComputeExitStackDepth` returned `entryDepth` when it encountered an internal branch (ternary `?:` or null-conditional `?.`). For assertions with a spilled subject on the stack, `entryDepth` was 1, causing an incorrect exit spill `stloc` after the `pop` (which had already emptied the stack). Assertions are complete statements that consume their subject and discard results — exit depth is always 0 when branches are present.
+  3. **Branch retargeting**: All branches originally targeting the assertion's first instruction are retargeted to `tryStart` to prevent illegal mid-try-block entry.
+
+### Changed
+- **AssertionExpressionFormatter**: Trailing underscores are now trimmed from subject names (matching existing leading-underscore trimming). Dotted member access paths in assertion arguments are simplified to show only the final member name (e.g. `_steps.Response.Items` → `'Items'`).
+
 ## [2.30.25] - 2026-05-07
 
 ### Fixed

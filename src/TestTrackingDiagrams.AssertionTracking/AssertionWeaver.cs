@@ -865,15 +865,47 @@ public class AssertionWeaver
     /// </summary>
     private static int ComputeExitStackDepth(MethodBody body, Instruction firstInstr, Instruction lastInstr)
     {
+        var startOffset = firstInstr.Offset;
+        var endOffset = lastInstr.Offset;
+
+        // Walk the instructions and track the "pre-branch minimum exit depth".
+        // The dup pattern (which creates exit values) occurs at the start of the assertion
+        // BEFORE any branches. Internal branches (ternary, ?.) occur later for argument
+        // computation and result in net-0 after merging. A naive linear walk double-counts
+        // both branch paths. Instead, compute net delta up to the first internal branch;
+        // that represents the true exit depth from the dup pattern.
         var entryDepth = ComputeStackDepthAt(body, firstInstr);
         var netDelta = 0;
         var current = firstInstr;
         while (current != null)
         {
+            // If we hit an internal branch, stop counting here. Everything after
+            // is argument computation that nets to zero on actual execution.
+            if (current.Operand is Instruction brTarget &&
+                brTarget.Offset >= startOffset && brTarget.Offset <= endOffset &&
+                current.OpCode.FlowControl != FlowControl.Call)
+            {
+                break;
+            }
+
             netDelta += GetInstructionPushCount(current) - GetInstructionPopCount(current, body);
             if (current == lastInstr) break;
             current = current.Next;
         }
+
+        // If we broke out at a branch, the assertion body contains internal control flow
+        // (ternary, null-conditional ?.). The assertion is a complete statement that consumes
+        // its subject value (via Should) and discards the result (via pop). The linear walk
+        // above counts both branch paths and inflates the delta, but actual single-path
+        // execution always nets to zero. Return 0.
+        // If we reached lastInstr without hitting a branch, the linear walk is correct.
+        if (current != null && current != lastInstr && current.Operand is Instruction)
+        {
+            // Had an internal branch — the assertion is a complete statement that consumes
+            // the subject (via Should) and discards the result (via pop). Exit depth is 0.
+            return 0;
+        }
+
         var exitDepth = entryDepth + netDelta;
         return exitDepth > 0 ? exitDepth : 0;
     }
@@ -1043,6 +1075,16 @@ public class AssertionWeaver
         if (instr.OpCode == OpCodes.Ldstr) return module.TypeSystem.String;
         if (instr.OpCode == OpCodes.Ldnull) return module.TypeSystem.Object;
 
+        // Comparison and integer-producing operators (ceq, cgt, cgt.un, clt, clt.un, conv.i4, etc.)
+        if (instr.OpCode.StackBehaviourPush == StackBehaviour.Pushi)
+            return module.TypeSystem.Int32;
+        if (instr.OpCode.StackBehaviourPush == StackBehaviour.Pushi8)
+            return module.TypeSystem.Int64;
+        if (instr.OpCode.StackBehaviourPush == StackBehaviour.Pushr4)
+            return module.TypeSystem.Single;
+        if (instr.OpCode.StackBehaviourPush == StackBehaviour.Pushr8)
+            return module.TypeSystem.Double;
+
         return module.TypeSystem.Object;
     }
 
@@ -1103,6 +1145,23 @@ public class AssertionWeaver
         {
             if (existingHandler.TryStart == firstInstr)
                 existingHandler.TryStart = tryStart;
+        }
+
+        // Fix branch-into-try: any branch/leave from outside our try region that targets
+        // firstInstr (now the second instruction of our try block) would violate the CLR
+        // rule forbidding control transfer into the middle of a try block. Retarget them
+        // to tryStart (the first instruction) which is a legal entry point.
+        foreach (var instr in body.Instructions)
+        {
+            if (instr == tryStart) continue; // skip our own nop
+            if (instr.Operand is Instruction target && target == firstInstr)
+                instr.Operand = tryStart;
+            else if (instr.Operand is Instruction[] targets)
+            {
+                for (var idx = 0; idx < targets.Length; idx++)
+                    if (targets[idx] == firstInstr)
+                        targets[idx] = tryStart;
+            }
         }
 
         // If we have captured variables, build arrays at try-start so both paths can use them
@@ -1183,7 +1242,12 @@ public class AssertionWeaver
         {
             for (var i = 0; i < exitStackDepth; i++)
             {
-                var local = new VariableDefinition(module.TypeSystem.Object);
+                // Use the entry spill type if available (the dup pattern always duplicates
+                // the same value that was on the stack at entry). Fall back to Object.
+                var exitType = spillLocals != null && i < spillLocals.Count
+                    ? spillLocals[i].VariableType
+                    : module.TypeSystem.Object;
+                var local = new VariableDefinition(exitType);
                 body.Variables.Add(local);
                 exitSpillLocals.Add(local);
             }

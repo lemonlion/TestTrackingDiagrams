@@ -224,4 +224,44 @@ public class AssertionExpressionFormatterTests
             "() => x.Should().HaveCount(expected.ExpectedIngredientCount)", resolved);
         Assert.Equal("X should have count '5'", result);
     }
+
+    [Fact]
+    public void Format_strips_trailing_underscore_from_subject_segments()
+    {
+        var result = AssertionExpressionFormatter.Format("() => response_.Items.Should().NotBeEmpty()");
+        Assert.Equal("Response items should not be empty", result);
+    }
+
+    [Fact]
+    public void Format_simplifies_dotted_member_access_in_args()
+    {
+        var result = AssertionExpressionFormatter.Format(
+            "() => _muffinStepsResponse.Ingredients.Should().Contain(_eggsSteps.EggsResponse.Eggs)");
+        Assert.Equal("Muffin steps response ingredients should contain 'Eggs'", result);
+    }
+
+    [Fact]
+    public void Format_simplifies_underscore_prefixed_two_segment_path_in_args()
+    {
+        var result = AssertionExpressionFormatter.Format(
+            "() => result.Should().Be(_steps.ExpectedValue)");
+        Assert.Equal("Result should be 'ExpectedValue'", result);
+    }
+
+    [Fact]
+    public void Format_does_not_simplify_enum_like_two_segment_paths()
+    {
+        // Two PascalCase segments without underscore prefix — leave for enum stripping
+        var result = AssertionExpressionFormatter.Format(
+            "() => status.Should().Be(HttpStatusCode.OK)");
+        Assert.Equal("Status should be OK", result);
+    }
+
+    [Fact]
+    public void Format_strips_trailing_underscore_from_last_segment_in_args()
+    {
+        var result = AssertionExpressionFormatter.Format(
+            "() => items.Should().Contain(_steps.Response.Eggs_)");
+        Assert.Equal("Items should contain 'Eggs'", result);
+    }
 }
