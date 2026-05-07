@@ -1,0 +1,148 @@
+<Project>
+
+  <!-- Auto-generate step tracking attribute source into intermediate output -->
+  <Target Name="_GenerateStepTrackingAttributes"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TrackStepsEnabled)' == 'true'">
+
+    <PropertyGroup>
+      <_StepTrackingAttrDir>$(IntermediateOutputPath)StepTrackingAttributes\</_StepTrackingAttrDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_StepTrackingAttrDir)" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)TrackStepsAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Assembly)]
+    internal sealed class TrackStepsAttribute : Attribute { }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)GivenStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class GivenStepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)WhenStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class WhenStepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)ThenStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class ThenStepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)AndStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class AndStepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)ButStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class ButStepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)StepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class StepAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+}" />
+
+    <ItemGroup>
+      <Compile Include="$(_StepTrackingAttrDir)TrackStepsAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)GivenStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)WhenStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)ThenStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)AndStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)ButStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)StepAttribute.g.cs" />
+    </ItemGroup>
+
+  </Target>
+
+  <!-- Run IL weaving AFTER compilation to instrument step methods -->
+  <Target Name="_WeaveStepTracking"
+          AfterTargets="CoreCompile"
+          Condition="'$(TrackStepsEnabled)' == 'true'"
+          Inputs="@(IntermediateAssembly)"
+          Outputs="@(IntermediateAssembly);$(IntermediateOutputPath)__step_tracking_weaved__.marker">
+
+    <WeaveStepsTask
+      AssemblyPath="@(IntermediateAssembly)"
+      References="@(ReferencePath)" />
+
+    <Touch Files="$(IntermediateOutputPath)__step_tracking_weaved__.marker" AlwaysCreate="true" />
+
+  </Target>
+
+  <!-- Clean generated attributes -->
+  <Target Name="_CleanStepTracking" BeforeTargets="CoreClean">
+    <RemoveDir Directories="$(IntermediateOutputPath)StepTrackingAttributes\" />
+  </Target>
+
+</Project>

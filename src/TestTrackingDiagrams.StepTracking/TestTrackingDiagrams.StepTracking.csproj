@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Title>Test Tracking Diagrams Step Tracking</Title>
+    <Description>IL weaver that automatically instruments methods decorated with [GivenStep], [WhenStep], [ThenStep] attributes with BDD step tracking. Records step entry/exit/failure timing and integrates with assertion tracking for sub-step recording. Activated via [assembly: TrackSteps].</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+    <!-- MSBuild task packaging: output DLLs to tasks/ folder in nupkg -->
+    <BuildOutputTargetFolder>tasks</BuildOutputTargetFolder>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+
+    <!-- Do not multi-target; MSBuild tasks must be netstandard2.0 -->
+    <MultiTargetFrameworks />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.0.0" PrivateAssets="all" ExcludeAssets="Runtime" />
+  </ItemGroup>
+
+  <!-- Include MSBuild integration files in the package -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\" />
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <!-- Bundle Cecil and other dependency DLLs alongside the task DLL in the nupkg -->
+  <Target Name="_IncludeTaskDependenciesInPackage" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <_TaskDependency Include="$(OutputPath)*.dll" Exclude="$(OutputPath)TestTrackingDiagrams.StepTracking.dll" />
+      <_PackageFiles Include="@(_TaskDependency)" PackagePath="tasks\netstandard2.0\" />
+    </ItemGroup>
+  </Target>
+
+</Project>

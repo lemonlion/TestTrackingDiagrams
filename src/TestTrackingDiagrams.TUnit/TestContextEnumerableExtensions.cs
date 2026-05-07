@@ -1,4 +1,5 @@
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 using TUnit.Core;
 
 namespace TestTrackingDiagrams.TUnit;
@@ -48,7 +49,8 @@ internal static class TestContextEnumerableExtensions
                                 Duration = x.Execution.Result?.Duration,
                                 OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null,
-                                ExampleRawValues = rawValues
+                                ExampleRawValues = rawValues,
+                                Steps = StepCollector.GetSteps(x.Id) is { Length: > 0 } steps ? steps : null
                             };
                         }).ToArray()
                 };

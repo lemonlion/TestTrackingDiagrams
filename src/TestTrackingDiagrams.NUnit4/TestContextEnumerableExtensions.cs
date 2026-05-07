@@ -1,4 +1,5 @@
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 using NUnit.Framework;
 
 namespace TestTrackingDiagrams.NUnit4;
@@ -46,7 +47,8 @@ internal static class TestContextEnumerableExtensions
                                 Duration = DiagrammedTestRun.TestDurations.TryGetValue(x.Test.ID, out var dur) ? dur : null,
                                 OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null,
-                                ExampleRawValues = rawValues
+                                ExampleRawValues = rawValues,
+                                Steps = StepCollector.GetSteps(x.Test.ID) is { Length: > 0 } steps ? steps : null
                             };
                         }).ToArray()
                 };

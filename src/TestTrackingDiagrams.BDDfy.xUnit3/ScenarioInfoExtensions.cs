@@ -1,5 +1,6 @@
 using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
 
@@ -73,7 +74,7 @@ internal static class ScenarioInfoExtensions
                                 Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,
                                 Steps = x.Steps.Count > 0
                                     ? MapSteps(x.Steps)
-                                    : null,
+                                    : StepCollector.GetSteps(x.TestId) is { Length: > 0 } collectedSteps ? collectedSteps : null,
                                 Labels = labels.Length > 0 ? labels : null,
                                 OutlineId = outlineId,
                                 ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,

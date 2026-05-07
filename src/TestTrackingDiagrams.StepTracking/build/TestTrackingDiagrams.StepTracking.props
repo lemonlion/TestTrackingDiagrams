@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <TrackStepsEnabled Condition="'$(TrackStepsEnabled)' == ''">true</TrackStepsEnabled>
+    <_StepTrackingTaskDir>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\</_StepTrackingTaskDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="TestTrackingDiagrams.StepTracking.WeaveStepsTask"
+             AssemblyFile="$(_StepTrackingTaskDir)TestTrackingDiagrams.StepTracking.dll" />
+
+</Project>

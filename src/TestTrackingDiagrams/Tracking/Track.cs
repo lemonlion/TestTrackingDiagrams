@@ -410,6 +410,14 @@ public static class Track
         if (testId is null)
             return;
 
+        // If there's an active step, record this assertion as a sub-step
+        if (StepCollector.HasActiveStep(testId))
+        {
+            var assertionText = AssertionExpressionFormatter.Format(expression, resolvedValues)
+                                ?? expression ?? "assertion";
+            StepCollector.AddAssertionSubStep(testId, assertionText, passed);
+        }
+
         var formatted = AssertionExpressionFormatter.Format(expression, resolvedValues);
         if (string.IsNullOrEmpty(formatted))
             formatted = expression ?? "assertion";

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.29] - 2026-07-05
+
+### Added
+- **New package: TestTrackingDiagrams.StepTracking** — IL weaver that instruments methods decorated with `[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[AndStep]`, `[ButStep]`, or `[Step]` attributes with automatic BDD step tracking. Activated via `[assembly: TrackSteps]`.
+  - Records step entry/exit timing and pass/fail status via `StepCollector`
+  - Method names are humanized (PascalCase → "Pascal case", underscores → spaces)
+  - Method parameters are captured as `StepParameter` values at runtime
+  - Keyword sequencing: second `[GivenStep]` at same level becomes "And", etc.
+  - Custom step text via `Description` property: `[GivenStep(Description = "A custom step")]`
+  - Integrates with assertion tracking: assertions inside steps become sub-steps
+  - `[WhenStep]` triggers `TestPhaseContext.Current = TestPhase.Action` (enables `SeparateSetup` diagrams)
+  - `[GivenStep]` sets `TestPhaseContext.Current = TestPhase.Setup`
+  - Nested step support: calling a step-attributed method from another creates sub-steps
+  - Self-resolving overloads: weaved code resolves test ID from ambient `TestIdentityScope`/`TestIdResolver`
+- **Framework adapter integration** — xUnit3, TUnit, NUnit4, and BDDfy adapters now populate `Scenario.Steps` from `StepCollector` when step attributes are used
+
 ## [2.30.28] - 2026-05-07
 
 ### Fixed
