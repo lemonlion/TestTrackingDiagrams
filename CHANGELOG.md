@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.24] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: InvalidProgramException in async methods with no await** — Expression-bodied `async Task` methods containing only a synchronous assertion and no `await` (e.g. `async Task Foo() => x.Should().Be(y)`) generated a degenerate state machine where the compiler's outer try/catch `TryStart` was the first instruction of the assertion. When the weaver inserted its inner try/catch `tryStart` nop before that instruction, it landed outside the outer handler's try region, creating an illegal overlapping exception handler that the CLR rejected with `InvalidProgramException`. Fixed by retargeting any existing handler whose `TryStart` references the assertion's first instruction to include the newly-inserted nop, maintaining proper nested handler structure. Added tests for both Debug and Release-compiled assemblies to verify correct IL generation under each optimization level.
+
 ## [2.30.23] - 2026-05-07
 
 ### Fixed

@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using TestTrackingDiagrams.AssertionTracking;
@@ -296,6 +297,116 @@ public class AssertionWeaverTests
         var task = (Task)method.Invoke(instance, null)!;
         var ex = Record.Exception(() => task.GetAwaiter().GetResult());
         ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_AsyncMethod_NoAwait_ExpressionBody_InstrumentsWithoutInvalidProgram()
+    {
+        // Expression-bodied async methods with no actual await (sync-over-async pattern)
+        // generate a degenerate state machine. The weaver must produce valid IL for these.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncNoAwait",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Steps
+            {
+                public string? Value { get; set; } = "hello";
+            }
+
+            public class Tests
+            {
+                private Steps _steps = new Steps();
+
+                public async Task The_value_should_not_be_null()
+                    => _steps.Value.Should().NotBeNull();
+
+                public async Task The_value_should_be_hello()
+                    => _steps.Value.Should().Be("hello");
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(2);
+
+        // Critical: the weaved assembly must execute without InvalidProgramException
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AsyncNoAwait_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method1 = testType.GetMethod("The_value_should_not_be_null")!;
+        var task1 = (Task)method1.Invoke(instance, null)!;
+        var ex1 = Record.Exception(() => task1.GetAwaiter().GetResult());
+        ex1.Should().BeNull("async method with no await should not throw InvalidProgramException");
+
+        var method2 = testType.GetMethod("The_value_should_be_hello")!;
+        var task2 = (Task)method2.Invoke(instance, null)!;
+        var ex2 = Record.Exception(() => task2.GetAwaiter().GetResult());
+        ex2.Should().BeNull("async expression-body method should not throw InvalidProgramException");
+    }
+
+    [Fact]
+    public void Weave_AsyncMethod_NoAwait_ExpressionBody_Release_InstrumentsWithoutInvalidProgram()
+    {
+        // Same as above but compiled with Release optimizations — the compiler generates
+        // different IL (fewer nops, potentially different state machine structure).
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "AsyncNoAwaitRelease",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Steps
+            {
+                public string? Value { get; set; } = "hello";
+            }
+
+            public class Tests
+            {
+                private Steps _steps = new Steps();
+
+                public async Task The_value_should_not_be_null()
+                    => _steps.Value.Should().NotBeNull();
+
+                public async Task The_value_should_be_hello()
+                    => _steps.Value.Should().Be("hello");
+            }
+            """,
+            Microsoft.CodeAnalysis.OptimizationLevel.Release);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(2);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AsyncNoAwaitRelease_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method1 = testType.GetMethod("The_value_should_not_be_null")!;
+        var task1 = (Task)method1.Invoke(instance, null)!;
+        var ex1 = Record.Exception(() => task1.GetAwaiter().GetResult());
+        ex1.Should().BeNull("Release-compiled async method with no await should not throw InvalidProgramException");
+
+        var method2 = testType.GetMethod("The_value_should_be_hello")!;
+        var task2 = (Task)method2.Invoke(instance, null)!;
+        var ex2 = Record.Exception(() => task2.GetAwaiter().GetResult());
+        ex2.Should().BeNull("Release-compiled async expression-body method should not throw InvalidProgramException");
     }
 
     [Fact]

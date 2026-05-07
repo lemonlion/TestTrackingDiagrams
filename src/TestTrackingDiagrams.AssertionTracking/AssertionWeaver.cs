@@ -832,6 +832,18 @@ public class AssertionWeaver
         var tryStart = il.Create(OpCodes.Nop);
         il.InsertBefore(firstInstr, tryStart);
 
+        // Fix handler nesting: if any existing exception handler's TryStart references
+        // firstInstr, retarget it to our tryStart nop. Without this, our inner try region
+        // would begin before the outer handler's try region, creating an illegal overlap
+        // that the CLR verifier rejects with InvalidProgramException. This occurs in
+        // degenerate async state machines (no await) where the compiler's outer try/catch
+        // starts directly at the first user code instruction — in both Debug and Release builds.
+        foreach (var existingHandler in body.ExceptionHandlers)
+        {
+            if (existingHandler.TryStart == firstInstr)
+                existingHandler.TryStart = tryStart;
+        }
+
         // If we have captured variables, build arrays at try-start so both paths can use them
         VariableDefinition? namesLocal = null;
         VariableDefinition? valuesLocal = null;

@@ -37,7 +37,7 @@ public static class TestAssemblyBuilder
     /// Compiles source code into an assembly with PDB. Returns the assembly file path.
     /// The assembly references FluentAssertions and TestTrackingDiagrams for realistic assertion tracking.
     /// </summary>
-    public static string Build(string name, string source)
+    public static string Build(string name, string source, OptimizationLevel optimization = OptimizationLevel.Debug)
     {
         var assemblyPath = Path.Combine(OutputDir, $"{name}.dll");
         var pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
@@ -63,7 +63,7 @@ public static class TestAssemblyBuilder
             new[] { syntaxTree, attrTree },
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-                .WithOptimizationLevel(OptimizationLevel.Debug));
+                .WithOptimizationLevel(optimization));
 
         var emitOptions = new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb);
 
