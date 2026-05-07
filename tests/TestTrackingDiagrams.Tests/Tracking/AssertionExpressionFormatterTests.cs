@@ -11,7 +11,7 @@ public class AssertionExpressionFormatterTests
     [InlineData("() => order.Total.Should().BeGreaterThan(0)", "Order total should be greater than 0")]
     [InlineData("() => items.Should().NotBeEmpty()", "Items should not be empty")]
     [InlineData("() => result.Name.Should().StartWith(\"John\")", "Result name should start with \"John\"")]
-    [InlineData("() => users.Should().ContainSingle(x => x.IsAdmin)", "Users should contain single [x => x.IsAdmin]")]
+    [InlineData("() => users.Should().ContainSingle(x => x.IsAdmin)", "Users should contain single [ x => x.IsAdmin ]")]
     [InlineData("() => result.Should().BeNull()", "Result should be null")]
     [InlineData("() => count.Should().Be(42)", "Count should be 42")]
     [InlineData("() => list.Should().BeEmpty()", "List should be empty")]
@@ -105,9 +105,9 @@ public class AssertionExpressionFormatterTests
     }
 
     [Theory]
-    [InlineData("() => myVariable.Should().OnlyContain(x => x.Foo == bar)", "My variable should only contain [x => x.Foo == bar]")]
-    [InlineData("() => items.Should().AllSatisfy(x => x.IsValid)", "Items should all satisfy [x => x.IsValid]")]
-    [InlineData("() => _auditLogs.Should().BeInDescendingOrder(l => l.Timestamp)", "Audit logs should be in descending order [l => l.Timestamp]")]
+    [InlineData("() => myVariable.Should().OnlyContain(x => x.Foo == bar)", "My variable should only contain [ x => x.Foo == bar ]")]
+    [InlineData("() => items.Should().AllSatisfy(x => x.IsValid)", "Items should all satisfy [ x => x.IsValid ]")]
+    [InlineData("() => _auditLogs.Should().BeInDescendingOrder(l => l.Timestamp)", "Audit logs should be in descending order [ l => l.Timestamp ]")]
     public void Format_wraps_lambda_args_in_square_brackets(string expression, string expected)
     {
         var result = AssertionExpressionFormatter.Format(expression);
@@ -263,5 +263,14 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(
             "() => items.Should().Contain(_steps.Response.Eggs_)");
         Assert.Equal("Items should contain 'Eggs'", result);
+    }
+
+    [Fact]
+    public void Format_substitutes_resolved_values_inside_lambda_args()
+    {
+        var resolved = new Dictionary<string, string> { ["orderId"] = "68AEEE84-B903-48E1-A01F-BE25C8193491" };
+        var result = AssertionExpressionFormatter.Format(
+            "() => auditLogs.Should().Contain(l => l.EntityId == orderId && l.Action == \"Created\")", resolved);
+        Assert.Equal("Audit logs should contain [ l => l.EntityId == '68AEEE84-B903-48E1-A01F-BE25C8193491' && l.Action == \"Created\" ]", result);
     }
 }

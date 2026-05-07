@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.27] - 2026-05-07
+
+### Added
+- **AssertionTracking: lambda variable capture** — Variables referenced inside lambda arguments to assertion methods (e.g. `.Contain(l => l.EntityId == orderId)`) are now detected and resolved at runtime. The weaver scans `ldftn` targets to find state machine field accesses inside lambda method bodies. Previously, only variables loaded directly in the MoveNext method were captured.
+
+### Fixed
+- **AssertionTracking: multi-line expression truncation** — `ReadSourceText` now detects unbalanced parentheses in extracted source text and reads subsequent lines until balanced. This fixes assertions spanning multiple lines where the sequence point's EndLine doesn't cover the full statement.
+
+### Changed
+- **AssertionExpressionFormatter**: Lambda arguments are now wrapped with spaces inside brackets (`[ l => ... ]` instead of `[l => ...]`) for improved readability.
+
 ## [2.30.26] - 2026-05-07
 
 ### Fixed

@@ -1136,4 +1136,65 @@ public class AssertionWeaverTests
         var ex = Record.Exception(() => method.Invoke(instance, null));
         ex.Should().BeNull("weaved method should run without InvalidProgramException");
     }
+
+    [Fact]
+    public void Weave_AsyncMethod_LambdaArg_CapturesVariablesFromLambdaBody()
+    {
+        // Reproduces: auditLogs.Should().Contain(l => l.EntityId == _orderId && l.Action == "Created")
+        // Variables referenced inside the lambda should be captured and resolved at runtime.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "LambdaArgCapture",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class AuditLog
+            {
+                public Guid EntityId { get; set; }
+                public string Action { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var orderId = Guid.Parse("68AEEE84-B903-48E1-A01F-BE25C8193491");
+                    var logs = new List<AuditLog>
+                    {
+                        new AuditLog { EntityId = orderId, Action = "Created" }
+                    };
+                    await Task.CompletedTask;
+                    logs.Should().Contain(l => l.EntityId == orderId && l.Action == "Created");
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"LambdaCapture_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("68aeee84", "orderId should be resolved from lambda body variable capture");
+    }
 }

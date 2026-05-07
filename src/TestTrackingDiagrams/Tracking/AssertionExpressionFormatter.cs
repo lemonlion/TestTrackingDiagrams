@@ -145,7 +145,7 @@ public static partial class AssertionExpressionFormatter
 
         // Wrap lambda expressions in square brackets for readability
         if (args.Contains("=>"))
-            return $"[{args}]";
+            return $"[ {args} ]";
 
         // Simplify dotted member access chains: _eggsSteps.EggsResponse.Eggs → 'Eggs'
         args = SimplifyMemberAccessPaths(args);

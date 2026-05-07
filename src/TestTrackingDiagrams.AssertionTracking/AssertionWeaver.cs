@@ -476,7 +476,22 @@ public class AssertionWeaver
             if (sp.StartLine == sp.EndLine)
             {
                 var line = lines[sp.StartLine - 1];
-                return line.Trim().TrimEnd(';');
+                var text = line.Trim().TrimEnd(';');
+
+                // If parentheses are unbalanced, the statement likely spans multiple lines
+                // but the sequence point only covers the first. Read subsequent lines until balanced.
+                if (HasUnbalancedParens(text) && sp.StartLine < lines.Length)
+                {
+                    var lineIdx = sp.StartLine; // 0-based: lines[sp.StartLine] is the next line
+                    while (HasUnbalancedParens(text) && lineIdx < lines.Length && lineIdx < sp.StartLine + 20)
+                    {
+                        text += " " + lines[lineIdx].Trim();
+                        lineIdx++;
+                    }
+                    text = text.TrimEnd(';');
+                }
+
+                return text;
             }
 
             // Multi-line: concatenate lines
@@ -485,12 +500,37 @@ public class AssertionWeaver
             {
                 parts.Add(lines[i - 1].Trim());
             }
-            return string.Join(" ", parts).TrimEnd(';');
+            var result = string.Join(" ", parts).TrimEnd(';');
+
+            // If still unbalanced (EndLine too short), extend
+            if (HasUnbalancedParens(result) && sp.EndLine < lines.Length)
+            {
+                var lineIdx = sp.EndLine; // 0-based index for next line
+                while (HasUnbalancedParens(result) && lineIdx < lines.Length && lineIdx < sp.EndLine + 20)
+                {
+                    result += " " + lines[lineIdx].Trim();
+                    lineIdx++;
+                }
+                result = result.TrimEnd(';');
+            }
+
+            return result;
         }
         catch
         {
             return $"assertion at line {sp.StartLine}";
         }
+    }
+
+    private static bool HasUnbalancedParens(string text)
+    {
+        var depth = 0;
+        foreach (var c in text)
+        {
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+        }
+        return depth > 0;
     }
 
     /// <summary>
@@ -633,6 +673,37 @@ public class AssertionWeaver
                 });
                 i++; // skip the ldfld instruction
             }
+            // ldftn — lambda/delegate creation; scan the lambda method body for captured variables
+            else if (instr.OpCode == OpCodes.Ldftn &&
+                     instr.Operand is MethodReference lambdaMethodRef)
+            {
+                var lambdaMethod = ResolveLambdaMethod(lambdaMethodRef, method);
+                if (lambdaMethod?.HasBody == true)
+                {
+                    foreach (var lambdaInstr in lambdaMethod.Body.Instructions)
+                    {
+                        if (lambdaInstr.OpCode == OpCodes.Ldfld &&
+                            lambdaInstr.Operand is FieldReference lambdaFieldRef)
+                        {
+                            var lambdaVarName = GetStateFieldOriginalName(lambdaFieldRef);
+                            if (lambdaVarName == null)
+                                continue;
+                            if (!NameAppearsInExpression(lambdaVarName, sourceText))
+                                continue;
+                            if (!seenNames.Add(lambdaVarName))
+                                continue;
+
+                            captured.Add(new CapturedVariable
+                            {
+                                Name = lambdaVarName,
+                                StateField = lambdaFieldRef,
+                                NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                Type = lambdaFieldRef.FieldType
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         return captured;
@@ -769,6 +840,52 @@ public class AssertionWeaver
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Resolves a lambda method reference (from ldftn) to its definition.
+    /// The lambda is typically on the same type (state machine) or a nested display class.
+    /// </summary>
+    private static MethodDefinition? ResolveLambdaMethod(MethodReference methodRef, MethodDefinition containingMethod)
+    {
+        // Lambda is typically a method on the same declaring type (state machine)
+        var declaringType = containingMethod.DeclaringType;
+        foreach (var m in declaringType.Methods)
+        {
+            if (m.Name == methodRef.Name)
+                return m;
+        }
+
+        // Check nested types (display class patterns)
+        foreach (var nested in declaringType.NestedTypes)
+        {
+            foreach (var m in nested.Methods)
+            {
+                if (m.Name == methodRef.Name)
+                    return m;
+            }
+        }
+
+        // Check parent type and its nested types (lambda on enclosing class)
+        if (declaringType.DeclaringType != null)
+        {
+            foreach (var m in declaringType.DeclaringType.Methods)
+            {
+                if (m.Name == methodRef.Name)
+                    return m;
+            }
+            foreach (var nested in declaringType.DeclaringType.NestedTypes)
+            {
+                foreach (var m in nested.Methods)
+                {
+                    if (m.Name == methodRef.Name)
+                        return m;
+                }
+            }
+        }
+
+        // Standard resolution fallback
+        try { return methodRef.Resolve(); } catch { return null; }
     }
 
     /// <summary>
