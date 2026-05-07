@@ -23,6 +23,12 @@ public class WeaveAssertionsTask : Microsoft.Build.Utilities.Task
     /// </summary>
     public ITaskItem[] SourceRoots { get; set; } = Array.Empty<ITaskItem>();
 
+    /// <summary>
+    /// Resolved reference paths (from MSBuild @(ReferencePath)). Used to configure
+    /// Cecil's assembly resolver so it can locate referenced assemblies (NuGet packages, etc.).
+    /// </summary>
+    public ITaskItem[] References { get; set; } = Array.Empty<ITaskItem>();
+
     public override bool Execute()
     {
         try
@@ -52,7 +58,12 @@ public class WeaveAssertionsTask : Microsoft.Build.Utilities.Task
         }
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var weaver = new AssertionWeaver(Log);
+        var searchDirectories = References
+            .Select(r => Path.GetDirectoryName(r.ItemSpec))
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var weaver = new AssertionWeaver(Log, searchDirectories!);
         var result = weaver.Weave(AssemblyPath, pdbPath);
         sw.Stop();
 

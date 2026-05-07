@@ -51,7 +51,8 @@ namespace TestTrackingDiagrams.Tracking
 
     <WeaveAssertionsTask
       AssemblyPath="@(IntermediateAssembly)"
-      SourceRoots="@(SourceRoot)" />
+      SourceRoots="@(SourceRoot)"
+      References="@(ReferencePath)" />
 
     <Touch Files="$(IntermediateOutputPath)__assertion_tracking_weaved__.marker" AlwaysCreate="true" />
 

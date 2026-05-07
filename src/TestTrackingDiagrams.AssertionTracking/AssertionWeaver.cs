@@ -18,11 +18,13 @@ namespace TestTrackingDiagrams.AssertionTracking;
 public class AssertionWeaver
 {
     private readonly TaskLoggingHelper? _log;
+    private readonly string[] _searchDirectories;
     private readonly Dictionary<string, string[]?> _sourceFileCache = new(StringComparer.Ordinal);
 
-    public AssertionWeaver(TaskLoggingHelper? log = null)
+    public AssertionWeaver(TaskLoggingHelper? log = null, string[]? searchDirectories = null)
     {
         _log = log;
+        _searchDirectories = searchDirectories ?? Array.Empty<string>();
     }
 
     public WeaveResult Weave(string assemblyPath, string pdbPath)
@@ -39,8 +41,8 @@ public class AssertionWeaver
         {
             ReadSymbols = true,
             SymbolReaderProvider = new DefaultSymbolReaderProvider(throwIfNoSymbol: false),
-            ReadingMode = ReadingMode.Immediate,
-            AssemblyResolver = new DefaultAssemblyResolver()
+            ReadingMode = ReadingMode.Deferred,
+            AssemblyResolver = CreateResolver(assemblyPath)
         };
         readerParams.SymbolStream = new MemoryStream(pdbBytes);
 
@@ -167,6 +169,24 @@ public class AssertionWeaver
         // Apply [module: __AssertionTrackingWeaved__]
         var attrInstance = new CustomAttribute(ctor);
         module.CustomAttributes.Add(attrInstance);
+    }
+
+    private IAssemblyResolver CreateResolver(string assemblyPath)
+    {
+        var resolver = new DefaultAssemblyResolver();
+
+        // Add the directory containing the assembly itself
+        var assemblyDir = Path.GetDirectoryName(assemblyPath);
+        if (!string.IsNullOrEmpty(assemblyDir))
+            resolver.AddSearchDirectory(assemblyDir);
+
+        // Add all directories from resolved references (NuGet packages, framework, etc.)
+        foreach (var dir in _searchDirectories)
+        {
+            resolver.AddSearchDirectory(dir);
+        }
+
+        return resolver;
     }
 
     private static bool HasTrackAssertionsBetaAttribute(AssemblyDefinition assembly)

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.21] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: weaver crashes with `Failed to resolve assembly` on CI** — Cecil's `DefaultAssemblyResolver` could not locate referenced assemblies (NuGet packages like TUnit.Core, nunit.framework, etc.) because no search directories were configured. The MSBuild target now passes `@(ReferencePath)` to the weaver task, which registers all reference assembly directories with Cecil's resolver. Also switched from `ReadingMode.Immediate` to `ReadingMode.Deferred` — the immediate mode eagerly parsed ALL IL bodies and resolved ALL custom attribute enum types during the initial assembly read (before any fast-path could skip methods), causing both crashes (unresolvable assemblies) and hangs (millions of instructions parsed upfront for assemblies with thousands of compiler-generated types).
+
 ## [2.30.20] - 2026-05-07
 
 ### Fixed
