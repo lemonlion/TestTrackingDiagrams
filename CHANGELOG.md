@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.23] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: weaver infinite loop on async state machine fields** — `GetStateFieldOriginalName` could return an empty string for compiler-generated fields like `<>1__state`, `<>t__builder`, `<>u__1`, `<>s__1`, and `<>7__wrap1`. This empty name was then passed to `NameAppearsInExpression` which entered an infinite loop (`String.IndexOf("", idx)` always succeeds, and `idx += 0` never advances). Fixed by returning `null` for empty extracted names, and added a defensive early-return guard in `NameAppearsInExpression`. This was the root cause of the 12+ minute CI hang in BreakfastProvider.
+
 ## [2.30.22] - 2026-05-07
 
 ### Fixed

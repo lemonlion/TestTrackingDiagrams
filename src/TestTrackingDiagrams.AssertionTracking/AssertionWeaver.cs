@@ -92,14 +92,19 @@ public class AssertionWeaver
             typeof(Exception).GetProperty("Message")!.GetGetMethod()!);
 
         var setupMs = sw.ElapsedMilliseconds;
+        _log?.LogMessage(MessageImportance.Low, "AssertionTracking: Setup done at {0}ms. Starting type iteration...", setupMs);
+        var typeCount = 0;
+        var methodCount = 0;
 
         foreach (var type in assembly.MainModule.GetTypes())
         {
+            typeCount++;
             if (HasSuppressAttribute(type))
                 continue;
 
             foreach (var method in type.Methods)
             {
+                methodCount++;
                 if (!method.HasBody)
                     continue;
                 if (HasSuppressAttribute(method))
@@ -116,6 +121,7 @@ public class AssertionWeaver
         }
 
         var weaveMs = sw.ElapsedMilliseconds;
+        _log?.LogMessage(MessageImportance.Normal, "AssertionTracking: {0} types, {1} methods, {2} assertions weaved in {3}ms", typeCount, methodCount, result.WeavedCount, weaveMs);
 
         if (result.WeavedCount > 0)
         {
@@ -697,7 +703,8 @@ public class AssertionWeaver
         if (fieldName.StartsWith("<") && fieldName.Contains(">"))
         {
             var end = fieldName.IndexOf('>');
-            return fieldName.Substring(1, end - 1);
+            var name = fieldName.Substring(1, end - 1);
+            return name.Length > 0 ? name : null;
         }
         return null;
     }
@@ -708,6 +715,9 @@ public class AssertionWeaver
     /// </summary>
     private static bool NameAppearsInExpression(string name, string expression)
     {
+        if (string.IsNullOrEmpty(name))
+            return false;
+
         var idx = 0;
         while (true)
         {
