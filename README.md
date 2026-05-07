@@ -7,7 +7,7 @@
 
 # <img src="icon.svg" width="32" height="32" alt="TTD icon" style="vertical-align: middle;"> TestTrackingDiagrams
 
-Automatically generates rich interactive HTML reports with PlantUML sequence, activity and component diagrams, with timeline visualizations from your integration/component test HTTP traffic (real or faked) and telemetry.
+Automatically generates [rich interactive HTML reports with PlantUML sequence, activity and component diagrams, with timeline visualizations from your integration/component test HTTP traffic (real or faked) and telemetry]](https://lemonlion.github.io/BreakfastProvider/).
 
 Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into sequence diagrams embedded in searchable HTML reports and YAML specification files.  Method flow within the SUT itself is turned into activity diagrams.  And the combination is turned into flame diagrams.  All the flows combined are turned into a C4 Component Diagram for your service.  A Scenario Timeline diagram allows you to visually compare the execution time of your services.
 
@@ -28,7 +28,7 @@ Input data sets (eg InlineData/MemberData/ClassData for xUnit, and equivalents i
 
 ## <a name="example-output"></a>Example Output [↑](#top)
 
-**This is just a very simple static example, for a full, rich, interactive example, see the generated [BreakFastProvider diagrams](https://lemonlion.github.io/BreakfastProvider/lightbdd/TestRunReport.html) in the [BreakFastProvider](https://github.com/lemonlion//BreakfastProvider/) project.** 
+**This is just a very simple static example, for a full, rich, interactive example, see the generated [BreakFastProvider diagrams](https://lemonlion.github.io/BreakfastProvider/) in the [BreakFastProvider](https://github.com/lemonlion//BreakfastProvider/) project.** 
 
 [<img width="770" height="1017" alt="image" src="https://github.com/user-attachments/assets/43d48a00-ba37-4951-945c-dd75de64c2bb" />](https://www.plantuml.com/plantuml/uml/j5NDJjj04BvRyZiCBWSGSKa28c2520418PI2258F2A7DxjYnukn6utKYG7so7lf8VONkseO4DnKGgJvvPhwPRtxjtpz_7QMQaSx6YUkiJOX5OmOQrHDeoj1rsgb-JB3ZEl0LfoZrDwKHderedsF6Hn6fJ8eJbIY2Bpn47hPAwvcIkXy_8JGQfUQcW994WaRTA7yOWkqNXdGKomaZDeOPiSdtMEWXxDSDR2tC9DUnah3EBS_6-fGb6MuQ2w7EI8BNpWs1jrMOjZpeUCQCKhpukWxBj9BPU639NSV8N9kSlHEM94WUi1Hu_kewfivOFu9tYccAfE6Qr3GM9KWKoXVT77sYPj17ciOSYsXgLefpJDVs40QaHcMqlAd7kMnpAZ80lrEb2U2yUnl0zZXEHgvJCLhydEqjTAu7VrdOgqlNaNQe54T3xJfbYoDYZvjtfqpZOK_96ZHteCS8clNc7ZJsWjrwK6_0UU_slk9XkP0EBp7LX4dLUajCfY6ItvLSYLX6XtoOoH4A0tITVAqycxONWDTNOtmu8qo73pshSXspBMQWOBDTqWBRWxnxVzVqgS3lZW2ZA5s5t_gzydUjy5dcC54PhKATEyvhpwMFarzVzIqxPoCiWoSOljlMsZ-PQnzhnv8bNxYMmDoQWMuK5sL0MfbDsoppVCYHPamsLBlz-kdgTDxaVimq7ru8cmORx30sE6ZvZHRd_cvJD7qMjfWVYi4-QxA3aDTtoymlP4GeOajWFE-AZzj27RL5JRKZK1a2m7sbxeKYbv_i3QOJ9GMALLPXi5B9vbJ_Pyb7vZN_0_q1003__mC0)
 
