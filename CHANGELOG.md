@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.22] - 2026-05-07
+
+### Fixed
+- **AssertionTracking: weaver hanging on CI due to `ReadingMode.Deferred`** — The v2.30.21 fix switched to `ReadingMode.Deferred` to avoid upfront resolution, but this caused thousands of lazy per-method-body reads and resolver calls, hanging on CI runners. Switched back to `ReadingMode.Immediate` (safe now that the assembly resolver is properly configured with `@(ReferencePath)` directories) — this performs one fast sequential read of all metadata. Added a fast-path exit when neither FluentAssertions nor AwesomeAssertions is referenced, skipping the entire weave process for assemblies that can't contain `.Should()` calls.
+
 ## [2.30.21] - 2026-05-07
 
 ### Fixed

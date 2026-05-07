@@ -11,7 +11,7 @@ using Mono.Cecil.Rocks;
 namespace TestTrackingDiagrams.AssertionTracking;
 
 /// <summary>
-/// Core IL weaving logic. Opens a compiled assembly with Cecil, finds FluentAssertions
+/// Core IL weaving logic. Opens a compiled assembly with Cecil, finds FluentAssertions/AwesomeAssertions
 /// .Should() call chains, wraps each assertion statement in try/catch that reports
 /// pass/fail to Track.AssertionPassed/Track.AssertionFailed.
 /// </summary>
@@ -41,7 +41,7 @@ public class AssertionWeaver
         {
             ReadSymbols = true,
             SymbolReaderProvider = new DefaultSymbolReaderProvider(throwIfNoSymbol: false),
-            ReadingMode = ReadingMode.Deferred,
+            ReadingMode = ReadingMode.Immediate,
             AssemblyResolver = CreateResolver(assemblyPath)
         };
         readerParams.SymbolStream = new MemoryStream(pdbBytes);
@@ -55,6 +55,13 @@ public class AssertionWeaver
         if (!HasTrackAssertionsBetaAttribute(assembly))
         {
             result.SkipReason = "No TrackAssertionsBeta attribute found";
+            return result;
+        }
+
+        // Fast-path: if neither FluentAssertions nor AwesomeAssertions is referenced, there can't be any .Should() calls
+        if (!ReferencesAssertionLibrary(assembly))
+        {
+            result.SkipReason = "FluentAssertions/AwesomeAssertions not referenced";
             return result;
         }
 
@@ -196,6 +203,12 @@ public class AssertionWeaver
             a.AttributeType.FullName == "TestTrackingDiagrams.Tracking.TrackAssertionsBetaAttribute");
     }
 
+    private static bool ReferencesAssertionLibrary(AssemblyDefinition assembly)
+    {
+        return assembly.MainModule.AssemblyReferences
+            .Any(r => r.Name == "FluentAssertions" || r.Name == "AwesomeAssertions");
+    }
+
     private static bool HasSuppressAttribute(ICustomAttributeProvider provider)
     {
         if (!provider.HasCustomAttributes)
@@ -294,7 +307,7 @@ public class AssertionWeaver
     /// <summary>
     /// Finds assertion "statements" in a method body. An assertion statement is a contiguous
     /// set of IL instructions (identified by sequence points) that contains a call to a method
-    /// named "Should" on a FluentAssertions type.
+    /// named "Should" on a FluentAssertions or AwesomeAssertions type.
     /// </summary>
     private List<AssertionStatement> FindAssertionStatements(MethodDefinition method, WeaveResult result)
     {
