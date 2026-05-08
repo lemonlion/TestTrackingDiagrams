@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.2] - 2026-08-05
+
+### Fixed
+- **CI: Example.Api package downgrade error** — Updated `Microsoft.AspNetCore.Mvc.Testing` in all Example.Api test projects from 10.0.5 to 10.0.7, matching the core library dependency upgraded in v2.31.0. This resolved NU1605 "detected package downgrade" errors that caused Example.Api, Integration, and BDDfy CI jobs to fail.
+
 ## [2.31.1] - 2026-08-05
 
 ### Fixed
