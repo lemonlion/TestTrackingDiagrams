@@ -1,9 +1,9 @@
 <Project>
 
-  <!-- Auto-generate the TrackAssertionsBeta attribute source into intermediate output -->
+  <!-- Auto-generate the TrackAssertions attribute source into intermediate output -->
   <Target Name="_GenerateAssertionTrackingAttributes"
           BeforeTargets="CoreCompile"
-          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'">
+          Condition="'$(TrackAssertionsEnabled)' == 'true'">
 
     <PropertyGroup>
       <_AssertionTrackingAttrDir>$(IntermediateOutputPath)AssertionTrackingAttributes\</_AssertionTrackingAttrDir>
@@ -12,7 +12,7 @@
     <MakeDir Directories="$(_AssertionTrackingAttrDir)" />
 
     <WriteLinesToFile
-      File="$(_AssertionTrackingAttrDir)TrackAssertionsBetaAttribute.g.cs"
+      File="$(_AssertionTrackingAttrDir)TrackAssertionsAttribute.g.cs"
       Overwrite="true"
       Lines="// &lt;auto-generated /&gt;
 using System%3B
@@ -20,7 +20,7 @@ using System%3B
 namespace TestTrackingDiagrams.Tracking
 {
     [AttributeUsage(AttributeTargets.Assembly)]
-    internal sealed class TrackAssertionsBetaAttribute : Attribute { }
+    internal sealed class TrackAssertionsAttribute : Attribute { }
 }" />
 
     <WriteLinesToFile
@@ -36,7 +36,7 @@ namespace TestTrackingDiagrams.Tracking
 }" />
 
     <ItemGroup>
-      <Compile Include="$(_AssertionTrackingAttrDir)TrackAssertionsBetaAttribute.g.cs" />
+      <Compile Include="$(_AssertionTrackingAttrDir)TrackAssertionsAttribute.g.cs" />
       <Compile Include="$(_AssertionTrackingAttrDir)SuppressAssertionTrackingAttribute.g.cs" />
     </ItemGroup>
 
@@ -45,7 +45,7 @@ namespace TestTrackingDiagrams.Tracking
   <!-- Run IL weaving AFTER compilation to instrument .Should() calls -->
   <Target Name="_WeaveAssertionTracking"
           AfterTargets="CoreCompile"
-          Condition="'$(TrackAssertionsBetaEnabled)' == 'true'"
+          Condition="'$(TrackAssertionsEnabled)' == 'true'"
           Inputs="@(IntermediateAssembly)"
           Outputs="@(IntermediateAssembly);$(IntermediateOutputPath)__assertion_tracking_weaved__.marker">
 

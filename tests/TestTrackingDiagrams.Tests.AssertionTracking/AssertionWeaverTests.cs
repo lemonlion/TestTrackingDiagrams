@@ -16,7 +16,7 @@ namespace TestTrackingDiagrams.Tests.AssertionTracking;
 public class AssertionWeaverTests
 {
     [Fact]
-    public void Weave_WithoutTrackAssertionsBeta_DoesNothing()
+    public void Weave_WithoutTrackAssertions_DoesNothing()
     {
         // Compile a test assembly without the attribute
         var assemblyPath = TestAssemblyBuilder.Build(
@@ -44,7 +44,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -87,7 +87,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -103,6 +103,29 @@ public class AssertionWeaverTests
     }
 
     [Fact]
+    public void Weave_WithOldBetaAttribute_StillWorks()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "OldBetaAttribute",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public void Method() { 1.Should().Be(1); }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1, "old TrackAssertionsBeta attribute should still be recognized");
+    }
+
+    [Fact]
     public void Weave_WithSuppressOnMethod_SkipsMethod()
     {
         var assemblyPath = TestAssemblyBuilder.Build(
@@ -111,7 +134,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -135,7 +158,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             [SuppressAssertionTracking]
             public class Tests
@@ -160,7 +183,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -189,7 +212,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -225,7 +248,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -268,7 +291,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -311,7 +334,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Steps
             {
@@ -366,7 +389,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Steps
             {
@@ -420,7 +443,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -464,7 +487,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -510,7 +533,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class ExpectedResult
             {
@@ -581,7 +604,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -626,7 +649,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -677,7 +700,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -724,7 +747,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -771,7 +794,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -807,7 +830,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -852,7 +875,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -898,7 +921,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Item
             {
@@ -949,7 +972,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Item
             {
@@ -1003,7 +1026,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Item
             {
@@ -1056,7 +1079,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Item
             {
@@ -1108,7 +1131,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -1152,7 +1175,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class AuditLog
             {
@@ -1212,7 +1235,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             namespace TUnit.Assertions.Should
             {
@@ -1267,7 +1290,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             namespace TUnit.Assertions
             {
@@ -1323,7 +1346,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             namespace TUnit.Assertions.Should
             {
@@ -1388,7 +1411,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             namespace TUnit.Assertions
             {
@@ -1453,7 +1476,7 @@ public class AssertionWeaverTests
             using FluentAssertions;
             using TestTrackingDiagrams.Tracking;
 
-            [assembly: TrackAssertionsBeta]
+            [assembly: TrackAssertions]
 
             public class Tests
             {
@@ -1478,5 +1501,93 @@ public class AssertionWeaverTests
         var task = (Task)method.Invoke(instance, null)!;
         var ex = Record.Exception(() => task.GetAwaiter().GetResult());
         ex.Should().BeNull($"weaved async assertion should execute cleanly in {optimization} mode");
+    }
+
+    [Fact]
+    public void Weave_InlinePragmaDisable_SkipsSingleAssertion()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "InlinePragma",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    1.Should().Be(1);
+                    2.Should().Be(2); // pragma:TrackAssertions:disable
+                    3.Should().Be(3);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(2, "inline pragma should skip only the annotated assertion");
+    }
+
+    [Fact]
+    public void Weave_BlockPragmaDisableEnable_SkipsRange()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "BlockPragma",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    1.Should().Be(1);
+                    // pragma:TrackAssertions:disable
+                    2.Should().Be(2);
+                    3.Should().Be(3);
+                    // pragma:TrackAssertions:enable
+                    4.Should().Be(4);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(2, "block pragma should skip assertions between disable and enable");
+    }
+
+    [Fact]
+    public void Weave_BlockPragmaDisableWithoutEnable_SkipsRemaining()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "BlockPragmaNoEnable",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    1.Should().Be(1);
+                    // pragma:TrackAssertions:disable
+                    2.Should().Be(2);
+                    3.Should().Be(3);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1, "block pragma without enable should skip all remaining assertions");
     }
 }

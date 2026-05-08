@@ -55,4 +55,4 @@ dotnet new ttd-xunit3 --name MyService.Tests.Component \
 
 ## Assertion Tracking
 
-All templates come pre-configured with `[assembly: TrackAssertions]` and a reference to `TestTrackingDiagrams.AssertionRewriter`. This means all `.Should()` calls are automatically wrapped in `Track.That()` at compile time, producing green/red assertion notes in your HTML reports with zero manual effort.
+All templates come pre-configured with `[assembly: TrackAssertions]` and a reference to `TestTrackingDiagrams.AssertionTracking`. This means all `.Should()` calls are automatically instrumented at compile time via IL weaving, producing green/red assertion notes in your HTML reports with zero manual effort.

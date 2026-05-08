@@ -13,11 +13,10 @@ namespace TestTrackingDiagrams.Tracking
     /// wrapping each assertion statement in a try/catch that reports pass/fail
     /// to <c>Track.AssertionPassed</c>/<c>Track.AssertionFailed</c>.
     /// <para>
-    /// Unlike the source-rewriting approach (<c>TrackAssertionsAttribute</c>),
-    /// this preserves full C# semantics — null propagation, ref parameters, and
+    /// This preserves full C# semantics — null propagation, ref parameters, and
     /// expression evaluation order are unchanged.
     /// </para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Assembly)]
-    internal sealed class TrackAssertionsBetaAttribute : Attribute { }
+    internal sealed class TrackAssertionsAttribute : Attribute { }
 }

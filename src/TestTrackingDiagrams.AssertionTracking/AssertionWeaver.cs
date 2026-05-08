@@ -51,10 +51,10 @@ public class AssertionWeaver
 
         var readMs = sw.ElapsedMilliseconds;
 
-        // Fast-path: check for [assembly: TrackAssertionsBeta]
-        if (!HasTrackAssertionsBetaAttribute(assembly))
+        // Fast-path: check for [assembly: TrackAssertions]
+        if (!HasTrackAssertionsAttribute(assembly))
         {
-            result.SkipReason = "No TrackAssertionsBeta attribute found";
+            result.SkipReason = "No TrackAssertions attribute found";
             return result;
         }
 
@@ -202,10 +202,12 @@ public class AssertionWeaver
         return resolver;
     }
 
-    private static bool HasTrackAssertionsBetaAttribute(AssemblyDefinition assembly)
+    private static bool HasTrackAssertionsAttribute(AssemblyDefinition assembly)
     {
         return assembly.CustomAttributes.Any(a =>
+            a.AttributeType.Name == "TrackAssertionsAttribute" ||
             a.AttributeType.Name == "TrackAssertionsBetaAttribute" ||
+            a.AttributeType.FullName == "TestTrackingDiagrams.Tracking.TrackAssertionsAttribute" ||
             a.AttributeType.FullName == "TestTrackingDiagrams.Tracking.TrackAssertionsBetaAttribute");
     }
 
@@ -407,6 +409,10 @@ public class AssertionWeaver
                 IsAssertionEntryPoint(mr));
 
             if (!hasAssertionCall)
+                continue;
+
+            // Check for pragma comments that disable assertion tracking for this statement.
+            if (IsPragmaDisabled(sp))
                 continue;
 
             // Collect conditional/unconditional branches jumping outside the statement range.
@@ -636,6 +642,48 @@ public class AssertionWeaver
             else if (c == ')') depth--;
         }
         return depth > 0;
+    }
+
+    /// <summary>
+    /// Checks if the assertion at the given sequence point should be skipped due to
+    /// pragma comments in the source file. Supports:
+    /// - Inline disable: <c>x.Should().Be(1); // pragma:TrackAssertions:disable</c>
+    /// - Block disable/enable: <c>// pragma:TrackAssertions:disable</c> ... <c>// pragma:TrackAssertions:enable</c>
+    /// </summary>
+    private bool IsPragmaDisabled(SequencePoint sp)
+    {
+        var documentUrl = sp.Document.Url;
+
+        if (!_sourceFileCache.TryGetValue(documentUrl, out var lines))
+        {
+            lines = File.Exists(documentUrl) ? File.ReadAllLines(documentUrl) : null;
+            _sourceFileCache[documentUrl] = lines;
+        }
+
+        if (lines == null || sp.StartLine < 1 || sp.StartLine > lines.Length)
+            return false;
+
+        // Check inline pragma on the assertion line itself (trailing comment on a code line)
+        var assertionLine = lines[sp.StartLine - 1];
+        if (assertionLine.Contains("pragma:TrackAssertions:disable"))
+            return true;
+
+        // Check block pragma: scan lines above the assertion for standalone disable/enable comments.
+        // A standalone comment line is one where the trimmed content starts with "//"
+        // (as opposed to inline pragmas which have code before the comment).
+        var disabled = false;
+        for (var i = 0; i < sp.StartLine - 1; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (!trimmed.StartsWith("//"))
+                continue;
+            if (trimmed.Contains("pragma:TrackAssertions:disable"))
+                disabled = true;
+            else if (trimmed.Contains("pragma:TrackAssertions:enable"))
+                disabled = false;
+        }
+
+        return disabled;
     }
 
     /// <summary>

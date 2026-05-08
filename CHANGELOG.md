@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.0] - 2026-08-05
+
+### Changed
+- **Assertion tracking: `TrackAssertionsBeta` renamed to `TrackAssertions`** — The IL weaver attribute `[assembly: TrackAssertionsBeta]` has been renamed to `[assembly: TrackAssertions]`. The old attribute name is still recognized for backward compatibility.
+- **MSBuild property renamed**: `TrackAssertionsBetaEnabled` → `TrackAssertionsEnabled`. The old property name is still supported for backward compatibility.
+- **IL weaver is now the sole assertion tracking approach** — The `TestTrackingDiagrams.AssertionRewriter` (Roslyn source rewriter) package has been removed from the solution. The IL weaver (`TestTrackingDiagrams.AssertionTracking`) is now the only automated assertion tracking package.
+- **All project templates** updated from `AssertionRewriter` to `AssertionTracking` package reference.
+
+### Added
+- **Pragma comment support in IL weaver** — The IL weaver now supports `// pragma:TrackAssertions:disable` and `// pragma:TrackAssertions:enable` comments for fine-grained control over which assertions are instrumented. Works as both inline (single-statement) and block (range) suppression.
+- **Backward compatibility test** for old `TrackAssertionsBetaAttribute`.
+
+### Removed
+- **`TestTrackingDiagrams.AssertionRewriter` package** — The Roslyn source rewriter has been removed. Use `TestTrackingDiagrams.AssertionTracking` (IL weaver) instead. Migration: replace `[assembly: TrackAssertions]` package reference from `AssertionRewriter` to `AssertionTracking` — the attribute name remains the same.
+- **`TestTrackingDiagrams.Tests.AssertionRewriter` test project** — Removed along with the source rewriter.
+
 ## [2.30.36] - 2026-08-05
 
 ### Changed

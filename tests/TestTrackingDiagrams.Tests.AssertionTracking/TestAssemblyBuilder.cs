@@ -26,6 +26,10 @@ public static class TestAssemblyBuilder
         namespace TestTrackingDiagrams.Tracking
         {
             [AttributeUsage(AttributeTargets.Assembly)]
+            internal sealed class TrackAssertionsAttribute : Attribute { }
+
+            // Keep old name for backward compat tests
+            [AttributeUsage(AttributeTargets.Assembly)]
             internal sealed class TrackAssertionsBetaAttribute : Attribute { }
 
             [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true)]
@@ -51,7 +55,7 @@ public static class TestAssemblyBuilder
         // Write the source file to disk so the weaver can read it for expression text
         File.WriteAllText(sourcePath, source, Encoding.UTF8);
 
-        // Include the auto-generated attributes so [assembly: TrackAssertionsBeta] compiles
+        // Include the auto-generated attributes so [assembly: TrackAssertions] compiles
         var attrSourceText = SourceText.From(AttributeSource, Encoding.UTF8);
         var attrTree = CSharpSyntaxTree.ParseText(attrSourceText,
             new CSharpParseOptions(LanguageVersion.Latest));
