@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.31] - 2026-05-08
+
+### Fixed
+- **Step tables now align with step text** — The left margin of inline step parameter tables (`step-param-table`) increased from `24px` to `2.3em` so they align with the start of the step text rather than the status indicator (tick/cross).
+
 ## [2.30.30] - 2026-05-08
 
 ### Changed

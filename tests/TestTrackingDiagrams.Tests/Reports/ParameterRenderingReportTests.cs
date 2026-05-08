@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Reports;
 
 namespace TestTrackingDiagrams.Tests.Reports;
@@ -500,5 +501,15 @@ public class ParameterRenderingReportTests
         var content = GenerateReport(features);
         Assert.Contains("row-surplus", content);
         Assert.Contains("+", content);
+    }
+
+    [Fact]
+    public void Step_param_table_left_margin_aligns_with_step_text()
+    {
+        // The step-param-table should be indented to align with the start of the step text,
+        // not with the tick/status indicator. The text starts after: ::before (0.3em) +
+        // status margin-left (0.5em) + status width (1.2em) + status margin-right (0.3em) = ~2.3em
+        Assert.Contains(".step-param-table", Stylesheets.HtmlReportStyleSheet);
+        Assert.Contains("margin: 4px 0 4px 2.3em", Stylesheets.HtmlReportStyleSheet);
     }
 }

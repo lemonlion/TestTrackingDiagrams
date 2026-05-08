@@ -872,7 +872,7 @@ public class Stylesheets
                 .param-na { background: #e9ecef; }
 
                 .step-param-table {
-                    margin: 4px 0 4px 24px;
+                    margin: 4px 0 4px 2.3em;
                 }
                 .step-param-table table {
                     border-collapse: collapse;
