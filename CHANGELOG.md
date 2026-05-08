@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.36] - 2026-08-05
+
+### Changed
+- **NuGet package upgrades** — Updated all dependencies to latest patch/minor versions within their current major:
+  - Microsoft.AspNetCore.Mvc.Testing: 8.0.25→8.0.26, 9.0.14→9.0.15, 10.0.5→10.0.7
+  - Microsoft.Build.Utilities.Core: 17.0.0→17.14.28
+  - Microsoft.CodeAnalysis.CSharp: 4.12.0→4.14.0
+  - LightBDD.Framework: 3.11.2→3.12.0
+  - LightBDD.XUnit2: 3.11.2→3.12.0
+  - Microsoft.Testing.Platform.MSBuild: 2.0.1→2.2.2
+  - MSTest.TestFramework: 3.9.2→3.11.1
+  - NUnit: 4.5.1→4.6.0
+  - IKVM / IKVM.Image / IKVM.Image.JDK / IKVM.Image.JRE / IKVM.MSBuild: 8.9.1→8.15.0
+  - Microsoft.NET.Test.Sdk: 18.3.0→18.5.1
+  - FluentAssertions: 8.3.0→8.9.0
+  - Microsoft.AspNetCore.Http: 2.2.2→2.3.9
+  - Jint: 4.2.1→4.8.0
+  - Microsoft.Playwright: 1.52.0→1.59.0
+
 ## [2.30.35] - 2026-05-08
 
 ### Added
