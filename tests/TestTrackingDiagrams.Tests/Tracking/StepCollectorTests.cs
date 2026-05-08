@@ -1,5 +1,6 @@
 using TestTrackingDiagrams.Tracking;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.TabularAttributes;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
@@ -527,5 +528,65 @@ public class StepCollectorTests
         Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
         Assert.Contains("Step: And A product exists", logs[1].PlantUml!);
         StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void Step_with_ITabularParameterData_produces_Tabular_parameter()
+    {
+        var testId = $"tabular-{Guid.NewGuid():N}";
+        var items = new[] { new TabularTestPerson { Name = "Alice", Age = 30 } };
+        var inputs = new TabularInputs<TabularTestPerson>(items, ["Name", "Age"]);
+
+        StepCollector.StartStep(testId, "Given", "test data",
+            ["inputs"], [inputs]);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.NotNull(steps[0].Parameters);
+        Assert.Single(steps[0].Parameters!);
+
+        var param = steps[0].Parameters![0];
+        Assert.Equal("inputs", param.Name);
+        Assert.Equal(StepParameterKind.Tabular, param.Kind);
+        Assert.NotNull(param.TabularValue);
+        Assert.Equal(2, param.TabularValue!.Columns.Length);
+        Assert.Equal("Name", param.TabularValue.Columns[0].Name);
+        Assert.Equal("Age", param.TabularValue.Columns[1].Name);
+        Assert.Single(param.TabularValue.Rows);
+        Assert.Equal("Alice", param.TabularValue.Rows[0].Values[0].Value);
+        Assert.Equal("30", param.TabularValue.Rows[0].Values[1].Value);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void Mixed_inline_and_tabular_parameters()
+    {
+        var testId = $"mixed-{Guid.NewGuid():N}";
+        var items = new[] { new TabularTestPerson { Name = "Bob", Age = 25 } };
+        var inputs = new TabularInputs<TabularTestPerson>(items, ["Name"]);
+
+        StepCollector.StartStep(testId, "Given", "user with count",
+            ["count", "inputs"], [3, inputs]);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        var parameters = steps[0].Parameters!;
+        Assert.Equal(2, parameters.Length);
+
+        Assert.Equal(StepParameterKind.Inline, parameters[0].Kind);
+        Assert.Equal("3", parameters[0].InlineValue!.Value);
+
+        Assert.Equal(StepParameterKind.Tabular, parameters[1].Kind);
+        Assert.NotNull(parameters[1].TabularValue);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    private class TabularTestPerson
+    {
+        public string Name { get; set; } = "";
+        public int Age { get; set; }
     }
 }

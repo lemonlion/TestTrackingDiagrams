@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking.Tabular;
 
 namespace TestTrackingDiagrams.Tracking;
 
@@ -259,15 +260,29 @@ public static class StepCollector
 
         for (var i = 0; i < count; i++)
         {
-            result[i] = new StepParameter
+            if (paramValues[i] is ITabularParameterData tabular)
             {
-                Name = paramNames[i],
-                Kind = StepParameterKind.Inline,
-                InlineValue = new InlineParameterValue(
-                    Value: paramValues[i]?.ToString() ?? "null",
-                    Expectation: null,
-                    Status: VerificationStatus.NotApplicable)
-            };
+                result[i] = new StepParameter
+                {
+                    Name = paramNames[i],
+                    Kind = StepParameterKind.Tabular,
+                    TabularValue = new TabularParameterValue(
+                        tabular.GetColumns(),
+                        tabular.GetRows())
+                };
+            }
+            else
+            {
+                result[i] = new StepParameter
+                {
+                    Name = paramNames[i],
+                    Kind = StepParameterKind.Inline,
+                    InlineValue = new InlineParameterValue(
+                        Value: paramValues[i]?.ToString() ?? "null",
+                        Expectation: null,
+                        Status: VerificationStatus.NotApplicable)
+                };
+            }
         }
 
         return result;

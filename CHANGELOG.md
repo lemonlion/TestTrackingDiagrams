@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.32.0] - 2026-08-07
+
+### Added
+- **Tabular Attributes** — Data-driven tests with typed input/output rows and built-in verification, ported from [LightBDD.TabularAttributes](https://github.com/AdaskoTheBeAsT/LightBDD.TabularAttributes).
+  - **Core types** (`TestTrackingDiagrams` package):
+    - `[Inputs(...)]`, `[Outputs(...)]`, `[HeadOut(...)]` — plain attributes for declaring data rows and output column names.
+    - `TabularInputs<T>` — `IReadOnlyList<T>` with per-row diagram delimiters emitted during `foreach` iteration.
+    - `TabularOutputs<T>` — `IReadOnlyList<T>` with `AddActual()` + `Verify()` for position-based output comparison.
+    - `TabularDeserializer` — column-to-property mapping with space removal, `&` → `And` substitution, and case-insensitive matching.
+    - `TabularResolver` — reads tabular attributes from `MethodInfo` and constructs typed parameter values.
+    - `ITabularParameterData` — interface enabling `StepCollector` to automatically render tabular step parameters in reports.
+  - **Framework-specific `[HeadIn]` attributes** (acts as the data source trigger):
+    - `TestTrackingDiagrams.xUnit3` — extends `Xunit.v3.DataAttribute`
+    - `TestTrackingDiagrams.xUnit2` — extends `Xunit.Sdk.DataAttribute`
+    - `TestTrackingDiagrams.NUnit4` — implements `NUnit.Framework.Interfaces.ITestBuilder`
+    - `TestTrackingDiagrams.MSTest` — implements `Microsoft.VisualStudio.TestTools.UnitTesting.ITestDataSource`
+  - **`StepCollector.BuildParameters()` enhancement** — automatically detects `ITabularParameterData` values and produces `Tabular` step parameters instead of `Inline`.
+
 ## [2.31.6] - 2026-05-08
 
 ### Fixed
