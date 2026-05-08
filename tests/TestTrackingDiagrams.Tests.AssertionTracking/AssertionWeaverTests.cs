@@ -1882,6 +1882,57 @@ public class AssertionWeaverTests
     [Theory]
     [InlineData(OptimizationLevel.Debug)]
     [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_NullConditionalMultipleAssertions_NullValue_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Null-path through exit-spill: multiple null-conditional assertions sharing a subject
+        // via the Release-mode dup;dup;brtrue pattern, but the subject is null.
+        // The null-path exit block must correctly save/reload the null value for assertion 2.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncNullCondMultiNull_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Result
+            {
+                public string? MerchantId { get; set; }
+                public string? Name { get; set; }
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var result = await Task.FromResult<Result?>(null);
+                    result?.MerchantId.Should().Be("M123");
+                    result?.Name.Should().NotBeNull();
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        // Both assertions short-circuit via null-conditional; exit-spill passes null through
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async with multiple null-conditional assertions on null subject should not throw");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
     public void Weave_AsyncMethod_WithBecauseParam_DoesNotThrow(OptimizationLevel optimization)
     {
         // Issue #47: assertions with "because" format string arguments in async methods

@@ -1567,14 +1567,11 @@ public class AssertionWeaver
         // Find the instruction AFTER the last assertion instruction
         var afterLastInstr = lastInstr.Next;
 
-        // Check exit stack depth BEFORE any modifications. Release-mode multi-dup patterns
+        // Compute exit stack depth BEFORE any modifications. Release-mode multi-dup patterns
         // (multiple null-conditional assertions sharing a subject via dup;dup;brtrue) leave
-        // values on the stack for subsequent assertions. We cannot safely wrap these with
-        // try/catch because 'leave' clears the stack and the subsequent assertion's try
-        // entry requires that value. Skip instrumentation for such assertions.
+        // values on the stack for subsequent assertions. Since 'leave' clears the stack,
+        // we spill exit values into locals before the leave and reload them after the catch.
         var exitStackDepth = ComputeExitStackDepth(body, firstInstr, lastInstr);
-        if (exitStackDepth > 0)
-            return;
 
         // In Release builds, the compiler may leave values on the evaluation stack across
         // sequence point boundaries (e.g. GetResult() return value feeds directly into Should()).
@@ -1739,6 +1736,29 @@ public class AssertionWeaver
             }
         }
 
+        // Exit-spill: when the assertion leaves values on the stack for subsequent assertions,
+        // save them before 'leave' (which clears the stack) and reload after the catch.
+        List<VariableDefinition>? exitSpillLocals = null;
+        Instruction? truePathExitStart = null;
+        Instruction? nullPathExitStart = null;
+
+        if (exitStackDepth > 0 && afterLastInstr != null)
+        {
+            exitSpillLocals = new List<VariableDefinition>(exitStackDepth);
+            for (var i = 0; i < exitStackDepth; i++)
+            {
+                var local = new VariableDefinition(module.TypeSystem.Object);
+                body.Variables.Add(local);
+                exitSpillLocals.Add(local);
+            }
+
+            // True-path: save exit values (top of stack first) after AssertionPassed
+            truePathExitStart = il.Create(OpCodes.Stloc, exitSpillLocals[exitStackDepth - 1]);
+            il.InsertBefore(afterLastInstr, truePathExitStart);
+            for (var i = exitStackDepth - 2; i >= 0; i--)
+                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Stloc, exitSpillLocals[i]));
+        }
+
         // leave to after the catch
         var afterCatch = il.Create(OpCodes.Nop);
         var leaveInstr = il.Create(OpCodes.Leave, afterCatch);
@@ -1747,6 +1767,17 @@ public class AssertionWeaver
             il.InsertBefore(afterLastInstr, leaveInstr);
         else
             il.Append(leaveInstr);
+
+        // Null-path exit block: when the null-conditional short-circuits, the exit values
+        // are still on the stack. Save them before leaving the try block.
+        if (exitSpillLocals != null)
+        {
+            nullPathExitStart = il.Create(OpCodes.Stloc, exitSpillLocals[exitStackDepth - 1]);
+            il.InsertBefore(afterLastInstr!, nullPathExitStart);
+            for (var i = exitStackDepth - 2; i >= 0; i--)
+                il.InsertBefore(afterLastInstr!, il.Create(OpCodes.Stloc, exitSpillLocals[i]));
+            il.InsertBefore(afterLastInstr!, il.Create(OpCodes.Leave, afterCatch));
+        }
 
         // Catch handler: store exception, call AssertionFailed/FailedWithValues, rethrow
         var exVar = new VariableDefinition(exceptionTypeRef);
@@ -1812,23 +1843,33 @@ public class AssertionWeaver
         };
         body.ExceptionHandlers.Insert(0, handler);
 
-        // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
+        // Exit reload: push spilled exit values back onto the stack for subsequent assertions
+        if (exitSpillLocals != null)
+        {
+            for (var i = 0; i < exitStackDepth; i++)
+                il.InsertBefore(afterLastInstr!, il.Create(OpCodes.Ldloc, exitSpillLocals[i]));
+        }
+
+        // Retarget any outbound branches (from null-propagation ?.) to the null-path exit
+        // block (which saves exit values before leaving) or to the leave instruction directly.
         foreach (var branch in assertion.OutboundBranches)
         {
-            branch.Operand = leaveInstr;
+            branch.Operand = nullPathExitStart ?? leaveInstr;
         }
 
         // Retarget internal branches targeting afterLastInstr (the trimmed trailing leave/ret).
         // After wrapping, afterLastInstr sits OUTSIDE our try block (between afterCatch and
         // the next statement). A br/brfalse/brtrue from inside the try targeting it would be
-        // an illegal branch crossing the try boundary. Retarget them to our leaveInstr.
+        // an illegal branch crossing the try boundary. Retarget them to the true-path exit
+        // stlocs (to save exit values) or to leaveInstr if no exit-spill.
         if (afterLastInstr != null)
         {
+            var internalRetarget = truePathExitStart ?? leaveInstr;
             var scan = tryStart;
             while (scan != null && scan != catchStart)
             {
                 if (scan.Operand is Instruction brTarget && brTarget == afterLastInstr)
-                    scan.Operand = leaveInstr;
+                    scan.Operand = internalRetarget;
                 scan = scan.Next;
             }
         }

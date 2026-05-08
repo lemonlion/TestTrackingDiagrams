@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.5] - 2026-08-06
+
+### Fixed
+- **Null-conditional `?.Should()` assertions now fully tracked in Release mode (issue #47)** — The previous fix conservatively skipped instrumentation when the compiler's release-mode multi-dup pattern (`dup;dup;brtrue`) left values on the stack for subsequent assertions. The weaver now implements proper exit-spill logic: exit values are saved to locals before `leave`, a null-path exit block saves them on the short-circuit path, and they are reloaded after the catch handler for the next assertion to consume.
+
 ## [2.31.4] - 2026-08-06
 
 ### Fixed
