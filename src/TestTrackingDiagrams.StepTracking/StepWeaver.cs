@@ -13,8 +13,8 @@ namespace TestTrackingDiagrams.StepTracking;
 
 /// <summary>
 /// Core IL weaving logic for step tracking. Opens a compiled assembly with Cecil,
-/// finds methods decorated with [GivenStep], [WhenStep], [ThenStep], [AndStep],
-/// [ButStep], or [Step] attributes, and wraps them with StepCollector.StartStep/CompleteStep calls.
+/// finds methods decorated with [GivenStep], [WhenStep], [ThenStep], [ButStep],
+/// or [Step] attributes, and wraps them with StepCollector.StartStep/CompleteStep calls.
 /// </summary>
 public class StepWeaver
 {
@@ -26,7 +26,6 @@ public class StepWeaver
         "GivenStepAttribute",
         "WhenStepAttribute",
         "ThenStepAttribute",
-        "AndStepAttribute",
         "ButStepAttribute",
         "StepAttribute"
     };
@@ -36,7 +35,6 @@ public class StepWeaver
         ["GivenStepAttribute"] = "Given",
         ["WhenStepAttribute"] = "When",
         ["ThenStepAttribute"] = "Then",
-        ["AndStepAttribute"] = "And",
         ["ButStepAttribute"] = "But"
         // StepAttribute has no keyword (null)
     };

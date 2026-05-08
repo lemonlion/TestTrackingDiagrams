@@ -366,6 +366,20 @@ public class StepCollectorTests
     }
 
     [Fact]
+    public void StartStep_with_But_sets_phase_to_Setup()
+    {
+        var testId = $"phase-but-{Guid.NewGuid():N}";
+        TestPhaseContext.Reset();
+
+        StepCollector.StartStep(testId, "But", "A negative precondition", null, null);
+        Assert.Equal(TestPhase.Setup, TestPhaseContext.Current);
+
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.ClearSteps(testId);
+        TestPhaseContext.Reset();
+    }
+
+    [Fact]
     public void StartStep_self_resolving_uses_TestIdentityScope()
     {
         var testId = $"self-resolve-{Guid.NewGuid():N}";

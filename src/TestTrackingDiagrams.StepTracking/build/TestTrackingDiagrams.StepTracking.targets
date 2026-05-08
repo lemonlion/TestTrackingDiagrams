@@ -69,21 +69,6 @@ namespace TestTrackingDiagrams.Tracking
 }" />
 
     <WriteLinesToFile
-      File="$(_StepTrackingAttrDir)AndStepAttribute.g.cs"
-      Overwrite="true"
-      Lines="// &lt;auto-generated /&gt;
-using System%3B
-
-namespace TestTrackingDiagrams.Tracking
-{
-    [AttributeUsage(AttributeTargets.Method)]
-    internal sealed class AndStepAttribute : Attribute
-    {
-        public string Description { get; set; }
-    }
-}" />
-
-    <WriteLinesToFile
       File="$(_StepTrackingAttrDir)ButStepAttribute.g.cs"
       Overwrite="true"
       Lines="// &lt;auto-generated /&gt;
@@ -118,7 +103,6 @@ namespace TestTrackingDiagrams.Tracking
       <Compile Include="$(_StepTrackingAttrDir)GivenStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)WhenStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)ThenStepAttribute.g.cs" />
-      <Compile Include="$(_StepTrackingAttrDir)AndStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)ButStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)StepAttribute.g.cs" />
     </ItemGroup>

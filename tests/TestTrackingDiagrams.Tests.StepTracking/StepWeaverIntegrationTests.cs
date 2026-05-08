@@ -220,4 +220,45 @@ public class StepWeaverIntegrationTests
         Assert.Equal("When", steps[2].Keyword);
         Assert.Equal("Then", steps[3].Keyword);
     }
+
+    [Fact]
+    public void Weaved_ButStep_Records_Step_And_Sets_Setup_Phase()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntBut",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [ButStep]
+                public void The_User_Is_Not_An_Admin() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-but-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+        TestPhaseContext.Reset();
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("The_User_Is_Not_An_Admin")!;
+        method.Invoke(instance, null);
+
+        Assert.Equal(TestPhase.Setup, TestPhaseContext.Current);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal("But", steps[0].Keyword);
+        Assert.Equal("The user is not an admin", steps[0].Text);
+        Assert.Equal(Reports.ExecutionResult.Passed, steps[0].Status);
+
+        TestPhaseContext.Reset();
+    }
 }

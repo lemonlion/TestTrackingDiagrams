@@ -6,10 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.30] - 2026-05-08
+
+### Changed
+- **StepTracking: Removed `[AndStep]` attribute** — Redundant since keyword sequencing already auto-promotes consecutive same-keyword steps to "And". Use `[GivenStep]`, `[WhenStep]`, or `[ThenStep]` instead.
+- **StepTracking: `[ButStep]` now behaves like `[GivenStep]`** — Sets `TestPhaseContext.Current = TestPhase.Setup` (same as Given), but displays "But" as the keyword. Consecutive `[ButStep]` methods sequence to "And".
+
+### Added
+- **Wiki: Step Tracking page** — Full documentation covering all step attributes, keyword sequencing, parameter capture, phase transitions, assertion sub-steps, and nested steps. Cross-referenced from Phase-Aware Tracking, Assertion Tracking, Internal Flow Tracking, and Generated Reports pages.
+
 ## [2.30.29] - 2026-07-05
 
 ### Added
-- **New package: TestTrackingDiagrams.StepTracking** — IL weaver that instruments methods decorated with `[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[AndStep]`, `[ButStep]`, or `[Step]` attributes with automatic BDD step tracking. Activated via `[assembly: TrackSteps]`.
+- **New package: TestTrackingDiagrams.StepTracking** — IL weaver that instruments methods decorated with `[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[ButStep]`, or `[Step]` attributes with automatic BDD step tracking. Activated via `[assembly: TrackSteps]`.
   - Records step entry/exit timing and pass/fail status via `StepCollector`
   - Method names are humanized (PascalCase → "Pascal case", underscores → spaces)
   - Method parameters are captured as `StepParameter` values at runtime

@@ -47,12 +47,6 @@ public static class TestAssemblyBuilder
             }
 
             [AttributeUsage(AttributeTargets.Method)]
-            internal sealed class AndStepAttribute : Attribute
-            {
-                public string Description { get; set; }
-            }
-
-            [AttributeUsage(AttributeTargets.Method)]
             internal sealed class ButStepAttribute : Attribute
             {
                 public string Description { get; set; }

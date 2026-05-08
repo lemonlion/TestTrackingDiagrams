@@ -183,6 +183,39 @@ public class StepWeaverTests
     }
 
     [Fact]
+    public void Weave_ButStep_EmitsButKeyword()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ButStep",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [ButStep]
+                public void TheUserIsNotAdmin() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "TheUserIsNotAdmin");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("But", ldStrings);
+        Assert.Contains("The user is not admin", ldStrings);
+    }
+
+    [Fact]
     public void Weave_StepAttribute_EmitsNullKeyword()
     {
         var assemblyPath = TestAssemblyBuilder.Build(

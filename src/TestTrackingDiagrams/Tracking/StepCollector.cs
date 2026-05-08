@@ -71,6 +71,7 @@ public static class StepCollector
             switch (keyword)
             {
                 case "Given":
+                case "But":
                     TestPhaseContext.Current = TestPhase.Setup;
                     break;
                 case "When":
