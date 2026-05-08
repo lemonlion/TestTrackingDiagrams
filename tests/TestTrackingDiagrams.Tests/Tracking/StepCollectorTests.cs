@@ -380,6 +380,54 @@ public class StepCollectorTests
     }
 
     [Fact]
+    public void StartStep_with_ButWhen_sets_phase_to_Action()
+    {
+        var testId = $"phase-butwhen-{Guid.NewGuid():N}";
+        TestPhaseContext.Reset();
+
+        StepCollector.StartStep(testId, "ButWhen", "An alternative action", null, null);
+        Assert.Equal(TestPhase.Action, TestPhaseContext.Current);
+
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.ClearSteps(testId);
+        TestPhaseContext.Reset();
+    }
+
+    [Fact]
+    public void StartStep_with_ButWhen_displays_But_keyword()
+    {
+        var testId = $"butwhen-display-{Guid.NewGuid():N}";
+
+        StepCollector.StartStep(testId, "ButWhen", "An alternative action", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal("But", steps[0].Keyword);
+        Assert.Equal("An alternative action", steps[0].Text);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void StartStep_with_But_then_ButWhen_sequences_to_And()
+    {
+        var testId = $"butwhen-seq-{Guid.NewGuid():N}";
+
+        StepCollector.StartStep(testId, "But", "A precondition", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.StartStep(testId, "ButWhen", "An alternative action", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Equal(2, steps.Length);
+        Assert.Equal("But", steps[0].Keyword);
+        Assert.Equal("And", steps[1].Keyword);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
     public void StartStep_self_resolving_uses_TestIdentityScope()
     {
         var testId = $"self-resolve-{Guid.NewGuid():N}";

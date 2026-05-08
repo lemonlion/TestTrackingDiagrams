@@ -27,6 +27,7 @@ public class StepWeaver
         "WhenStepAttribute",
         "ThenStepAttribute",
         "ButStepAttribute",
+        "ButWhenStepAttribute",
         "StepAttribute"
     };
 
@@ -35,8 +36,16 @@ public class StepWeaver
         ["GivenStepAttribute"] = "Given",
         ["WhenStepAttribute"] = "When",
         ["ThenStepAttribute"] = "Then",
-        ["ButStepAttribute"] = "But"
+        ["ButStepAttribute"] = "But",
+        ["ButWhenStepAttribute"] = "ButWhen"
         // StepAttribute has no keyword (null)
+    };
+
+    // Display keyword used for dedup — maps internal keywords to their display form.
+    // Only entries that differ from AttributeToKeyword need to be listed.
+    private static readonly Dictionary<string, string> AttributeToDisplayKeyword = new(StringComparer.Ordinal)
+    {
+        ["ButWhenStepAttribute"] = "But"
     };
 
     public StepWeaver(TaskLoggingHelper? log = null, string[]? searchDirectories = null)
@@ -310,6 +319,14 @@ public class StepWeaver
         return AttributeToKeyword.TryGetValue(attrName, out var keyword) ? keyword : null;
     }
 
+    private static string? GetDisplayKeyword(CustomAttribute attr)
+    {
+        var attrName = attr.AttributeType.Name;
+        if (AttributeToDisplayKeyword.TryGetValue(attrName, out var display))
+            return display;
+        return AttributeToKeyword.TryGetValue(attrName, out var keyword) ? keyword : null;
+    }
+
     private static string GetStepText(CustomAttribute attr, MethodDefinition method)
     {
         // Check for Description property override
@@ -325,7 +342,8 @@ public class StepWeaver
         var text = HumanizeMethodName(method.Name);
 
         // Strip leading keyword to avoid duplication (e.g. [WhenStep] WhenTheyGo → "They go" not "When they go")
-        var keyword = GetKeyword(attr);
+        // Use display keyword for dedup so [ButWhenStep] strips "But" (not "ButWhen")
+        var keyword = GetDisplayKeyword(attr);
         if (keyword != null && text.StartsWith(keyword + " ", StringComparison.OrdinalIgnoreCase))
         {
             text = text.Substring(keyword.Length + 1);

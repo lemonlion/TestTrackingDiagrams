@@ -317,6 +317,106 @@ public class StepWeaverTests
     }
 
     [Fact]
+    public void Weave_ButWhenStep_EmitsButWhenKeyword()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ButWhenStep",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [ButWhenStep]
+                public void TheApiIsCalled() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "TheApiIsCalled");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("ButWhen", ldStrings);
+        Assert.Contains("The api is called", ldStrings);
+    }
+
+    [Fact]
+    public void Weave_ButWhenStep_StripsButPrefixFromMethodName()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ButWhenStepDedup",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [ButWhenStep]
+                public void ButTheApiIsCalled() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "ButTheApiIsCalled");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("ButWhen", ldStrings);
+        Assert.Contains("The api is called", ldStrings);
+        Assert.DoesNotContain("But the api is called", ldStrings);
+    }
+
+    [Fact]
+    public void Weave_ButWhenStep_DoesNotStripWhenPrefix()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ButWhenStepNoWhenDedup",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [ButWhenStep]
+                public void WhenTheyGo() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "WhenTheyGo");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("ButWhen", ldStrings);
+        Assert.Contains("When they go", ldStrings);
+    }
+
+    [Fact]
     public void Weave_StepAttribute_EmitsNullKeyword()
     {
         var assemblyPath = TestAssemblyBuilder.Build(

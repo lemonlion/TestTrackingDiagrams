@@ -261,4 +261,45 @@ public class StepWeaverIntegrationTests
 
         TestPhaseContext.Reset();
     }
+
+    [Fact]
+    public void Weaved_ButWhenStep_Records_Step_And_Sets_Action_Phase()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntButWhen",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [ButWhenStep]
+                public void The_Api_Is_Called() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-butwhen-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+        TestPhaseContext.Reset();
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("The_Api_Is_Called")!;
+        method.Invoke(instance, null);
+
+        Assert.Equal(TestPhase.Action, TestPhaseContext.Current);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal("But", steps[0].Keyword);
+        Assert.Equal("The api is called", steps[0].Text);
+        Assert.Equal(Reports.ExecutionResult.Passed, steps[0].Status);
+
+        TestPhaseContext.Reset();
+    }
 }

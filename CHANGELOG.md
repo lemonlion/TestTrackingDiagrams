@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.3] - 2026-08-05
+
+### Added
+- **`[ButWhenStep]` attribute** — A new step attribute that displays "But" as its keyword but transitions to the Action phase (like `[WhenStep]`). Use for negative continuations in the action phase, e.g. "But the retry fails". Sequences with `[ButStep]` for And-sequencing.
+
+### Fixed
+- **Generated step attributes have missing semicolons (issue #46)** — `WriteLinesToFile` in the MSBuild .targets file treated literal `;` characters in `{ get; set; }` as item list separators, producing broken auto-property syntax (`{ get\nset\n}`). All semicolons in `Lines` attribute values are now MSBuild-escaped as `%3B`.
+- **CI: Example.Api package downgrade errors** — Bumped NUnit from 4.5.1 to 4.6.0 and LightBDD.XUnit2 from 3.11.2 to 3.12.0 in Example.Api test projects to match transitive dependency requirements.
+
 ## [2.31.2] - 2026-08-05
 
 ### Fixed

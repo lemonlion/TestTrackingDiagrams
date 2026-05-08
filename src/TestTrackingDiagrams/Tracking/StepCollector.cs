@@ -88,6 +88,7 @@ public static class StepCollector
                     break;
                 case "When":
                 case "Then":
+                case "ButWhen":
                     TestPhaseContext.Current = TestPhase.Action;
                     break;
             }
@@ -226,17 +227,26 @@ public static class StepCollector
         if (keyword is null)
             return null;
 
+        // Map internal keywords to display form
+        var displayKeyword = keyword;
+        var categoryKeyword = keyword;
+        if (keyword == "ButWhen")
+        {
+            displayKeyword = "But";
+            categoryKeyword = "But"; // sequences with [ButStep]
+        }
+
         // Only apply sequencing at the current nesting level (top-level steps)
         if (state.StepStack.Count > 0)
-            return keyword; // Sub-steps keep their original keyword
+            return displayKeyword; // Sub-steps keep their original keyword
 
-        if (state.LastKeywordCategory == keyword)
+        if (state.LastKeywordCategory == categoryKeyword)
         {
             return "And";
         }
 
-        state.LastKeywordCategory = keyword;
-        return keyword;
+        state.LastKeywordCategory = categoryKeyword;
+        return displayKeyword;
     }
 
     private static StepParameter[]? BuildParameters(string[]? paramNames, object?[]? paramValues)

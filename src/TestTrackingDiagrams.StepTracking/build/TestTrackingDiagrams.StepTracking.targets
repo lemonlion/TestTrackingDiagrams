@@ -34,7 +34,7 @@ namespace TestTrackingDiagrams.Tracking
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class GivenStepAttribute : Attribute
     {
-        public string Description { get; set; }
+        public string Description { get%3B set%3B }
     }
 }" />
 
@@ -49,7 +49,7 @@ namespace TestTrackingDiagrams.Tracking
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class WhenStepAttribute : Attribute
     {
-        public string Description { get; set; }
+        public string Description { get%3B set%3B }
     }
 }" />
 
@@ -64,7 +64,7 @@ namespace TestTrackingDiagrams.Tracking
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class ThenStepAttribute : Attribute
     {
-        public string Description { get; set; }
+        public string Description { get%3B set%3B }
     }
 }" />
 
@@ -79,7 +79,22 @@ namespace TestTrackingDiagrams.Tracking
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class ButStepAttribute : Attribute
     {
-        public string Description { get; set; }
+        public string Description { get%3B set%3B }
+    }
+}" />
+
+    <WriteLinesToFile
+      File="$(_StepTrackingAttrDir)ButWhenStepAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace TestTrackingDiagrams.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class ButWhenStepAttribute : Attribute
+    {
+        public string Description { get%3B set%3B }
     }
 }" />
 
@@ -94,7 +109,7 @@ namespace TestTrackingDiagrams.Tracking
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class StepAttribute : Attribute
     {
-        public string Description { get; set; }
+        public string Description { get%3B set%3B }
     }
 }" />
 
@@ -104,6 +119,7 @@ namespace TestTrackingDiagrams.Tracking
       <Compile Include="$(_StepTrackingAttrDir)WhenStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)ThenStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)ButStepAttribute.g.cs" />
+      <Compile Include="$(_StepTrackingAttrDir)ButWhenStepAttribute.g.cs" />
       <Compile Include="$(_StepTrackingAttrDir)StepAttribute.g.cs" />
     </ItemGroup>
 

@@ -53,6 +53,12 @@ public static class TestAssemblyBuilder
             }
 
             [AttributeUsage(AttributeTargets.Method)]
+            internal sealed class ButWhenStepAttribute : Attribute
+            {
+                public string Description { get; set; }
+            }
+
+            [AttributeUsage(AttributeTargets.Method)]
             internal sealed class StepAttribute : Attribute
             {
                 public string Description { get; set; }
