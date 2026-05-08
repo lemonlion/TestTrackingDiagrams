@@ -14,4 +14,7 @@ public record StepTrackingOptions
 
     /// <summary>Whether [WhenStep] triggers Action phase transition (equivalent to StartAction()). Default: true.</summary>
     public bool WhenTriggersAction { get; set; } = true;
+
+    /// <summary>Whether to insert step delimiter hnotes into sequence diagrams when top-level steps start. Default: true.</summary>
+    public bool ShowStepDelimiters { get; set; } = true;
 }

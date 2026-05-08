@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.35] - 2026-05-08
+
+### Added
+- **Step delimiters in sequence diagrams** — When BDD steps execute, a black `hnote` delimiter (`Step: Given/When/Then ...`) is injected into sequence diagrams at each top-level step boundary. Controlled by `StepTrackingOptions.ShowStepDelimiters` (default: `true`). Uses `<<stepDelimiter>>` PlantUML stereotype for client-side filtering.
+- **Step delimiter toggle** — Report-level and scenario-level "Hide Steps" / "Show Steps" toggle button appears when step delimiters are present in diagrams.
+
+### Changed
+- **Single-button toggles** — Headers and Assertions toggles converted from two-button radio groups (`Show`/`Hide`) to single toggle buttons that flip between "Hide Headers" / "Show Headers" and "Show Assertions" / "Hide Assertions". Reduces toolbar clutter.
+
 ## [2.30.34] - 2026-05-08
 
 ### Changed

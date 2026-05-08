@@ -394,4 +394,90 @@ public class StepCollectorTests
         Assert.Equal("Given", steps[0].Keyword);
         Assert.Equal("Something happens", steps[0].Text);
     }
+
+    [Fact]
+    public void StartStep_emits_step_delimiter_for_top_level_step()
+    {
+        var testId = $"delim-{Guid.NewGuid():N}";
+        RequestResponseLogger.Clear();
+
+        StepCollector.StartStep(testId, "Given", "A user exists", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml is not null && l.PlantUml.Contains("<<stepDelimiter>>"))
+            .ToArray();
+
+        Assert.Single(logs);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void StartStep_does_not_emit_delimiter_for_sub_steps()
+    {
+        var testId = $"delim-sub-{Guid.NewGuid():N}";
+        RequestResponseLogger.Clear();
+
+        StepCollector.StartStep(testId, "Given", "A user exists", null, null);
+        StepCollector.StartStep(testId, "Given", "A nested precondition", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml is not null && l.PlantUml.Contains("<<stepDelimiter>>"))
+            .ToArray();
+
+        // Only the top-level step should emit a delimiter, not the sub-step
+        Assert.Single(logs);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void StartStep_does_not_emit_delimiter_when_ShowStepDelimiters_is_false()
+    {
+        var testId = $"delim-off-{Guid.NewGuid():N}";
+        var original = StepCollector.Options;
+        RequestResponseLogger.Clear();
+
+        try
+        {
+            StepCollector.Options = new StepTrackingOptions { ShowStepDelimiters = false };
+            StepCollector.StartStep(testId, "Given", "A user exists", null, null);
+            StepCollector.CompleteStep(testId, passed: true);
+
+            var logs = RequestResponseLogger.RequestAndResponseLogs
+                .Where(l => l.TestId == testId && l.PlantUml is not null && l.PlantUml.Contains("<<stepDelimiter>>"))
+                .ToArray();
+
+            Assert.Empty(logs);
+        }
+        finally
+        {
+            StepCollector.Options = original;
+            StepCollector.ClearSteps(testId);
+        }
+    }
+
+    [Fact]
+    public void StartStep_delimiter_uses_effective_keyword_for_And()
+    {
+        var testId = $"delim-and-{Guid.NewGuid():N}";
+        RequestResponseLogger.Clear();
+
+        StepCollector.StartStep(testId, "Given", "A user exists", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.StartStep(testId, "Given", "A product exists", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml is not null && l.PlantUml.Contains("<<stepDelimiter>>"))
+            .ToArray();
+
+        Assert.Equal(2, logs.Length);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Step: And A product exists", logs[1].PlantUml!);
+        StepCollector.ClearSteps(testId);
+    }
 }

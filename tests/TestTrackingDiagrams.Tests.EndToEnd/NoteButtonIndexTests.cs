@@ -23,7 +23,7 @@ public class NoteButtonIndexTests : PlaywrightTestBase
 
     private async Task HideHeaders()
     {
-        await Page.Locator(".headers-radio-btn[data-hstate='hidden']").First.ClickAsync();
+        await Page.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").First.ClickAsync();
         await Page.WaitForFunctionAsync("""
             () => {
                 var icons = document.querySelectorAll('[data-diagram-type="plantuml"] svg .note-toggle-icon');

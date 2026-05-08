@@ -17,7 +17,7 @@ public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
     private async Task ToggleHeadersHidden()
     {
         var scenario = Page.Locator("details.scenario");
-        await scenario.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
 
         await Page.WaitForFunctionAsync("""
             () => document.querySelectorAll('.note-hover-rect').length > 0 &&
@@ -28,7 +28,7 @@ public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
     private async Task ToggleHeadersShown()
     {
         var scenario = Page.Locator("details.scenario");
-        await scenario.Locator(".headers-radio-btn[data-hstate='shown']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='false']").ClickAsync();
 
         await Page.WaitForFunctionAsync("""
             () => document.querySelectorAll('.note-hover-rect').length > 0 &&

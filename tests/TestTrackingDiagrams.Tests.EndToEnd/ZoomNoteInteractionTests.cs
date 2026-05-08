@@ -135,7 +135,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
         await ZoomIn();
         Assert.True(await IsZoomedIn());
 
-        var headersHidden = Page.Locator(".diagram-toggle .headers-radio-btn[data-hstate='hidden']");
+        var headersHidden = Page.Locator(".diagram-toggle .toggle-btn[data-toggle='headers'][data-shown='true']");
         if (await headersHidden.CountAsync() == 0) return;
         await headersHidden.First.ClickAsync();
         await WaitForReRender(60000);
@@ -402,7 +402,7 @@ public class ZoomNoteInteractionTests : PlaywrightTestBase
 
         await ZoomIn();
 
-        var reportHeadersHidden = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']");
+        var reportHeadersHidden = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']");
         if (await reportHeadersHidden.CountAsync() > 0)
         {
             await reportHeadersHidden.First.ClickAsync();

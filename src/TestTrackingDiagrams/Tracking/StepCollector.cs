@@ -57,12 +57,24 @@ public static class StepCollector
             Parameters = BuildParameters(paramNames, paramValues)
         };
 
+        var isTopLevel = false;
         lock (state)
         {
             // Resolve effective keyword (Given/And/And sequencing)
             step.EffectiveKeyword = ResolveKeyword(state, keyword);
 
+            isTopLevel = state.StepStack.Count == 0;
             state.StepStack.Push(step);
+        }
+
+        // Emit step delimiter hnote for top-level steps
+        if (isTopLevel && Options.ShowStepDelimiters)
+        {
+            var label = Options.PrependKeyword && step.EffectiveKeyword is not null
+                ? $"{step.EffectiveKeyword} {text}"
+                : text;
+            DefaultTrackingDiagramOverride.InsertPlantUml(testId,
+                $"hnote across <<stepDelimiter>> #black:<color:white>Step: {label}");
         }
 
         // Phase transitions: set ambient test phase based on keyword

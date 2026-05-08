@@ -222,15 +222,15 @@ public class MobileResponsiveTests : PlaywrightTestBase
     }
 
     [Fact]
-    public async Task Headers_radio_has_no_left_margin_on_mobile()
+    public async Task Headers_toggle_has_no_left_margin_on_mobile()
     {
         await Page.GotoAsync(GenerateReport("MobileHeadersMargin.html"));
         await Page.Locator(".toolbar-right").WaitForAsync(new() { Timeout = 5000 });
 
-        var headersRadios = Page.Locator(".headers-radio");
-        if (await headersRadios.CountAsync() > 0)
+        var headersToggle = Page.Locator(".toolbar-right .toggle-btn[data-toggle='headers']");
+        if (await headersToggle.CountAsync() > 0)
         {
-            var marginLeft = await GetComputedStyle(headersRadios.First, "margin-left");
+            var marginLeft = await GetComputedStyle(headersToggle.First, "margin-left");
             Assert.Equal("0px", marginLeft);
         }
     }

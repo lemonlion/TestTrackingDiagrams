@@ -29,16 +29,16 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
         Page.Locator("details.scenario").Nth(index);
 
     private ILocator AssertionShowBtn(ILocator scenario) =>
-        scenario.Locator(".assertions-radio-btn[data-astate='show']");
+        scenario.Locator(".toggle-btn[data-toggle='assertions'][data-shown='false']");
 
     private ILocator AssertionHideBtn(ILocator scenario) =>
-        scenario.Locator(".assertions-radio-btn[data-astate='hide']");
+        scenario.Locator(".toggle-btn[data-toggle='assertions'][data-shown='true']");
 
     private ILocator ReportAssertionShowBtn =>
-        Page.Locator(".toolbar-right .assertions-radio-btn[data-astate='show']");
+        Page.Locator(".toolbar-right .toggle-btn[data-toggle='assertions'][data-shown='false']");
 
     private ILocator ReportAssertionHideBtn =>
-        Page.Locator(".toolbar-right .assertions-radio-btn[data-astate='hide']");
+        Page.Locator(".toolbar-right .toggle-btn[data-toggle='assertions'][data-shown='true']");
 
     /// <summary>
     /// Checks if the rendered SVG for a scenario contains assertion note text.
@@ -252,7 +252,7 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
 
         // Hide headers
         svgBefore = await GetScenarioSvgHtml(scenario1);
-        await scenario1.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario1.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await WaitForSvgChange(scenario1, svgBefore);
 
         // Assertions should still be present
@@ -267,7 +267,7 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
         var scenario1 = ScenarioLocator(0);
 
         // Assertions start hidden (default). Toggle headers hide — wait for render queue
-        await scenario1.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario1.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForFunctionAsync("() => !window._plantumlRendering",
             null, new() { Timeout = 15000, PollingInterval = 200 });
 

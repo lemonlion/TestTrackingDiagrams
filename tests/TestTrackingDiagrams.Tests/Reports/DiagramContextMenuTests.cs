@@ -262,19 +262,19 @@ public class DiagramContextMenuTests
         Assert.Contains("window._detailsDefault = targetState", funcBody);
     }
 
-    // ─── _setReportHeaders ──────────────────────────────────
+    // ─── _toggleHeaders ──────────────────────────────────
 
     [Fact]
-    public void SetReportHeaders_stores_headersHidden()
+    public void ToggleHeaders_stores_headersHidden()
     {
-        var funcBody = GetFunction("_setReportHeaders");
-        Assert.Contains("window._headersHidden = hiding", funcBody);
+        var funcBody = GetFunction("_toggleHeaders");
+        Assert.Contains("window._headersHidden", funcBody);
     }
 
     [Fact]
-    public void SetReportHeaders_does_not_modify_detailsDefault()
+    public void ToggleHeaders_does_not_modify_detailsDefault()
     {
-        var funcBody = GetFunction("_setReportHeaders");
+        var funcBody = GetFunction("_toggleHeaders");
         Assert.DoesNotContain("_detailsDefault", funcBody);
     }
 
@@ -666,7 +666,7 @@ public class DiagramContextMenuTests
         var css = DiagramContextMenu.GetCollapsibleNotesStyles();
         Assert.Contains(".details-radio-btn", css);
         Assert.Contains(".details-active", css);
-        Assert.Contains(".headers-radio", css);
+        Assert.Contains(".toggle-btn", css);
         Assert.Contains(".truncate-lines-select", css);
     }
 

@@ -195,8 +195,6 @@ public static class DiagramContextMenu
 
     public static string GetCollapsibleNotesStyles() => """
         .details-radio { display: inline-flex; align-items: center; gap: 0.3em; }
-        .headers-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
-        .assertions-radio { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 1.5em; }
         .details-radio-label { font-weight: bold; margin-right: 0.3em; font-size: 13px; }
         .details-radio-btn {
             padding: 0.25em 0.6em;
@@ -208,6 +206,7 @@ public static class DiagramContextMenu
         }
         .details-radio-btn:hover { background: rgb(230, 240, 255); border-color: rgb(100, 150, 255); }
         .details-radio-btn.details-active { background: rgb(66, 133, 244); color: white; border-color: rgb(66, 133, 244); }
+        .toggle-btn { margin-left: 1.5em; }
         .truncate-lines-select {
             padding: 0.2em 0.3em;
             border: 1px solid rgb(180, 180, 180);
@@ -219,8 +218,7 @@ public static class DiagramContextMenu
         .note-toggle-icon { user-select: none; -webkit-user-select: none; }
         @media (max-width: 768px) {
             .details-radio { flex-wrap: wrap; }
-            .headers-radio { margin-left: 0; flex-wrap: wrap; }
-            .assertions-radio { margin-left: 0; flex-wrap: wrap; }
+            .toggle-btn { margin-left: 0; }
             .diagram-toggle { flex-wrap: wrap; gap: 0.3em; }
             .diagram-toggle-spacer { display: none; }
             .diagram-toggle-btn { max-width: 5.5em; text-align: center; }
@@ -2603,13 +2601,22 @@ public static class DiagramContextMenu
             window._truncateLines = 40;
             window._detailsDefault = 'truncated';
             window._assertionsVisible = false;
+            window._stepsVisible = true;
 
             function stripAssertionNotes(source) {
                 return source.replace(/\n?hnote across <<assertionNote>>[^\n]*\n[\s\S]*?end note\n?/g, '');
             }
 
+            function stripStepDelimiters(source) {
+                return source.replace(/\n?hnote across <<stepDelimiter>>[^\n]*\n?/g, '');
+            }
+
             function applyAssertionFilter(source, showing) {
                 return showing ? source : stripAssertionNotes(source);
+            }
+
+            function applyStepsFilter(source, showing) {
+                return showing ? source : stripStepDelimiters(source);
             }
 
             // Parse assertion source locations from PlantUML comments
@@ -2660,7 +2667,9 @@ public static class DiagramContextMenu
             window._preProcessSource = function(el, source) {
                 // Strip assertion notes before note-block parsing when hidden
                 el._assertionsVisible = window._assertionsVisible;
+                el._stepsVisible = window._stepsVisible;
                 var renderSource = !el._assertionsVisible ? stripAssertionNotes(source) : source;
+                renderSource = !el._stepsVisible ? stripStepDelimiters(renderSource) : renderSource;
                 var noteBlocks = parseNoteBlocks(renderSource);
                 if (noteBlocks.length === 0 && renderSource === source) return source;
                 el._noteOriginalSource = source;
@@ -2696,7 +2705,7 @@ public static class DiagramContextMenu
                     }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible);
+                    var newSource = applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible);
                     container.setAttribute('data-plantuml', newSource);
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
@@ -2883,41 +2892,37 @@ public static class DiagramContextMenu
                 syncRadioButtons(scenario, 'truncated');
             };
 
-            function syncHeadersRadio(parent, state) {
-                parent.querySelectorAll('.headers-radio-btn').forEach(function(b) {
-                    if (b.getAttribute('data-hstate') === state) b.classList.add('details-active');
+            function syncToggleBtn(parent, toggleName, shown) {
+                parent.querySelectorAll('.toggle-btn[data-toggle="' + toggleName + '"]').forEach(function(b) {
+                    b.setAttribute('data-shown', shown ? 'true' : 'false');
+                    if (shown) b.classList.add('details-active');
                     else b.classList.remove('details-active');
+                    var label = toggleName.charAt(0).toUpperCase() + toggleName.slice(1);
+                    b.textContent = (shown ? 'Hide ' : 'Show ') + label;
                 });
             }
 
-            // Report-level: show/hide headers for all scenarios
-            window._setReportHeaders = function(state) {
-                var hiding = state === 'hidden';
-                window._headersHidden = hiding;
-                syncHeadersRadio(document.querySelector('.toolbar-right'), state);
+            // Report-level: toggle headers for all scenarios
+            window._toggleHeaders = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                window._headersHidden = !shown;
+                syncToggleBtn(document.querySelector('.toolbar-right'), 'headers', shown);
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
-                    syncHeadersRadio(sc, state);
+                    syncToggleBtn(sc, 'headers', shown);
                 });
                 var containers = document.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildHeadersQueue(containers, hiding));
+                processRenderQueue(buildHeadersQueue(containers, !shown));
             };
 
-            // Scenario-level: show/hide headers for one scenario
-            window._setScenarioHeaders = function(btn, state) {
+            // Scenario-level: toggle headers for one scenario
+            window._toggleScenarioHeaders = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
-                var hiding = state === 'hidden';
-                syncHeadersRadio(scenario, state);
+                syncToggleBtn(scenario, 'headers', shown);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildHeadersQueue(containers, hiding));
+                processRenderQueue(buildHeadersQueue(containers, !shown));
             };
-
-            function syncAssertionsRadio(parent, state) {
-                parent.querySelectorAll('.assertions-radio-btn').forEach(function(b) {
-                    if (b.getAttribute('data-astate') === state) b.classList.add('details-active');
-                    else b.classList.remove('details-active');
-                });
-            }
 
             function buildAssertionsQueue(containers, showing) {
                 var queue = [];
@@ -2928,6 +2933,7 @@ public static class DiagramContextMenu
                     container._assertionsVisible = showing;
                     var origSource = container._noteOriginalSource;
                     var renderSource = applyAssertionFilter(origSource, showing);
+                    renderSource = applyStepsFilter(renderSource, !!container._stepsVisible);
                     var noteBlocks = parseNoteBlocks(renderSource);
                     if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     if (!container._noteSteps) container._noteSteps = {};
@@ -2936,26 +2942,66 @@ public static class DiagramContextMenu
                 return queue;
             }
 
-            // Report-level: show/hide assertions for all scenarios
-            window._setReportAssertions = function(state) {
-                var showing = state === 'show';
-                window._assertionsVisible = showing;
-                syncAssertionsRadio(document.querySelector('.toolbar-right'), state);
+            // Report-level: toggle assertions for all scenarios
+            window._toggleAssertions = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                window._assertionsVisible = shown;
+                syncToggleBtn(document.querySelector('.toolbar-right'), 'assertions', shown);
                 document.querySelectorAll('details.scenario').forEach(function(sc) {
-                    syncAssertionsRadio(sc, state);
+                    syncToggleBtn(sc, 'assertions', shown);
                 });
                 var containers = document.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildAssertionsQueue(containers, showing));
+                processRenderQueue(buildAssertionsQueue(containers, shown));
             };
 
-            // Scenario-level: show/hide assertions for one scenario
-            window._setScenarioAssertions = function(btn, state) {
+            // Scenario-level: toggle assertions for one scenario
+            window._toggleScenarioAssertions = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
                 var scenario = btn.closest('details.scenario');
                 if (!scenario) return;
-                var showing = state === 'show';
-                syncAssertionsRadio(scenario, state);
+                syncToggleBtn(scenario, 'assertions', shown);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
-                processRenderQueue(buildAssertionsQueue(containers, showing));
+                processRenderQueue(buildAssertionsQueue(containers, shown));
+            };
+
+            function buildStepsQueue(containers, showing) {
+                var queue = [];
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var wasVisible = !!container._stepsVisible;
+                    if (wasVisible === showing) return;
+                    container._stepsVisible = showing;
+                    var origSource = container._noteOriginalSource;
+                    var renderSource = applyAssertionFilter(origSource, !!container._assertionsVisible);
+                    renderSource = applyStepsFilter(renderSource, showing);
+                    var noteBlocks = parseNoteBlocks(renderSource);
+                    if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
+                    if (!container._noteSteps) container._noteSteps = {};
+                    queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+                return queue;
+            }
+
+            // Report-level: toggle step delimiters for all scenarios
+            window._toggleSteps = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                window._stepsVisible = shown;
+                syncToggleBtn(document.querySelector('.toolbar-right'), 'steps', shown);
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncToggleBtn(sc, 'steps', shown);
+                });
+                var containers = document.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildStepsQueue(containers, shown));
+            };
+
+            // Scenario-level: toggle step delimiters for one scenario
+            window._toggleScenarioSteps = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                syncToggleBtn(scenario, 'steps', shown);
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildStepsQueue(containers, shown));
             };
         })();
         </script>

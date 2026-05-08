@@ -167,7 +167,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         var truncBtn = Page.Locator(".toolbar-row .details-radio-btn[data-state='truncated']");
         await Expect(truncBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
 
         truncBtn = Page.Locator(".toolbar-row .details-radio-btn[data-state='truncated']");
         await Expect(truncBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
@@ -186,7 +186,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         var expandedBtn = Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']");
@@ -204,13 +204,13 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await ExpandScenario();
         await WaitForDiagramRender();
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        var hiddenBtn = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']");
+        var hiddenBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']");
         await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
 
         var source = await GetDataPlantuml();
@@ -225,13 +225,13 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await ExpandScenario();
         await WaitForDiagramRender();
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='collapsed']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        var hiddenBtn = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']");
+        var hiddenBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']");
         await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
     }
 
@@ -245,9 +245,9 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='shown']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='false']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         var expandedBtn = Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']");
@@ -269,7 +269,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         var scenTruncBtn = scenario.Locator(".details-radio-btn[data-state='truncated']");
         await Expect(scenTruncBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
 
-        await scenario.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         await Expect(scenTruncBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
@@ -283,7 +283,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await WaitForDiagramRender();
 
         var scenario = Page.Locator("details.scenario");
-        await scenario.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']").ClickAsync();
@@ -304,7 +304,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         var source = await GetDataPlantuml();
         Assert.Contains("Widget", source);
 
-        await Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
         source = await GetDataPlantuml();
@@ -328,7 +328,7 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         Assert.Contains("Line02-body", sourceAfterTrunc);
         Assert.DoesNotContain("Line03-body", sourceAfterTrunc);
 
-        await scenario.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(2000);
 
         var sourceAfterHeaders = await GetDataPlantuml();
@@ -378,9 +378,9 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await scenario.Locator(".truncate-lines-select").SelectOptionAsync("5");
         await Page.WaitForTimeoutAsync(2000);
 
-        await scenario.Locator(".headers-radio-btn[data-hstate='hidden']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
         await Page.WaitForTimeoutAsync(2000);
-        await scenario.Locator(".headers-radio-btn[data-hstate='shown']").ClickAsync();
+        await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='false']").ClickAsync();
         await Page.WaitForTimeoutAsync(2000);
 
         var source = await GetDataPlantuml();

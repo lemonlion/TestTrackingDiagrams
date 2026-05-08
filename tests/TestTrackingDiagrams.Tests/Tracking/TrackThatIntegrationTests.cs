@@ -67,8 +67,8 @@ public class TrackThatIntegrationTests : IDisposable
             trackedLogs: trackedLogs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-astate=", content);
-        Assert.Contains("Assertions:", content);
+        Assert.Contains("data-toggle=\"assertions\"", content);
+        Assert.Contains("Show Assertions", content);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class TrackThatIntegrationTests : IDisposable
 
         var content = File.ReadAllText(html);
         // The button markup should not be present (though the JS/CSS definitions always are)
-        Assert.DoesNotContain("data-astate=", content);
+        Assert.DoesNotContain("data-toggle=\"assertions\"", content);
     }
 
     [Fact]

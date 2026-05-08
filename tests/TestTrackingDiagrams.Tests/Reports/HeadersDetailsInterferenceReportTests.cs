@@ -128,34 +128,32 @@ public class HeadersDetailsInterferenceReportTests
     public void Report_contains_independent_sync_functions_for_headers_and_details()
     {
         // Verify that syncRadioButtons uses [data-state] selector (not just .details-radio-btn)
-        // and syncHeadersRadio uses .headers-radio-btn selector
+        // and syncToggleBtn uses .toggle-btn selector
         var content = GenerateReport("HD_SyncFunctions.html");
 
         // syncRadioButtons should select '.details-radio-btn[data-state]'
         Assert.Contains(".details-radio-btn[data-state]", content);
 
-        // syncHeadersRadio should select '.headers-radio-btn'
-        Assert.Contains(".headers-radio-btn", content);
+        // syncToggleBtn should select '.toggle-btn[data-toggle='
+        Assert.Contains(".toggle-btn[data-toggle=", content);
     }
 
     [Fact]
-    public void Headers_buttons_use_data_hstate_not_data_state()
+    public void Headers_toggle_uses_data_toggle_attribute()
     {
-        // Headers buttons must use data-hstate attribute, NOT data-state,
-        // to prevent syncRadioButtons from interfering with them.
+        // Headers toggle must use data-toggle="headers" attribute, NOT data-state,
+        // to prevent syncRadioButtons from interfering with it.
         var content = GenerateReport("HD_DataAttributes.html");
 
-        // Report-level headers buttons
-        Assert.Contains("data-hstate=\"shown\"", content);
-        Assert.Contains("data-hstate=\"hidden\"", content);
+        // Report-level headers toggle button
+        Assert.Contains("data-toggle=\"headers\"", content);
+        Assert.Contains("data-shown=\"true\"", content);
 
-        // Headers buttons should NOT have data-state attribute
-        // Find headers button HTML and verify no data-state
-        var hiddenBtnIdx = content.IndexOf("data-hstate=\"hidden\"");
-        var precedingHtml = content[(hiddenBtnIdx - 200)..hiddenBtnIdx];
-        // Between the opening <button and data-hstate, there should be no data-state
+        // Headers toggle should NOT have data-state attribute
+        var toggleIdx = content.IndexOf("data-toggle=\"headers\"");
+        var precedingHtml = content[(toggleIdx - 200)..toggleIdx];
         var btnOpen = precedingHtml.LastIndexOf("<button");
-        var btnTag = precedingHtml[btnOpen..] + "data-hstate";
+        var btnTag = precedingHtml[btnOpen..] + "data-toggle";
         Assert.DoesNotContain("data-state", btnTag);
     }
 }

@@ -107,8 +107,9 @@ public class DiagramNoteBasicTests : DiagramNotePlaywrightBase
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var shownBtn = Page.Locator(".diagram-toggle .headers-radio-btn[data-hstate='shown']").First;
-        await Expect(shownBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        var headersBtn = Page.Locator(".diagram-toggle .toggle-btn[data-toggle='headers']").First;
+        await Expect(headersBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        await Expect(headersBtn).ToHaveTextAsync("Hide Headers");
     }
 
     [Fact]
@@ -119,9 +120,11 @@ public class DiagramNoteBasicTests : DiagramNotePlaywrightBase
         await ExpandFirstScenarioWithDiagram();
         await WaitForDiagramSvg();
 
-        var hiddenBtn = Page.Locator(".diagram-toggle .headers-radio-btn[data-hstate='hidden']").First;
-        await hiddenBtn.ClickAsync();
-        await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        var headersBtn = Page.Locator(".diagram-toggle .toggle-btn[data-toggle='headers']").First;
+        await headersBtn.ClickAsync();
+        await Expect(headersBtn).ToHaveTextAsync("Show Headers");
+        var headersBtnClass = await headersBtn.GetAttributeAsync("class");
+        Assert.DoesNotContain("details-active", headersBtnClass!);
     }
 
     [Fact]

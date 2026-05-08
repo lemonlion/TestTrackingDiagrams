@@ -158,23 +158,23 @@ public class ReportToolbarTests : PlaywrightTestBase
         await Page.GotoAsync(GenerateReport("ToolbarHeaderDefault.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
-        var shownBtn = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='shown']");
-        await Expect(shownBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        var headersBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers']");
+        await Expect(headersBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        await Expect(headersBtn).ToHaveTextAsync("Hide Headers");
     }
 
     [Fact]
-    public async Task Clicking_hidden_activates_it_and_deactivates_shown()
+    public async Task Clicking_headers_toggle_hides_headers_and_updates_text()
     {
         await Page.GotoAsync(GenerateReport("ToolbarHiddenHeaders.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
-        var hiddenBtn = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='hidden']");
-        var shownBtn = Page.Locator(".toolbar-row .headers-radio-btn[data-hstate='shown']");
+        var headersBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers']");
 
-        await hiddenBtn.ClickAsync();
-        await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
-        var shownClass = await shownBtn.GetAttributeAsync("class");
-        Assert.DoesNotContain("details-active", shownClass!);
+        await headersBtn.ClickAsync();
+        await Expect(headersBtn).ToHaveTextAsync("Show Headers");
+        var headersBtnClass = await headersBtn.GetAttributeAsync("class");
+        Assert.DoesNotContain("details-active", headersBtnClass!);
     }
 
     // ── Search bar ──
