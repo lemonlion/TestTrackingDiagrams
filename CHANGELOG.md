@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.1] - 2026-08-05
+
+### Fixed
+- **Assertion tracking: instance field values now resolved in lambda predicates** — When using `.Contain(l => l.Field == _instanceField)` or similar predicate-based assertions, instance fields (e.g., `_orderId`) are now captured and resolved to their runtime values in assertion notes. Previously, the raw field name was shown instead of the actual value.
+- **Expression-bodied async methods** — The `=> ` prefix from expression-bodied method syntax is now stripped from assertion expression text, producing cleaner subject names.
+
+### Added
+- New `ldtoken` handler in `DetectCapturedVariables` — captures instance fields referenced via `Expression.Field()` in expression tree construction (used by `Expression<Func<T, bool>>` predicate parameters).
+- Extended `ldarg.0 + ldfld` handler to also capture regular instance fields (not just state machine fields with `<name>5__N` naming pattern).
+- Extended `ldftn` lambda handler to capture instance fields accessed inside delegate lambda bodies.
+
 ## [2.31.0] - 2026-08-05
 
 ### Changed

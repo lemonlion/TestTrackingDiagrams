@@ -589,6 +589,11 @@ public class AssertionWeaver
                 var line = lines[sp.StartLine - 1];
                 var text = line.Trim().TrimEnd(';');
 
+                // Strip expression-bodied method arrow (=> prefix) — this is the method body
+                // syntax, not part of the assertion expression itself.
+                if (text.StartsWith("=> "))
+                    text = text.Substring(3);
+
                 // If parentheses are unbalanced, the statement likely spans multiple lines
                 // but the sequence point only covers the first. Read subsequent lines until balanced.
                 if (HasUnbalancedParens(text) && sp.StartLine < lines.Length)
@@ -810,11 +815,27 @@ public class AssertionWeaver
 
                 var name = GetStateFieldOriginalName(fieldRef);
                 if (name == null)
-                    continue;
+                {
+                    // Not a state machine field (<name>5__N pattern).
+                    // Try raw field name for instance field access (e.g., _orderId).
+                    // Skip compiler-generated fields (angle brackets in name).
+                    if (fieldRef.Name.Contains('<') || fieldRef.Name.Contains('>'))
+                    {
+                        i++; // skip the ldfld instruction
+                        continue;
+                    }
+                    name = fieldRef.Name;
+                }
                 if (!NameAppearsInExpression(name, sourceText))
+                {
+                    i++; // skip the ldfld instruction
                     continue;
+                }
                 if (!seenNames.Add(name))
+                {
+                    i++; // skip the ldfld instruction
                     continue;
+                }
 
                 captured.Add(new CapturedVariable
                 {
@@ -832,28 +853,131 @@ public class AssertionWeaver
                 var lambdaMethod = ResolveLambdaMethod(lambdaMethodRef, method);
                 if (lambdaMethod?.HasBody == true)
                 {
+                    // Detect if the calling method is inside a state machine (async).
+                    // State machines store the outer 'this' in a field like <>4__this.
+                    FieldDefinition? outerThisField = null;
+                    foreach (var f in method.DeclaringType.Fields)
+                    {
+                        if (f.Name.Contains("<>") && f.Name.EndsWith("__this"))
+                        {
+                            outerThisField = f;
+                            break;
+                        }
+                    }
+
                     foreach (var lambdaInstr in lambdaMethod.Body.Instructions)
                     {
                         if (lambdaInstr.OpCode == OpCodes.Ldfld &&
                             lambdaInstr.Operand is FieldReference lambdaFieldRef)
                         {
                             var lambdaVarName = GetStateFieldOriginalName(lambdaFieldRef);
-                            if (lambdaVarName == null)
+
+                            if (lambdaVarName != null)
+                            {
+                                // State machine field (e.g., <localVar>5__1) — existing behavior
+                                if (!NameAppearsInExpression(lambdaVarName, sourceText))
+                                    continue;
+                                if (!seenNames.Add(lambdaVarName))
+                                    continue;
+
+                                captured.Add(new CapturedVariable
+                                {
+                                    Name = lambdaVarName,
+                                    StateField = lambdaFieldRef,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    Type = lambdaFieldRef.FieldType
+                                });
                                 continue;
-                            if (!NameAppearsInExpression(lambdaVarName, sourceText))
-                                continue;
-                            if (!seenNames.Add(lambdaVarName))
+                            }
+
+                            // Not a state machine field — try raw field name for instance fields
+                            // (e.g., _orderId on the test class accessed via lambda closure).
+                            // Skip compiler-generated fields (angle brackets in name).
+                            var rawName = lambdaFieldRef.Name;
+                            if (rawName.Contains('<') || rawName.Contains('>'))
                                 continue;
 
-                            captured.Add(new CapturedVariable
+                            if (!NameAppearsInExpression(rawName, sourceText))
+                                continue;
+                            if (!seenNames.Add(rawName))
+                                continue;
+
+                            if (outerThisField != null)
                             {
-                                Name = lambdaVarName,
-                                StateField = lambdaFieldRef,
-                                NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
-                                Type = lambdaFieldRef.FieldType
-                            });
+                                // In async state machine: ldarg.0 → ldfld <>4__this → ldfld field
+                                captured.Add(new CapturedVariable
+                                {
+                                    Name = rawName,
+                                    StateField = outerThisField,
+                                    ClosureField = lambdaFieldRef,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    Type = lambdaFieldRef.FieldType
+                                });
+                            }
+                            else
+                            {
+                                // Non-async: ldarg.0 → ldfld field (this.field)
+                                captured.Add(new CapturedVariable
+                                {
+                                    Name = rawName,
+                                    StateField = lambdaFieldRef,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    Type = lambdaFieldRef.FieldType
+                                });
+                            }
                         }
                     }
+                }
+            }
+            // ldtoken — expression tree field reference (Expression.Field pattern).
+            // When assertions use Expression<Func<T, bool>> predicates (e.g. .Contain(l => ...)),
+            // the compiler generates expression tree construction that references captured fields
+            // via ldtoken + FieldInfo.GetFieldFromHandle + Expression.Field.
+            else if (instr.OpCode == OpCodes.Ldtoken &&
+                     instr.Operand is FieldReference tokenFieldRef)
+            {
+                var fieldName = tokenFieldRef.Name;
+                // Skip compiler-generated fields
+                if (fieldName.Contains('<') || fieldName.Contains('>'))
+                    continue;
+                if (!NameAppearsInExpression(fieldName, sourceText))
+                    continue;
+                if (!seenNames.Add(fieldName))
+                    continue;
+
+                // Check if we're in a state machine (async method)
+                FieldDefinition? outerThisForToken = null;
+                foreach (var f in method.DeclaringType.Fields)
+                {
+                    if (f.Name.Contains("<>") && f.Name.EndsWith("__this"))
+                    {
+                        outerThisForToken = f;
+                        break;
+                    }
+                }
+
+                if (outerThisForToken != null)
+                {
+                    // Async: ldarg.0 → ldfld <>4__this → ldfld field
+                    captured.Add(new CapturedVariable
+                    {
+                        Name = fieldName,
+                        StateField = outerThisForToken,
+                        ClosureField = tokenFieldRef,
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType,
+                        Type = tokenFieldRef.FieldType
+                    });
+                }
+                else
+                {
+                    // Non-async: ldarg.0 → ldfld field (this.field)
+                    captured.Add(new CapturedVariable
+                    {
+                        Name = fieldName,
+                        StateField = tokenFieldRef,
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType,
+                        Type = tokenFieldRef.FieldType
+                    });
                 }
             }
         }

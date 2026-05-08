@@ -10,7 +10,7 @@
     <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.MySqlConnector" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MySqlConnector" Version="1.*" />
+    <PackageReference Include="MySqlConnector" Version="2.5.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />

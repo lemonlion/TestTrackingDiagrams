@@ -1590,4 +1590,154 @@ public class AssertionWeaverTests
 
         result.WeavedCount.Should().Be(1, "block pragma without enable should skip all remaining assertions");
     }
+
+    [Fact]
+    public void Weave_ContainLambdaWithAndOperator_CapturesFullExpression()
+    {
+        // Reproduces the scenario: .Contain(l => l.EntityId == _orderId && l.Action == AuditLogDefaults.CreatedAction)
+        // where _orderId is an instance field and CreatedAction is a const.
+        // The full expression including && should be captured, not truncated.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ContainAndLambda",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public static class AuditLogDefaults
+            {
+                public const string CreatedAction = "Created";
+            }
+
+            public class AuditLog
+            {
+                public string EntityId { get; set; } = "";
+                public string Action { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                private string _orderId = "5E757CDD-7E19-42E5-9ABC-F542BEF181D2";
+
+                public void Method()
+                {
+                    var auditLogs = new List<AuditLog>
+                    {
+                        new AuditLog { EntityId = "5E757CDD-7E19-42E5-9ABC-F542BEF181D2", Action = "Created" }
+                    };
+                    auditLogs.Should().Contain(l => l.EntityId == _orderId && l.Action == AuditLogDefaults.CreatedAction);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"ContainAndLambda_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        // The full expression must include both conditions (the && part must NOT be truncated)
+        logs[0].PlantUml.Should().Contain("&&", "the full lambda including && must be captured");
+        logs[0].PlantUml.Should().Contain("Action", "the l.Action condition must be included");
+        // The instance field _orderId should be resolved to its value
+        logs[0].PlantUml.Should().Contain("'5E757CDD-7E19-42E5-9ABC-F542BEF181D2'",
+            "_orderId should be resolved from instance field");
+        // The const AuditLogDefaults.CreatedAction should appear as "Created" (compiler inlines consts)
+        logs[0].PlantUml.Should().Contain("Created", "const value should appear in expression");
+    }
+
+    [Fact]
+    public void Weave_ExpressionBodiedAsyncMethod_ContainWithAnd_CapturesFullExpression()
+    {
+        // Matches the exact user scenario: expression-bodied async Task method with
+        // .Contain(predicate) using && and instance fields
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "ExprBodiedAsyncContain",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public static class AuditLogDefaults
+            {
+                public const string CreatedAction = "Created";
+            }
+
+            public class AuditLog
+            {
+                public string EntityId { get; set; } = "";
+                public string Action { get; set; } = "";
+            }
+
+            public class Tests
+            {
+                private string _orderId = "5E757CDD-7E19-42E5-9ABC-F542BEF181D2";
+                private List<AuditLog>? _auditLogs;
+
+                public async Task Setup()
+                {
+                    _auditLogs = await Task.FromResult(new List<AuditLog>
+                    {
+                        new AuditLog { EntityId = "5E757CDD-7E19-42E5-9ABC-F542BEF181D2", Action = "Created" }
+                    });
+                }
+
+                public async Task Method()
+                    => _auditLogs!.Should().Contain(l => l.EntityId == _orderId && l.Action == AuditLogDefaults.CreatedAction);
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        // Setup the data
+        var setupMethod = testType.GetMethod("Setup")!;
+        var setupTask = (Task)setupMethod.Invoke(instance, null)!;
+        setupTask.GetAwaiter().GetResult();
+
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"ExprBodiedContain_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        // Expression-bodied async method must capture the full lambda including &&
+        logs[0].PlantUml.Should().Contain("&&", "expression-bodied async must capture full lambda");
+        logs[0].PlantUml.Should().Contain("Action", "the l.Action condition must be included");
+        // Instance field should be resolved
+        logs[0].PlantUml.Should().Contain("'5E757CDD-7E19-42E5-9ABC-F542BEF181D2'",
+            "_orderId instance field should be resolved");
+    }
 }

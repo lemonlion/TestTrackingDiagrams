@@ -10,7 +10,7 @@
     <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.Npgsql" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="6.*" />
+    <PackageReference Include="Npgsql" Version="10.0.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />

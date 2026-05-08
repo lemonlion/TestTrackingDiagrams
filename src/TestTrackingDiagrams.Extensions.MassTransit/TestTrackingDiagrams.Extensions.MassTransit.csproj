@@ -7,7 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MassTransit" Version="8.*" />
+    <PackageReference Include="MassTransit" Version="9.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />

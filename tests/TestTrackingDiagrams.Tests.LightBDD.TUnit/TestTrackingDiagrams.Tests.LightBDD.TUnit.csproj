@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="8.0.1">
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -25,8 +25,8 @@
 
   <!-- Exclude TUnit transitive dependencies that conflict with xUnit test runner -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.0.1" ExcludeAssets="build;buildTransitive" />
-    <PackageReference Include="TUnit.Assertions" Version="1.0.0" ExcludeAssets="compile;analyzers;build;buildTransitive" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.2.2" ExcludeAssets="build;buildTransitive" />
+    <PackageReference Include="TUnit.Assertions" Version="1.43.11" ExcludeAssets="compile;analyzers;build;buildTransitive" />
   </ItemGroup>
 
   <ItemGroup>

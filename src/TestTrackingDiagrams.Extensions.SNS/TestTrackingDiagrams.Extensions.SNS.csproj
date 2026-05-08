@@ -7,7 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.*" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.2.30" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
