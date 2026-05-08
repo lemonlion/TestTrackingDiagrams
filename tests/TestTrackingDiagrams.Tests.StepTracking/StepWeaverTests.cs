@@ -117,6 +117,107 @@ public class StepWeaverTests
     }
 
     [Fact]
+    public void Weave_GivenStep_StripsLeadingKeywordFromMethodName()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "GivenStepDedup",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [GivenStep]
+                public void GivenTheyGo() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "GivenTheyGo");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("Given", ldStrings);
+        Assert.Contains("They go", ldStrings);
+        Assert.DoesNotContain("Given they go", ldStrings);
+    }
+
+    [Fact]
+    public void Weave_WhenStep_StripsLeadingKeywordFromUnderscoreName()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "WhenStepDedup",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [WhenStep]
+                public void When_they_go() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "When_they_go");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("When", ldStrings);
+        Assert.Contains("They go", ldStrings);
+        Assert.DoesNotContain("When they go", ldStrings);
+    }
+
+    [Fact]
+    public void Weave_WhenStep_DoesNotStripNonKeywordPrefix()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "WhenStepNoDedup",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Tests
+            {
+                [WhenStep]
+                public void WheneverTheyGo() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
+        var method = assembly.MainModule.GetType("Tests").Methods
+            .First(m => m.Name == "WheneverTheyGo");
+
+        var ldStrings = method.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        Assert.Contains("When", ldStrings);
+        Assert.Contains("Whenever they go", ldStrings);
+    }
+
+    [Fact]
     public void Weave_WhenStep_EmitsWhenKeyword()
     {
         var assemblyPath = TestAssemblyBuilder.Build(

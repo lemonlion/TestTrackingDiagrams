@@ -2807,7 +2807,7 @@ public static class ReportGenerator
                 {
                     // Table references render outside the step-text span — close and reopen
                     body.Append("</span>");
-                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)} &#9662;</button>");
+                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)} &#9652;</button>");
                     body.Append("<span class=\"step-text\">");
                 }
                 else if (seg.Text is not null)
@@ -2856,18 +2856,11 @@ public static class ReportGenerator
 
         if (step.Parameters is { Length: > 0 })
         {
-            // Determine which tabular params have a matching TableRef toggle button
-            var tableRefNames = step.TextSegments?
-                .Where(s => s.TableReference is not null)
-                .Select(s => s.TableReference!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
             foreach (var param in step.Parameters)
             {
                 if (skipTabularInline && param.Kind == StepParameterKind.Tabular) continue; // Rendered as combined table at scenario level
                 if (step.TextSegments is { Length: > 0 } && param.Kind == StepParameterKind.Inline) continue; // Already rendered inline in text segments
-                var collapsible = tableRefNames?.Contains(param.Name) == true;
-                RenderParameter(body, param, collapsible);
+                RenderParameter(body, param);
             }
         }
 
@@ -2900,7 +2893,7 @@ public static class ReportGenerator
         }
     }
 
-    private static void RenderParameter(StringBuilder body, StepParameter param, bool collapsible = false)
+    private static void RenderParameter(StringBuilder body, StepParameter param)
     {
         switch (param.Kind)
         {
@@ -2921,8 +2914,7 @@ public static class ReportGenerator
 
             case StepParameterKind.Tabular when param.TabularValue is not null:
                 var colNames = string.Join(",", param.TabularValue.Columns.Select(c => c.Name));
-                var collapsedClass = collapsible ? " step-param-table-collapsed" : "";
-                body.Append($"<div class=\"step-param-table{collapsedClass}\" data-param=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\">");
+                body.Append($"<div class=\"step-param-table\" data-param=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\">");
                 body.Append("<table><thead><tr><th></th>");
                 foreach (var col in param.TabularValue.Columns)
                 {

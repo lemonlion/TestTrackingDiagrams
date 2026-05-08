@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.33] - 2026-05-08
+
+### Added
+- **StepTracking: Keyword deduplication** — When a step method name starts with the same keyword as its attribute (e.g. `[GivenStep] GivenTheyGo`), the keyword prefix is automatically stripped from the step text to avoid duplication in reports (`"They go"` not `"Given they go"`). Whole-word matching only — `WheneverTheyGo` is not affected.
+
 ## [2.30.32] - 2026-05-08
 
 ### Added

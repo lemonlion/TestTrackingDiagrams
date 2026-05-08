@@ -322,7 +322,18 @@ public class StepWeaver
         }
 
         // Humanize method name: PascalCase → "Pascal case", underscores → spaces
-        return HumanizeMethodName(method.Name);
+        var text = HumanizeMethodName(method.Name);
+
+        // Strip leading keyword to avoid duplication (e.g. [WhenStep] WhenTheyGo → "They go" not "When they go")
+        var keyword = GetKeyword(attr);
+        if (keyword != null && text.StartsWith(keyword + " ", StringComparison.OrdinalIgnoreCase))
+        {
+            text = text.Substring(keyword.Length + 1);
+            if (text.Length > 0)
+                text = char.ToUpper(text[0]) + text.Substring(1);
+        }
+
+        return text;
     }
 
     public static string HumanizeMethodName(string methodName)
