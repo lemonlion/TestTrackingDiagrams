@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.6] - 2026-05-08
+
+### Fixed
+- **`TrackingDiagramOverride` now falls back to `TestIdentityScope` when `TestContext` is unavailable (issue #49)** — Previously, `GetTestId()` in both `TestTrackingDiagrams.xUnit3` and `TestTrackingDiagrams.BDDfy.xUnit3` silently returned `null` when `TestContext.Current` threw or `.Test` was null (non-test threads), causing diagram overrides (`StartOverride`, `EndOverride`, `InsertPlantUml`, `InsertTestDelimiter`, `StartAction`, `StartSetup`) to be silently discarded. Now falls through to `TestIdentityScope.Current` (AsyncLocal) then `TestIdentityScope.GlobalFallback` — the same resolution chain used by `TestInfoResolver.Resolve()`. Diagram overrides called from hosted services, background threads, and change-feed processors now correctly associate with the running test.
+
 ## [2.31.5] - 2026-08-06
 
 ### Fixed

@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Tracking;
 using Xunit;
 
 namespace TestTrackingDiagrams.xUnit3;
@@ -53,11 +54,14 @@ public static class TrackingDiagramOverride
     {
         try
         {
-            return TestContext.Current.Test?.UniqueID;
+            var id = TestContext.Current.Test?.UniqueID;
+            if (id is not null) return id;
         }
         catch
         {
-            return null;
+            // TestContext.Current throws on non-test threads — fall through to ambient scope
         }
+
+        return (TestIdentityScope.Current ?? TestIdentityScope.GlobalFallback)?.Id;
     }
 }
