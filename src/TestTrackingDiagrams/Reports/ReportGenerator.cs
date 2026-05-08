@@ -2756,7 +2756,7 @@ public static class ReportGenerator
 
         if (hasSubSteps || hasInlineTable)
         {
-            body.Append("<details class=\"step step-collapsible\">");
+            body.Append("<details class=\"step step-collapsible\" open>");
             body.Append("<summary>");
         }
         else

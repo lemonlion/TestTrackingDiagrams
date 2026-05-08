@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.34] - 2026-05-08
+
+### Changed
+- **Step parameter tables open by default** — Tabular parameter tables under steps now render expanded instead of collapsed. The toggle button (▴/▾) still allows collapsing them manually.
+
 ## [2.30.33] - 2026-05-08
 
 ### Added

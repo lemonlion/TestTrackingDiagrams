@@ -249,7 +249,7 @@ public class StepTextSegmentRenderingTests
     }
 
     [Fact]
-    public void TableRef_segment_makes_table_start_collapsed()
+    public void TableRef_segment_makes_table_start_expanded()
     {
         var step = new ScenarioStep
         {
@@ -276,7 +276,9 @@ public class StepTextSegmentRenderingTests
 
         var content = GenerateReport(FeaturesWithStep(step));
 
-        // Table should start collapsed when a TableRef button exists for it
-        Assert.Contains("step-param-table-collapsed", content);
+        // Table should start expanded (no collapsed class on the div) with up-arrow on toggle button
+        Assert.Contains("class=\"step-param-table\"", content);
+        Assert.DoesNotContain("class=\"step-param-table step-param-table-collapsed\"", content);
+        Assert.Contains("&#9652;", content); // up-arrow indicates expanded
     }
 }
