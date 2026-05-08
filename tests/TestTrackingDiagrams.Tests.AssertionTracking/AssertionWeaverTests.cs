@@ -1740,4 +1740,185 @@ public class AssertionWeaverTests
         logs[0].PlantUml.Should().Contain("'5E757CDD-7E19-42E5-9ABC-F542BEF181D2'",
             "_orderId instance field should be resolved");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_SuppressOnAsyncMethod_SkipsStateMachine(OptimizationLevel optimization)
+    {
+        // Issue #48: [SuppressAssertionTracking] on an async method must also suppress
+        // the compiler-generated state machine's MoveNext() method.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"SuppressAsync_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                [SuppressAssertionTracking]
+                public async Task SuppressedMethod()
+                {
+                    var x = await Task.FromResult(42);
+                    x.Should().Be(42);
+                }
+
+                public async Task NormalMethod()
+                {
+                    var y = await Task.FromResult(7);
+                    y.Should().Be(7);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        // Only NormalMethod's assertion should be weaved; SuppressedMethod's state machine is skipped
+        result.WeavedCount.Should().Be(1,
+            "the suppressed async method's state machine should not be instrumented");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_NullConditionalShould_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #47/#48: null-conditional ?. before .Should() in an async method
+        // must not produce InvalidProgramException
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncNullCondShould_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Result
+            {
+                public string? MerchantId { get; set; }
+                public string? Name { get; set; }
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var result = await Task.FromResult<Result?>(new Result { MerchantId = "M123", Name = "Test" });
+                    result?.MerchantId.Should().Be("M123");
+                    result?.Name.Should().NotBeNull();
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with null-conditional ?.Should() should not throw InvalidProgramException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_NullConditionalShould_NullValue_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // When the subject IS null, the null-conditional short-circuits cleanly
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncNullCondNull_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Result
+            {
+                public string? MerchantId { get; set; }
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var result = await Task.FromResult<Result?>(null);
+                    result?.MerchantId.Should().Be("M123");
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        // Should not throw InvalidProgramException — null-conditional just skips
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async null-conditional with null subject should not throw");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_WithBecauseParam_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #47: assertions with "because" format string arguments in async methods
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncBecause_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var merchantId = "M123";
+                    var result = await Task.FromResult(merchantId);
+                    result.Should().Be(merchantId, "because I set it to {0}", merchantId);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async assertion with 'because' param should not throw InvalidProgramException");
+    }
+
 }

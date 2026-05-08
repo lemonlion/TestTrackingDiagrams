@@ -101,6 +101,8 @@ public class AssertionWeaver
             typeCount++;
             if (HasSuppressAttribute(type))
                 continue;
+            if (IsStateMachineWithSuppressedParent(type))
+                continue;
 
             foreach (var method in type.Methods)
             {
@@ -231,6 +233,35 @@ public class AssertionWeaver
             return false;
         return provider.CustomAttributes.Any(a =>
             a.AttributeType.Name == "SuppressAssertionTrackingAttribute");
+    }
+
+    /// <summary>
+    /// Checks if a type is a compiler-generated async state machine whose parent (kick-off)
+    /// method has [SuppressAssertionTracking]. State machine types are named like
+    /// &lt;MethodName&gt;d__N and are nested within the class containing the original method.
+    /// </summary>
+    private static bool IsStateMachineWithSuppressedParent(TypeDefinition type)
+    {
+        // State machines are nested types with CompilerGenerated attribute and IAsyncStateMachine
+        if (type.DeclaringType == null)
+            return false;
+        if (!type.Name.Contains('>') || !type.Name.StartsWith("<"))
+            return false;
+
+        // Extract parent method name from state machine type name: <MethodName>d__N
+        var closingBracket = type.Name.IndexOf('>');
+        if (closingBracket <= 1)
+            return false;
+        var parentMethodName = type.Name.Substring(1, closingBracket - 1);
+
+        // Find the parent method in the declaring type
+        foreach (var method in type.DeclaringType.Methods)
+        {
+            if (method.Name == parentMethodName && HasSuppressAttribute(method))
+                return true;
+        }
+
+        return false;
     }
 
     private (MethodReference Passed, MethodReference Failed, MethodReference PassedWithValues, MethodReference FailedWithValues)? GetTrackMethodReferences(AssemblyDefinition assembly)
@@ -1206,7 +1237,25 @@ public class AssertionWeaver
         // known-zero point (branch target, handler start, or method start).
         var depth = ComputeStackDepthAt(body, firstInstr);
         if (depth <= 0)
+        {
+            // Safety check: dup always requires at least 1 value on the stack.
+            // The linear walk in ComputeStackDepthAt can produce incorrect (negative or zero)
+            // results when the assertion follows complex control flow (e.g., Release-mode
+            // multi-assertion patterns where both paths merge with a value on the stack).
+            if (firstInstr.OpCode == OpCodes.Dup)
+                depth = 1;
+            else
+                return null;
+        }
+
+        // Safety check: if the first instruction doesn't consume anything from the stack
+        // (Pop0 behaviour), then there cannot be values left over from preceding code.
+        // The computation may be incorrect due to linear walk over non-executed branch paths.
+        if (firstInstr.OpCode.StackBehaviourPop == StackBehaviour.Pop0 &&
+            firstInstr.OpCode != OpCodes.Dup)
+        {
             return null;
+        }
 
         // Determine the types on the stack by walking backwards from firstInstr.
         // Each value we encounter (in reverse) corresponds to a stack slot.
@@ -1269,6 +1318,7 @@ public class AssertionWeaver
         // that represents the true exit depth from the dup pattern.
         var entryDepth = ComputeStackDepthAt(body, firstInstr);
         var netDelta = 0;
+        var dupCount = 0;
         var current = firstInstr;
         while (current != null)
         {
@@ -1281,22 +1331,21 @@ public class AssertionWeaver
                 break;
             }
 
+            if (current.OpCode == OpCodes.Dup)
+                dupCount++;
+
             netDelta += GetInstructionPushCount(current) - GetInstructionPopCount(current, body);
             if (current == lastInstr) break;
             current = current.Next;
         }
 
         // If we broke out at a branch, the assertion body contains internal control flow
-        // (ternary, null-conditional ?.). The assertion is a complete statement that consumes
-        // its subject value (via Should) and discards the result (via pop). The linear walk
-        // above counts both branch paths and inflates the delta, but actual single-path
-        // execution always nets to zero. Return 0.
-        // If we reached lastInstr without hitting a branch, the linear walk is correct.
+        // (null-conditional ?.). One dup is consumed by the assertion's null-check + method
+        // chain. Extra dup instructions indicate Release-mode value sharing across multiple
+        // assertions on the same subject — those values pass through as exit stack depth.
         if (current != null && current != lastInstr && current.Operand is Instruction)
         {
-            // Had an internal branch — the assertion is a complete statement that consumes
-            // the subject (via Should) and discards the result (via pop). Exit depth is 0.
-            return 0;
+            return dupCount > 1 ? dupCount - 1 : 0;
         }
 
         var exitDepth = entryDepth + netDelta;
@@ -1518,6 +1567,15 @@ public class AssertionWeaver
         // Find the instruction AFTER the last assertion instruction
         var afterLastInstr = lastInstr.Next;
 
+        // Check exit stack depth BEFORE any modifications. Release-mode multi-dup patterns
+        // (multiple null-conditional assertions sharing a subject via dup;dup;brtrue) leave
+        // values on the stack for subsequent assertions. We cannot safely wrap these with
+        // try/catch because 'leave' clears the stack and the subsequent assertion's try
+        // entry requires that value. Skip instrumentation for such assertions.
+        var exitStackDepth = ComputeExitStackDepth(body, firstInstr, lastInstr);
+        if (exitStackDepth > 0)
+            return;
+
         // In Release builds, the compiler may leave values on the evaluation stack across
         // sequence point boundaries (e.g. GetResult() return value feeds directly into Should()).
         // The CLR requires the stack to be empty at try block entry points. Detect this case
@@ -1548,19 +1606,28 @@ public class AssertionWeaver
         }
 
         // Fix branch-into-try: any branch/leave from outside our try region that targets
-        // firstInstr (now the second instruction of our try block) would violate the CLR
-        // rule forbidding control transfer into the middle of a try block. Retarget them
-        // to tryStart (the first instruction) which is a legal entry point.
+        // firstInstr (now inside our try block) would violate the CLR rule forbidding
+        // control transfer into the middle of a try block. Retarget them to the entry
+        // point of our spill-then-try sequence. If there's an entry spill, branches must
+        // target the first stloc (so values on the stack get saved before try entry).
+        // If no spill, target tryStart directly.
+        var branchRetarget = spillLocals != null ? tryStart.Previous! : tryStart;
+        // Walk back to the first stloc for multi-value spills
+        if (spillLocals != null)
+        {
+            for (var i = 1; i < spillLocals.Count; i++)
+                branchRetarget = branchRetarget.Previous!;
+        }
         foreach (var instr in body.Instructions)
         {
             if (instr == tryStart) continue; // skip our own nop
             if (instr.Operand is Instruction target && target == firstInstr)
-                instr.Operand = tryStart;
+                instr.Operand = branchRetarget;
             else if (instr.Operand is Instruction[] targets)
             {
                 for (var idx = 0; idx < targets.Length; idx++)
                     if (targets[idx] == firstInstr)
-                        targets[idx] = tryStart;
+                        targets[idx] = branchRetarget;
             }
         }
 
@@ -1633,32 +1700,8 @@ public class AssertionWeaver
         }
 
         // Create the "after assertion success" block
-        // First, compute exit stack depth: if the assertion leaves values on the stack for
-        // subsequent code (Release-mode dup patterns), we must spill them before our leave
-        // (which clears the stack) and reload them after the catch handler.
-        var exitStackDepth = ComputeExitStackDepth(body, firstInstr, lastInstr);
-        var exitSpillLocals = new List<VariableDefinition>();
-        if (exitStackDepth > 0)
-        {
-            for (var i = 0; i < exitStackDepth; i++)
-            {
-                // Use the entry spill type if available (the dup pattern always duplicates
-                // the same value that was on the stack at entry). Fall back to Object.
-                var exitType = spillLocals != null && i < spillLocals.Count
-                    ? spillLocals[i].VariableType
-                    : module.TypeSystem.Object;
-                var local = new VariableDefinition(exitType);
-                body.Variables.Add(local);
-                exitSpillLocals.Add(local);
-            }
-        }
-
         if (afterLastInstr != null)
         {
-            // Spill exit stack values (top first) before AssertionPassed
-            for (var i = exitSpillLocals.Count - 1; i >= 0; i--)
-                il.InsertBefore(afterLastInstr, il.Create(OpCodes.Stloc, exitSpillLocals[i]));
-
             if (hasValues)
             {
                 il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldstr, expressionText));
@@ -1769,27 +1812,25 @@ public class AssertionWeaver
         };
         body.ExceptionHandlers.Insert(0, handler);
 
-        // Reload exit-spilled values after the catch handler (restoration for subsequent code).
-        // The leave clears the evaluation stack, so we reload from our temp locals.
-        if (exitSpillLocals.Count > 0)
-        {
-            if (afterLastInstr != null)
-            {
-                // Insert ldloc after afterCatch (which is already before afterLastInstr)
-                for (var i = 0; i < exitSpillLocals.Count; i++)
-                    il.InsertBefore(afterLastInstr, il.Create(OpCodes.Ldloc, exitSpillLocals[i]));
-            }
-            else
-            {
-                for (var i = 0; i < exitSpillLocals.Count; i++)
-                    il.Append(il.Create(OpCodes.Ldloc, exitSpillLocals[i]));
-            }
-        }
-
         // Retarget any outbound branches (from null-propagation ?.) to the leave instruction.
         foreach (var branch in assertion.OutboundBranches)
         {
             branch.Operand = leaveInstr;
+        }
+
+        // Retarget internal branches targeting afterLastInstr (the trimmed trailing leave/ret).
+        // After wrapping, afterLastInstr sits OUTSIDE our try block (between afterCatch and
+        // the next statement). A br/brfalse/brtrue from inside the try targeting it would be
+        // an illegal branch crossing the try boundary. Retarget them to our leaveInstr.
+        if (afterLastInstr != null)
+        {
+            var scan = tryStart;
+            while (scan != null && scan != catchStart)
+            {
+                if (scan.Operand is Instruction brTarget && brTarget == afterLastInstr)
+                    scan.Operand = leaveInstr;
+                scan = scan.Next;
+            }
         }
     }
 

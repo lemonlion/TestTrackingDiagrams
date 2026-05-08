@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.31.4] - 2026-08-06
+
+### Fixed
+- **`[SuppressAssertionTracking]` not working on async methods (issue #48)** — The attribute on an async method did not propagate to the compiler-generated state machine's `MoveNext()` method. The weaver now detects state machine types and checks the parent (kick-off) method for the suppress attribute.
+- **InvalidProgramException with null-conditional `?.Should()` in async methods (issues #47, #48)** — The IL weaver produced invalid IL for null-conditional assertions in async state machines due to:
+  - Internal `br` instructions targeting a trimmed trailing `leave` were not retargeted to the try-exit instruction, causing illegal cross-boundary branches.
+  - Release-mode multi-dup patterns (multiple assertions sharing a subject via `dup;dup;brtrue`) left values on the stack that were cleared by `leave`. Assertions with exit stack depth > 0 are now skipped (not instrumented) to avoid invalid IL.
+  - Branch-into-try retargeting now correctly points to the entry spill `stloc` instructions (before `tryStart`) so that branches arriving with values on the stack have them properly stored before try entry.
+  - `SpillStackIfNeeded` now correctly forces `depth = 1` when `firstInstr` is `dup` and the linear stack walk returns ≤ 0.
+- **"Test context not available on this thread" exceptions (issue #49)** — `TrackingDiagramOverride.GetTestId()` in both `TestTrackingDiagrams.xUnit3` and `TestTrackingDiagrams.BDDfy.xUnit3` now catches exceptions from `TestContext.Current` and gracefully returns when called on non-test threads.
+
 ## [2.31.3] - 2026-08-05
 
 ### Added

@@ -9,33 +9,55 @@ public static class TrackingDiagramOverride
 {
     public static void StartOverride(string? plantUml = null)
     {
-        DefaultTrackingDiagramOverride.StartOverride(GetTestId(), plantUml);
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.StartOverride(testId, plantUml);
     }
 
     public static void EndOverride(string? plantUml = null)
     {
-        DefaultTrackingDiagramOverride.EndOverride(GetTestId(), plantUml);
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.EndOverride(testId, plantUml);
     }
 
     public static void InsertTestDelimiter(string testIdentifier)
     {
-        DefaultTrackingDiagramOverride.InsertTestDelimiter(GetTestId(), testIdentifier);
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.InsertTestDelimiter(testId, testIdentifier);
     }
 
     public static void InsertPlantUml(string plantUml)
     {
-        DefaultTrackingDiagramOverride.InsertPlantUml(GetTestId(), plantUml);
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.InsertPlantUml(testId, plantUml);
     }
 
     public static void StartAction()
     {
-        DefaultTrackingDiagramOverride.StartAction(GetTestId());
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.StartAction(testId);
     }
 
     public static void StartSetup()
     {
-        DefaultTrackingDiagramOverride.StartSetup(GetTestId());
+        var testId = GetTestId();
+        if (testId is null) return;
+        DefaultTrackingDiagramOverride.StartSetup(testId);
     }
 
-    private static string GetTestId() => TestContext.Current.Test!.UniqueID;
+    private static string? GetTestId()
+    {
+        try
+        {
+            return TestContext.Current.Test?.UniqueID;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
