@@ -307,6 +307,43 @@ public static class StepCollector
         };
     }
 
+    /// <summary>
+    /// Wraps an async step's returned Task so that CompleteStep is called on
+    /// completion or failure. Called by the IL weaver for async step methods.
+    /// The original exception is preserved (re-thrown via await).
+    /// </summary>
+    public static async Task CompleteStepAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+            CompleteStep(true, null);
+        }
+        catch (Exception ex)
+        {
+            CompleteStep(false, ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Generic variant for async step methods returning Task&lt;T&gt;.
+    /// </summary>
+    public static async Task<T> CompleteStepAsync<T>(Task<T> task)
+    {
+        try
+        {
+            var result = await task.ConfigureAwait(false);
+            CompleteStep(true, null);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            CompleteStep(false, ex.Message);
+            throw;
+        }
+    }
+
     private class TestStepState
     {
         public Stack<CollectedStep> StepStack { get; } = new();

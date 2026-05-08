@@ -149,6 +149,14 @@ public class StepWeaver
         MethodReference getMessageMethod,
         TypeReference exceptionType)
     {
+        // Detect async methods (returning Task or Task<T>)
+        var asyncKind = GetAsyncKind(method);
+        if (asyncKind != AsyncKind.None)
+        {
+            WrapAsyncMethodWithStepTracking(method, keyword, stepText, stepMethods, asyncKind);
+            return;
+        }
+
         var body = method.Body;
         var il = body.GetILProcessor();
         body.SimplifyMacros();
@@ -304,6 +312,183 @@ public class StepWeaver
 
         body.ExceptionHandlers.Add(handler);
         body.OptimizeMacros();
+    }
+
+    private enum AsyncKind { None, Task, GenericTask }
+
+    private static AsyncKind GetAsyncKind(MethodDefinition method)
+    {
+        var returnType = method.ReturnType;
+        if (returnType.FullName == "System.Threading.Tasks.Task")
+            return AsyncKind.Task;
+        if (returnType is GenericInstanceType git && git.ElementType.FullName == "System.Threading.Tasks.Task`1")
+            return AsyncKind.GenericTask;
+        return AsyncKind.None;
+    }
+
+    /// <summary>
+    /// Wraps an async step method. Instead of try/catch (which doesn't work for async
+    /// state machines), we emit StartStep at the beginning, then replace each 'ret'
+    /// with a call to StepCollector.CompleteStepAsync(task) which awaits the task and
+    /// calls CompleteStep on success or failure.
+    /// </summary>
+    private void WrapAsyncMethodWithStepTracking(
+        MethodDefinition method,
+        string? keyword,
+        string stepText,
+        (MethodReference StartStep, MethodReference CompleteStepPassed, MethodReference CompleteStepFailed) stepMethods,
+        AsyncKind asyncKind)
+    {
+        var body = method.Body;
+        var il = body.GetILProcessor();
+        body.SimplifyMacros();
+
+        var module = method.Module;
+
+        // Build parameter arrays
+        var paramNames = GetParameterNames(method);
+        var hasParams = paramNames.Length > 0;
+
+        VariableDefinition? paramNamesLocal = null;
+        VariableDefinition? paramValuesLocal = null;
+        if (hasParams)
+        {
+            paramNamesLocal = new VariableDefinition(module.ImportReference(typeof(string[])));
+            paramValuesLocal = new VariableDefinition(module.ImportReference(typeof(object[])));
+            body.Variables.Add(paramNamesLocal);
+            body.Variables.Add(paramValuesLocal);
+        }
+
+        body.InitLocals = true;
+
+        var originalFirst = body.Instructions[0];
+
+        // === Emit preamble: build param arrays and call StartStep ===
+        var preamble = new List<Instruction>();
+
+        if (hasParams)
+        {
+            // Build string[] paramNames
+            preamble.Add(il.Create(OpCodes.Ldc_I4, paramNames.Length));
+            preamble.Add(il.Create(OpCodes.Newarr, module.ImportReference(typeof(string))));
+            for (int i = 0; i < paramNames.Length; i++)
+            {
+                preamble.Add(il.Create(OpCodes.Dup));
+                preamble.Add(il.Create(OpCodes.Ldc_I4, i));
+                preamble.Add(il.Create(OpCodes.Ldstr, paramNames[i]));
+                preamble.Add(il.Create(OpCodes.Stelem_Ref));
+            }
+            preamble.Add(il.Create(OpCodes.Stloc, paramNamesLocal!));
+
+            // Build object[] paramValues from method arguments
+            preamble.Add(il.Create(OpCodes.Ldc_I4, paramNames.Length));
+            preamble.Add(il.Create(OpCodes.Newarr, module.ImportReference(typeof(object))));
+            var methodParams = method.Parameters;
+            for (int i = 0; i < paramNames.Length; i++)
+            {
+                preamble.Add(il.Create(OpCodes.Dup));
+                preamble.Add(il.Create(OpCodes.Ldc_I4, i));
+                var argIndex = method.IsStatic ? i : i + 1;
+                preamble.Add(il.Create(OpCodes.Ldarg, argIndex));
+                var paramType = methodParams[i].ParameterType;
+                if (paramType.IsValueType || paramType.IsGenericParameter)
+                    preamble.Add(il.Create(OpCodes.Box, paramType));
+                preamble.Add(il.Create(OpCodes.Stelem_Ref));
+            }
+            preamble.Add(il.Create(OpCodes.Stloc, paramValuesLocal!));
+        }
+
+        // Call StepCollector.StartStep(keyword, text, paramNames, paramValues)
+        if (keyword != null)
+            preamble.Add(il.Create(OpCodes.Ldstr, keyword));
+        else
+            preamble.Add(il.Create(OpCodes.Ldnull));
+
+        preamble.Add(il.Create(OpCodes.Ldstr, stepText));
+
+        if (hasParams)
+        {
+            preamble.Add(il.Create(OpCodes.Ldloc, paramNamesLocal!));
+            preamble.Add(il.Create(OpCodes.Ldloc, paramValuesLocal!));
+        }
+        else
+        {
+            preamble.Add(il.Create(OpCodes.Ldnull));
+            preamble.Add(il.Create(OpCodes.Ldnull));
+        }
+
+        preamble.Add(il.Create(OpCodes.Call, stepMethods.StartStep));
+
+        // Insert preamble before original first instruction
+        foreach (var instr in preamble)
+        {
+            il.InsertBefore(originalFirst, instr);
+        }
+
+        // === Replace each 'ret' with a call to CompleteStepAsync ===
+        // The method returns Task (or Task<T>). At each ret, the Task is on the stack.
+        // We replace: [task on stack] ret
+        // With:       [task on stack] call CompleteStepAsync ret
+        var completeStepAsyncRef = GetCompleteStepAsyncReference(module, method.ReturnType, asyncKind);
+
+        var rets = body.Instructions.Where(i => i.OpCode == OpCodes.Ret).ToList();
+        foreach (var ret in rets)
+        {
+            var callComplete = il.Create(OpCodes.Call, completeStepAsyncRef);
+            il.InsertBefore(ret, callComplete);
+        }
+
+        body.OptimizeMacros();
+    }
+
+    private static MethodReference GetCompleteStepAsyncReference(ModuleDefinition module, TypeReference returnType, AsyncKind asyncKind)
+    {
+        var ttdAssemblyRef = module.AssemblyReferences
+            .FirstOrDefault(r => r.Name == "TestTrackingDiagrams");
+        if (ttdAssemblyRef == null)
+        {
+            ttdAssemblyRef = new AssemblyNameReference("TestTrackingDiagrams", new Version(0, 0, 0, 0));
+            module.AssemblyReferences.Add(ttdAssemblyRef);
+        }
+
+        var stepCollectorTypeRef = new TypeReference(
+            "TestTrackingDiagrams.Tracking", "StepCollector",
+            module, ttdAssemblyRef);
+
+        if (asyncKind == AsyncKind.Task)
+        {
+            // CompleteStepAsync(Task task) → Task
+            var method = new MethodReference("CompleteStepAsync", module.ImportReference(typeof(System.Threading.Tasks.Task)), stepCollectorTypeRef)
+            {
+                HasThis = false
+            };
+            method.Parameters.Add(new ParameterDefinition(module.ImportReference(typeof(System.Threading.Tasks.Task))));
+            return method;
+        }
+        else
+        {
+            // CompleteStepAsync<T>(Task<T> task) → Task<T>
+            var git = (GenericInstanceType)returnType;
+            var innerType = git.GenericArguments[0];
+
+            var taskOfT = module.ImportReference(typeof(System.Threading.Tasks.Task<>));
+
+            // Build the open generic method reference
+            var openMethod = new MethodReference("CompleteStepAsync", taskOfT, stepCollectorTypeRef)
+            {
+                HasThis = false
+            };
+            openMethod.GenericParameters.Add(new GenericParameter("T", openMethod));
+            openMethod.ReturnType = new GenericInstanceType(taskOfT) { GenericArguments = { openMethod.GenericParameters[0] } };
+            openMethod.Parameters.Add(new ParameterDefinition(
+                new GenericInstanceType(taskOfT) { GenericArguments = { openMethod.GenericParameters[0] } }));
+
+            // Instantiate with the concrete type argument
+            var closedMethod = new GenericInstanceMethod(openMethod);
+            closedMethod.GenericArguments.Add(innerType);
+
+            return closedMethod;
+        }
     }
 
     private static string[] GetParameterNames(MethodDefinition method)

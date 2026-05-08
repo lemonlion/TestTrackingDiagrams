@@ -302,4 +302,179 @@ public class StepWeaverIntegrationTests
 
         TestPhaseContext.Reset();
     }
+
+    [Fact]
+    public async Task Weaved_Async_GivenStep_Records_Step_In_StepCollector()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntAsyncGiven",
+            """
+            using System.Threading.Tasks;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [GivenStep]
+                public async Task A_User_Exists()
+                {
+                    await Task.Delay(1);
+                }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-async-given-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("A_User_Exists")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        await task;
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal("Given", steps[0].Keyword);
+        Assert.Equal("A user exists", steps[0].Text);
+        Assert.Equal(Reports.ExecutionResult.Passed, steps[0].Status);
+        Assert.NotNull(steps[0].Duration);
+    }
+
+    [Fact]
+    public async Task Weaved_Async_Step_That_Throws_Records_Failed_Step()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntAsyncThrows",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [ThenStep]
+                public async Task The_Result_Is_Correct()
+                {
+                    await Task.Delay(1);
+                    throw new InvalidOperationException("Expected 42 but got 0");
+                }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-async-throws-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("The_Result_Is_Correct")!;
+        var task = (Task)method.Invoke(instance, null)!;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => task);
+        Assert.Equal("Expected 42 but got 0", ex.Message);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal("Then", steps[0].Keyword);
+        Assert.Equal(Reports.ExecutionResult.Failed, steps[0].Status);
+    }
+
+    [Fact]
+    public async Task Weaved_Async_Multiple_Steps_Record_Sequence()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntAsyncSequence",
+            """
+            using System.Threading.Tasks;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [GivenStep]
+                public async Task A_User_Exists() { await Task.Delay(1); }
+
+                [WhenStep]
+                public async Task The_User_Logs_In() { await Task.Delay(1); }
+
+                [ThenStep]
+                public async Task The_Session_Is_Created() { await Task.Delay(1); }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-async-sequence-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+
+        await (Task)type.GetMethod("A_User_Exists")!.Invoke(instance, null)!;
+        await (Task)type.GetMethod("The_User_Logs_In")!.Invoke(instance, null)!;
+        await (Task)type.GetMethod("The_Session_Is_Created")!.Invoke(instance, null)!;
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Equal(3, steps.Length);
+        Assert.Equal("Given", steps[0].Keyword);
+        Assert.Equal("When", steps[1].Keyword);
+        Assert.Equal("Then", steps[2].Keyword);
+    }
+
+    [Fact]
+    public async Task Weaved_Async_Step_With_Parameters_Captures_Values()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "IntAsyncParams",
+            """
+            using System.Threading.Tasks;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [GivenStep]
+                public async Task A_User_With_Name(string name, int age)
+                {
+                    await Task.Delay(1);
+                }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"int-async-params-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("A_User_With_Name")!;
+        var task = (Task)method.Invoke(instance, new object[] { "Jane", 30 })!;
+        await task;
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.NotNull(steps[0].Parameters);
+        Assert.Equal(2, steps[0].Parameters!.Length);
+        Assert.Equal("name", steps[0].Parameters![0].Name);
+        Assert.Equal("Jane", steps[0].Parameters![0].InlineValue!.Value);
+        Assert.Equal("age", steps[0].Parameters![1].Name);
+        Assert.Equal("30", steps[0].Parameters![1].InlineValue!.Value);
+    }
 }

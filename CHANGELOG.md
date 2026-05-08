@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.32.1] - 2026-05-08
+
+### Fixed
+- **StepTracking `InvalidProgramException` on async methods with `[GivenStep]`/`[WhenStep]`/`[ThenStep]` (issue #50)** — The StepWeaver IL weaver had no async method handling. It wrapped the entire method body (including the async kick-off stub) in a try/catch and replaced `ret` with `leave`, producing invalid IL for async state machine methods. The weaver now detects async methods (returning `Task` or `Task<T>`) and uses a different strategy: `StartStep` is called at method entry, then the returned `Task` is passed through `StepCollector.CompleteStepAsync()` which awaits it and calls `CompleteStep` on success or failure, preserving the original exception.
+
+### Added
+- `StepCollector.CompleteStepAsync(Task)` and `StepCollector.CompleteStepAsync<T>(Task<T>)` — runtime helpers that wrap an async step's returned Task so that `CompleteStep` is called on completion or failure.
+
 ## [2.32.0] - 2026-08-07
 
 ### Added
