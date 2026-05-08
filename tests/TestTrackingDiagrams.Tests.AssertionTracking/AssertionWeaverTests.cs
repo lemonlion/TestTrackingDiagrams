@@ -1197,4 +1197,286 @@ public class AssertionWeaverTests
         logs.Should().HaveCount(1);
         logs[0].PlantUml.Should().Contain("68aeee84", "orderId should be resolved from lambda body variable capture");
     }
+
+    // ─── TUnit Detection Tests ───────────────────────────────────────────────────
+
+    [Fact]
+    public void Weave_TUnitShouldSyntax_InstrumentsAssertion()
+    {
+        // TUnit's .Should() lives in a different namespace (TUnit.Assertions.Should)
+        // but should still be detected and instrumented by the weaver.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "TUnitShould",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            namespace TUnit.Assertions.Should
+            {
+                public static class ShouldExtensions
+                {
+                    public static ShouldSource<T> Should<T>(this T value) => new ShouldSource<T>(value);
+                }
+
+                public class ShouldSource<T>
+                {
+                    private readonly T _value;
+                    public ShouldSource(T value) => _value = value;
+                    public void BeEqualTo(T expected)
+                    {
+                        if (!Equals(_value, expected))
+                            throw new System.Exception($"Expected {expected} but got {_value}");
+                    }
+                }
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var x = 42;
+                    TUnit.Assertions.Should.ShouldExtensions.Should(x).BeEqualTo(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_TUnitAssertThat_InstrumentsAssertion()
+    {
+        // TUnit's Assert.That() static method should also be detected.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "TUnitAssertThat",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            namespace TUnit.Assertions
+            {
+                public static class Assert
+                {
+                    public static Assertion<T> That<T>(T value) => new Assertion<T>(value);
+                }
+
+                public class Assertion<T>
+                {
+                    private readonly T _value;
+                    public Assertion(T value) => _value = value;
+                    public void IsEqualTo(T expected)
+                    {
+                        if (!Equals(_value, expected))
+                            throw new System.Exception($"Expected {expected} but got {_value}");
+                    }
+                }
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var x = 42;
+                    TUnit.Assertions.Assert.That(x).IsEqualTo(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+    }
+
+    [Fact]
+    public void Weave_TUnitShouldAndFluentAssertions_InstrumentsBoth()
+    {
+        // When a method uses both TUnit assertions and FluentAssertions,
+        // both should be detected and instrumented.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "TUnitMixed",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            namespace TUnit.Assertions.Should
+            {
+                public static class ShouldExtensions
+                {
+                    public static ShouldSource<T> Should<T>(this T value) => new ShouldSource<T>(value);
+                }
+
+                public class ShouldSource<T>
+                {
+                    private readonly T _value;
+                    public ShouldSource(T value) => _value = value;
+                    public void BeEqualTo(T expected)
+                    {
+                        if (!Equals(_value, expected))
+                            throw new System.Exception($"Expected {expected} but got {_value}");
+                    }
+                }
+            }
+
+            public class Tests
+            {
+                public void Method()
+                {
+                    var x = 42;
+                    // FluentAssertions assertion
+                    x.Should().Be(42);
+                    // TUnit assertion (explicit call to avoid ambiguity)
+                    TUnit.Assertions.Should.ShouldExtensions.Should(x).BeEqualTo(42);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(2);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        ex.Should().BeNull();
+    }
+
+    // ─── Async Assertion Tests ───────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AwaitedAssertion_InstrumentsAtGetResult(OptimizationLevel optimization)
+    {
+        // An awaited assertion (like TUnit's async assertions or FA's ThrowAsync)
+        // should be instrumented by wrapping GetResult() at the merge point.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AwaitedAssertion_{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using System.Runtime.CompilerServices;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            namespace TUnit.Assertions
+            {
+                public static class Assert
+                {
+                    public static Assertion<T> That<T>(T value) => new Assertion<T>(value);
+                }
+
+                public class Assertion<T>
+                {
+                    private readonly T _value;
+                    public Assertion(T value) => _value = value;
+
+                    public Task IsEqualTo(T expected)
+                    {
+                        if (!Equals(_value, expected))
+                            return Task.FromException(new Exception($"Expected {expected} but got {_value}"));
+                        return Task.CompletedTask;
+                    }
+
+                    public TaskAwaiter GetAwaiter() => IsEqualTo(_value).GetAwaiter();
+                }
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var x = 42;
+                    await TUnit.Assertions.Assert.That(x).IsEqualTo(42);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AwaitedFluentAssertionThrowAsync_Instruments(OptimizationLevel optimization)
+    {
+        // FluentAssertions' ThrowAsync returns a Task that is awaited.
+        // The weaver should detect and instrument this.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AwaitedThrowAsync_{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertionsBeta]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    Func<Task> act = () => Task.FromException(new InvalidOperationException("boom"));
+                    await act.Should().ThrowAsync<InvalidOperationException>();
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull($"weaved async assertion should execute cleanly in {optimization} mode");
+    }
 }

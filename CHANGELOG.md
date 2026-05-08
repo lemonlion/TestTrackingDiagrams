@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.30.32] - 2026-05-08
+
+### Added
+- **TUnit assertion tracking support** — The IL weaver now detects and instruments TUnit's `Assert.That()` and `.Should()` assertions (from `TUnit.Assertions` and `TUnit.Assertions.Should` namespaces) in addition to FluentAssertions and AwesomeAssertions.
+- **Async/awaited assertion support** — The IL weaver now correctly handles awaited assertions (e.g. `await act.Should().ThrowAsync<T>()`, TUnit's `await Assert.That(x).IsEqualTo(5)`). Wraps `GetResult()` at the state machine merge point to catch assertion failures that manifest after await suspension/resume.
+- **Roslyn rewriter TUnit detection** — The `AssertionWrappingRewriter` now also detects `Assert.That(...)` patterns for TUnit, in addition to the existing `.Should()` detection.
+
 ## [2.30.31] - 2026-05-08
 
 ### Fixed

@@ -245,12 +245,24 @@ public class AssertionWrappingRewriter : CSharpSyntaxRewriter
     {
         foreach (var node in expression.DescendantNodesAndSelf())
         {
-            if (node is InvocationExpressionSyntax invocation &&
-                invocation.Expression is MemberAccessExpressionSyntax memberAccess &&
-                memberAccess.Name.Identifier.ValueText == "Should" &&
-                invocation.ArgumentList.Arguments.Count == 0)
+            if (node is InvocationExpressionSyntax invocation)
             {
-                return true;
+                // .Should() — FluentAssertions/AwesomeAssertions/TUnit Should syntax
+                if (invocation.Expression is MemberAccessExpressionSyntax memberAccess &&
+                    memberAccess.Name.Identifier.ValueText == "Should" &&
+                    invocation.ArgumentList.Arguments.Count == 0)
+                {
+                    return true;
+                }
+
+                // Assert.That(...) — TUnit Assert.That syntax
+                if (invocation.Expression is MemberAccessExpressionSyntax assertAccess &&
+                    assertAccess.Name.Identifier.ValueText == "That" &&
+                    assertAccess.Expression is IdentifierNameSyntax identifier &&
+                    identifier.Identifier.ValueText == "Assert")
+                {
+                    return true;
+                }
             }
         }
 
