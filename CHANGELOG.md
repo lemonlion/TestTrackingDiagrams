@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.6] - 2026-05-09
+
+### Changed
+- **Assertion tracking: natural English for `.First()` / `.Last()` in subjects** — Assertion subjects containing `.First()` or `.Last()` LINQ calls are now formatted as "First value of my collection" and "Last value of my collection" instead of the raw "My collection first()" output.
+
 ## [2.33.5] - 2026-05-09
 
 ### Changed

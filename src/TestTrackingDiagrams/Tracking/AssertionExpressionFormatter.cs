@@ -67,19 +67,45 @@ public static partial class AssertionExpressionFormatter
     private static string FormatSubject(string subject)
     {
         var segments = subject.Split('.');
-        var sb = new StringBuilder();
-        for (var i = 0; i < segments.Length; i++)
+
+        // Detect First()/Last() and reorder: "collection.First().Prop" → "First value of collection prop"
+        var firstLastIdx = -1;
+        string? firstLastWord = null;
+        for (var j = 0; j < segments.Length; j++)
         {
-            if (i > 0) sb.Append(' ');
-            var segment = segments[i].Trim('_');
-            sb.Append(SplitPascalCase(segment).ToLowerInvariant());
+            if (segments[j] == "First()") { firstLastIdx = j; firstLastWord = "First"; break; }
+            if (segments[j] == "Last()") { firstLastIdx = j; firstLastWord = "Last"; break; }
         }
 
-        // Capitalize first letter
-        if (sb.Length > 0)
-            sb[0] = char.ToUpperInvariant(sb[0]);
+        if (firstLastIdx >= 0)
+        {
+            var sb = new StringBuilder();
+            sb.Append(firstLastWord);
+            sb.Append(" value of");
+            for (var i = 0; i < segments.Length; i++)
+            {
+                if (i == firstLastIdx) continue;
+                sb.Append(' ');
+                sb.Append(SplitPascalCase(segments[i].Trim('_')).ToLowerInvariant());
+            }
+            return sb.ToString();
+        }
 
-        return sb.ToString();
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < segments.Length; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                var segment = segments[i].Trim('_');
+                sb.Append(SplitPascalCase(segment).ToLowerInvariant());
+            }
+
+            // Capitalize first letter
+            if (sb.Length > 0)
+                sb[0] = char.ToUpperInvariant(sb[0]);
+
+            return sb.ToString();
+        }
     }
 
     private static (string Method, string? Args) ParseMethodAndArgs(string assertionPart)

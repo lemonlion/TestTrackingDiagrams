@@ -282,4 +282,17 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(expression);
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("() => myCollection.First().Should().Be(42)", "First value of my collection should be 42")]
+    [InlineData("() => myCollection.Last().Should().Be(42)", "Last value of my collection should be 42")]
+    [InlineData("() => _items.First().Name.Should().Be(\"test\")", "First value of items name should be \"test\"")]
+    [InlineData("() => _items.Last().Name.Should().Be(\"test\")", "Last value of items name should be \"test\"")]
+    [InlineData("() => response.Orders.First().Should().NotBeNull()", "First value of response orders should not be null")]
+    [InlineData("() => response.Orders.Last().Should().NotBeNull()", "Last value of response orders should not be null")]
+    public void Format_transforms_First_and_Last_in_subject(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
 }
