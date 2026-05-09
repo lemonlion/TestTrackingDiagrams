@@ -193,6 +193,10 @@ public class Stylesheets
                     cursor: not-allowed;
                 }
 
+                #searchbar:disabled::placeholder {
+                    color: transparent;
+                }
+
                 .search-loading-overlay {
                     position: absolute;
                     left: 0.5em;

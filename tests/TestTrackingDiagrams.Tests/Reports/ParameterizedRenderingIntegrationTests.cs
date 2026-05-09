@@ -224,7 +224,7 @@ public class ParameterizedRenderingIntegrationTests
         Assert.Contains(">Description</th>", content);
         Assert.Contains(">Active</th>", content);
         Assert.Contains(">Alice</td>", content);
-        Assert.Contains(">null</td>", content);
+        Assert.Contains("><pre>null</pre></td>", content);
         Assert.Contains(">False</td>", content);
     }
 
@@ -850,7 +850,7 @@ public class ParameterizedRenderingIntegrationTests
         Assert.Contains(">E</td>", content);
         Assert.Contains(">A</td>", content);
         Assert.Contains(">C</td>", content);
-        Assert.Contains(">null</td>", content);
+        Assert.Contains("><pre>null</pre></td>", content);
         Assert.Contains(">400</td>", content);
 
         // Must NOT show the raw record string or truncation markers

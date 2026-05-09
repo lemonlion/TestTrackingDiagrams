@@ -957,7 +957,7 @@ public class ParameterizedGroupRenderTests
 
         Assert.Contains(">Score</th>", content);
         Assert.Contains(">Band</th>", content);
-        Assert.Contains(">null</td>", content);
+        Assert.Contains("><pre>null</pre></td>", content);
     }
 
     // ── String-based R3: sub-table from record ToString() ──

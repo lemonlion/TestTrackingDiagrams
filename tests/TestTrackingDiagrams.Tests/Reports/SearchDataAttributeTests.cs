@@ -467,6 +467,9 @@ public class SearchDataAttributeTests
         // There should be a loading overlay element
         Assert.Contains("search-loading-overlay", content);
 
+        // Placeholder text should be hidden while loading (disabled state)
+        Assert.Contains("#searchbar:disabled::placeholder", content);
+
         // There should be JS that decompresses plantuml-z and enriches data-search
         Assert.Contains("data-plantuml-z", content);
         Assert.Contains("enrichSearchData", content);

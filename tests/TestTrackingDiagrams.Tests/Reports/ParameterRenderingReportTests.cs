@@ -804,4 +804,96 @@ public class ParameterRenderingReportTests
         var content = GenerateReport(features);
         Assert.Contains("hello/<pre>null</pre>", content);
     }
+
+    [Fact]
+    public void Input_parameter_table_renders_null_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test(null)",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = "null" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Test(hello)",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = "hello" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Input_parameter_table_renders_whitespace_in_pre_element()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test( )",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = " " }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Test(hello)",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = "hello" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre> </pre>", content);
+    }
+
+    [Fact]
+    public void Input_parameter_table_renders_empty_string_without_pre()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test()",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = "" }
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Test(hello)",
+                        OutlineId = "outline1",
+                        ExampleValues = new Dictionary<string, string> { ["value"] = "hello" }
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.DoesNotContain("<pre>null</pre>", content);
+        Assert.DoesNotContain("<pre></pre>", content);
+        Assert.DoesNotContain("<pre> </pre>", content);
+    }
 }

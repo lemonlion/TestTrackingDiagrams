@@ -316,7 +316,7 @@ public class ParameterParserTests
         var result = ParameterParser.ExtractStructuredParameters(new object?[] { null, "value" }!, new[] { "first", "second" });
 
         Assert.NotNull(result);
-        Assert.Equal("", result!["first"]);
+        Assert.Equal("null", result!["first"]);
         Assert.Equal("value", result["second"]);
     }
 
@@ -377,7 +377,7 @@ public class ParameterParserTests
         var result = ParameterParser.ExtractStructuredParametersWithRaw(new object?[] { null }!, new[] { "x" });
         Assert.NotNull(result);
         Assert.Null(result!.Value.RawValues["x"]);
-        Assert.Equal("", result.Value.StringValues["x"]);
+        Assert.Equal("null", result.Value.StringValues["x"]);
     }
 
     private record StructuredTestRecord(string Name, int Value);

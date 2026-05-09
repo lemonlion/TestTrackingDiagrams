@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.17] - 2026-05-10
+
+### Fixed
+- **Null, empty, and whitespace-only values indistinguishable in input parameter tables** — In parameterized test scenario tables, null values rendered as blank cells instead of `<pre>null</pre>`, and whitespace-only values (e.g., `" "`) collapsed to invisible empty text. Two bugs fixed: (1) `ParameterParser.ExtractStructuredParameters` and `ExtractStructuredParametersWithRaw` coalesced null to `""` instead of `"null"`, losing null identity; (2) `RenderParameterizedGroup` used raw `HtmlEncode()` instead of `FormatDisplayValue()`, bypassing the null/whitespace styling. `FormatDisplayValue` now also wraps whitespace-only strings in `<pre>` elements for visibility.
+
 ## [2.33.16] - 2026-05-10
 
 ### Fixed

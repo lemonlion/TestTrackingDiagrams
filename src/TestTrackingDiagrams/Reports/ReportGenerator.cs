@@ -2510,7 +2510,7 @@ public static class ReportGenerator
                         else
                         {
                             // Scalar: plain text
-                            body.Append($"<td class=\"mono\">{System.Net.WebUtility.HtmlEncode(val)}</td>");
+                            body.Append($"<td class=\"mono\">{FormatDisplayValue(val)}</td>");
                         }
                     }
                 }
@@ -3198,7 +3198,12 @@ public static class ReportGenerator
     }
 
     private static string FormatDisplayValue(string? value)
-        => value is null or "null" ? "<pre>null</pre>" : System.Net.WebUtility.HtmlEncode(value);
+    {
+        if (value is null or "null") return "<pre>null</pre>";
+        if (value.Length > 0 && value.Trim().Length == 0)
+            return $"<pre>{System.Net.WebUtility.HtmlEncode(value)}</pre>";
+        return System.Net.WebUtility.HtmlEncode(value);
+    }
 
     private static readonly Regex StripTabularParamSuffixCompiledRegex = new(@"\s*\[[a-zA-Z_]\w*:\s*""<\$[a-zA-Z_]\w*>""\]", RegexOptions.Compiled);
     private static Regex StripTabularParamSuffixRegex() => StripTabularParamSuffixCompiledRegex;

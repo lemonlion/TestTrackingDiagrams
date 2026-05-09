@@ -246,7 +246,7 @@ public static class ParameterParser
             for (var i = 0; i < args.Length; i++)
             {
                 var name = paramNames[i] ?? $"param{i}";
-                var value = args[i]?.ToString() ?? "";
+                var value = args[i]?.ToString() ?? "null";
                 result[name] = value;
             }
 
@@ -278,7 +278,7 @@ public static class ParameterParser
             for (var i = 0; i < args.Length; i++)
             {
                 var name = paramNames[i] ?? $"param{i}";
-                stringResult[name] = args[i]?.ToString() ?? "";
+                stringResult[name] = args[i]?.ToString() ?? "null";
                 rawResult[name] = args[i];
             }
 
