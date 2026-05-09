@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.18] - 2026-05-10
+
+### Fixed
+- **Search bar placeholder text visible behind loading overlay** — When reports with interactive diagrams show the "Loading search data\u2026" overlay, the search input placeholder text ("Search... (@tag, $status, &&, ||, !!, parentheses)") was visible underneath. Added `#searchbar:disabled::placeholder { color: transparent; }` CSS rule to hide placeholder text while the input is disabled during loading.
+
 ## [2.33.17] - 2026-05-10
 
 ### Fixed
