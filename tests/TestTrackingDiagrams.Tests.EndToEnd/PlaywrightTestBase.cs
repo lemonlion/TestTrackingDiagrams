@@ -100,8 +100,14 @@ public abstract class PlaywrightTestBase : IAsyncLifetime
 
     protected async Task WaitForNoteElements()
     {
-        await Page.Locator(".note-hover-rect").First.WaitForAsync(new() { Timeout = 10000 });
-        await Page.Locator(".note-toggle-icon").First.WaitForAsync(new() { Timeout = 10000 });
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-plantuml]');
+                if (!container || container._noteRendering || window._plantumlRendering) return false;
+                return document.querySelectorAll('.note-hover-rect').length > 0
+                    && document.querySelectorAll('.note-toggle-icon').length > 0;
+            }
+        """, null, new() { Timeout = 15000, PollingInterval = 200 });
     }
 
     protected async Task FillSearchBar(string query)

@@ -74,7 +74,9 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
     protected async Task WaitForSvgReRender(string previousHtml, int timeoutMs = 15000)
     {
         await Page.WaitForFunctionAsync(
-            $"() => {{ var svg = document.querySelector('[data-diagram-type=\"plantuml\"] svg'); " +
+            $"() => {{ var container = document.querySelector('[data-plantuml]'); " +
+            $"if (!container || container._noteRendering || window._plantumlRendering) return false; " +
+            $"var svg = document.querySelector('[data-diagram-type=\"plantuml\"] svg'); " +
             $"return svg && svg.outerHTML !== {System.Text.Json.JsonSerializer.Serialize(previousHtml)} " +
             $"&& svg.querySelectorAll('.note-toggle-icon').length > 0; }}",
             null, new() { Timeout = timeoutMs, PollingInterval = 200 });

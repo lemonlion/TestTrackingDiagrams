@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.3] - 2026-07-06
+
+### Fixed
+- **E2E test render-race condition with Playwright 1.59.0 / Chromium 147** — After toggling headers or changing note states, wait conditions in E2E tests detected stale SVG icons from the previous render while PlantUML re-rendering was still in progress. This caused `setNoteState` calls to silently no-op due to the `_plantumlRendering` guard. Fixed by adding `!window._plantumlRendering && !container._noteRendering` checks to `WaitForNoteElements`, `WaitForReRender`, `WaitForSvgReRender`, and `HideHeaders` wait conditions.
+- **HeadersDetailsInterferenceTests selector bug** — After the single-button toggle migration, two tests checked for `[data-shown='true']` with `details-active` class after clicking a toggle that changes `data-shown` to `'false'`. Fixed assertions to check the actual post-toggle attribute value.
+
 ## [2.33.2] - 2026-05-10
 
 ### Fixed

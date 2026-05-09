@@ -210,8 +210,10 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='expanded']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        var hiddenBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']");
-        await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        // Headers should still be hidden after changing details state
+        var headersBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers']");
+        var dataShown = await headersBtn.GetAttributeAsync("data-shown");
+        Assert.Equal("false", dataShown);
 
         var source = await GetDataPlantuml();
         Assert.DoesNotContain("color:gray", source);
@@ -231,8 +233,10 @@ public class HeadersDetailsInterferenceTests : PlaywrightTestBase
         await Page.Locator(".toolbar-row .details-radio-btn[data-state='collapsed']").ClickAsync();
         await Page.WaitForTimeoutAsync(500);
 
-        var hiddenBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers'][data-shown='true']");
-        await Expect(hiddenBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
+        // Headers should still be hidden after changing details state
+        var headersBtn = Page.Locator(".toolbar-row .toggle-btn[data-toggle='headers']");
+        var dataShown = await headersBtn.GetAttributeAsync("data-shown");
+        Assert.Equal("false", dataShown);
     }
 
     [Fact]

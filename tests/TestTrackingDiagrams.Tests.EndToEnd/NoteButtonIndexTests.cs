@@ -26,6 +26,8 @@ public class NoteButtonIndexTests : PlaywrightTestBase
         await Page.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").First.ClickAsync();
         await Page.WaitForFunctionAsync("""
             () => {
+                var container = document.querySelector('[data-plantuml]');
+                if (!container || container._noteRendering || window._plantumlRendering) return false;
                 var icons = document.querySelectorAll('[data-diagram-type="plantuml"] svg .note-toggle-icon');
                 return icons.length > 0;
             }
@@ -116,7 +118,9 @@ public class NoteButtonIndexTests : PlaywrightTestBase
     {
         await Page.WaitForFunctionAsync("""
             () => {
-                var svg = document.querySelector('[data-diagram-type="plantuml"] svg');
+                var container = document.querySelector('[data-plantuml]');
+                if (!container || container._noteRendering || window._plantumlRendering) return false;
+                var svg = container.querySelector('svg');
                 return svg && svg.querySelectorAll('.note-toggle-icon').length > 0;
             }
         """, null, new() { Timeout = 15000, PollingInterval = 200 });
