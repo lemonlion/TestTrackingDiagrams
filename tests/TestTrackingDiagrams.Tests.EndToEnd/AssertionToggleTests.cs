@@ -284,19 +284,15 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
 
         var scenario1 = ScenarioLocator(0);
 
-        // Initially Hide should be active
-        await Expect(AssertionHideBtn(scenario1)).ToHaveClassAsync(
-            new System.Text.RegularExpressions.Regex("details-active"));
+        // Initially assertions are hidden — button should NOT have details-active
         await Expect(AssertionShowBtn(scenario1)).Not.ToHaveClassAsync(
             new System.Text.RegularExpressions.Regex("details-active"));
 
-        // Click Show
+        // Click to show assertions
         await AssertionShowBtn(scenario1).ClickAsync();
 
-        // Show should now be active, Hide should not
-        await Expect(AssertionShowBtn(scenario1)).ToHaveClassAsync(
-            new System.Text.RegularExpressions.Regex("details-active"));
-        await Expect(AssertionHideBtn(scenario1)).Not.ToHaveClassAsync(
+        // Button should now have details-active (and data-shown=true)
+        await Expect(AssertionHideBtn(scenario1)).ToHaveClassAsync(
             new System.Text.RegularExpressions.Regex("details-active"));
     }
 
@@ -307,10 +303,10 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
 
         await ReportAssertionShowBtn.ClickAsync();
 
-        // Both scenario-level Show buttons should become active
-        await Expect(AssertionShowBtn(ScenarioLocator(0))).ToHaveClassAsync(
+        // Both scenario-level buttons should now be in "shown" state with active class
+        await Expect(AssertionHideBtn(ScenarioLocator(0))).ToHaveClassAsync(
             new System.Text.RegularExpressions.Regex("details-active"));
-        await Expect(AssertionShowBtn(ScenarioLocator(1))).ToHaveClassAsync(
+        await Expect(AssertionHideBtn(ScenarioLocator(1))).ToHaveClassAsync(
             new System.Text.RegularExpressions.Regex("details-active"));
     }
 

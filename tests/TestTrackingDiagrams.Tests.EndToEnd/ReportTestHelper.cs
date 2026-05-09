@@ -1000,14 +1000,16 @@ public static class ReportTestHelper
         db --> svc : OK
 
         hnote across <<assertionNote>> #d4edda
-        \u2713 {{label}} status code should be created
+        ✓ {{label}} status code should be created
         end note
+        '__assertionLoc__:OrderTests.cs:L42
 
         svc --> caller : 201 Created
 
         hnote across <<assertionNote>> #d4edda
-        \u2713 {{label}} response id should not be empty
+        ✓ {{label}} response id should not be empty
         end note
+        '__assertionLoc__:OrderTests.cs:L45
 
         @enduml
         """;

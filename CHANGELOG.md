@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.14] - 2026-05-09
+
+### Fixed
+- **Assertion tooltips not appearing on `hnote across` shapes** — `findAssertionNoteGroups()` delegated to `findNoteGroups()` which filters by fold triangle, excluding hexagonal `hnote` shapes. Rewrote to scan SVG independently for path/polygon+text groups matching ✓/✗ text. Also fixed polygon detection — PlantUML renders `hnote across` as `<polygon>` not `<path>`.
+- **PlantUML source opens with garbled Unicode in new tab** — Changed Blob MIME type from `text/plain` to `text/plain;charset=utf-8` so ✓/✗ characters display correctly when opening PlantUML source or note text in a new browser tab.
+- **Assertion toggle E2E tests checking wrong CSS state** — Fixed two pre-existing test failures where `Scenario_show_button_gets_active_class` and `Report_show_syncs_all_scenario_buttons` expected `details-active` on separate Show/Hide buttons, but the assertion toggle is a single button that changes `data-shown`.
+
+### Changed
+- **`var` assignment prefix stripped from assertion expressions** — Expressions like `var foo = bar.Should().BeTrue()` now produce the same report output as `bar.Should().BeTrue()` ("Bar should be true").
+- **Assertion tooltip format** — Changed from `Filename.cs L42` to `Filename.cs L:42`.
+
+## [2.33.13] - 2026-05-09
+
+### Changed
+- **Assertion variable value truncation increased from 50 to 100 characters** — The `FormatValue` method now truncates string and `ToString()` representations at 100 characters (was 50), allowing longer values to be displayed in assertion notes without ellipsis.
+
 ## [2.33.12] - 2026-05-09
 
 ### Fixed

@@ -1094,17 +1094,17 @@ public static class DiagramContextMenu
                         if (origSource2 !== source) {
                             menu.appendChild(createSubMenu('Open ' + typeLabel + ' source in new tab', [
                                 createMenuItem('Open full ' + typeLabel + ' in new tab', function() {
-                                    var blob = new Blob([origSource2], { type: 'text/plain' });
+                                    var blob = new Blob([origSource2], { type: 'text/plain;charset=utf-8' });
                                     window.open(URL.createObjectURL(blob));
                                 }),
                                 createMenuItem('Open current ' + typeLabel + ' in new tab', function() {
-                                    var blob = new Blob([source], { type: 'text/plain' });
+                                    var blob = new Blob([source], { type: 'text/plain;charset=utf-8' });
                                     window.open(URL.createObjectURL(blob));
                                 })
                             ]));
                         } else {
                             menu.appendChild(createMenuItem('Open ' + typeLabel + ' source in new tab', function() {
-                                var blob = new Blob([source], { type: 'text/plain' });
+                                var blob = new Blob([source], { type: 'text/plain;charset=utf-8' });
                                 window.open(URL.createObjectURL(blob));
                             }));
                         }
@@ -1113,17 +1113,17 @@ public static class DiagramContextMenu
                         if (_noteIsNotExpanded && _currentNoteText) {
                             menu.appendChild(createSubMenu('Open box text in new tab', [
                                 createMenuItem('Open full box text in new tab', function() {
-                                    var blob = new Blob([_fullNoteText], { type: 'text/plain' });
+                                    var blob = new Blob([_fullNoteText], { type: 'text/plain;charset=utf-8' });
                                     window.open(URL.createObjectURL(blob));
                                 }),
                                 createMenuItem('Open current box text in new tab', function() {
-                                    var blob = new Blob([_currentNoteText], { type: 'text/plain' });
+                                    var blob = new Blob([_currentNoteText], { type: 'text/plain;charset=utf-8' });
                                     window.open(URL.createObjectURL(blob));
                                 })
                             ]));
                         } else {
                             menu.appendChild(createMenuItem('Open box text in new tab', function() {
-                                var blob = new Blob([_fullNoteText], { type: 'text/plain' });
+                                var blob = new Blob([_fullNoteText], { type: 'text/plain;charset=utf-8' });
                                 window.open(URL.createObjectURL(blob));
                             }));
                         }
@@ -2631,15 +2631,62 @@ public static class DiagramContextMenu
                 return locs;
             }
 
-            // Find assertion note groups in SVG by note shape + first text
-            // starting with ✓ or ✗ (theme-independent detection)
+            // Find assertion note groups in SVG by scanning for path+text groups
+            // whose first text starts with ✓ or ✗. Unlike findNoteGroups(), this
+            // does NOT filter by fold triangle — hnote across renders as a hexagonal
+            // path without the fold corner that regular note left/right shapes have.
+            // When a diagram has both regular notes and hnotes, findNoteGroups()
+            // excludes hnotes because foldGroups is non-empty. Issue #53.
+            // hnote across renders as polygon+text (not path+text like regular notes).
             function findAssertionNoteGroups(svg) {
-                var allGroups = findNoteGroups(svg);
-                return allGroups.filter(function(grp) {
-                    if (grp.texts.length === 0) return false;
-                    var firstChar = (grp.texts[0].textContent || '').trim().charAt(0);
-                    return firstChar === '\u2713' || firstChar === '\u2717';
-                });
+                var mainG = null;
+                for (var i = 0; i < svg.children.length; i++) {
+                    if (svg.children[i].tagName === 'g') { mainG = svg.children[i]; break; }
+                }
+                if (!mainG) return [];
+                var children = Array.from(mainG.children);
+                var groups = [];
+                var ci = 0;
+                while (ci < children.length) {
+                    if (children[ci].tagName === 'g') { ci++; continue; }
+                    var isShape = (children[ci].tagName === 'path' || children[ci].tagName === 'polygon')
+                        && hasNoteFill(children[ci]);
+                    if (isShape) {
+                        var grp = { paths: [], texts: [] };
+                        while (ci < children.length && (children[ci].tagName === 'path' || children[ci].tagName === 'polygon')) {
+                            grp.paths.push(children[ci]);
+                            ci++;
+                        }
+                        var noteBox = null;
+                        try {
+                            var bb = grp.paths[0].getBBox();
+                            noteBox = { x: bb.x, y: bb.y, right: bb.x + bb.width, bottom: bb.y + bb.height };
+                        } catch(e) {}
+                        while (ci < children.length) {
+                            var tag = children[ci].tagName;
+                            if (tag === 'text') { grp.texts.push(children[ci]); ci++; }
+                            else if (noteBox && (tag === 'line' || tag === 'rect' || tag === 'circle')) {
+                                try {
+                                    var ebb = children[ci].getBBox();
+                                    if (ebb.x >= noteBox.x - 2 && ebb.x + ebb.width <= noteBox.right + 2
+                                        && ebb.y >= noteBox.y - 2 && ebb.y + ebb.height <= noteBox.bottom + 2) {
+                                        ci++;
+                                    } else { break; }
+                                } catch(e) { break; }
+                            }
+                            else { break; }
+                        }
+                        if (grp.paths.length > 0 && grp.texts.length > 0) {
+                            var firstChar = (grp.texts[0].textContent || '').trim().charAt(0);
+                            if (firstChar === '\u2713' || firstChar === '\u2717') {
+                                groups.push(grp);
+                            }
+                        }
+                    } else {
+                        ci++;
+                    }
+                }
+                return groups;
             }
 
             // Add source-location tooltips to assertion note SVG groups
@@ -2654,7 +2701,7 @@ public static class DiagramContextMenu
                 var count = Math.min(locs.length, groups.length);
                 for (var i = 0; i < count; i++) {
                     var titleEl = document.createElementNS(SVGNS, 'title');
-                    titleEl.textContent = locs[i].replace(/:L/, ' L');
+                    titleEl.textContent = locs[i].replace(/:L/, ' L:');
                     // Add tooltip to main path of the note
                     var existing = groups[i].paths[0].querySelector('title');
                     if (existing) existing.remove();

@@ -32,11 +32,11 @@ public class TrackValueResolutionTests : IDisposable
     }
 
     [Fact]
-    public void FormatValue_long_string_truncates_at_50_chars()
+    public void FormatValue_long_string_truncates_at_100_chars()
     {
-        var longString = new string('x', 60);
+        var longString = new string('x', 120);
         var result = Track.FormatValue(longString);
-        Assert.Equal(new string('x', 50) + "...", result);
+        Assert.Equal(new string('x', 100) + "...", result);
     }
 
     [Fact]

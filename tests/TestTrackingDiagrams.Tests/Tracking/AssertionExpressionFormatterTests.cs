@@ -284,6 +284,17 @@ public class AssertionExpressionFormatterTests
     }
 
     [Theory]
+    [InlineData("var foo = bar.Should().BeTrue()", "Bar should be true")]
+    [InlineData("var result = response.StatusCode.Should().Be(HttpStatusCode.OK)", "Response status code should be OK")]
+    [InlineData("var bar = bar.Should().BeTrue()", "Bar should be true")]
+    [InlineData("() => var foo = bar.Should().BeTrue()", "Bar should be true")]
+    public void Format_strips_var_assignment_prefix(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
     [InlineData("() => myCollection.First().Should().Be(42)", "First value of my collection should be 42")]
     [InlineData("() => myCollection.Last().Should().Be(42)", "Last value of my collection should be 42")]
     [InlineData("() => _items.First().Name.Should().Be(\"test\")", "First value of items name should be \"test\"")]

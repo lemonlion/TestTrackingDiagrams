@@ -34,6 +34,14 @@ public static partial class AssertionExpressionFormatter
         if (expr.StartsWith("await "))
             expr = expr["await ".Length..];
 
+        // Strip var assignment prefix: "var identifier = "
+        if (expr.StartsWith("var "))
+        {
+            var eqIdx = expr.IndexOf(" = ", 4, StringComparison.Ordinal);
+            if (eqIdx > 0)
+                expr = expr[(eqIdx + 3)..];
+        }
+
         // Remove null-forgiving operators (!)
         expr = expr.Replace("!", "");
 

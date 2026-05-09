@@ -166,7 +166,7 @@ public static class Track
             callerFilePath: callerFilePath, callerLineNumber: callerLineNumber);
     }
 
-    private const int MaxValueLength = 50;
+    private const int MaxValueLength = 100;
 
     internal static string? FormatValue(object? value)
     {
