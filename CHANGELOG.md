@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.9] - 2026-05-09
+
+### Fixed
+- **Assertion tracking: instance field values now resolved in async methods** — When instance fields (e.g., `_secondConfirmationId`) were passed as direct arguments to assertion methods in async methods, the report displayed the field name instead of its runtime value. The AssertionWeaver now detects chained field access through `<>4__this` in both Debug (`ldarg.0 → ldfld <>4__this → ldfld _field`) and Release (`ldloc.N → ldfld _field` with cached outer this) IL patterns.
+
 ## [2.33.8] - 2026-05-09
 
 ### Changed

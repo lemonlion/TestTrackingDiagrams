@@ -2369,4 +2369,60 @@ public class AssertionWeaverTests
         logs.Should().HaveCount(1);
         logs[0].PlantUml.Should().Contain("'hello'", "the method parameter value should be resolved");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_InstanceFieldAsDirectArgument_ResolvesValue(OptimizationLevel optimization)
+    {
+        // When an instance field like _secondConfirmationId is passed directly as an argument
+        // to an assertion method (e.g., .NotBeEqualTo(_secondConfirmationId)) in an async method,
+        // the state machine accesses it via ldarg.0 -> ldfld <>4__this -> ldfld _field.
+        // The weaver must detect and resolve this chained field access pattern.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncInstanceFieldArg_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                private string _firstConfirmationId = "CONF-001";
+                private string _secondConfirmationId = "CONF-002";
+
+                public async Task Method()
+                {
+                    await Task.CompletedTask;
+                    _firstConfirmationId.Should().NotBe(_secondConfirmationId);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+
+        var testId = $"AsyncFieldArg_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull($"{optimization}-compiled async method with instance field argument should not throw");
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'CONF-002'",
+            $"_secondConfirmationId instance field value should be resolved in {optimization} mode, not shown as field name");
+    }
 }

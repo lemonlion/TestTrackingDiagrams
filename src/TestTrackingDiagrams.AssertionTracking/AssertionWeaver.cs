@@ -910,9 +910,34 @@ public class AssertionWeaver
                 {
                     // Not a state machine field (<name>5__N pattern).
                     // Try raw field name for instance field access (e.g., _orderId).
-                    // Skip compiler-generated fields (angle brackets in name).
+                    // Skip compiler-generated fields (angle brackets in name),
+                    // but check for chained field access through <>4__this first.
                     if (fieldRef.Name.Contains('<') || fieldRef.Name.Contains('>'))
                     {
+                        // Check for chained field access: ldarg.0 -> ldfld <>4__this -> ldfld _instanceField
+                        // This occurs in async state machines when accessing instance fields of the outer class.
+                        if (i + 2 < statementInstructions.Count &&
+                            statementInstructions[i + 2].OpCode == OpCodes.Ldfld &&
+                            statementInstructions[i + 2].Operand is FieldReference chainedFieldRef &&
+                            !chainedFieldRef.Name.Contains('<') && !chainedFieldRef.Name.Contains('>'))
+                        {
+                            var chainedName = chainedFieldRef.Name;
+                            if (NameAppearsInExpression(chainedName, sourceText) && seenNames.Add(chainedName))
+                            {
+                                // Use StateField + ClosureField pattern: ldarg.0 -> ldfld stateField -> ldfld closureField
+                                captured.Add(new CapturedVariable
+                                {
+                                    Name = chainedName,
+                                    StateField = fieldRef, // the <>4__this field on state machine
+                                    ClosureField = chainedFieldRef, // the actual instance field
+                                    NeedsBoxing = chainedFieldRef.FieldType.IsValueType,
+                                    Type = chainedFieldRef.FieldType
+                                });
+                            }
+                            i += 2; // skip both ldfld instructions
+                            continue;
+                        }
+
                         i++; // skip the ldfld instruction
                         continue;
                     }
@@ -1090,6 +1115,44 @@ public class AssertionWeaver
                         StateField = tokenFieldRef,
                         NeedsBoxing = tokenFieldRef.FieldType.IsValueType,
                         Type = tokenFieldRef.FieldType
+                    });
+                }
+            }
+            // Standalone ldfld — instance field access preceded by ldloc (Release optimization)
+            // or other patterns. In Release builds, the compiler may cache <>4__this in a local:
+            //   ldloc.N → ldfld _field  (instead of ldarg.0 → ldfld <>4__this → ldfld _field)
+            // The value loading code always uses ldarg.0 → ldfld <>4__this → ldfld _field,
+            // which works regardless of how the original code accesses the field.
+            else if (instr.OpCode == OpCodes.Ldfld &&
+                     instr.Operand is FieldReference standaloneFldRef &&
+                     !standaloneFldRef.Name.Contains('<') && !standaloneFldRef.Name.Contains('>'))
+            {
+                var fieldName = standaloneFldRef.Name;
+                if (!NameAppearsInExpression(fieldName, sourceText))
+                    continue;
+                if (!seenNames.Add(fieldName))
+                    continue;
+
+                // Find the <>4__this field on the state machine
+                FieldDefinition? outerThisForStandalone = null;
+                foreach (var f in method.DeclaringType.Fields)
+                {
+                    if (f.Name.Contains("<>") && f.Name.EndsWith("__this"))
+                    {
+                        outerThisForStandalone = f;
+                        break;
+                    }
+                }
+
+                if (outerThisForStandalone != null)
+                {
+                    captured.Add(new CapturedVariable
+                    {
+                        Name = fieldName,
+                        StateField = outerThisForStandalone,
+                        ClosureField = standaloneFldRef,
+                        NeedsBoxing = standaloneFldRef.FieldType.IsValueType,
+                        Type = standaloneFldRef.FieldType
                     });
                 }
             }
