@@ -2530,4 +2530,108 @@ public class AssertionWeaverTests
         var ex = Record.Exception(() => method.Invoke(instance, args));
         ex.Should().BeNull($"method with out parameter should not throw in {optimization} mode");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_OutParamWithStructAndTernaryInBecause_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #53: Exact reproduction of ShouldHaveInstalmentSpendOptions pattern.
+        // Method has out param, custom struct param with default, LINQ lambda capturing
+        // the struct param, and ternary with boxing in the .Should().HaveCount() because args.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"OutParamStructTernary{optimization}",
+            """
+            using System;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public struct Optional<T>
+            {
+                private readonly T _value;
+                public bool IsSpecified { get; }
+                public T Value => IsSpecified ? _value : throw new InvalidOperationException();
+                public Optional(T value) { _value = value; IsSpecified = true; }
+            }
+
+            public enum ItemSource { Product, Promotional }
+
+            public class ItemTest
+            {
+                public string Category { get; set; } = "";
+                public ItemSource Source { get; set; }
+            }
+
+            public class ResponseTest
+            {
+                public ItemTest[]? Options { get; set; }
+            }
+
+            public class Then
+            {
+                public Then ShouldHaveFilteredItems(
+                    out ItemTest[] items,
+                    ResponseTest? response,
+                    int expectedCount,
+                    Optional<ItemSource> itemSource = default)
+                {
+                    response.Should().NotBeNull("Response is null.");
+                    items = response?.Options
+                        ?.Where(x => x.Category == "Instalment"
+                            && (!itemSource.IsSpecified || x.Source == itemSource.Value)
+                        ).ToArray() ?? Array.Empty<ItemTest>();
+                    items.Should().HaveCount(expectedCount,
+                        because: "Expected '{0}' items after filtering with source '{1}'.",
+                        expectedCount, itemSource.IsSpecified ? (object)itemSource : "Not specified");
+                    return this;
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Then")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("ShouldHaveFilteredItems")!;
+
+        var testId = $"OutParamStructTernary{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var responseType = asm.GetType("ResponseTest")!;
+        var itemType = asm.GetType("ItemTest")!;
+        var response = Activator.CreateInstance(responseType)!;
+        var item1 = Activator.CreateInstance(itemType)!;
+        itemType.GetProperty("Category")!.SetValue(item1, "Instalment");
+        var item2 = Activator.CreateInstance(itemType)!;
+        itemType.GetProperty("Category")!.SetValue(item2, "Purchase");
+        var item3 = Activator.CreateInstance(itemType)!;
+        itemType.GetProperty("Category")!.SetValue(item3, "Instalment");
+        var optionsArray = Array.CreateInstance(itemType, 3);
+        optionsArray.SetValue(item1, 0);
+        optionsArray.SetValue(item2, 1);
+        optionsArray.SetValue(item3, 2);
+        responseType.GetProperty("Options")!.SetValue(response, optionsArray);
+
+        // Call WITHOUT the optional struct specified (default)
+        var outParamDefault = Array.CreateInstance(itemType, 0);
+        var argsDefault = new object?[] { outParamDefault, response, 2, Activator.CreateInstance(asm.GetType("Optional`1")!.MakeGenericType(asm.GetType("ItemSource")!))! };
+        var ex = Record.Exception(() => method.Invoke(instance, argsDefault));
+        ex.Should().BeNull($"method with out param + struct + ternary should not throw in {optimization} mode (default struct)");
+
+        // Call WITH the optional struct specified
+        var itemSourceType = asm.GetType("ItemSource")!;
+        var optionalType = asm.GetType("Optional`1")!.MakeGenericType(itemSourceType);
+        var optionalValue = Activator.CreateInstance(optionalType, Enum.GetValues(itemSourceType).GetValue(0)!)!;
+        var outParamSpecified = Array.CreateInstance(itemType, 0);
+        var argsSpecified = new object?[] { outParamSpecified, response, 2, optionalValue };
+        var ex2 = Record.Exception(() => method.Invoke(instance, argsSpecified));
+        ex2.Should().BeNull($"method with out param + struct + ternary should not throw in {optimization} mode (specified struct)");
+    }
 }

@@ -1499,6 +1499,7 @@ public class AssertionWeaver
         var entryDepth = ComputeStackDepthAt(body, firstInstr);
         var netDelta = 0;
         var dupCount = 0;
+        var seenAssertionEntry = false;
         var current = firstInstr;
         while (current != null)
         {
@@ -1511,8 +1512,17 @@ public class AssertionWeaver
                 break;
             }
 
-            if (current.OpCode == OpCodes.Dup)
+            // Only count dup instructions that appear BEFORE the assertion entry call
+            // (Should/Assert.That). These are the Release-mode subject-sharing dups.
+            // Dups that appear AFTER the entry call are for argument construction
+            // (e.g., newarr; dup; stelem.ref for params arrays) and do NOT leave
+            // values on the exit stack. Issue #53.
+            if (current.OpCode == OpCodes.Dup && !seenAssertionEntry)
                 dupCount++;
+
+            if ((current.OpCode == OpCodes.Call || current.OpCode == OpCodes.Callvirt) &&
+                current.Operand is MethodReference mr && IsAssertionEntryPoint(mr))
+                seenAssertionEntry = true;
 
             netDelta += GetInstructionPushCount(current) - GetInstructionPopCount(current, body);
             if (current == lastInstr) break;

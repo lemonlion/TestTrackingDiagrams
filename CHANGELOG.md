@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.11] - 2026-06-05
+
+### Fixed
+- **AssertionTracking: InvalidProgramException with ternary/conditional in assertion arguments (issue #53)** — `ComputeExitStackDepth` incorrectly counted `dup` instructions from array initialization patterns (`newarr; dup; stelem.ref` for `params object[]` arguments) as Release-mode subject-sharing dups. This caused the weaver to emit spurious exit-spill `stloc` instructions that popped from an empty evaluation stack, producing `InvalidProgramException: Common Language Runtime detected an invalid program`. The fix restricts dup counting to instructions before the assertion entry point call (`.Should()` / `Assert.That()`), since subject-sharing dups always precede the entry call.
+
 ## [2.33.10] - 2026-05-09
 
 ### Fixed
