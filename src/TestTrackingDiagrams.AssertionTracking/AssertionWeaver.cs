@@ -1480,10 +1480,25 @@ public class AssertionWeaver
         {
             // call/callvirt/newobj: push 1 if non-void return, 0 otherwise
             if (instr.Operand is MethodReference mr)
-                return mr.ReturnType.FullName == "System.Void" ? 0 : 1;
+                return IsVoidReturnType(mr.ReturnType) ? 0 : 1;
             return 0;
         }
         return 0;
+    }
+
+    /// <summary>
+    /// Checks whether a return type represents void, stripping modreq/modopt wrappers.
+    /// C# record init-only setters return <c>System.Void modreq(IsExternalInit)</c> which
+    /// has a FullName of "System.Void modreq(...)" — a naive string comparison misses this.
+    /// </summary>
+    private static bool IsVoidReturnType(TypeReference returnType)
+    {
+        // Strip modreq/modopt wrappers (e.g., init-only setters)
+        while (returnType is RequiredModifierType reqMod)
+            returnType = reqMod.ElementType;
+        while (returnType is OptionalModifierType optMod)
+            returnType = optMod.ElementType;
+        return returnType.FullName == "System.Void";
     }
 
     private static int GetInstructionPopCount(Instruction instr, MethodBody body)
@@ -1523,7 +1538,7 @@ public class AssertionWeaver
             }
             // ret: pops 1 if method has non-void return
             if (code == OpCodes.Ret)
-                return body.Method.ReturnType.FullName == "System.Void" ? 0 : 1;
+                return IsVoidReturnType(body.Method.ReturnType) ? 0 : 1;
             return 0;
         }
         return 0;

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.1] - 2026-05-09
+
+### Fixed
+- **AssertionTracking `InvalidProgramException` with record `with` expressions** — C# record init-only property setters return `System.Void modreq(IsExternalInit)`, but the weaver's `GetInstructionPushCount` compared `ReturnType.FullName` directly against `"System.Void"`, missing the `modreq` wrapper. This caused each init setter to be counted as pushing a value, inflating exit stack depth and generating spurious exit-spill `stloc` instructions that corrupted IL. The fix strips `modreq`/`modopt` wrappers before checking for void. Resolves the remaining 5 failures from [#47](https://github.com/lemonlion/TestTrackingDiagrams/issues/47).
+
 ## [2.33.0] - 2026-05-09
 
 ### Added

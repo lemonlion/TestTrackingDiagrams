@@ -2104,4 +2104,146 @@ public class AssertionWeaverTests
             $"{optimization}-compiled awaited-subject assertion should not throw InvalidProgramException");
     }
 
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_WithExpressionOnInstanceField_DoesNotThrowInvalidProgram(
+        OptimizationLevel optimization)
+    {
+        // Pattern from issue #47: `with` expression on an instance field used as argument
+        // to .Should().BeEquivalentTo() in an async method. The `with` expression generates
+        // dup instructions for property-setting that the weaver must handle correctly.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncWithExpr_{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record MerchantResponse(
+                Guid MerchantId,
+                DateTime ContractStartDate,
+                bool UpfrontPaymentEnabled,
+                string Name);
+
+            public class DateTimeProvider { public DateTime UtcNow { get; } = DateTime.UtcNow; }
+            public class HostedServicesContainer { public DateTimeProvider DateTimeProvider { get; } = new(); }
+
+            public class Tests
+            {
+                private readonly MerchantResponse _defaultResponse = new(
+                    Guid.Empty, DateTime.MinValue, false, "Test");
+                private readonly HostedServicesContainer HostedServices = new();
+
+                public async Task ShouldRetrieveMerchant()
+                {
+                    var merchantId = await Task.FromResult(Guid.NewGuid());
+                    var contractDate = HostedServices.DateTimeProvider.UtcNow;
+                    var merchant = await Task.FromResult(
+                        new MerchantResponse(merchantId, contractDate, true, "Test"));
+
+                    merchant.Should().BeEquivalentTo(_defaultResponse with
+                    {
+                        MerchantId = merchantId,
+                        ContractStartDate = HostedServices.DateTimeProvider.UtcNow,
+                        UpfrontPaymentEnabled = true
+                    });
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThanOrEqualTo(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AsyncWithExpr_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("ShouldRetrieveMerchant")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with `with` expression on instance field should not throw InvalidProgramException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_NestedWithExpression_DoesNotThrowInvalidProgram(
+        OptimizationLevel optimization)
+    {
+        // Pattern from issue #47 Failure 3: nested `with` expressions with null-forgiving
+        // operator on instance field, used in collection initializer before assertion.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncNestedWith_{optimization}",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record Retailer(string TradingName, string Code);
+            public record MerchantRequest(string Name, Retailer? Retailer, string? ThirdPartyDetails);
+
+            public class Tests
+            {
+                private readonly MerchantRequest _defaultRequest = new(
+                    "Test", new Retailer("Default", "DEF"), "details");
+
+                public async Task ShouldGetMultipleMerchants()
+                {
+                    await Task.Delay(1);
+
+                    List<MerchantRequest> expectedMerchants =
+                    [
+                        _defaultRequest with
+                        {
+                            Retailer = _defaultRequest.Retailer! with { TradingName = "Trading 2" },
+                            ThirdPartyDetails = null
+                        },
+                        _defaultRequest with
+                        {
+                            Retailer = _defaultRequest.Retailer! with { TradingName = "Trading 1" },
+                            ThirdPartyDetails = null
+                        }
+                    ];
+
+                    var merchants = await Task.FromResult(expectedMerchants);
+                    merchants.Should().BeEquivalentTo(expectedMerchants);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().BeGreaterThanOrEqualTo(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AsyncNestedWith_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("ShouldGetMultipleMerchants")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with nested `with` expressions should not throw InvalidProgramException");
+    }
+
 }
