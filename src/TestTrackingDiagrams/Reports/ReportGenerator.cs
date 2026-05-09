@@ -2805,8 +2805,8 @@ public static class ReportGenerator
                         _ => "param-na"
                     };
                     var display = seg.Parameter.Expectation is not null
-                        ? $"{System.Net.WebUtility.HtmlEncode(seg.Parameter.Value)}/{System.Net.WebUtility.HtmlEncode(seg.Parameter.Expectation)}"
-                        : System.Net.WebUtility.HtmlEncode(seg.Parameter.Value);
+                        ? $"{FormatDisplayValue(seg.Parameter.Value)}/{FormatDisplayValue(seg.Parameter.Expectation)}"
+                        : FormatDisplayValue(seg.Parameter.Value);
                     var titleAttr = seg.ParameterName is not null
                         ? $" title=\"{System.Net.WebUtility.HtmlEncode(seg.ParameterName)}\""
                         : "";
@@ -2916,8 +2916,8 @@ public static class ReportGenerator
                     _ => "param-na"
                 };
                 var display = param.InlineValue.Expectation is not null
-                    ? $"{System.Net.WebUtility.HtmlEncode(param.InlineValue.Value)}/{System.Net.WebUtility.HtmlEncode(param.InlineValue.Expectation)}"
-                    : System.Net.WebUtility.HtmlEncode(param.InlineValue.Value);
+                    ? $"{FormatDisplayValue(param.InlineValue.Value)}/{FormatDisplayValue(param.InlineValue.Expectation)}"
+                    : FormatDisplayValue(param.InlineValue.Value);
                 body.Append($"<span class=\"step-param-inline {statusClass}\" title=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\">{display}</span>");
                 break;
 
@@ -2951,8 +2951,8 @@ public static class ReportGenerator
                             _ => ""
                         };
                         var cellDisplay = cell.Expectation is not null && cell.Status == VerificationStatus.Failure
-                            ? $"{System.Net.WebUtility.HtmlEncode(cell.Value)}/{System.Net.WebUtility.HtmlEncode(cell.Expectation)}"
-                            : System.Net.WebUtility.HtmlEncode(cell.Value);
+                            ? $"{FormatDisplayValue(cell.Value)}/{FormatDisplayValue(cell.Expectation)}"
+                            : FormatDisplayValue(cell.Value);
                         body.Append($"<td class=\"{cellClass}\">{cellDisplay}</td>");
                     }
                     body.Append("</tr>");
@@ -2979,8 +2979,8 @@ public static class ReportGenerator
             _ => ""
         };
         var valueDisplay = node.Expectation is not null && node.Status == VerificationStatus.Failure
-            ? $"{System.Net.WebUtility.HtmlEncode(node.Value)}/{System.Net.WebUtility.HtmlEncode(node.Expectation)}"
-            : System.Net.WebUtility.HtmlEncode(node.Value);
+            ? $"{FormatDisplayValue(node.Value)}/{FormatDisplayValue(node.Expectation)}"
+            : FormatDisplayValue(node.Value);
         body.Append($"<div class=\"tree-node {statusClass}\"><span class=\"tree-node-name\">{System.Net.WebUtility.HtmlEncode(node.Node)}</span>: {valueDisplay}");
 
         if (node.Children is { Length: > 0 })
@@ -3124,10 +3124,13 @@ public static class ReportGenerator
             _ => ""
         };
         var cellDisplay = cell.Expectation is not null && cell.Status == VerificationStatus.Failure
-            ? $"{System.Net.WebUtility.HtmlEncode(cell.Value)}/{System.Net.WebUtility.HtmlEncode(cell.Expectation)}"
-            : System.Net.WebUtility.HtmlEncode(cell.Value);
+            ? $"{FormatDisplayValue(cell.Value)}/{FormatDisplayValue(cell.Expectation)}"
+            : FormatDisplayValue(cell.Value);
         body.Append($"<td class=\"{cellClass}\">{cellDisplay}</td>");
     }
+
+    private static string FormatDisplayValue(string? value)
+        => value is null or "null" ? "<pre>null</pre>" : System.Net.WebUtility.HtmlEncode(value);
 
     private static readonly Regex StripTabularParamSuffixCompiledRegex = new(@"\s*\[[a-zA-Z_]\w*:\s*""<\$[a-zA-Z_]\w*>""\]", RegexOptions.Compiled);
     private static Regex StripTabularParamSuffixRegex() => StripTabularParamSuffixCompiledRegex;

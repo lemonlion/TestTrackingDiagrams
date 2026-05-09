@@ -512,4 +512,296 @@ public class ParameterRenderingReportTests
         Assert.Contains(".step-param-table", Stylesheets.HtmlReportStyleSheet);
         Assert.Contains("margin: 4px 0 4px 2.3em", Stylesheets.HtmlReportStyleSheet);
     }
+
+    [Fact]
+    public void Report_renders_null_tabular_cell_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "data",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "data",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Value", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("null", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_empty_string_tabular_cell_without_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "data",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "data",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Value", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.DoesNotContain("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_null_inline_parameter_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "value is <v>",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "v",
+                                        Kind = StepParameterKind.Inline,
+                                        InlineValue = new InlineParameterValue("null", null, VerificationStatus.NotApplicable)
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_null_tree_node_value_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "result matches",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "result",
+                                        Kind = StepParameterKind.Tree,
+                                        TreeValue = new TreeParameterValue(
+                                            new TreeNode("$", "root", "null", null, VerificationStatus.NotApplicable, null))
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_null_combined_table_cell_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "input data",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "data",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Name", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("null", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "results match",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "result",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Status", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("OK", "OK", VerificationStatus.Success)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("step-param-combined-table", content);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_null_step_text_segment_parameter_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "value is <v>",
+                                TextSegments =
+                                [
+                                    StepTextSegment.Literal("value is "),
+                                    StepTextSegment.Param("v", new InlineParameterValue("null", null, VerificationStatus.NotApplicable))
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("<pre>null</pre>", content);
+    }
+
+    [Fact]
+    public void Report_renders_null_expectation_in_failure_cell_as_pre_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "results match",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "result",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Value", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("hello", "null", VerificationStatus.Failure)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        Assert.Contains("hello/<pre>null</pre>", content);
+    }
 }

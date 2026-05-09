@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.5] - 2026-05-09
+
+### Changed
+- **Null parameter values rendered as `<pre>null</pre>` in reports** — Null input values in parameter tables, inline parameters, tree nodes, combined tables, and step text segments are now rendered as monospace-styled `null` (using `<pre>` with italic grey styling) to visually distinguish them from empty strings. Previously, null values appeared as plain text "null", indistinguishable from a legitimate string value.
+
 ## [2.33.4] - 2026-05-09
 
 ### Fixed

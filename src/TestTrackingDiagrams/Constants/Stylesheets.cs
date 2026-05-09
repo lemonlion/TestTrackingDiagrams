@@ -871,6 +871,18 @@ public class Stylesheets
                 .param-not-provided { background: #fff3cd; }
                 .param-na { background: #e9ecef; }
 
+                .step-param-inline pre, .step-param-table td pre, .step-param-combined-table td pre, .tree-node pre {
+                    display: inline;
+                    margin: 0;
+                    padding: 0.1em 0.3em;
+                    background: rgba(0,0,0,0.07);
+                    border-radius: 3px;
+                    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+                    font-size: 0.92em;
+                    font-style: italic;
+                    color: #888;
+                }
+
                 .step-param-table {
                     margin: 4px 0 4px 2.3em;
                 }
