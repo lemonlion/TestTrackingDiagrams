@@ -302,6 +302,73 @@ public class ParameterValueRendererTests
         Assert.StartsWith("{", preview);
     }
 
+    [Fact]
+    public void GeneratePreview_string_array_shows_items_not_properties()
+    {
+        var arr = new[] { "A", "B", "C" };
+        var preview = ParameterValueRenderer.GeneratePreview(arr);
+        Assert.DoesNotContain("Length", preview);
+        Assert.DoesNotContain("Rank", preview);
+        Assert.Contains("\"A\"", preview);
+        Assert.Contains("\"B\"", preview);
+        Assert.Contains("\"C\"", preview);
+        Assert.StartsWith("[", preview);
+        Assert.EndsWith("]", preview);
+    }
+
+    [Fact]
+    public void GeneratePreview_int_array_shows_items()
+    {
+        var arr = new[] { 1, 2, 3 };
+        var preview = ParameterValueRenderer.GeneratePreview(arr);
+        Assert.Contains("1", preview);
+        Assert.Contains("2", preview);
+        Assert.Contains("3", preview);
+        Assert.StartsWith("[", preview);
+    }
+
+    [Fact]
+    public void GeneratePreview_large_array_truncates()
+    {
+        var arr = Enumerable.Range(1, 15).Select(i => $"item{i}").ToArray();
+        var preview = ParameterValueRenderer.GeneratePreview(arr);
+        Assert.Contains("...", preview);
+        Assert.Contains("\"item1\"", preview);
+        Assert.StartsWith("[", preview);
+    }
+
+    [Fact]
+    public void GeneratePreview_list_of_scalars_shows_items()
+    {
+        var list = new List<string> { "x", "y" };
+        var preview = ParameterValueRenderer.GeneratePreview(list);
+        Assert.Contains("\"x\"", preview);
+        Assert.Contains("\"y\"", preview);
+        Assert.StartsWith("[", preview);
+    }
+
+    [Fact]
+    public void GeneratePreview_list_of_complex_objects_shows_count()
+    {
+        var list = new List<SmallComplexRecord>
+        {
+            new("Acme", "12-34-56", "12345678"),
+            new("Beta", "65-43-21", "87654321"),
+            new("Gamma", "11-22-33", "44556677")
+        };
+        var preview = ParameterValueRenderer.GeneratePreview(list);
+        Assert.Contains("3", preview);
+        Assert.Contains("items", preview);
+    }
+
+    [Fact]
+    public void GeneratePreview_empty_array_shows_empty_brackets()
+    {
+        var arr = Array.Empty<string>();
+        var preview = ParameterValueRenderer.GeneratePreview(arr);
+        Assert.Equal("[]", preview);
+    }
+
     #endregion
 
     #region GenerateHighlightedJson

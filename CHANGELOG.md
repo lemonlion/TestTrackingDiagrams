@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.32.4] - 2026-05-09
+
+### Fixed
+- **Parameter table preview shows array properties instead of items** — Arrays and collections used as step parameters displayed their .NET properties (`{ Length: 3, LongLength: 3, Rank: 1, ... }`) in the summary preview instead of their contents. The `GeneratePreview()` method now handles `IEnumerable` types: scalar arrays render inline as `["A", "B", "C"]` (truncated at 10 items), complex-item collections show `N items`, and empty collections show `[]`.
+- **StepTracking package missing from NuGet releases** — The `TestTrackingDiagrams.StepTracking` package was not included in `release.slnf`, so it was never packed or pushed to NuGet during releases. Added it to the release solution filter.
+
 ## [2.32.3] - 2026-05-09
 
 ### Fixed

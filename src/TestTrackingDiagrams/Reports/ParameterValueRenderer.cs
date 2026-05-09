@@ -221,6 +221,10 @@ internal static class ParameterValueRenderer
             return $"{count} {(count == 1 ? "item" : "items")}";
         }
 
+        // Handle arrays/lists/collections (before property-reflection, which would show Length/Rank/etc.)
+        if (value is IEnumerable enumerable and not string)
+            return GenerateEnumerablePreview(enumerable);
+
         var type = value.GetType();
         var props = GetReadableProperties(type);
 
@@ -274,6 +278,29 @@ internal static class ParameterValueRenderer
         }
         var trail = dict.Count > 3 ? ", ..." : "";
         return $"{{ {string.Join(", ", parts)}{trail} }}";
+    }
+
+    private static string GenerateEnumerablePreview(IEnumerable enumerable)
+    {
+        var items = new List<object?>();
+        foreach (var item in enumerable)
+            items.Add(item);
+
+        if (items.Count == 0)
+            return "[]";
+
+        // If all items are scalar, inline them: ["A", "B", "C"]
+        var allScalar = items.All(IsScalarValue);
+        if (!allScalar)
+            return $"{items.Count} {(items.Count == 1 ? "item" : "items")}";
+
+        const int maxInline = 10;
+        var parts = new List<string>();
+        foreach (var item in items.Take(maxInline))
+            parts.Add(FormatPreviewValue(item));
+
+        var suffix = items.Count > maxInline ? ", ..." : "";
+        return $"[{string.Join(", ", parts)}{suffix}]";
     }
 
     private static string FormatPreviewValue(object? value)
