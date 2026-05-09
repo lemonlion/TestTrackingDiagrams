@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.32.3] - 2026-05-09
+
+### Fixed
+- **StepTracking `InvalidProgramException` on void methods with branches** — The StepWeaver used `ILProcessor.Replace()` to substitute `ret` instructions with `leave`, which created new instruction objects and left branch targets (e.g. `brfalse`) pointing to detached instructions. This caused `InvalidProgramException` at runtime for any void step method containing control flow (if/else, loops, etc.). The fix modifies `ret` instructions in-place (`OpCode`/`Operand` assignment) to preserve all existing branch references.
+
 ## [2.32.2] - 2026-05-09
 
 ### Fixed

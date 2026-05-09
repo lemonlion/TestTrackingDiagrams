@@ -477,4 +477,55 @@ public class StepWeaverIntegrationTests
         Assert.Equal("age", steps[0].Parameters![1].Name);
         Assert.Equal("30", steps[0].Parameters![1].InlineValue!.Value);
     }
+
+    [Theory]
+    [InlineData(Microsoft.CodeAnalysis.OptimizationLevel.Debug)]
+    [InlineData(Microsoft.CodeAnalysis.OptimizationLevel.Release)]
+    public void Weaved_Void_ThenStep_With_If_Branch_DoesNotThrowInvalidProgram(Microsoft.CodeAnalysis.OptimizationLevel optimization)
+    {
+        // Regression test: void method with [ThenStep] containing an if-branch and
+        // method calls (but no assertions). StepWeaver replaces ret with leave.
+        // This pattern from BreakfastProvider caused InvalidProgramException.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"VoidThenStepIf_{optimization}",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public bool IsExternalSut { get; set; }
+
+                [ThenStep]
+                public void The_downstream_services_received_requests()
+                {
+                    if (!IsExternalSut)
+                    {
+                        AssertCowRequest();
+                        AssertKitchenRequest();
+                    }
+                }
+
+                private void AssertCowRequest() { }
+                private void AssertKitchenRequest() { }
+            }
+            """,
+            optimization);
+
+        var weaver = new StepWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        Assert.Equal(1, result.WeavedCount);
+
+        var testId = $"void-then-if-{optimization}-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("The_downstream_services_received_requests")!;
+        var ex = Record.Exception(() => method.Invoke(instance, null));
+        Assert.Null(ex);
+    }
+
 }

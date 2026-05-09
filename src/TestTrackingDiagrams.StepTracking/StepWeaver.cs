@@ -277,12 +277,14 @@ public class StepWeaver
         var successCompleteCall = il.Create(OpCodes.Call, stepMethods.CompleteStepPassed);
         var finalRet = il.Create(OpCodes.Ret);
 
-        // Replace all existing 'ret' instructions with 'leave' to the success block (after handler)
+        // Replace all existing 'ret' instructions with 'leave' to the success block (after handler).
+        // We modify instructions in-place (not il.Replace) to preserve branch targets that
+        // reference these instructions — otherwise branches become dangling references.
         var rets = body.Instructions.Where(i => i.OpCode == OpCodes.Ret).ToList();
         foreach (var ret in rets)
         {
-            var leave = il.Create(OpCodes.Leave, successNop);
-            il.Replace(ret, leave);
+            ret.OpCode = OpCodes.Leave;
+            ret.Operand = successNop;
         }
 
         // Append catch block after the body
