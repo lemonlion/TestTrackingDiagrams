@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.4] - 2026-05-09
+
+### Fixed
+- **Assertion tracking: resolve method parameters** — Method parameters (e.g. `key` in `dict.Should().ContainKey(key)`) were not resolved to their runtime values in assertion output, showing the literal name instead of the value. Added `ldarg` detection to the IL weaver so parameters are now captured and displayed as `'myKeyValue'`.
+- **Assertion tracking: strip `await` prefix** — Assertion expressions starting with `await` (e.g. `await response.StatusCode.Should().Be(...)`) rendered as "Await response status code should be..." instead of "Response status code should be...". The `await` keyword is now stripped before formatting.
+
 ## [2.33.3] - 2026-07-06
 
 ### Fixed

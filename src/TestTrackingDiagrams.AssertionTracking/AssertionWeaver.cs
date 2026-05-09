@@ -938,6 +938,27 @@ public class AssertionWeaver
                 });
                 i++; // skip the ldfld instruction
             }
+            // ldarg.N (N >= 1 for instance, N >= 0 for static) — method parameter
+            else if (IsLdarg(instr, out var argIndex))
+            {
+                // ldarg.0 for instance methods is 'this', which is handled by ldarg.0 + ldfld above
+                var paramIdx = method.IsStatic ? argIndex : argIndex - 1;
+                if (paramIdx >= 0 && paramIdx < method.Parameters.Count)
+                {
+                    var param = method.Parameters[paramIdx];
+                    var name = param.Name;
+                    if (name != null && NameAppearsInExpression(name, sourceText) && seenNames.Add(name))
+                    {
+                        captured.Add(new CapturedVariable
+                        {
+                            Name = name,
+                            ParameterIndex = argIndex,
+                            NeedsBoxing = param.ParameterType.IsValueType,
+                            Type = param.ParameterType
+                        });
+                    }
+                }
+            }
             // ldftn — lambda/delegate creation; scan the lambda method body for captured variables
             else if (instr.OpCode == OpCodes.Ldftn &&
                      instr.Operand is MethodReference lambdaMethodRef)
@@ -1088,6 +1109,29 @@ public class AssertionWeaver
             if (instr.Operand is VariableDefinition varDef)
             {
                 index = varDef.Index;
+                return true;
+            }
+            if (instr.Operand is int idx)
+            {
+                index = idx;
+                return true;
+            }
+        }
+        index = -1;
+        return false;
+    }
+
+    private static bool IsLdarg(Instruction instr, out int index)
+    {
+        if (instr.OpCode == OpCodes.Ldarg_0) { index = 0; return true; }
+        if (instr.OpCode == OpCodes.Ldarg_1) { index = 1; return true; }
+        if (instr.OpCode == OpCodes.Ldarg_2) { index = 2; return true; }
+        if (instr.OpCode == OpCodes.Ldarg_3) { index = 3; return true; }
+        if (instr.OpCode == OpCodes.Ldarg || instr.OpCode == OpCodes.Ldarg_S)
+        {
+            if (instr.Operand is ParameterDefinition paramDef)
+            {
+                index = paramDef.Index + (paramDef.Method.HasThis ? 1 : 0);
                 return true;
             }
             if (instr.Operand is int idx)
@@ -1758,6 +1802,10 @@ public class AssertionWeaver
                     il.InsertBefore(firstInstr, il.Create(OpCodes.Ldarg_0));
                     il.InsertBefore(firstInstr, il.Create(OpCodes.Ldfld, cv.StateField));
                 }
+                else if (cv.ParameterIndex >= 0)
+                {
+                    il.InsertBefore(firstInstr, il.Create(OpCodes.Ldarg, method.Parameters[method.IsStatic ? cv.ParameterIndex : cv.ParameterIndex - 1]));
+                }
                 else
                 {
                     il.InsertBefore(firstInstr, il.Create(OpCodes.Ldloc, body.Variables[cv.LocalIndex]));
@@ -2067,6 +2115,10 @@ public class AssertionWeaver
                     il.InsertBefore(mergeStart, il.Create(OpCodes.Ldarg_0));
                     il.InsertBefore(mergeStart, il.Create(OpCodes.Ldfld, cv.StateField));
                 }
+                else if (cv.ParameterIndex >= 0)
+                {
+                    il.InsertBefore(mergeStart, il.Create(OpCodes.Ldarg, method.Parameters[method.IsStatic ? cv.ParameterIndex : cv.ParameterIndex - 1]));
+                }
                 else
                 {
                     il.InsertBefore(mergeStart, il.Create(OpCodes.Ldloc, body.Variables[cv.LocalIndex]));
@@ -2263,6 +2315,8 @@ public class CapturedVariable
     public int ClosureLocalIndex { get; set; } = -1;
     /// <summary>Display class field reference for closure captures. Null if not a closure.</summary>
     public FieldReference? ClosureField { get; set; }
+    /// <summary>Method parameter index for ldarg-based access. -1 if not a parameter.</summary>
+    public int ParameterIndex { get; set; } = -1;
     /// <summary>Whether the variable needs boxing (value type) when stored in object[].</summary>
     public bool NeedsBoxing { get; set; }
     /// <summary>The type of the variable (for boxing emission).</summary>

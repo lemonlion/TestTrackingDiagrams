@@ -273,4 +273,13 @@ public class AssertionExpressionFormatterTests
             "() => auditLogs.Should().Contain(l => l.EntityId == orderId && l.Action == \"Created\")", resolved);
         Assert.Equal("Audit logs should contain [ l => l.EntityId == '68AEEE84-B903-48E1-A01F-BE25C8193491' && l.Action == \"Created\" ]", result);
     }
+
+    [Theory]
+    [InlineData("await _myVariable.Should().BeTrue()", "My variable should be true")]
+    [InlineData("await response.StatusCode.Should().Be(HttpStatusCode.OK)", "Response status code should be OK")]
+    public void Format_strips_await_prefix(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
 }

@@ -2326,4 +2326,47 @@ public class AssertionWeaverTests
             $"{optimization}-compiled async method with nested `with` expressions should not throw InvalidProgramException");
     }
 
+    [Fact]
+    public void Weave_WithMethodParameter_CapturesParameterForValueResolution()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "MethodParam",
+            """
+            using System.Collections.Generic;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public void AssertContainsKey(string key)
+                {
+                    var dict = new Dictionary<string, string> { ["hello"] = "world" };
+                    dict.Should().ContainKey(key);
+                }
+            }
+            """);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("AssertContainsKey")!;
+
+        var testId = $"MethodParam_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var ex = Record.Exception(() => method.Invoke(instance, ["hello"]));
+        ex.Should().BeNull();
+
+        var logs = RequestResponseLogger.RequestAndResponseLogs
+            .Where(l => l.TestId == testId && l.PlantUml != null && l.PlantUml.Contains("<<assertionNote>>"))
+            .ToList();
+        logs.Should().HaveCount(1);
+        logs[0].PlantUml.Should().Contain("'hello'", "the method parameter value should be resolved");
+    }
 }

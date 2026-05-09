@@ -30,6 +30,10 @@ public static partial class AssertionExpressionFormatter
             ? expression["() => ".Length..]
             : expression;
 
+        // Strip await prefix
+        if (expr.StartsWith("await "))
+            expr = expr["await ".Length..];
+
         // Remove null-forgiving operators (!)
         expr = expr.Replace("!", "");
 
