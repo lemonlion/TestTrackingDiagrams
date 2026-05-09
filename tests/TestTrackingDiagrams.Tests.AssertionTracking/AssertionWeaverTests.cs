@@ -2425,4 +2425,109 @@ public class AssertionWeaverTests
         logs[0].PlantUml.Should().Contain("'CONF-002'",
             $"_secondConfirmationId instance field value should be resolved in {optimization} mode, not shown as field name");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_GenericMethod_WithValueTypeArguments_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #53: Generic method ShouldBeTheSame<T>(T actual, T expected) where T is
+        // unconstrained throws NullReferenceException when called with bool arguments.
+        // The weaver must box generic parameters before storing in object[] arrays.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"GenericValueType{optimization}",
+            """
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Then
+            {
+                public Then ShouldBeTheSame<T>(T actual, T expected)
+                {
+                    actual.Should().Be(expected);
+                    return this;
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Then")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("ShouldBeTheSame")!.MakeGenericMethod(typeof(bool));
+
+        var testId = $"GenericValueType{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        // Should NOT throw NullReferenceException or InvalidProgramException
+        var ex = Record.Exception(() => method.Invoke(instance, new object[] { true, true }));
+        ex.Should().BeNull($"generic method with value type (bool) should not throw in {optimization} mode");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_MethodWithOutParam_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #53: Methods with out parameters cause InvalidProgramException because
+        // ldarg on a by-ref parameter loads a managed pointer, not a value.
+        // The weaver must skip capturing out/ref parameters.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"OutParam{optimization}",
+            """
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Then
+            {
+                public Then ShouldHaveItems(
+                    out string[] items,
+                    string[]? source,
+                    int expectedCount)
+                {
+                    source.Should().NotBeNull();
+                    items = source?.Where(x => x.Length > 0).ToArray() ?? System.Array.Empty<string>();
+                    items.Should().HaveCount(expectedCount,
+                        because: "Expected {0} items from source", expectedCount);
+                    // Use the out param in an assertion argument to trigger capture attempt
+                    items.Length.Should().Be(expectedCount,
+                        because: "items has {0} elements", items.Length);
+                    return this;
+                }
+
+                public Then ShouldMatch(ref int value, int expected)
+                {
+                    value.Should().Be(expected);
+                    return this;
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Then")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("ShouldHaveItems")!;
+
+        var testId = $"OutParam{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var args = new object?[] { null, new[] { "a", "b", "c" }, 3 };
+        // Should NOT throw InvalidProgramException
+        var ex = Record.Exception(() => method.Invoke(instance, args));
+        ex.Should().BeNull($"method with out parameter should not throw in {optimization} mode");
+    }
 }

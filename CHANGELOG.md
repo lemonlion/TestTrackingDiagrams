@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.10] - 2026-05-09
+
+### Fixed
+- **AssertionTracking: NullReferenceException in generic methods with value type arguments (issue #53)** — Generic type parameters (`T`) have `IsValueType = false` at metadata level (unless constrained with `struct`), but at runtime can be instantiated with value types (`bool`, `int`, etc.). The IL weaver now emits `box T` for all generic parameter types when storing captured variable values in `object[]` arrays. `box` on a reference type is identity (no-op), so this is safe for both reference and value type instantiations.
+- **AssertionTracking: InvalidProgramException with out/ref parameters (issue #53)** — Methods containing `out` or `ref` parameters could produce invalid IL when those parameters appeared in assertion argument expressions. `ldarg` on a by-reference parameter loads a managed pointer (`T&`), not a value — storing this in `object[]` via `stelem.ref` is invalid IL. The weaver now skips capturing `out`/`ref` parameters entirely (their values are unreliable for display anyway since the method may not have assigned them yet at the assertion point).
+
 ## [2.33.9] - 2026-05-09
 
 ### Fixed

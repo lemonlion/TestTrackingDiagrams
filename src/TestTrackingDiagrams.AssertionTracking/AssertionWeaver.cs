@@ -846,7 +846,7 @@ public class AssertionWeaver
                                 Name = fieldName,
                                 ClosureLocalIndex = localIndex,
                                 ClosureField = fieldRef,
-                                NeedsBoxing = field.FieldType.IsValueType,
+                                NeedsBoxing = field.FieldType.IsValueType || field.FieldType is GenericParameter,
                                 Type = field.FieldType
                             });
                         }
@@ -865,7 +865,7 @@ public class AssertionWeaver
                 {
                     Name = name,
                     LocalIndex = localIndex,
-                    NeedsBoxing = varType.IsValueType,
+                    NeedsBoxing = varType.IsValueType || varType is GenericParameter,
                     Type = varType
                 });
             }
@@ -896,7 +896,7 @@ public class AssertionWeaver
                                 StateField = fieldRef, // the display class field on state machine
                                 ClosureLocalIndex = -1,
                                 ClosureField = new FieldReference(field.Name, field.FieldType, fieldRef.FieldType),
-                                NeedsBoxing = field.FieldType.IsValueType,
+                                NeedsBoxing = field.FieldType.IsValueType || field.FieldType is GenericParameter,
                                 Type = field.FieldType
                             });
                         }
@@ -930,7 +930,7 @@ public class AssertionWeaver
                                     Name = chainedName,
                                     StateField = fieldRef, // the <>4__this field on state machine
                                     ClosureField = chainedFieldRef, // the actual instance field
-                                    NeedsBoxing = chainedFieldRef.FieldType.IsValueType,
+                                    NeedsBoxing = chainedFieldRef.FieldType.IsValueType || chainedFieldRef.FieldType is GenericParameter,
                                     Type = chainedFieldRef.FieldType
                                 });
                             }
@@ -958,7 +958,7 @@ public class AssertionWeaver
                 {
                     Name = name,
                     StateField = fieldRef,
-                    NeedsBoxing = fieldRef.FieldType.IsValueType,
+                    NeedsBoxing = fieldRef.FieldType.IsValueType || fieldRef.FieldType is GenericParameter,
                     Type = fieldRef.FieldType
                 });
                 i++; // skip the ldfld instruction
@@ -972,13 +972,25 @@ public class AssertionWeaver
                 {
                     var param = method.Parameters[paramIdx];
                     var name = param.Name;
+
+                    // Skip out/ref parameters: ldarg on a by-reference parameter loads a managed
+                    // pointer (T&), not a value. Storing a managed pointer in object[] via
+                    // stelem.ref produces invalid IL (InvalidProgramException). Issue #53.
+                    if (param.ParameterType.IsByReference)
+                        continue;
+
                     if (name != null && NameAppearsInExpression(name, sourceText) && seenNames.Add(name))
                     {
+                        // For generic type parameters (unconstrained T), IsValueType returns false
+                        // but at runtime T could be a value type (e.g. bool). Always box generic
+                        // parameters — box on a reference type is a no-op. Issue #53.
+                        var needsBoxing = param.ParameterType.IsValueType ||
+                                          param.ParameterType is GenericParameter;
                         captured.Add(new CapturedVariable
                         {
                             Name = name,
                             ParameterIndex = argIndex,
-                            NeedsBoxing = param.ParameterType.IsValueType,
+                            NeedsBoxing = needsBoxing,
                             Type = param.ParameterType
                         });
                     }
@@ -1022,7 +1034,7 @@ public class AssertionWeaver
                                 {
                                     Name = lambdaVarName,
                                     StateField = lambdaFieldRef,
-                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
                                     Type = lambdaFieldRef.FieldType
                                 });
                                 continue;
@@ -1048,7 +1060,7 @@ public class AssertionWeaver
                                     Name = rawName,
                                     StateField = outerThisField,
                                     ClosureField = lambdaFieldRef,
-                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
                                     Type = lambdaFieldRef.FieldType
                                 });
                             }
@@ -1059,7 +1071,7 @@ public class AssertionWeaver
                                 {
                                     Name = rawName,
                                     StateField = lambdaFieldRef,
-                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType,
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
                                     Type = lambdaFieldRef.FieldType
                                 });
                             }
@@ -1102,7 +1114,7 @@ public class AssertionWeaver
                         Name = fieldName,
                         StateField = outerThisForToken,
                         ClosureField = tokenFieldRef,
-                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType,
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType || tokenFieldRef.FieldType is GenericParameter,
                         Type = tokenFieldRef.FieldType
                     });
                 }
@@ -1113,7 +1125,7 @@ public class AssertionWeaver
                     {
                         Name = fieldName,
                         StateField = tokenFieldRef,
-                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType,
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType || tokenFieldRef.FieldType is GenericParameter,
                         Type = tokenFieldRef.FieldType
                     });
                 }
@@ -1151,7 +1163,7 @@ public class AssertionWeaver
                         Name = fieldName,
                         StateField = outerThisForStandalone,
                         ClosureField = standaloneFldRef,
-                        NeedsBoxing = standaloneFldRef.FieldType.IsValueType,
+                        NeedsBoxing = standaloneFldRef.FieldType.IsValueType || standaloneFldRef.FieldType is GenericParameter,
                         Type = standaloneFldRef.FieldType
                     });
                 }
