@@ -8,16 +8,19 @@ namespace TestTrackingDiagrams.TabularAttributes;
 
 /// <summary>
 /// A read-only collection of expected output rows for a tabular test.
-/// Call <see cref="AddActual"/> for each actual result, then <see cref="Verify"/>
+/// Call <see cref="RecordActualResult"/> for each actual result, then <see cref="Verify"/>
 /// to compare expected vs actual (position-based).
 /// Implements <see cref="ITabularParameterData"/> for step parameter reporting.
+/// Implements <see cref="IDisposable"/> — disposing auto-verifies if actuals were recorded
+/// and <see cref="Verify"/> was not already called.
 /// </summary>
-public class TabularOutputs<T> : IReadOnlyList<T>, ITabularParameterData
+public class TabularOutputs<T> : IReadOnlyList<T>, ITabularParameterData, IDisposable
 {
     private readonly T[] _expected;
     private readonly string[] _columnNames;
     private readonly List<T> _actuals = new();
     private VerifiedRow[]? _verifiedRows;
+    private bool _verified;
 
     public TabularOutputs(T[] expected, string[] columnNames)
     {
@@ -35,7 +38,7 @@ public class TabularOutputs<T> : IReadOnlyList<T>, ITabularParameterData
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>Records an actual output value for position-based verification.</summary>
-    public void AddActual(T actual) => _actuals.Add(actual);
+    public void RecordActualResult(T actual) => _actuals.Add(actual);
 
     /// <summary>
     /// Compares expected and actual rows position-by-position.
@@ -83,6 +86,7 @@ public class TabularOutputs<T> : IReadOnlyList<T>, ITabularParameterData
         }
 
         _verifiedRows = results.ToArray();
+        _verified = true;
 
         var failures = _verifiedRows
             .Where(r => r.Type != TableRowType.Matching ||
@@ -91,6 +95,15 @@ public class TabularOutputs<T> : IReadOnlyList<T>, ITabularParameterData
 
         if (failures.Count > 0)
             throw new TabularVerificationException(BuildFailureMessage(failures));
+    }
+
+    /// <summary>
+    /// Auto-verifies if actuals were recorded and <see cref="Verify"/> was not already called.
+    /// </summary>
+    public void Dispose()
+    {
+        if (!_verified && _actuals.Count > 0)
+            Verify();
     }
 
     public TabularColumn[] GetColumns() =>

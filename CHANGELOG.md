@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.0] - 2026-05-09
+
+### Added
+- **TUnit `[HeadIn]` attribute** — `TestTrackingDiagrams.TUnit` now includes a `[HeadIn]` attribute implementing `IDataSourceAttribute` for tabular data-driven tests in TUnit.
+- **Auto-verify `TabularOutputs<T>` on disposal** — `TabularOutputs<T>` now implements `IDisposable`. Disposing auto-calls `Verify()` if actuals were recorded and `Verify()` was not already called. On xUnit v3 (`DisposalTracker`) and TUnit (`TestBuilderContext.Events.OnDispose`), this happens automatically — no explicit `Verify()` needed.
+
+### Changed
+- **Renamed `AddActual()` → `RecordActualResult()`** on `TabularOutputs<T>` for clarity.
+
 ## [2.32.4] - 2026-05-09
 
 ### Fixed
@@ -37,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - **Core types** (`TestTrackingDiagrams` package):
     - `[Inputs(...)]`, `[Outputs(...)]`, `[HeadOut(...)]` — plain attributes for declaring data rows and output column names.
     - `TabularInputs<T>` — `IReadOnlyList<T>` with per-row diagram delimiters emitted during `foreach` iteration.
-    - `TabularOutputs<T>` — `IReadOnlyList<T>` with `AddActual()` + `Verify()` for position-based output comparison.
+    - `TabularOutputs<T>` — `IReadOnlyList<T>` with `RecordActualResult()` + `Verify()` for position-based output comparison.
     - `TabularDeserializer` — column-to-property mapping with space removal, `&` → `And` substitution, and case-insensitive matching.
     - `TabularResolver` — reads tabular attributes from `MethodInfo` and constructs typed parameter values.
     - `ITabularParameterData` — interface enabling `StepCollector` to automatically render tabular step parameters in reports.

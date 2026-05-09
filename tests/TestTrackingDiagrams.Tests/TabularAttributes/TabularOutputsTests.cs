@@ -44,7 +44,7 @@ public class TabularOutputsTests
         var expected = new[] { new Greeting { Message = "Hello" } };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Hello" });
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
         outputs.Verify(); // Should not throw
     }
 
@@ -58,8 +58,8 @@ public class TabularOutputsTests
         };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Hello" });
-        outputs.AddActual(new Greeting { Message = "World" });
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
+        outputs.RecordActualResult(new Greeting { Message = "World" });
         outputs.Verify(); // Should not throw
     }
 
@@ -69,7 +69,7 @@ public class TabularOutputsTests
         var expected = new[] { new Greeting { Message = "Hello" } };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Wrong" });
+        outputs.RecordActualResult(new Greeting { Message = "Wrong" });
 
         var ex = Assert.Throws<TabularVerificationException>(() => outputs.Verify());
         Assert.Contains("Tabular output verification failed", ex.Message);
@@ -83,8 +83,8 @@ public class TabularOutputsTests
         var expected = new[] { new Greeting { Message = "Hello" } };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Hello" });
-        outputs.AddActual(new Greeting { Message = "Extra" });
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
+        outputs.RecordActualResult(new Greeting { Message = "Extra" });
 
         var ex = Assert.Throws<TabularVerificationException>(() => outputs.Verify());
         Assert.Contains("Surplus", ex.Message);
@@ -100,7 +100,7 @@ public class TabularOutputsTests
         };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Hello" });
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
 
         var ex = Assert.Throws<TabularVerificationException>(() => outputs.Verify());
         Assert.Contains("Missing", ex.Message);
@@ -127,7 +127,7 @@ public class TabularOutputsTests
         var expected = new[] { new Greeting { Message = "Hello" } };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Hello" });
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
         outputs.Verify();
 
         var rows = outputs.GetRows();
@@ -145,7 +145,7 @@ public class TabularOutputsTests
         var expected = new[] { new Greeting { Message = "Hello" } };
         var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
 
-        outputs.AddActual(new Greeting { Message = "Wrong" });
+        outputs.RecordActualResult(new Greeting { Message = "Wrong" });
 
         Assert.Throws<TabularVerificationException>(() => outputs.Verify());
 
@@ -175,7 +175,7 @@ public class TabularOutputsTests
         var expected = new[] { new MultiProp { Name = "Alice", Score = 100 } };
         var outputs = new TabularOutputs<MultiProp>(expected, ["Name", "Score"]);
 
-        outputs.AddActual(new MultiProp { Name = "Bob", Score = 50 });
+        outputs.RecordActualResult(new MultiProp { Name = "Bob", Score = 50 });
 
         var ex = Assert.Throws<TabularVerificationException>(() => outputs.Verify());
         Assert.Contains("Expected: Alice", ex.Message);
@@ -190,12 +190,60 @@ public class TabularOutputsTests
         var expected = new[] { new MultiProp { Name = "Alice", Score = 100 } };
         var outputs = new TabularOutputs<MultiProp>(expected, ["Name", "Score"]);
 
-        outputs.AddActual(new MultiProp { Name = "Alice", Score = 50 });
+        outputs.RecordActualResult(new MultiProp { Name = "Alice", Score = 50 });
 
         var ex = Assert.Throws<TabularVerificationException>(() => outputs.Verify());
         // Name matches (Success), Score mismatches (Failure)
         Assert.Contains("Expected: 100", ex.Message);
         Assert.Contains("Actual: 50", ex.Message);
+    }
+
+    [Fact]
+    public void Dispose_triggers_verify_when_actuals_recorded()
+    {
+        var expected = new[] { new Greeting { Message = "Hello" } };
+        var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
+
+        outputs.Dispose(); // Should not throw — actuals match expected
+
+        // GetRows should reflect verified state
+        var rows = outputs.GetRows();
+        Assert.Equal(VerificationStatus.Success, rows[0].Values[0].Status);
+    }
+
+    [Fact]
+    public void Dispose_does_nothing_when_no_actuals()
+    {
+        var expected = new[] { new Greeting { Message = "Hello" } };
+        var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
+
+        outputs.Dispose(); // Should not throw — no actuals recorded
+
+        // GetRows should remain unverified
+        var rows = outputs.GetRows();
+        Assert.Equal(VerificationStatus.NotProvided, rows[0].Values[0].Status);
+    }
+
+    [Fact]
+    public void Dispose_does_nothing_when_already_verified()
+    {
+        var expected = new[] { new Greeting { Message = "Hello" } };
+        var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
+        outputs.RecordActualResult(new Greeting { Message = "Hello" });
+        outputs.Verify();
+
+        outputs.Dispose(); // Should not throw — already verified
+    }
+
+    [Fact]
+    public void Dispose_throws_on_mismatch()
+    {
+        var expected = new[] { new Greeting { Message = "Hello" } };
+        var outputs = new TabularOutputs<Greeting>(expected, ["Message"]);
+        outputs.RecordActualResult(new Greeting { Message = "Wrong" });
+
+        Assert.Throws<TabularVerificationException>(() => outputs.Dispose());
     }
 
     [Fact]

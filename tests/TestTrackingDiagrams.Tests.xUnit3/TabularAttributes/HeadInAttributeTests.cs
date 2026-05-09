@@ -71,9 +71,9 @@ public class HeadInAttributeTests
     {
         foreach (var person in inputs)
         {
-            outputs.AddActual(new Greeting { Message = $"Hello {person.Name}" });
+            outputs.RecordActualResult(new Greeting { Message = $"Hello {person.Name}" });
         }
-        outputs.Verify(); // Should not throw
+        // No explicit Verify() needed — auto-verified on disposal by xUnit3 DisposalTracker
     }
 
     [Theory]
@@ -84,7 +84,7 @@ public class HeadInAttributeTests
     {
         foreach (var person in inputs)
         {
-            outputs.AddActual(new Greeting { Message = "Wrong" });
+            outputs.RecordActualResult(new Greeting { Message = "Wrong" });
         }
         Assert.Throws<TabularVerificationException>(() => outputs.Verify());
     }

@@ -26,6 +26,13 @@ public class HeadInAttribute : DataAttribute
     {
         var args = TabularResolver.Resolve(testMethod,
             _columnNames.Length > 0 ? _columnNames : null);
+
+        foreach (var arg in args)
+        {
+            if (arg is IDisposable disposable)
+                disposalTracker.Add(disposable);
+        }
+
         IReadOnlyCollection<ITheoryDataRow> result = [new TheoryDataRow(args)];
         return new(result);
     }
