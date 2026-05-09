@@ -2009,7 +2009,16 @@ public class AssertionWeaver
 
         var afterMergeEnd = mergeEnd.Next;
 
-        // Build captured variable arrays if needed (before the try block)
+        // Insert tryStart nop before array construction AND the merge point.
+        // This ensures branches retargeted from mergeStart→tryStart (the sync-completion
+        // brtrue path) will execute array construction before entering the assertion.
+        // Without this, the sync path skips array init, leaving namesLocal/valuesLocal
+        // as null — causing NRE in Track.ResolveVariableValues when the catch handler
+        // calls AssertionFailedWithValues. (#52)
+        var tryStart = il.Create(OpCodes.Nop);
+        il.InsertBefore(mergeStart, tryStart);
+
+        // Build captured variable arrays if needed (inside the try block, before mergeStart)
         VariableDefinition? namesLocal = null;
         VariableDefinition? valuesLocal = null;
 
@@ -2070,10 +2079,6 @@ public class AssertionWeaver
             }
             il.InsertBefore(mergeStart, il.Create(OpCodes.Stloc, valuesLocal));
         }
-
-        // Insert tryStart nop before the merge point instructions
-        var tryStart = il.Create(OpCodes.Nop);
-        il.InsertBefore(mergeStart, tryStart);
 
         // Retarget the brtrue (IsCompleted sync-completion branch) to our tryStart
         // so that the sync-completion path also enters our try block.

@@ -250,7 +250,7 @@ public static class Track
 
     private static Dictionary<string, string>? ResolveVariableValues(string expression, string[] varNames, object?[] varValues)
     {
-        if (varNames.Length == 0)
+        if (varNames == null || varValues == null || varNames.Length == 0)
             return null;
 
         try

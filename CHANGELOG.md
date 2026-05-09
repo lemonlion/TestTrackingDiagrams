@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.2] - 2026-05-10
+
+### Fixed
+- **NullReferenceException in `Track.ResolveVariableValues` with awaited assertions** — When an awaited assertion (e.g. TUnit `await value.Should().BeEqualTo(x)`) with captured variables failed, the IL weaver's `WrapAwaitedAssertion` method placed the `tryStart` nop *after* the captured-variable array construction. Branches retargeted from the merge point to `tryStart` (the sync-completion `brtrue` path) skipped array initialization, leaving `namesLocal`/`valuesLocal` as null. The catch handler then passed null arrays to `AssertionFailedWithValues` → `ResolveVariableValues`, which crashed on `varNames.Length`. Fixed by inserting `tryStart` *before* array construction so both sync and async paths initialize the arrays. Also added a defensive null guard in `ResolveVariableValues`. Fixes [#52](https://github.com/lemonlion/TestTrackingDiagrams/issues/52).
+
 ## [2.33.1] - 2026-05-09
 
 ### Fixed

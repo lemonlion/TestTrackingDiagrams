@@ -2107,6 +2107,86 @@ public class AssertionWeaverTests
     [Theory]
     [InlineData(OptimizationLevel.Debug)]
     [InlineData(OptimizationLevel.Release)]
+    public void Weave_AwaitedAssertion_WithCapturedVariables_FailingAssertion_DoesNotThrowNRE(
+        OptimizationLevel optimization)
+    {
+        // Issue #52: When an awaited assertion (TUnit-style) has captured variables
+        // and the assertion FAILS, the catch handler calls AssertionFailedWithValues
+        // with the variable arrays. But the sync-completion branch (brtrue) is
+        // retargeted to tryStart which is AFTER array construction, so on the sync
+        // path the arrays are never initialized (null), causing NRE in
+        // Track.ResolveVariableValues.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AwaitedWithVarsFail_{optimization}",
+            """
+            using System;
+            using System.Threading.Tasks;
+            using System.Runtime.CompilerServices;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            namespace TUnit.Assertions
+            {
+                public static class Assert
+                {
+                    public static Assertion<T> That<T>(T value) => new Assertion<T>(value);
+                }
+
+                public class Assertion<T>
+                {
+                    private readonly T _value;
+                    public Assertion(T value) => _value = value;
+
+                    public Task IsEqualTo(T expected)
+                    {
+                        if (!Equals(_value, expected))
+                            return Task.FromException(new Exception($"Expected {expected} but got {_value}"));
+                        return Task.CompletedTask;
+                    }
+
+                    public TaskAwaiter GetAwaiter() => IsEqualTo(_value).GetAwaiter();
+                }
+            }
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var expected = "hello";
+                    await TUnit.Assertions.Assert.That("world").IsEqualTo(expected);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AwaitedWithVarsFail_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        // The assertion will fail (world != hello). We expect the original exception,
+        // NOT a NullReferenceException from Track.ResolveVariableValues.
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().NotBeNull("the assertion should fail");
+        ex.Should().NotBeOfType<NullReferenceException>(
+            $"{optimization}-compiled awaited assertion with captured variables should not throw NRE " +
+            "when the assertion fails — the original failure should propagate");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
     public void Weave_AsyncMethod_WithExpressionOnInstanceField_DoesNotThrowInvalidProgram(
         OptimizationLevel optimization)
     {
