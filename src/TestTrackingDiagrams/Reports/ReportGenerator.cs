@@ -2239,6 +2239,17 @@ public static class ReportGenerator
         return $"{(int)total.TotalMinutes}m {total.Seconds}s";
     }
 
+    private static bool HasAnyFailed(ScenarioStep step)
+    {
+        if (step.SubSteps is not { Length: > 0 }) return false;
+        foreach (var sub in step.SubSteps)
+        {
+            if (sub.Status == ExecutionResult.Failed) return true;
+            if (HasAnyFailed(sub)) return true;
+        }
+        return false;
+    }
+
     private static bool HasAnyBypassed(ScenarioStep step)
     {
         if (step.SubSteps is not { Length: > 0 }) return false;
@@ -2765,7 +2776,10 @@ public static class ReportGenerator
 
         if (hasSubSteps || hasInlineTable)
         {
-            body.Append("<details class=\"step step-collapsible\" open>");
+            var shouldExpand = !hasSubSteps || HasAnyFailed(step);
+            body.Append(shouldExpand
+                ? "<details class=\"step step-collapsible\" open>"
+                : "<details class=\"step step-collapsible\">");
             body.Append("<summary>");
         }
         else

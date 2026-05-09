@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.8] - 2026-05-09
+
+### Changed
+- **Sub-steps collapsed by default in reports** — Steps with sub-steps now render collapsed by default, reducing visual noise and letting users expand on demand. Steps with failed sub-steps auto-expand on page load to surface failures immediately. Inline tabular parameter tables (without sub-steps) remain expanded.
+
 ## [2.33.7] - 2026-05-09
 
 ### Changed

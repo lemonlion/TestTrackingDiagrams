@@ -527,4 +527,112 @@ public class StepRenderingReportTests
         Assert.Contains("border: 1px solid", cssBlock);
         Assert.Contains("border-color: rgb(224, 224, 224)", cssBlock);
     }
+
+    [Fact]
+    public void Report_substeps_are_collapsed_by_default()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "setup", Status = ExecutionResult.Passed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = "And", Text = "sub1", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = "And", Text = "sub2", Status = ExecutionResult.Passed }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "SubStepsCollapsed.html");
+        Assert.Contains("step-collapsible", content);
+        Assert.DoesNotContain("<details class=\"step step-collapsible\" open>", content);
+    }
+
+    [Fact]
+    public void Report_substeps_auto_expand_when_child_failed()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Then", Text = "assertions", Status = ExecutionResult.Failed,
+                    SubSteps =
+                    [
+                        new ScenarioStep { Keyword = null, Text = "\u2713 x == 1", Status = ExecutionResult.Passed },
+                        new ScenarioStep { Keyword = null, Text = "\u2717 y == 2", Status = ExecutionResult.Failed }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "SubStepsExpandFailed.html");
+        Assert.Contains("<details class=\"step step-collapsible\" open>", content);
+    }
+
+    [Fact]
+    public void Report_substeps_auto_expand_when_nested_descendant_failed()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Then", Text = "outer", Status = ExecutionResult.Failed,
+                    SubSteps =
+                    [
+                        new ScenarioStep
+                        {
+                            Keyword = "And", Text = "inner", Status = ExecutionResult.Failed,
+                            SubSteps =
+                            [
+                                new ScenarioStep { Keyword = null, Text = "\u2717 deep fail", Status = ExecutionResult.Failed }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "SubStepsExpandNested.html");
+        // Both outer and inner should be expanded because they have failed descendants
+        Assert.DoesNotContain("<details class=\"step step-collapsible\">", content);
+    }
+
+    [Fact]
+    public void Report_inline_table_stays_open_without_substeps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "data", Status = ExecutionResult.Passed,
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "data",
+                            Kind = StepParameterKind.Tabular,
+                            TabularValue = new TabularParameterValue(
+                                [new TabularColumn("Name", false)],
+                                [new TabularRow(TableRowType.Matching,
+                                    [new TabularCell("Alice", null, VerificationStatus.NotApplicable)])])
+                        }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "InlineTableOpen.html");
+        // Inline tables without sub-steps should remain expanded
+        Assert.Contains("<details class=\"step step-collapsible\" open>", content);
+    }
 }
