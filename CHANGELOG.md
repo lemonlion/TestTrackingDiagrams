@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.16] - 2026-05-10
+
+### Fixed
+- **Scenario name truncated at nested brackets** — Theory scenario names containing parameters with nested brackets (e.g., `[effectiveRates: [AccountEffectiveRate { ... }]]`) were truncated at the first `[`, losing the parameter suffix. `ExtractBaseName` and `Parse` now find the matching `]` for the trailing bracket instead of the first `[`.
+- **Record ToString with null properties rendered as empty** — Record types with null properties (e.g., `FeeCategory = , SubledgerType = }`) displayed empty values instead of `null`. `TryParseRecordToString` now emits `"null"` for empty record property values.
+- **Single-item collections rendered as flat text instead of sub-table** — When a collection parameter contained exactly one complex item, it was rendered as a flat `ToString()` string instead of a horizontal property table. `SplitParams` now correctly tracks bracket nesting depth to avoid splitting on commas inside `{ }` braces.
+- **Null values in sub-tables rendered as empty cells** — `FlattenToStringValues` and `RenderSubTable` now render null/empty values as `null` instead of blank cells.
+
 ## [2.33.15] - 2026-05-09
 
 ### Fixed

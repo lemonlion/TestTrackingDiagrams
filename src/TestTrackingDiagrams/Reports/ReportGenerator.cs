@@ -1296,6 +1296,63 @@ public static class ReportGenerator
         var customCssBlock = customCss is not null ? $"<style>{customCss}</style>" : "";
         var faviconLink = $"<link rel=\"icon\" href=\"{customFaviconBase64 ?? Constants.DefaultFavicon.DataUri}\">";
 
+        var enrichSearchDataScript = hasInteractiveDiagrams && diagrams.Length > 0
+            ? """
+              function enrichSearchData() {
+                  function decompress(base64) {
+                      var raw = atob(base64);
+                      var bytes = new Uint8Array(raw.length);
+                      for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+                      var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                      return new Response(stream).text();
+                  }
+
+                  var elements = document.querySelectorAll('[data-plantuml-z]');
+                  if (elements.length === 0) {
+                      onEnrichComplete();
+                      return;
+                  }
+
+                  var remaining = elements.length;
+                  for (var i = 0; i < elements.length; i++) {
+                      (function(el) {
+                          decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                              var text = decoded.toLowerCase();
+                              var scenario = el.closest('.scenario');
+                              if (scenario) {
+                                  var existing = scenario.getAttribute('data-search') || '';
+                                  scenario.setAttribute('data-search', existing + ' ' + text);
+                              }
+                              var row = el.closest('tr[data-row-search]');
+                              if (row) {
+                                  var existingRow = row.getAttribute('data-row-search') || '';
+                                  row.setAttribute('data-row-search', existingRow + ' ' + text);
+                              }
+                          }).catch(function() {}).finally(function() {
+                              remaining--;
+                              if (remaining === 0) onEnrichComplete();
+                          });
+                      })(elements[i]);
+                  }
+              }
+
+              function onEnrichComplete() {
+                  _filterCache = null;
+                  var sb = document.getElementById('searchbar');
+                  if (sb) {
+                      sb.disabled = false;
+                      sb.focus();
+                  }
+                  var overlay = document.querySelector('.search-loading-overlay');
+                  if (overlay) overlay.remove();
+              }
+
+              document.addEventListener('DOMContentLoaded', function() {
+                  enrichSearchData();
+              });
+              """
+            : "";
+
         var advancedSearchScript = AdvancedSearchJs.Value;
 
         var html = $$"""
@@ -1339,6 +1396,7 @@ public static class ReportGenerator
                                 {{urlHashFunction}}
                                 {{keyboardNavigationFunction}}
                                 {{initScript}}
+                                {{enrichSearchDataScript}}
                             </script>
                             {{plantUmlBrowserScript}}
                             {{collapsibleNotesScript}}
@@ -1505,7 +1563,7 @@ public static class ReportGenerator
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
-                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /><button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
+                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()"{(hasInteractiveDiagrams && diagrams.Length > 0 ? " disabled" : "")} />{(hasInteractiveDiagrams && diagrams.Length > 0 ? "<div class=\"search-loading-overlay\">Loading search data\u2026</div>" : "")}<button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
                     <div class="search-help-panel" style="display:none">
                     <table class="search-help-table">
                     <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
@@ -1836,8 +1894,6 @@ public static class ReportGenerator
                 if (scenario.Labels is { Length: > 0 }) searchParts.AddRange(scenario.Labels);
                 if (failed && scenario.ErrorMessage is not null) searchParts.Add(scenario.ErrorMessage);
                 CollectStepText(scenario.Steps, searchParts);
-                var diagramsForSearch = diagramsByTestId[scenario.Id].ToArray();
-                foreach (var d in diagramsForSearch) searchParts.Add(d.CodeBehind);
                 var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
                 var categoriesAttr = scenario.Categories is { Length: > 0 }
@@ -2315,7 +2371,6 @@ public static class ReportGenerator
             if (s.Labels is { Length: > 0 }) searchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) searchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, searchParts);
-            foreach (var d in diagramsByTestId[s.Id]) searchParts.Add(d.CodeBehind);
         }
         var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
@@ -2415,7 +2470,6 @@ public static class ReportGenerator
             if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, rowSearchParts);
-            foreach (var d in diagramsByTestId[s.Id]) rowSearchParts.Add(d.CodeBehind);
             var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
             var rowAnchorId = scenarioAnchorIds?.GetValueOrDefault(s.Id) ?? GenerateScenarioAnchorId(s.DisplayName);

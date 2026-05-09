@@ -205,6 +205,15 @@ public class ParameterValueRendererTests
         Assert.Equal("GBP", result["Currency"]);
     }
 
+    [Fact]
+    public void FlattenToStringValues_uses_null_string_for_null_properties()
+    {
+        var obj = new RecordWithNullable("Test", null);
+        var result = ParameterValueRenderer.FlattenToStringValues(obj, ["Name", "Value"]);
+        Assert.Equal("Test", result["Name"]);
+        Assert.Equal("null", result["Value"]);
+    }
+
     #endregion
 
     #region RenderSubTable
@@ -235,6 +244,18 @@ public class ParameterValueRendererTests
         Assert.Contains("&lt;script&gt;", html);
         Assert.Contains("a&amp;b", html);
         Assert.Contains("&quot;test&quot;", html);
+    }
+
+    [Fact]
+    public void RenderSubTable_renders_null_property_values_as_null()
+    {
+        var obj = new RecordWithNullable("Test", null);
+        var sb = new StringBuilder();
+        ParameterValueRenderer.RenderSubTable(sb, obj);
+        var html = sb.ToString();
+
+        Assert.Contains("<th>Name</th><td>Test</td>", html);
+        Assert.Contains("<th>Value</th><td>null</td>", html);
     }
 
     #endregion

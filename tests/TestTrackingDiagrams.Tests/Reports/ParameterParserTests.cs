@@ -569,4 +569,84 @@ public class ParameterParserTests
             "Order validation [field: Items[0].BatchId, value: null]");
         Assert.Equal("Order validation", result);
     }
+
+    // ── Collection parameter bracket handling ──
+
+    [Fact]
+    public void Parse_keeps_collection_parameter_as_single_value_with_nested_brackets()
+    {
+        var displayName = """Some test [effectiveRates: [AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111 }, AccountEffectiveRate { SpendType = BNPL, GoToRate = 0.555 }]]""";
+        var result = ParameterParser.Parse(displayName);
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.True(result.ContainsKey("effectiveRates"));
+        Assert.Contains("AccountEffectiveRate { SpendType = Purchase", result["effectiveRates"]);
+        Assert.Contains("AccountEffectiveRate { SpendType = BNPL", result["effectiveRates"]);
+    }
+
+    [Fact]
+    public void ExtractBaseName_strips_outer_bracket_group_with_nested_brackets()
+    {
+        var displayName = """Some test [effectiveRates: [AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111 }, AccountEffectiveRate { SpendType = BNPL, GoToRate = 0.555 }]]""";
+        var result = ParameterParser.ExtractBaseName(displayName);
+        Assert.Equal("Some test", result);
+    }
+
+    [Fact]
+    public void Parse_handles_truncated_collection_parameter()
+    {
+        // Simulates a display name where the parameter content was truncated at 200 chars
+        var displayName = """Some test [effectiveRates: [AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111, FeeCategory = , SubledgerType = }, AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.222, Fee...]]""";
+        var result = ParameterParser.Parse(displayName);
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.True(result.ContainsKey("effectiveRates"));
+    }
+
+    [Fact]
+    public void ExtractBaseName_handles_truncated_collection_parameter()
+    {
+        var displayName = """Some test [effectiveRates: [AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111 }, AccountEffectiveRate { SpendType = BNPL, GoToRate = 0.555 }]]""";
+        var result = ParameterParser.ExtractBaseName(displayName);
+        Assert.Equal("Some test", result);
+    }
+
+    // ── Null value rendering in record ToString parsing ──
+
+    [Fact]
+    public void TryParseRecordToString_renders_empty_values_as_null()
+    {
+        // C# record ToString: null properties render as empty after " = "
+        // Actual format has double space before }, but xUnit display may normalize to single space
+        var input = "AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111, FeeCategory = , SubledgerType =  }";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("Purchase", result!["SpendType"]);
+        Assert.Equal("0.111", result["GoToRate"]);
+        Assert.Equal("null", result["FeeCategory"]);
+        Assert.Equal("null", result["SubledgerType"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_renders_empty_values_as_null_single_space()
+    {
+        // xUnit display name may normalize to single space before }
+        var input = "AccountEffectiveRate { SpendType = Purchase, GoToRate = 0.111, FeeCategory = , SubledgerType = }";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("Purchase", result!["SpendType"]);
+        Assert.Equal("0.111", result["GoToRate"]);
+        Assert.Equal("null", result["FeeCategory"]);
+        Assert.Equal("null", result["SubledgerType"]);
+    }
+
+    [Fact]
+    public void TryParseRecordToString_renders_trailing_empty_value_as_null()
+    {
+        var input = "MyRecord { Name = Test, Value = }";
+        var result = ParameterParser.TryParseRecordToString(input);
+        Assert.NotNull(result);
+        Assert.Equal("Test", result!["Name"]);
+        Assert.Equal("null", result["Value"]);
+    }
 }

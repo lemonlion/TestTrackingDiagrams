@@ -26,10 +26,12 @@ public static class ParameterParser
             var remaining = displayName.AsSpan();
             while (true)
             {
-                var lastSpace = remaining.LastIndexOf(" [".AsSpan());
-                if (lastSpace < 0 || remaining[^1] != ']')
+                if (remaining.Length < 3 || remaining[^1] != ']')
                     break;
-                var lastOpen = lastSpace + 1; // point to '['
+                var matchingOpen = FindMatchingOpenBracket(remaining);
+                if (matchingOpen < 1 || remaining[matchingOpen - 1] != ' ')
+                    break;
+                var lastOpen = matchingOpen;
                 var inner = remaining.Slice(lastOpen + 1, remaining.Length - lastOpen - 2).Trim();
                 if (inner.Length == 0)
                     break;
@@ -38,7 +40,7 @@ public static class ParameterParser
                     break;
                 foreach (var kv in result)
                     allParams.TryAdd(kv.Key, kv.Value);
-                remaining = remaining[..lastOpen].TrimEnd();
+                remaining = remaining[..(lastOpen - 1)].TrimEnd();
             }
             if (allParams.Count > 0)
                 return allParams;
@@ -70,10 +72,12 @@ public static class ParameterParser
         var current = displayName.AsSpan();
         while (true)
         {
-            var lastOpen = current.LastIndexOf(" [".AsSpan());
-            if (lastOpen < 0 || current[^1] != ']')
+            if (current.Length < 3 || current[^1] != ']')
                 break;
-            current = current[..lastOpen].TrimEnd();
+            var matchingOpen = FindMatchingOpenBracket(current);
+            if (matchingOpen < 1 || current[matchingOpen - 1] != ' ')
+                break;
+            current = current[..(matchingOpen - 1)].TrimEnd();
         }
         if (current.Length < displayName.Length)
             return current.ToString();
@@ -84,6 +88,23 @@ public static class ParameterParser
             return displayName[..parenStart].TrimEnd();
 
         return displayName;
+    }
+
+    /// <summary>
+    /// Finds the index of the '[' that matches the trailing ']' in a span,
+    /// considering nested bracket pairs.  Returns -1 if no match found.
+    /// </summary>
+    private static int FindMatchingOpenBracket(ReadOnlySpan<char> span)
+    {
+        var depth = 0;
+        for (var i = span.Length - 1; i >= 0; i--)
+        {
+            if (span[i] == ']') depth++;
+            else if (span[i] == '[') depth--;
+            if (depth == 0)
+                return i;
+        }
+        return -1;
     }
 
     private static int FindOpenParen(string s)
@@ -134,10 +155,11 @@ public static class ParameterParser
 
     private static int FindColon(string s)
     {
-        // Find ':' that isn't inside quotes, parens or braces
+        // Find ':' that isn't inside quotes, parens, braces or brackets
         var inQuote = false;
         var parenDepth = 0;
         var braceDepth = 0;
+        var bracketDepth = 0;
         for (var i = 0; i < s.Length; i++)
         {
             var c = s[i];
@@ -149,7 +171,9 @@ public static class ParameterParser
                 else if (c == ')') parenDepth--;
                 else if (c == '{') braceDepth++;
                 else if (c == '}') braceDepth--;
-                else if (c == ':' && parenDepth == 0 && braceDepth == 0)
+                else if (c == '[') bracketDepth++;
+                else if (c == ']') bracketDepth--;
+                else if (c == ':' && parenDepth == 0 && braceDepth == 0 && bracketDepth == 0)
                     return i;
             }
         }
@@ -163,6 +187,7 @@ public static class ParameterParser
         var inQuote = false;
         var parenDepth = 0;
         var braceDepth = 0;
+        var bracketDepth = 0;
 
         for (var i = 0; i < inner.Length; i++)
         {
@@ -177,7 +202,9 @@ public static class ParameterParser
                 else if (c == ')') parenDepth--;
                 else if (c == '{') braceDepth++;
                 else if (c == '}') braceDepth--;
-                else if (c == ',' && parenDepth == 0 && braceDepth == 0)
+                else if (c == '[') bracketDepth++;
+                else if (c == ']') bracketDepth--;
+                else if (c == ',' && parenDepth == 0 && braceDepth == 0 && bracketDepth == 0)
                 {
                     tokens.Add(current.ToString());
                     current.Clear();
@@ -311,6 +338,16 @@ public static class ParameterParser
             var eqIdx = inner.IndexOf(" = ", pos, StringComparison.Ordinal);
             if (eqIdx < 0)
             {
+                // Handle trailing property with null value: "PropName =" (no trailing space after trim)
+                var trimmedTail = inner[pos..].TrimEnd();
+                if (trimmedTail.EndsWith(" ="))
+                {
+                    var trailingPropName = trimmedTail[..^2].Trim();
+                    if (trailingPropName.Length > 0)
+                        result[trailingPropName] = "null";
+                    break;
+                }
+
                 // Truncation mid-property-name: discard incomplete property and stop
                 if (isTruncated) break;
                 return null; // malformed
@@ -378,6 +415,10 @@ public static class ParameterParser
 
                 // Strip trailing truncation markers from value
                 propValue = StripTrailingTruncation(propValue);
+
+                // C# record ToString() renders null properties as empty after " = "
+                if (propValue.Length == 0)
+                    propValue = "null";
             }
 
             result[propName] = propValue;

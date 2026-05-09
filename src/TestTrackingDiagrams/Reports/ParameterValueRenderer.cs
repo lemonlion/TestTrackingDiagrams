@@ -117,7 +117,7 @@ internal static class ParameterValueRenderer
         {
             var result = new Dictionary<string, string>();
             foreach (var name in propertyNames)
-                result[name] = dict.TryGetValue(name, out var v) ? v?.ToString() ?? "" : "";
+                result[name] = dict.TryGetValue(name, out var v) ? v?.ToString() ?? "null" : "null";
             return result;
         }
 
@@ -127,7 +127,7 @@ internal static class ParameterValueRenderer
             foreach (var name in propertyNames)
             {
                 var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-                result[name] = prop?.GetValue(value)?.ToString() ?? "";
+                result[name] = prop?.GetValue(value)?.ToString() ?? "null";
             }
             return result;
         }
@@ -169,7 +169,7 @@ internal static class ParameterValueRenderer
         {
             foreach (var kvp in dict)
             {
-                var propValue = kvp.Value?.ToString() ?? "";
+                var propValue = kvp.Value?.ToString() ?? "null";
                 body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(kvp.Key)}</th><td>{System.Net.WebUtility.HtmlEncode(propValue)}</td></tr>");
             }
         }
@@ -178,7 +178,7 @@ internal static class ParameterValueRenderer
             var props = GetReadableProperties(value.GetType());
             foreach (var prop in props)
             {
-                var propValue = prop.GetValue(value)?.ToString() ?? "";
+                var propValue = prop.GetValue(value)?.ToString() ?? "null";
                 body.Append($"<tr><th>{System.Net.WebUtility.HtmlEncode(prop.Name)}</th><td>{System.Net.WebUtility.HtmlEncode(propValue)}</td></tr>");
             }
         }

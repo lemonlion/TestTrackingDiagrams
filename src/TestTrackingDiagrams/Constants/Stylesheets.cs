@@ -177,6 +177,7 @@ public class Stylesheets
                     display: flex;
                     gap: 0.4em;
                     align-items: center;
+                    position: relative;
                 }
 
                 #searchbar {
@@ -185,6 +186,29 @@ public class Stylesheets
                     width: 100%;
                     box-sizing: border-box;
                     border: 1px solid rgb(180, 180, 180);
+                }
+
+                #searchbar:disabled {
+                    background: rgb(245, 245, 245);
+                    cursor: not-allowed;
+                }
+
+                .search-loading-overlay {
+                    position: absolute;
+                    left: 0.5em;
+                    top: 0;
+                    bottom: 0;
+                    display: flex;
+                    align-items: center;
+                    pointer-events: none;
+                    color: rgb(150, 150, 150);
+                    font-size: 0.9em;
+                    animation: pulse-search-loading 2s ease-in-out infinite;
+                }
+
+                @keyframes pulse-search-loading {
+                    0%, 100% { opacity: 0.4; }
+                    50% { opacity: 1; }
                 }
 
                 .search-help-toggle {

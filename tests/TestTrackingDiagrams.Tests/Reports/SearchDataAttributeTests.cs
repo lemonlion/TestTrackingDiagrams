@@ -317,4 +317,158 @@ public class SearchDataAttributeTests
         Assert.Contains("breakfast", groupSearch);
         Assert.Contains("sweet", groupSearch);
     }
+
+    [Fact]
+    public void Data_search_does_not_contain_plantuml_source()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Create order", Result = ExecutionResult.Passed,
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "a valid request", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nOrderService -> PaymentGateway : POST /payments\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchNoPlantUml.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+        var searchValues = ExtractDataSearchValues(content);
+
+        var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("create order"));
+        Assert.NotNull(scenarioSearch);
+        Assert.DoesNotContain("@startuml", scenarioSearch);
+        Assert.DoesNotContain("paymentgateway", scenarioSearch);
+        Assert.DoesNotContain("orderservice", scenarioSearch);
+    }
+
+    [Fact]
+    public void Data_search_for_parameterized_group_does_not_contain_plantuml_source()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Withdraw $200", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Amount"] = "$200" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the account has funds", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Withdraw $500", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Amount"] = "$500" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the account has funds", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nAccountService -> Ledger : debit\n@enduml"),
+            new DefaultDiagramsFetcher.DiagramAsCode("s2", "", "@startuml\nAccountService -> Ledger : debit\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchNoPlantUmlParam.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // Check both data-search (group level) and data-row-search (row level)
+        var searchValues = ExtractDataSearchValues(content);
+        foreach (var sv in searchValues)
+        {
+            Assert.DoesNotContain("@startuml", sv);
+            Assert.DoesNotContain("accountservice", sv);
+            Assert.DoesNotContain("ledger", sv);
+        }
+
+        var rowSearchValues = Regex.Matches(content, @"data-row-search=""([^""]*)""")
+            .Select(m => m.Groups[1].Value)
+            .ToArray();
+        foreach (var rv in rowSearchValues)
+        {
+            Assert.DoesNotContain("@startuml", rv);
+            Assert.DoesNotContain("accountservice", rv);
+            Assert.DoesNotContain("ledger", rv);
+        }
+    }
+
+    [Fact]
+    public void Report_contains_search_loading_infrastructure()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchLoading.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // The search bar should start disabled
+        Assert.Contains("id=\"searchbar\"", content);
+        var searchBarIdx = content.IndexOf("id=\"searchbar\"");
+        var searchBarRegion = content.Substring(Math.Max(0, searchBarIdx - 50), Math.Min(content.Length - searchBarIdx + 50, 400));
+        Assert.Contains("disabled", searchBarRegion);
+
+        // There should be a loading overlay element
+        Assert.Contains("search-loading-overlay", content);
+
+        // There should be JS that decompresses plantuml-z and enriches data-search
+        Assert.Contains("data-plantuml-z", content);
+        Assert.Contains("enrichSearchData", content);
+    }
 }
