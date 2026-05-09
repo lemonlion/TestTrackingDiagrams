@@ -487,11 +487,25 @@ public class AssertionWeaver
 
             if (hasGetAwaiter)
             {
-                // Find the brtrue (IsCompleted branch) — its target is the merge point
-                // where both sync-completion and async-resume paths converge.
-                getResultInstr = FindGetResultInstruction(statementInstructions);
-                if (getResultInstr != null)
-                    isAwaited = true;
+                // Distinguish between:
+                // A) True assertion-await: await x.Should().ThrowAsync<T>()
+                //    — GetAwaiter is on the assertion chain's result (Task from ThrowAsync)
+                //    — Wrap GetResult() in try/catch (existing WrapAwaitedAssertion logic)
+                // B) Argument-await: x.Should().Be(y, await someTask)
+                //    — GetAwaiter is on a non-assertion Task (argument computation)
+                //    — Cannot safely wrap: statement spans async state machine boundary
+                //    — Skip this assertion (still runs, just not tracked)
+                if (IsGetAwaiterOnAssertionResult(statementInstructions))
+                {
+                    getResultInstr = FindGetResultInstruction(statementInstructions);
+                    if (getResultInstr != null)
+                        isAwaited = true;
+                }
+                else
+                {
+                    // Argument-await: skip — wrapping would produce invalid IL
+                    continue;
+                }
             }
 
             results.Add(new AssertionStatement
@@ -508,6 +522,53 @@ public class AssertionWeaver
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Determines whether the GetAwaiter() call in the statement is on the result of an
+    /// assertion-library method (true assertion-await like <c>await x.Should().ThrowAsync()</c>)
+    /// versus a non-assertion Task (argument-await like <c>x.Should().Be(y, await someTask)</c>).
+    /// Walks backwards from GetAwaiter through the instruction stream, skipping ConfigureAwait,
+    /// and checks if the Task-producing call is on an assertion-library type.
+    /// </summary>
+    private static bool IsGetAwaiterOnAssertionResult(List<Instruction> statementInstructions)
+    {
+        Instruction? getAwaiterInstr = null;
+        foreach (var instr in statementInstructions)
+        {
+            if ((instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt) &&
+                instr.Operand is MethodReference mr && mr.Name == "GetAwaiter")
+            {
+                getAwaiterInstr = instr;
+                break;
+            }
+        }
+
+        if (getAwaiterInstr == null)
+            return false;
+
+        // Walk backwards to find the call that produced the Task/ValueTask
+        var current = getAwaiterInstr.Previous;
+        while (current != null)
+        {
+            if ((current.OpCode == OpCodes.Call || current.OpCode == OpCodes.Callvirt) &&
+                current.Operand is MethodReference mr)
+            {
+                // ConfigureAwait is an intermediate — skip past it
+                if (mr.Name == "ConfigureAwait")
+                {
+                    current = current.Previous;
+                    continue;
+                }
+
+                // This is the Task-producing call. Check if it's on an assertion type.
+                return IsAssertionLibraryType(mr.DeclaringType);
+            }
+
+            current = current.Previous;
+        }
+
+        return false;
     }
 
     /// <summary>

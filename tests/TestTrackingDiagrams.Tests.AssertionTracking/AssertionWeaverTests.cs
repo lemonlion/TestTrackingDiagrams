@@ -1972,4 +1972,136 @@ public class AssertionWeaverTests
             $"{optimization}-compiled async assertion with 'because' param should not throw InvalidProgramException");
     }
 
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_AwaitInsideAssertionArguments_DoesNotThrowInvalidProgram(OptimizationLevel optimization)
+    {
+        // Regression test: async method where the assertion has an await in its arguments.
+        // E.g. response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync())
+        // The await is for the AssERTion ARGUMENT, not for the assertion result.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncAwaitInArg_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    var value = 42;
+                    value.Should().Be(42, await Task.FromResult("because reasons"));
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        // Assertions with await in arguments are skipped (can't safely wrap across await boundary)
+        result.WeavedCount.Should().Be(0);
+
+        // Critical: the weaved assembly must execute without InvalidProgramException
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async assertion with awaited argument should not throw InvalidProgramException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_MixedAwaitAndNormalAssertions_OnlySkipsAwaitedArgAssertions(OptimizationLevel optimization)
+    {
+        // Real-world pattern: async method with both normal assertions and assertions
+        // that have awaited arguments. Normal assertions should still be tracked.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncMixed_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public async Task AssertValidationError()
+                {
+                    var statusCode = 400;
+                    statusCode.Should().Be(400, await Task.FromResult("response body here"));
+                    var problemDetails = await Task.FromResult("problem details");
+                    problemDetails.Should().NotBeNull();
+                    problemDetails.Should().Be("problem details");
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        // First assertion (with await arg) is skipped; the other two are weaved
+        result.WeavedCount.Should().Be(2,
+            "assertions without awaited arguments should still be tracked");
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("AssertValidationError")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled mixed await/normal assertions should not throw InvalidProgramException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_AwaitedSubjectAssertion_DoesNotThrowInvalidProgram(OptimizationLevel optimization)
+    {
+        // Pattern: the assertion subject itself is awaited.
+        // (await someTask).Should().Be(42)
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncAwaitSubject_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Tests
+            {
+                public async Task Method()
+                {
+                    (await Task.FromResult("hello")).Should().Be("hello");
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        // The assembly must execute without InvalidProgramException regardless of tracking
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("Method")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled awaited-subject assertion should not throw InvalidProgramException");
+    }
+
 }

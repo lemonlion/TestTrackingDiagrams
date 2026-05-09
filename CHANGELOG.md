@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.32.2] - 2026-05-09
+
+### Fixed
+- **AssertionTracking `InvalidProgramException` on assertions with awaited arguments (issue #47)** — Assertions like `value.Should().Be(expected, await someTask)` where `await` appears in assertion arguments (not on the assertion result) caused the weaver to misidentify them as awaited assertions and apply `WrapAwaitedAssertion`, producing invalid IL. The weaver now distinguishes between true assertion-awaits (`await x.Should().ThrowAsync<T>()`) and argument-awaits by checking whether `GetAwaiter()` is called on an assertion-library type. Assertions with argument-awaits are skipped (still execute, just not tracked) to avoid invalid IL.
+
 ## [2.32.1] - 2026-05-08
 
 ### Fixed
