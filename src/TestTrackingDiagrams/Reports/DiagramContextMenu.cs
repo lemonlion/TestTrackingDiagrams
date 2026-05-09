@@ -544,6 +544,7 @@ public static class DiagramContextMenu
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
                             if (window._preProcessSource) source = window._preProcessSource(el, source);
+                            el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
                             processQueue();
                         } else if (el.hasAttribute('data-plantuml-z')) {
@@ -551,6 +552,7 @@ public static class DiagramContextMenu
                                 el.setAttribute('data-plantuml', decoded);
                                 var src = decoded;
                                 if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                el.setAttribute('data-plantuml', src);
                                 renderQueue.push({ el: el, source: src });
                                 processQueue();
                             }).catch(function() { el.textContent = 'Decompression error'; });
@@ -574,6 +576,7 @@ public static class DiagramContextMenu
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
                             if (window._preProcessSource) source = window._preProcessSource(el, source);
+                            el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
                             processQueue();
                         } else if (el.hasAttribute('data-plantuml-z')) {
@@ -581,6 +584,7 @@ public static class DiagramContextMenu
                                 el.setAttribute('data-plantuml', decoded);
                                 var src = decoded;
                                 if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                el.setAttribute('data-plantuml', src);
                                 renderQueue.push({ el: el, source: src });
                                 processQueue();
                             }).catch(function() { el.textContent = 'Decompression error'; });
@@ -600,12 +604,14 @@ public static class DiagramContextMenu
                         var source = el.getAttribute('data-plantuml');
                         if (source) {
                             if (window._preProcessSource) source = window._preProcessSource(el, source);
+                            el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
                         } else if (el.hasAttribute('data-plantuml-z')) {
                             decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
                                 el.setAttribute('data-plantuml', decoded);
                                 var src = decoded;
                                 if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                el.setAttribute('data-plantuml', src);
                                 renderQueue.push({ el: el, source: src });
                                 processQueue();
                             }).catch(function() { el.textContent = 'Decompression error'; });

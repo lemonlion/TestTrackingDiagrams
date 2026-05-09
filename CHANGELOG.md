@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.15] - 2026-05-09
+
+### Fixed
+- **Context menu missing "Open current PlantUML" option after initial render** — When notes were collapsed or truncated on initial render (via `_preProcessSource`), the `data-plantuml` attribute was not updated to reflect the current rendered source. The context menu compared `_noteOriginalSource` with `data-plantuml` and found them equal, so it showed a single "Open PlantUML source in new tab" link instead of the submenu with both "Open full" and "Open current" options. Fixed by syncing `data-plantuml` after pre-processing in all three initial render paths (IntersectionObserver, `_renderDiagramsInContainer`, and first-scenario preload).
+
 ## [2.33.14] - 2026-05-09
 
 ### Fixed
