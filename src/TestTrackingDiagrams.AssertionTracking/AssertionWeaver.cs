@@ -1801,10 +1801,18 @@ public class AssertionWeaver
         // that the CLR verifier rejects with InvalidProgramException. This occurs in
         // degenerate async state machines (no await) where the compiler's outer try/catch
         // starts directly at the first user code instruction — in both Debug and Release builds.
+        //
+        // Also retarget HandlerEnd: if an existing handler's HandlerEnd references firstInstr,
+        // our tryStart nop falls inside that handler's metadata region [HandlerStart, HandlerEnd).
+        // A lock statement's try/finally compiles with HandlerEnd pointing to the first
+        // instruction after the finally block — which is our assertion's firstInstr. Without
+        // this retarget, our try/catch starts inside the lock's finally region. Issue #53.
         foreach (var existingHandler in body.ExceptionHandlers)
         {
             if (existingHandler.TryStart == firstInstr)
                 existingHandler.TryStart = tryStart;
+            if (existingHandler.HandlerEnd == firstInstr)
+                existingHandler.HandlerEnd = tryStart;
         }
 
         // Fix branch-into-try: any branch/leave from outside our try region that targets
@@ -2243,6 +2251,8 @@ public class AssertionWeaver
         {
             if (existingHandler.TryStart == mergeStart)
                 existingHandler.TryStart = tryStart;
+            if (existingHandler.HandlerEnd == mergeStart)
+                existingHandler.HandlerEnd = tryStart;
         }
 
         // After mergeEnd (GetResult + optional pop), emit AssertionPassed + leave

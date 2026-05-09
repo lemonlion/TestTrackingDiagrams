@@ -2634,4 +2634,65 @@ public class AssertionWeaverTests
         var ex2 = Record.Exception(() => method.Invoke(instance, argsSpecified));
         ex2.Should().BeNull($"method with out param + struct + ternary should not throw in {optimization} mode (specified struct)");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_LockThenAssertionWithLambda_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #53: lock statement's try/finally handler has HandlerEnd == firstInstr of
+        // the assertion after the lock. Inserting tryStart nop before firstInstr places it
+        // inside the finally handler's metadata region, creating an illegal overlap.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"LockThenAssert{optimization}",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Then
+            {
+                private readonly object _lock = new object();
+                private readonly List<KeyValuePair<string, string>> _items = new()
+                {
+                    new("host", "localhost"),
+                    new("port", "8080"),
+                };
+
+                public Then ShouldContainTag(string tag, string value)
+                {
+                    KeyValuePair<string, string>[] snapshot;
+                    lock (_lock)
+                    {
+                        snapshot = _items.ToArray();
+                    }
+                    snapshot.Should().Contain(item => ItemMatchesTag(item, tag, value));
+                    return this;
+                }
+
+                private bool ItemMatchesTag(KeyValuePair<string, string> item, string tagName, string tagValue) =>
+                    item.Key == tagName && item.Value == tagValue;
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThan(0);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Then")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("ShouldContainTag")!;
+
+        var testId = $"LockThenAssert{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        // Should NOT throw InvalidProgramException
+        var ex = Record.Exception(() => method.Invoke(instance, new object[] { "host", "localhost" }));
+        ex.Should().BeNull($"lock-then-assertion with lambda should not throw in {optimization} mode");
+    }
 }

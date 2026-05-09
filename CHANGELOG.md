@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.12] - 2026-05-09
+
+### Fixed
+- **AssertionTracking: InvalidProgramException when assertion follows a `lock` statement (issue #53)** — A `lock` block compiles to a try/finally with `Monitor.Enter`/`Exit`. The finally handler's `HandlerEnd` metadata points to the first instruction after the lock — which is the assertion's first instruction. When the weaver inserted its `tryStart` nop before that instruction, the nop fell inside the lock's finally handler region `[HandlerStart, HandlerEnd)`, causing our try/catch to start inside the finally — an illegal overlap rejected by the CLR verifier. The fix retargets `HandlerEnd` of any existing handler that references the assertion's first instruction, so the handler ends before our try block begins.
+
 ## [2.33.11] - 2026-06-05
 
 ### Fixed
