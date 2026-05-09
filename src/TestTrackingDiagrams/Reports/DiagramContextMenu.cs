@@ -2898,7 +2898,7 @@ public static class DiagramContextMenu
                     if (shown) b.classList.add('details-active');
                     else b.classList.remove('details-active');
                     var label = toggleName.charAt(0).toUpperCase() + toggleName.slice(1);
-                    b.textContent = (shown ? 'Hide ' : 'Show ') + label;
+                    b.textContent = label + (shown ? ' Shown' : ' Hidden');
                 });
             }
 

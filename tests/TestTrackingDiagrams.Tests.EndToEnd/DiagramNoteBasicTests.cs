@@ -109,7 +109,7 @@ public class DiagramNoteBasicTests : DiagramNotePlaywrightBase
 
         var headersBtn = Page.Locator(".diagram-toggle .toggle-btn[data-toggle='headers']").First;
         await Expect(headersBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("details-active"));
-        await Expect(headersBtn).ToHaveTextAsync("Hide Headers");
+        await Expect(headersBtn).ToHaveTextAsync("Headers Shown");
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class DiagramNoteBasicTests : DiagramNotePlaywrightBase
 
         var headersBtn = Page.Locator(".diagram-toggle .toggle-btn[data-toggle='headers']").First;
         await headersBtn.ClickAsync();
-        await Expect(headersBtn).ToHaveTextAsync("Show Headers");
+        await Expect(headersBtn).ToHaveTextAsync("Headers Hidden");
         var headersBtnClass = await headersBtn.GetAttributeAsync("class");
         Assert.DoesNotContain("details-active", headersBtnClass!);
     }

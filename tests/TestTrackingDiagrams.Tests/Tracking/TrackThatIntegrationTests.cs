@@ -68,7 +68,7 @@ public class TrackThatIntegrationTests : IDisposable
 
         var content = File.ReadAllText(html);
         Assert.Contains("data-toggle=\"assertions\"", content);
-        Assert.Contains("Show Assertions", content);
+        Assert.Contains("Assertions Hidden", content);
     }
 
     [Fact]

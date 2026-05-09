@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.7] - 2026-05-09
+
+### Changed
+- **Toggle button labels changed from imperative to state-based** — Report toolbar toggle buttons now use state-based labels ("Headers Shown" / "Headers Hidden", "Assertions Shown" / "Assertions Hidden", "Steps Shown" / "Steps Hidden") instead of the previous imperative labels ("Hide Headers" / "Show Headers", etc.).
+
 ## [2.33.6] - 2026-05-09
 
 ### Changed
