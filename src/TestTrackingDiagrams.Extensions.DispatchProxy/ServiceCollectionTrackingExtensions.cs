@@ -43,14 +43,16 @@ public static class ServiceCollectionTrackingExtensions
         string serviceName,
         Func<(string Name, string Id)>? testInfoFetcher = null,
         TrackingLogMode logMode = TrackingLogMode.Immediate,
-        IHttpContextAccessor? httpContextAccessor = null) where TService : class
+        IHttpContextAccessor? httpContextAccessor = null,
+        string? dependencyCategory = null) where TService : class
     {
         return services.ReplaceWithTracked(implementation, new TrackingProxyOptions
         {
             ServiceName = serviceName,
             CurrentTestInfoFetcher = testInfoFetcher,
             LogMode = logMode,
-            HttpContextAccessor = httpContextAccessor
+            HttpContextAccessor = httpContextAccessor,
+            DependencyCategory = dependencyCategory
         });
     }
 }

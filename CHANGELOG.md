@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.34] - 2025-07-12
+
+### Added
+- **`dependencyCategory` parameter on `ReplaceWithTracked` simplified overload** — The simplified `ReplaceWithTracked<TService>()` extension method in `TestTrackingDiagrams.Extensions.DispatchProxy` now accepts an optional `string? dependencyCategory` parameter, forwarding it to `TrackingProxyOptions.DependencyCategory`. Previously, only the full `TrackingProxyOptions` overload supported dependency categories for component diagram participant shapes and colours.
+
 ## [2.33.33] - 2025-07-12
 
 ### Fixed

@@ -34,6 +34,7 @@
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj" />
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.ReqNRoll.TUnit\TestTrackingDiagrams.ReqNRoll.TUnit.csproj" />
     <ProjectReference Include="..\..\src\TestTrackingDiagrams.LightBDD.xUnit3\TestTrackingDiagrams.LightBDD.xUnit3.csproj" />
+    <ProjectReference Include="..\..\src\TestTrackingDiagrams.Extensions.DispatchProxy\TestTrackingDiagrams.Extensions.DispatchProxy.csproj" />
   </ItemGroup>
 
   <ItemGroup>
