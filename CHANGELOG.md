@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.41] - 2026-05-10
+
+### Fixed
+- **Search data enrichment no longer freezes the browser on large reports** — Three blocking bottlenecks were identified and fixed in `enrichSearchData()`: (1) **Worker flooding** — all 44 collection batches were sent to the Worker simultaneously via rapid `setTimeout(0)` calls, causing 44 concurrent decompression chains and a flood of ~88 `onmessage` callbacks on the main thread. Now uses a serial pipeline: one batch is sent, the Worker processes it, returns results, then the next batch is collected and sent. The main thread does ~5ms of work per batch and is idle while the Worker runs. (2) **Expensive DOM queries in flush** — `flushSearchData` called `document.querySelector('[data-row-id="..."]')` for every unique row, which is a full document scan on a 102MB DOM (~2M+ nodes). With 100-500 rows at 50-200ms each, this alone caused 5-50 seconds of blocking JavaScript. Now caches element references during the collection phase and uses them directly during flush, eliminating all DOM queries. (3) **O(n²) string concatenation** — `accumulateResults` used `string += ' ' + text` which copies progressively larger strings for scenarios with many diagrams. Now uses array `push()` during accumulation and `join(' ')` at flush time.
+
 ## [2.33.40] - 2026-05-10
 
 ### Changed

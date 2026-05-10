@@ -1356,6 +1356,8 @@ public static class ReportGenerator
                       return;
                   }
 
+                  var scenarioEls = {};
+                  var rowEls = {};
                   var scenarioTexts = {};
                   var rowTexts = {};
                   var collectIdx = 0;
@@ -1372,12 +1374,14 @@ public static class ReportGenerator
                           if (scenario) {
                               sid = scenario.id || ('__s' + i);
                               if (!scenario.id) scenario.id = sid;
+                              if (!scenarioEls[sid]) scenarioEls[sid] = scenario;
                           }
                           var row = el.closest('tr[data-row-search]');
                           var rid = null;
                           if (row) {
                               rid = row.getAttribute('data-row-id') || ('__r' + i);
                               if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
+                              if (!rowEls[rid]) rowEls[rid] = row;
                           }
                           batch.push({ b64: b64, sid: sid, rid: rid });
                       }
@@ -1396,8 +1400,14 @@ public static class ReportGenerator
                   function accumulateResults(results) {
                       for (var i = 0; i < results.length; i++) {
                           var r = results[i];
-                          if (r.sid) scenarioTexts[r.sid] = (scenarioTexts[r.sid] || '') + ' ' + r.text;
-                          if (r.rid) rowTexts[r.rid] = (rowTexts[r.rid] || '') + ' ' + r.text;
+                          if (r.sid) {
+                              if (!scenarioTexts[r.sid]) scenarioTexts[r.sid] = [];
+                              scenarioTexts[r.sid].push(r.text);
+                          }
+                          if (r.rid) {
+                              if (!rowTexts[r.rid]) rowTexts[r.rid] = [];
+                              rowTexts[r.rid].push(r.text);
+                          }
                       }
                   }
 
@@ -1411,25 +1421,27 @@ public static class ReportGenerator
                           var count = 0;
                           while (si < sids.length && count < FLUSH_BATCH) {
                               var sid = sids[si++];
-                              var el = document.getElementById(sid);
+                              var el = scenarioEls[sid];
                               if (el) {
                                   var existing = el.getAttribute('data-search') || '';
-                                  el.setAttribute('data-search', existing + scenarioTexts[sid]);
+                                  el.setAttribute('data-search', existing + ' ' + scenarioTexts[sid].join(' '));
                               }
                               count++;
                           }
                           while (ri < rids.length && count < FLUSH_BATCH) {
                               var rid = rids[ri++];
-                              var el = document.querySelector('[data-row-id="' + rid + '"]');
+                              var el = rowEls[rid];
                               if (el) {
                                   var existing = el.getAttribute('data-row-search') || '';
-                                  el.setAttribute('data-row-search', existing + rowTexts[rid]);
+                                  el.setAttribute('data-row-search', existing + ' ' + rowTexts[rid].join(' '));
                               }
                               count++;
                           }
                           if (si < sids.length || ri < rids.length) {
                               setTimeout(flushBatch, 0);
                           } else {
+                              scenarioEls = null;
+                              rowEls = null;
                               onEnrichComplete();
                           }
                       }
@@ -1442,7 +1454,7 @@ public static class ReportGenerator
                           '    var items = e.data;',
                           '    var batchResults = [];',
                           '    var idx = 0;',
-                          '    var BATCH = 100;',
+                          '    var BATCH = 50;',
                           '    function decompress(base64) {',
                           '        var raw = atob(base64);',
                           '        var bytes = new Uint8Array(raw.length);',
@@ -1462,10 +1474,10 @@ public static class ReportGenerator
                           '        }',
                           '        idx = end;',
                           '        Promise.all(promises).then(function() {',
-                          '            self.postMessage(batchResults);',
-                          '            batchResults = [];',
                           '            if (idx < items.length) {',
                           '                processBatch();',
+                          '            } else {',
+                          '                self.postMessage(batchResults);',
                           '            }',
                           '        });',
                           '    }',
@@ -1479,13 +1491,20 @@ public static class ReportGenerator
                           enrichWithFallback();
                           return;
                       }
-                      var pending = 0;
-                      var allCollected = false;
 
                       worker.onmessage = function(e) {
                           accumulateResults(e.data);
-                          pending--;
-                          if (allCollected && pending === 0) {
+                          if (collectIdx < elements.length) {
+                              setTimeout(function() {
+                                  var batch = collectBatch();
+                                  if (batch.length > 0) {
+                                      worker.postMessage(batch);
+                                  } else {
+                                      worker.terminate();
+                                      flushSearchData();
+                                  }
+                              }, 0);
+                          } else {
                               worker.terminate();
                               flushSearchData();
                           }
@@ -1495,66 +1514,49 @@ public static class ReportGenerator
                           enrichWithFallback();
                       };
 
-                      function sendNextBatch() {
-                          var batch = collectBatch();
-                          if (batch.length > 0) {
-                              pending++;
-                              worker.postMessage(batch);
-                          }
-                          if (collectIdx < elements.length) {
-                              setTimeout(sendNextBatch, 0);
-                          } else {
-                              allCollected = true;
-                              if (pending === 0) {
-                                  worker.terminate();
-                                  flushSearchData();
-                              }
-                          }
+                      var batch = collectBatch();
+                      if (batch.length > 0) {
+                          worker.postMessage(batch);
                       }
-                      sendNextBatch();
                   }
 
                   function enrichWithFallback() {
                       var BATCH = 10;
-                      var allItems = [];
 
-                      function collectAndDecompress() {
-                          var batch = collectBatch();
-                          for (var k = 0; k < batch.length; k++) allItems.push(batch[k]);
-                          if (collectIdx < elements.length) {
-                              setTimeout(collectAndDecompress, 0);
-                          } else {
-                              decompressIdx = 0;
-                              processDecompressBatch();
+                      function processNextChunk() {
+                          if (collectIdx >= elements.length) {
+                              flushSearchData();
+                              return;
                           }
-                      }
+                          var collected = collectBatch();
+                          var didx = 0;
 
-                      var decompressIdx = 0;
-                      function processDecompressBatch() {
-                          var end = Math.min(decompressIdx + BATCH, allItems.length);
-                          var promises = [];
-                          for (var i = decompressIdx; i < end; i++) {
-                              (function(j) {
-                                  promises.push(
-                                      decompress(allItems[j].b64).then(function(decoded) {
-                                          var text = decoded.toLowerCase();
-                                          if (allItems[j].sid) scenarioTexts[allItems[j].sid] = (scenarioTexts[allItems[j].sid] || '') + ' ' + text;
-                                          if (allItems[j].rid) rowTexts[allItems[j].rid] = (rowTexts[allItems[j].rid] || '') + ' ' + text;
-                                      }).catch(function() {})
-                                  );
-                              })(i);
-                          }
-                          decompressIdx = end;
-                          Promise.all(promises).then(function() {
-                              if (decompressIdx < allItems.length) {
-                                  setTimeout(processDecompressBatch, 0);
-                              } else {
-                                  flushSearchData();
+                          function decompressSub() {
+                              var end = Math.min(didx + BATCH, collected.length);
+                              var promises = [];
+                              for (var i = didx; i < end; i++) {
+                                  (function(j) {
+                                      promises.push(
+                                          decompress(collected[j].b64).then(function(decoded) {
+                                              accumulateResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
+                                          }).catch(function() {})
+                                      );
+                                  })(i);
                               }
-                          });
+                              didx = end;
+                              Promise.all(promises).then(function() {
+                                  if (didx < collected.length) {
+                                      setTimeout(decompressSub, 0);
+                                  } else {
+                                      setTimeout(processNextChunk, 0);
+                                  }
+                              });
+                          }
+
+                          decompressSub();
                       }
 
-                      collectAndDecompress();
+                      processNextChunk();
                   }
 
                   if (typeof Worker !== 'undefined') {
