@@ -94,7 +94,7 @@ public class FlattenToggleTests : PlaywrightTestBase
     // ── Toggle button presence ──
 
     [Fact]
-    public async Task Flatten_toggle_button_renders_with_plus()
+    public async Task Flatten_toggle_button_renders_with_minus_when_flat_is_default()
     {
         await Page.GotoAsync(GenerateFlatReport("FlatToggleRender.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -106,13 +106,13 @@ public class FlattenToggleTests : PlaywrightTestBase
         var toggleBtn = group.Locator("button.flatten-toggle").First;
         await Expect(toggleBtn).ToBeVisibleAsync();
         var text = await toggleBtn.InnerTextAsync();
-        Assert.Equal("+", text.Trim());
+        Assert.Equal("\u2212", text.Trim()); // Unicode minus — flat table visible by default
     }
 
     // ── Default visibility ──
 
     [Fact]
-    public async Task Grouped_table_visible_by_default_flat_hidden()
+    public async Task Flat_table_visible_by_default_grouped_hidden()
     {
         await Page.GotoAsync(GenerateFlatReport("FlatDefaultVisibility.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -124,14 +124,14 @@ public class FlattenToggleTests : PlaywrightTestBase
         var grouped = group.Locator("table.param-table-grouped").First;
         var flat = group.Locator("table.param-table-flat").First;
 
-        await Expect(grouped).ToBeVisibleAsync();
-        await Expect(flat).ToBeHiddenAsync();
+        await Expect(flat).ToBeVisibleAsync();
+        await Expect(grouped).ToBeHiddenAsync();
     }
 
     // ── Toggle click shows flat, hides grouped ──
 
     [Fact]
-    public async Task Toggle_click_shows_flat_table_hides_grouped()
+    public async Task Toggle_click_shows_grouped_table_hides_flat()
     {
         await Page.GotoAsync(GenerateFlatReport("FlatToggleClick.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -143,23 +143,23 @@ public class FlattenToggleTests : PlaywrightTestBase
         var grouped = group.Locator("table.param-table-grouped").First;
         var flat = group.Locator("table.param-table-flat").First;
 
-        // Click + toggle
+        // Click − toggle (flat is default, so first visible button is −)
         var toggleBtn = group.Locator("button.flatten-toggle").First;
         await toggleBtn.ClickAsync();
 
-        await Expect(grouped).ToBeHiddenAsync();
-        await Expect(flat).ToBeVisibleAsync();
+        await Expect(flat).ToBeHiddenAsync();
+        await Expect(grouped).ToBeVisibleAsync();
 
-        // Flat table toggle should show − (minus)
-        var flatToggle = group.Locator("table.param-table-flat button.flatten-toggle").First;
-        var minusText = await flatToggle.InnerTextAsync();
-        Assert.Equal("\u2212", minusText.Trim()); // Unicode minus sign
+        // Grouped table toggle should show + (plus)
+        var groupedToggle = group.Locator("table.param-table-grouped button.flatten-toggle").First;
+        var plusText = await groupedToggle.InnerTextAsync();
+        Assert.Equal("+", plusText.Trim());
     }
 
     // ── Toggle back restores grouped ──
 
     [Fact]
-    public async Task Toggle_twice_restores_grouped_view()
+    public async Task Toggle_twice_restores_flat_view()
     {
         await Page.GotoAsync(GenerateFlatReport("FlatToggleTwice.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -171,14 +171,14 @@ public class FlattenToggleTests : PlaywrightTestBase
         var grouped = group.Locator("table.param-table-grouped").First;
         var flat = group.Locator("table.param-table-flat").First;
 
-        // Click + to show flat
+        // Click − to show grouped
         await group.Locator("button.flatten-toggle").First.ClickAsync();
-        await Expect(flat).ToBeVisibleAsync();
-
-        // Click − on flat to restore grouped
-        await group.Locator("table.param-table-flat button.flatten-toggle").First.ClickAsync();
         await Expect(grouped).ToBeVisibleAsync();
-        await Expect(flat).ToBeHiddenAsync();
+
+        // Click + on grouped to restore flat
+        await group.Locator("table.param-table-grouped button.flatten-toggle").First.ClickAsync();
+        await Expect(flat).ToBeVisibleAsync();
+        await Expect(grouped).ToBeHiddenAsync();
     }
 
     // ── Flat table has original column headers ──
@@ -193,8 +193,7 @@ public class FlattenToggleTests : PlaywrightTestBase
         var group = Page.Locator("details.scenario-parameterized");
         await group.Locator("summary").First.ClickAsync();
 
-        // Show flat table
-        await group.Locator("button.flatten-toggle").First.ClickAsync();
+        // Flat table is visible by default — no toggle click needed
 
         var flatHeaders = group.Locator("table.param-table-flat th.sub-header");
         var headerCount = await flatHeaders.CountAsync();
@@ -221,8 +220,7 @@ public class FlattenToggleTests : PlaywrightTestBase
         var group = Page.Locator("details.scenario-parameterized");
         await group.Locator("summary").First.ClickAsync();
 
-        // Show flat table
-        await group.Locator("button.flatten-toggle").First.ClickAsync();
+        // Flat table is visible by default — no toggle click needed
 
         var flatRows = group.Locator("table.param-table-flat tbody tr");
         Assert.Equal(3, await flatRows.CountAsync());
@@ -246,18 +244,18 @@ public class FlattenToggleTests : PlaywrightTestBase
         var group = Page.Locator("details.scenario-parameterized");
         await group.Locator("summary").First.ClickAsync();
 
-        // Click the second row in grouped table
-        var groupedRows = group.Locator("table.param-table-grouped tbody tr");
-        await groupedRows.Nth(1).ClickAsync();
-        await Expect(groupedRows.Nth(1)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
+        // Click the second row in the flat table (visible by default)
+        var flatRows = group.Locator("table.param-table-flat tbody tr");
+        await flatRows.Nth(1).ClickAsync();
+        await Expect(flatRows.Nth(1)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
 
-        // Toggle to flat
+        // Toggle to grouped
         await group.Locator("button.flatten-toggle").First.ClickAsync();
 
-        // Second row in flat table should be active
-        var flatRows = group.Locator("table.param-table-flat tbody tr");
-        await Expect(flatRows.Nth(1)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
-        await Expect(flatRows.Nth(0)).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
+        // Second row in grouped table should be active
+        var groupedRows = group.Locator("table.param-table-grouped tbody tr");
+        await Expect(groupedRows.Nth(1)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
+        await Expect(groupedRows.Nth(0)).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("row-active"));
     }
 
     // ── Clicking flat row switches detail panel ──
@@ -272,8 +270,7 @@ public class FlattenToggleTests : PlaywrightTestBase
         var group = Page.Locator("details.scenario-parameterized");
         await group.Locator("summary").First.ClickAsync();
 
-        // Toggle to flat view
-        await group.Locator("button.flatten-toggle").First.ClickAsync();
+        // Flat view is visible by default — no toggle click needed
 
         var panels = group.Locator(".param-detail-panel");
         await Expect(panels.Nth(0)).ToBeVisibleAsync();
@@ -290,12 +287,12 @@ public class FlattenToggleTests : PlaywrightTestBase
     // ── Search skips hidden flat table rows ──
 
     [Fact]
-    public async Task Search_does_not_match_hidden_flat_table_rows()
+    public async Task Search_does_not_match_hidden_grouped_table_rows()
     {
         await Page.GotoAsync(GenerateFlatReport("FlatSearchSkip.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
-        // Search for a flat-only value (RecipeName = "Classic") while flat table is hidden
+        // Search for a value while grouped table is hidden (flat is default)
         await FillSearchBar("Classic");
 
         // Wait a moment for search to process
@@ -305,9 +302,8 @@ public class FlattenToggleTests : PlaywrightTestBase
         // Re-trigger search to ensure it runs
         await Page.Locator("#searchbar").DispatchEventAsync("keyup");
 
-        // The flat table rows should NOT be matched (they're in a hidden table)
-        // "Classic" only appears in the flat table, not the grouped table
-        var matchedCount = await Page.Locator("table.param-table-flat tr.row-search-match").CountAsync();
+        // The grouped table rows should NOT be matched (they're in a hidden table)
+        var matchedCount = await Page.Locator("table.param-table-grouped tr.row-search-match").CountAsync();
         Assert.Equal(0, matchedCount);
     }
 

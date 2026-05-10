@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.40] - 2026-05-10
+
+### Changed
+- **Flat parameter table is now the default view for ReqNRoll parameterized tests** — When `ExampleFlatValues` are available (ReqNRoll scenarios with Gherkin Examples tables), the flat table showing original scalar columns is now displayed by default instead of the grouped/structured view. The grouped table starts hidden and can be revealed by clicking the toggle button. This provides a more intuitive default since the flat columns match the original Gherkin Examples table.
+
 ## [2.33.39] - 2026-05-10
 
 ### Fixed

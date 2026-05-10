@@ -1197,7 +1197,7 @@ public class ParameterizedGroupRenderTests
     }
 
     [Fact]
-    public void Flat_table_is_hidden_by_default()
+    public void Grouped_table_is_hidden_by_default_when_flat_view_available()
     {
         var scenarios = new[]
         {
@@ -1210,14 +1210,21 @@ public class ParameterizedGroupRenderTests
         };
         var content = GenerateReport(MakeFeature(scenarios));
 
-        // Find the flat table element (in the HTML body, not CSS)
-        // The pattern is: <table class="param-test-table param-table-flat" ... style="display:none">
-        var marker = "<table class=\"param-test-table param-table-flat\"";
-        var flatIdx = content.IndexOf(marker);
+        // Grouped table should be hidden by default
+        var groupedMarker = "<table class=\"param-test-table param-table-grouped\"";
+        var groupedIdx = content.IndexOf(groupedMarker);
+        Assert.True(groupedIdx >= 0, "grouped table element not found");
+        var groupedTagEnd = content.IndexOf(">", groupedIdx);
+        var groupedTag = content.Substring(groupedIdx, groupedTagEnd - groupedIdx + 1);
+        Assert.Contains("display:none", groupedTag);
+
+        // Flat table should be visible by default (no display:none)
+        var flatMarker = "<table class=\"param-test-table param-table-flat\"";
+        var flatIdx = content.IndexOf(flatMarker);
         Assert.True(flatIdx >= 0, "flat table element not found");
-        var tagEnd = content.IndexOf(">", flatIdx);
-        var tableTag = content.Substring(flatIdx, tagEnd - flatIdx + 1);
-        Assert.Contains("display:none", tableTag);
+        var flatTagEnd = content.IndexOf(">", flatIdx);
+        var flatTag = content.Substring(flatIdx, flatTagEnd - flatIdx + 1);
+        Assert.DoesNotContain("display:none", flatTag);
     }
 
     [Fact]

@@ -2645,7 +2645,8 @@ public static class ReportGenerator
         var hasFlatView = group.FlatParameterNames is { Length: > 0 };
         if (hasFlatView) body.Append("<div class=\"param-table-wrapper\">");
         var groupedTableClass = hasFlatView ? " param-table-grouped" : "";
-        body.Append($"<table class=\"param-test-table{groupedTableClass}\" data-prefix=\"{prefix}\"><thead>");
+        var groupedStyle = hasFlatView ? " style=\"display:none\"" : "";
+        body.Append($"<table class=\"param-test-table{groupedTableClass}\"{groupedStyle} data-prefix=\"{prefix}\"><thead>");
         if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
         {
             // R1/R2: Two-row header with master "Input Parameters" header
@@ -2770,7 +2771,7 @@ public static class ReportGenerator
         if (hasFlatView)
         {
             var flatNames = group.FlatParameterNames!;
-            body.Append($"<table class=\"param-test-table param-table-flat\" data-prefix=\"{prefix}\" style=\"display:none\"><thead>");
+            body.Append($"<table class=\"param-test-table param-table-flat\" data-prefix=\"{prefix}\"><thead>");
             body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
             body.Append($"<th colspan=\"{flatNames.Length}\" class=\"master-header\"><button class=\"flatten-toggle\" onclick=\"toggleFlattenParams(this,'{prefix}')\" title=\"Show grouped columns\">\u2212</button>Input Parameters</th>");
             body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
