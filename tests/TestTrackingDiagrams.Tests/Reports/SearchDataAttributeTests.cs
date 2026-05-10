@@ -601,10 +601,10 @@ public class SearchDataAttributeTests
         var enrichBody = content[enrichIdx..enrichEnd];
 
         // Worker must receive items in batches (not all at once) and stream back
-        // results per-batch to avoid synchronous structured clone overhead
+        // results per sub-batch to avoid large structured clone overhead
         Assert.Contains("postMessage", enrichBody);
-        // Worker should post results per batch, not accumulate all results
-        Assert.Contains("self.postMessage(batch", enrichBody);
+        // Worker should stream results per sub-batch with a done flag
+        Assert.Contains("self.postMessage({ results:", enrichBody);
     }
 
     [Fact]
@@ -642,11 +642,11 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // flushSearchData must yield between chunks of DOM writes
-        var flushIdx = enrichBody.IndexOf("function flushSearchData");
-        Assert.True(flushIdx >= 0, "flushSearchData function should exist");
+        // flushResults must write search data to DOM immediately per worker batch
+        var flushIdx = enrichBody.IndexOf("function flushResults");
+        Assert.True(flushIdx >= 0, "flushResults function should exist");
         var flushBody = enrichBody[flushIdx..];
-        Assert.Contains("setTimeout", flushBody);
+        Assert.Contains("setAttribute", flushBody);
     }
 
     [Fact]
@@ -680,14 +680,14 @@ public class SearchDataAttributeTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
-        // Search text should be accumulated in memory and flushed once per element,
-        // not incrementally appended via setAttribute inside each decompress callback.
+        // Search text should be flushed to DOM immediately per worker batch
+        // via flushResults, not accumulated in memory first
         var enrichIdx = content.IndexOf("function enrichSearchData");
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // The main thread should flush accumulated results to the DOM
-        Assert.Contains("flushSearchData", enrichBody);
+        // The main thread should flush results to the DOM via flushResults
+        Assert.Contains("flushResults", enrichBody);
         Assert.Contains("setAttribute", enrichBody);
     }
 }

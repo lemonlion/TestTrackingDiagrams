@@ -8,7 +8,7 @@ public class StepTableToggleTests : PlaywrightTestBase
     public StepTableToggleTests(PlaywrightFixture fixture) : base(fixture) { }
 
     [Fact]
-    public async Task Toggle_button_renders_with_up_arrow()
+    public async Task Toggle_button_renders_with_param_name()
     {
         await Page.GotoAsync(GenerateReportWithStepTableToggle("StepToggleRender.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -17,18 +17,17 @@ public class StepTableToggleTests : PlaywrightTestBase
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
 
-        // The toggle button should exist with "recipe ▴" text
+        // The toggle button should exist with the param name
         var toggleBtn = Page.Locator("button.step-table-ref");
         await toggleBtn.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
         var text = await toggleBtn.First.InnerTextAsync();
         Assert.Contains("recipe", text);
-        Assert.Contains("\u25B4", text); // ▴ up-pointing triangle
     }
 
     [Fact]
-    public async Task Toggle_button_click_collapses_table()
+    public async Task Toggle_button_click_scrolls_and_highlights_table()
     {
-        await Page.GotoAsync(GenerateReportWithStepTableToggle("StepToggleCollapse.html"));
+        await Page.GotoAsync(GenerateReportWithStepTableToggle("StepToggleHighlight.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
@@ -37,23 +36,27 @@ public class StepTableToggleTests : PlaywrightTestBase
         var toggleBtn = Page.Locator("button.step-table-ref").First;
         await toggleBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
 
-        // Table should be visible before toggling
+        // Table should be visible (always visible, no collapse)
         var table = Page.Locator(".step-param-table[data-param='recipe']").First;
         await Expect(table).ToBeVisibleAsync();
 
-        // Click toggle — table should become hidden (collapsed)
+        // Click toggle — table should get highlight class
         await toggleBtn.ClickAsync();
 
-        await Expect(table).ToBeHiddenAsync();
-        // Arrow should change to down-pointing
-        var text = await toggleBtn.InnerTextAsync();
-        Assert.Contains("\u25BE", text); // ▾ down-pointing triangle
+        // The table itself gets the highlight class (per-step table, no data-param cells)
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelector('.step-param-table[data-param=\"recipe\"]')?.classList.contains('step-param-highlight')",
+            null,
+            new() { Timeout = 5000, PollingInterval = 200 });
+
+        // Table should still be visible
+        await Expect(table).ToBeVisibleAsync();
     }
 
     [Fact]
-    public async Task Toggle_button_click_twice_restores_table()
+    public async Task Toggle_button_highlight_fades_after_timeout()
     {
-        await Page.GotoAsync(GenerateReportWithStepTableToggle("StepToggleRestore.html"));
+        await Page.GotoAsync(GenerateReportWithStepTableToggle("StepToggleFade.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
@@ -62,19 +65,20 @@ public class StepTableToggleTests : PlaywrightTestBase
         var toggleBtn = Page.Locator("button.step-table-ref").First;
         await toggleBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
 
-        var table = Page.Locator(".step-param-table[data-param='recipe']").First;
-
-        // Click once — collapse
+        // Click to trigger highlight
         await toggleBtn.ClickAsync();
-        await Expect(table).ToBeHiddenAsync();
 
-        // Click again — expand
-        await toggleBtn.ClickAsync();
-        await Expect(table).ToBeVisibleAsync();
+        // Wait for highlight to appear
+        await Page.WaitForFunctionAsync(
+            "() => document.querySelector('.step-param-table[data-param=\"recipe\"]')?.classList.contains('step-param-highlight')",
+            null,
+            new() { Timeout = 5000, PollingInterval = 200 });
 
-        // Arrow should be back to up-pointing
-        var text = await toggleBtn.InnerTextAsync();
-        Assert.Contains("\u25B4", text); // ▴
+        // Wait for highlight to be removed after timeout (1.5s)
+        await Page.WaitForFunctionAsync(
+            "() => !document.querySelector('.step-param-table[data-param=\"recipe\"]')?.classList.contains('step-param-highlight')",
+            null,
+            new() { Timeout = 5000, PollingInterval = 200 });
     }
 
     [Fact]

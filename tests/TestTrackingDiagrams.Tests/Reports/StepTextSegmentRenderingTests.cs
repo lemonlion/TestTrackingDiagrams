@@ -276,17 +276,14 @@ public class StepTextSegmentRenderingTests
 
         var content = GenerateReport(FeaturesWithStep(step));
 
-        // Table should start expanded (no collapsed class on the div) with up-arrow on toggle button
+        // Table should always be visible (no collapse behavior)
         Assert.Contains("class=\"step-param-table\"", content);
-        Assert.DoesNotContain("class=\"step-param-table step-param-table-collapsed\"", content);
-        Assert.Contains("&#9652;", content); // up-arrow indicates expanded
+        Assert.DoesNotContain("step-param-table-collapsed", content);
     }
 
     [Fact]
-    public void Toggle_table_ref_JS_has_combined_table_fallback()
+    public void Toggle_table_ref_JS_uses_scrollIntoView_and_highlight()
     {
-        // The toggle_table_ref function must fall back to .step-param-combined-table
-        // when .step-param-table is not found (combined table layout)
         var step = new ScenarioStep
         {
             Keyword = "Given",
@@ -301,8 +298,13 @@ public class StepTextSegmentRenderingTests
 
         var content = GenerateReport(FeaturesWithStep(step));
 
-        // Verify the JS function contains the combined-table fallback
+        // The toggle_table_ref function should scroll to and highlight, not toggle visibility
+        Assert.Contains("scrollIntoView", content);
+        Assert.Contains("step-param-highlight", content);
         Assert.Contains("step-param-combined-table", content);
         Assert.Contains("btn.closest('.scenario')", content);
+
+        // Should NOT contain toggle/collapse logic
+        Assert.DoesNotContain("step-param-table-collapsed", content);
     }
 }

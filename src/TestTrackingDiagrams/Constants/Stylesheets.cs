@@ -932,8 +932,9 @@ public class Stylesheets
                     background-color: #e8f4fd;
                     border-color: #90caf9;
                 }
-                .step-param-table-collapsed {
-                    display: none;
+                .step-param-highlight {
+                    background-color: #fff3cd !important;
+                    transition: background-color 1.5s ease;
                 }
                 .step-table-ref {
                     display: inline-block;

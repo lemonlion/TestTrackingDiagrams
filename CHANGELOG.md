@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.43] - 2026-05-10
+
+### Fixed
+- **Search data enrichment still freezing on 102MB reports due to memory pressure** — Three remaining bottlenecks fixed: (1) **176MB accumulator** — `accumulateResults` pushed all decompressed texts into arrays across all 44 Worker batches (~170MB held simultaneously), causing severe V8 GC pauses that froze the main thread for seconds at a time. Replaced with `flushResults` that writes each Worker sub-batch (50 results, ~1MB) directly to DOM attributes immediately and then discards. Peak memory reduced from ~170MB to ~1MB. (2) **4MB structured clone per onmessage** — the Worker accumulated ALL results internally and sent one giant `postMessage`. Now streams results per internal sub-batch of 50 with a `{ results, done }` envelope, reducing each structured clone from ~4MB to ~1MB. (3) **Deferred start** — `enrichSearchData()` fired immediately on DOMContentLoaded, competing with PlantUML diagram rendering setup. Now deferred by 50ms via `setTimeout(enrichSearchData, 50)` so diagrams begin rendering first. Also reduced `COLLECT_BATCH` from 200 to 100 for smaller postMessage payloads to the Worker.
+
 ## [2.33.42] - 2026-05-10
 
 ### Fixed

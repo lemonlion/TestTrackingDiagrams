@@ -335,6 +335,79 @@ public class ParameterRenderingReportTests
 
         // Should not have individual step-param-table divs for the tabular params
         Assert.DoesNotContain("<div class=\"step-param-table\">", content);
+
+        // Combined table should be inside the scenario-steps details, not after it
+        var stepsIdx = content.IndexOf("class=\"scenario-steps\"");
+        var combinedIdx = content.IndexOf("<div class=\"step-param-combined-table\">");
+        Assert.True(combinedIdx > stepsIdx,
+            "Combined table div should appear after scenario-steps opening");
+        // Find the next </details> after the combined table — it should be the scenario-steps closer
+        var closingAfterCombined = content.IndexOf("</details>", combinedIdx);
+        // The scenario-steps details should close right after the combined table
+        // Verify no other <details> opens between the combined table and that </details>
+        var intervening = content.Substring(combinedIdx, closingAfterCombined - combinedIdx);
+        Assert.DoesNotContain("<details", intervening);
+    }
+
+    [Fact]
+    public void Combined_table_cells_have_data_param_attributes()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "requests",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "inputs",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Field", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("Name", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "sent" },
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "should match",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "expectedOutputs",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Status", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("200", "200", VerificationStatus.Success)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Combined table cells should have data-param attributes for JS highlighting
+        Assert.Contains("data-param=\"inputs\"", content);
+        Assert.Contains("data-param=\"expectedOutputs\"", content);
     }
 
     [Fact]

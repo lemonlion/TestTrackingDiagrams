@@ -764,8 +764,15 @@ public static class ReportGenerator
                                              if (scenario) table = scenario.querySelector('.step-param-combined-table');
                                          }
                                          if (!table) return;
-                                         var collapsed = table.classList.toggle('step-param-table-collapsed');
-                                         btn.innerHTML = paramName + (collapsed ? ' &#9662;' : ' &#9652;');
+                                         table.scrollIntoView({behavior:'smooth',block:'nearest'});
+                                         var cells = table.querySelectorAll('[data-param="' + paramName + '"]');
+                                         if (cells.length > 0) {
+                                             for (var i = 0; i < cells.length; i++) cells[i].classList.add('step-param-highlight');
+                                             setTimeout(function() { for (var i = 0; i < cells.length; i++) cells[i].classList.remove('step-param-highlight'); }, 1500);
+                                         } else {
+                                             table.classList.add('step-param-highlight');
+                                             setTimeout(function() { table.classList.remove('step-param-highlight'); }, 1500);
+                                         }
                                      }
                                      """;
 
@@ -1358,10 +1365,8 @@ public static class ReportGenerator
 
                   var scenarioEls = {};
                   var rowEls = {};
-                  var scenarioTexts = {};
-                  var rowTexts = {};
                   var collectIdx = 0;
-                  var COLLECT_BATCH = 200;
+                  var COLLECT_BATCH = 100;
 
                   function collectBatch() {
                       var end = Math.min(collectIdx + COLLECT_BATCH, elements.length);
@@ -1397,62 +1402,27 @@ public static class ReportGenerator
                       return new Response(stream).text();
                   }
 
-                  function accumulateResults(results) {
+                  function flushResults(results) {
                       for (var i = 0; i < results.length; i++) {
                           var r = results[i];
-                          if (r.sid) {
-                              if (!scenarioTexts[r.sid]) scenarioTexts[r.sid] = [];
-                              scenarioTexts[r.sid].push(r.text);
+                          if (r.sid && scenarioEls[r.sid]) {
+                              var el = scenarioEls[r.sid];
+                              var existing = el.getAttribute('data-search') || '';
+                              el.setAttribute('data-search', existing + ' ' + r.text);
                           }
-                          if (r.rid) {
-                              if (!rowTexts[r.rid]) rowTexts[r.rid] = [];
-                              rowTexts[r.rid].push(r.text);
-                          }
-                      }
-                  }
-
-                  function flushSearchData() {
-                      var sids = Object.keys(scenarioTexts);
-                      var rids = Object.keys(rowTexts);
-                      var si = 0, ri = 0;
-                      var FLUSH_BATCH = 200;
-
-                      function flushBatch() {
-                          var count = 0;
-                          while (si < sids.length && count < FLUSH_BATCH) {
-                              var sid = sids[si++];
-                              var el = scenarioEls[sid];
-                              if (el) {
-                                  var existing = el.getAttribute('data-search') || '';
-                                  el.setAttribute('data-search', existing + ' ' + scenarioTexts[sid].join(' '));
-                              }
-                              count++;
-                          }
-                          while (ri < rids.length && count < FLUSH_BATCH) {
-                              var rid = rids[ri++];
-                              var el = rowEls[rid];
-                              if (el) {
-                                  var existing = el.getAttribute('data-row-search') || '';
-                                  el.setAttribute('data-row-search', existing + ' ' + rowTexts[rid].join(' '));
-                              }
-                              count++;
-                          }
-                          if (si < sids.length || ri < rids.length) {
-                              setTimeout(flushBatch, 0);
-                          } else {
-                              scenarioEls = null;
-                              rowEls = null;
-                              onEnrichComplete();
+                          if (r.rid && rowEls[r.rid]) {
+                              var rel = rowEls[r.rid];
+                              var existing2 = rel.getAttribute('data-row-search') || '';
+                              rel.setAttribute('data-row-search', existing2 + ' ' + r.text);
                           }
                       }
-                      flushBatch();
                   }
 
                   function enrichWithWorker() {
                       var workerCode = [
                           'self.onmessage = function(e) {',
                           '    var items = e.data;',
-                          '    var batchResults = [];',
+                          '    var results = [];',
                           '    var idx = 0;',
                           '    var BATCH = 50;',
                           '    function decompress(base64) {',
@@ -1468,20 +1438,18 @@ public static class ReportGenerator
                           '        for (var i = idx; i < end; i++) {',
                           '            (function(j) {',
                           '                promises.push(decompress(items[j].b64).then(function(decoded) {',
-                          '                    batchResults.push({ text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
+                          '                    results.push({ text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
                           '                }).catch(function() {}));',
                           '            })(i);',
                           '        }',
                           '        idx = end;',
                           '        Promise.all(promises).then(function() {',
-                          '            if (idx < items.length) {',
-                          '                processBatch();',
-                          '            } else {',
-                          '                self.postMessage(batchResults);',
-                          '            }',
+                          '            self.postMessage({ results: results, done: idx >= items.length });',
+                          '            results = [];',
+                          '            if (idx < items.length) processBatch();',
                           '        });',
                           '    }',
-                          '    if (items.length === 0) { self.postMessage([]); return; }',
+                          '    if (items.length === 0) { self.postMessage({ results: [], done: true }); return; }',
                           '    processBatch();',
                           '};'
                       ].join('\n');
@@ -1493,20 +1461,19 @@ public static class ReportGenerator
                       }
 
                       worker.onmessage = function(e) {
-                          accumulateResults(e.data);
-                          if (collectIdx < elements.length) {
-                              setTimeout(function() {
-                                  var batch = collectBatch();
-                                  if (batch.length > 0) {
+                          flushResults(e.data.results);
+                          if (e.data.done) {
+                              if (collectIdx < elements.length) {
+                                  setTimeout(function() {
+                                      var batch = collectBatch();
                                       worker.postMessage(batch);
-                                  } else {
-                                      worker.terminate();
-                                      flushSearchData();
-                                  }
-                              }, 0);
-                          } else {
-                              worker.terminate();
-                              flushSearchData();
+                                  }, 0);
+                              } else {
+                                  worker.terminate();
+                                  scenarioEls = null;
+                                  rowEls = null;
+                                  onEnrichComplete();
+                              }
                           }
                       };
                       worker.onerror = function() {
@@ -1525,7 +1492,9 @@ public static class ReportGenerator
 
                       function processNextChunk() {
                           if (collectIdx >= elements.length) {
-                              flushSearchData();
+                              scenarioEls = null;
+                              rowEls = null;
+                              onEnrichComplete();
                               return;
                           }
                           var collected = collectBatch();
@@ -1538,7 +1507,7 @@ public static class ReportGenerator
                                   (function(j) {
                                       promises.push(
                                           decompress(collected[j].b64).then(function(decoded) {
-                                              accumulateResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
+                                              flushResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
                                           }).catch(function() {})
                                       );
                                   })(i);
@@ -1578,7 +1547,7 @@ public static class ReportGenerator
               }
 
               document.addEventListener('DOMContentLoaded', function() {
-                  enrichSearchData();
+                  setTimeout(enrichSearchData, 50);
               });
               """
             : "";
@@ -2189,10 +2158,10 @@ public static class ReportGenerator
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
                         RenderStep(body, scenario.Steps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
-                    body.Append("</details>");
 
                     if (renderCombined)
                         RenderCombinedTabularParameters(body, scenario.Steps);
+                    body.Append("</details>");
                 }
 
                 var diagramsForTest = diagramsByTestId[scenario.Id].ToArray();
@@ -2865,9 +2834,9 @@ public static class ReportGenerator
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
                         RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
-                    body.Append("</details>");
                     if (renderCombined)
                         RenderCombinedTabularParameters(body, s.Steps);
+                    body.Append("</details>");
                 }
 
                 if (s.Result == ExecutionResult.Failed)
@@ -3204,7 +3173,7 @@ public static class ReportGenerator
                 {
                     // Table references render outside the step-text span — close and reopen
                     body.Append("</span>");
-                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)} &#9652;</button>");
+                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
                     body.Append("<span class=\"step-text\">");
                 }
                 else if (seg.Text is not null)
@@ -3403,52 +3372,54 @@ public static class ReportGenerator
 
     private static void RenderCombinedTabularParameters(StringBuilder body, ScenarioStep[] steps)
     {
-        var tabularParams = steps
+        var namedParams = steps
             .Where(s => s.Parameters is { Length: > 0 })
             .SelectMany(s => s.Parameters!)
             .Where(p => p.Kind == StepParameterKind.Tabular && p.TabularValue is not null)
-            .Select(p => p.TabularValue!)
+            .Select(p => (Name: p.Name, Table: p.TabularValue!))
             .ToArray();
 
-        if (tabularParams.Length == 0) return;
+        if (namedParams.Length == 0) return;
 
-        var hasSeparator = tabularParams.Length > 1;
-        var showRowIndicator = tabularParams.Any(t => t.Rows.Any(r => r.Type != TableRowType.Matching));
+        var hasSeparator = namedParams.Length > 1;
+        var showRowIndicator = namedParams.Any(t => t.Table.Rows.Any(r => r.Type != TableRowType.Matching));
 
         body.Append(showRowIndicator
             ? "<div class=\"step-param-combined-table\"><table><thead><tr><th></th>"
             : "<div class=\"step-param-combined-table\"><table><thead><tr>");
 
         // Input columns (all tables except the last)
-        var inputTables = tabularParams.Length > 1 ? tabularParams[..^1] : tabularParams;
-        var outputTable = tabularParams.Length > 1 ? tabularParams[^1] : null;
+        var inputParams = namedParams.Length > 1 ? namedParams[..^1] : namedParams;
+        var outputParam = namedParams.Length > 1 ? namedParams[^1] : ((string Name, TabularParameterValue Table)?)null;
 
-        foreach (var table in inputTables)
+        foreach (var param in inputParams)
         {
-            foreach (var col in table.Columns)
-                body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
+            var encodedName = System.Net.WebUtility.HtmlEncode(param.Name);
+            foreach (var col in param.Table.Columns)
+                body.Append($"<th data-param=\"{encodedName}\"{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
         }
 
         if (hasSeparator)
         {
             body.Append("<th class=\"combined-separator\">=</th>");
 
-            foreach (var col in outputTable!.Columns)
-                body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
+            var encodedOutputName = System.Net.WebUtility.HtmlEncode(outputParam!.Value.Name);
+            foreach (var col in outputParam!.Value.Table.Columns)
+                body.Append($"<th data-param=\"{encodedOutputName}\"{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
         }
 
         body.Append("</tr></thead><tbody>");
 
         // Determine row count from the table with the most rows
-        var maxRows = tabularParams.Max(t => t.Rows.Length);
+        var maxRows = namedParams.Max(t => t.Table.Rows.Length);
 
         for (var ri = 0; ri < maxRows; ri++)
         {
             // Row type is determined by the output (last) table if it has this row, otherwise input
-            var rowType = outputTable is not null && ri < outputTable.Rows.Length
-                ? outputTable.Rows[ri].Type
-                : inputTables[0].Rows.Length > ri
-                    ? inputTables[0].Rows[ri].Type
+            var rowType = outputParam is not null && ri < outputParam.Value.Table.Rows.Length
+                ? outputParam.Value.Table.Rows[ri].Type
+                : inputParams[0].Table.Rows.Length > ri
+                    ? inputParams[0].Table.Rows[ri].Type
                     : TableRowType.Matching;
 
             var rowIndicator = rowType switch
@@ -3464,17 +3435,18 @@ public static class ReportGenerator
                 : $"<tr class=\"row-{rowType.ToString().ToLowerInvariant()}\">");
 
             // Input cells
-            foreach (var table in inputTables)
+            foreach (var param in inputParams)
             {
-                if (ri < table.Rows.Length)
+                var encodedName = System.Net.WebUtility.HtmlEncode(param.Name);
+                if (ri < param.Table.Rows.Length)
                 {
-                    foreach (var cell in table.Rows[ri].Values)
-                        RenderCell(body, cell);
+                    foreach (var cell in param.Table.Rows[ri].Values)
+                        RenderCell(body, cell, encodedName);
                 }
                 else
                 {
-                    for (var ci = 0; ci < table.Columns.Length; ci++)
-                        body.Append("<td></td>");
+                    for (var ci = 0; ci < param.Table.Columns.Length; ci++)
+                        body.Append($"<td data-param=\"{encodedName}\"></td>");
                 }
             }
 
@@ -3482,16 +3454,17 @@ public static class ReportGenerator
             {
                 body.Append("<td class=\"combined-separator\"></td>");
 
+                var encodedOutputName = System.Net.WebUtility.HtmlEncode(outputParam!.Value.Name);
                 // Output cells
-                if (ri < outputTable!.Rows.Length)
+                if (ri < outputParam!.Value.Table.Rows.Length)
                 {
-                    foreach (var cell in outputTable.Rows[ri].Values)
-                        RenderCell(body, cell);
+                    foreach (var cell in outputParam.Value.Table.Rows[ri].Values)
+                        RenderCell(body, cell, encodedOutputName);
                 }
                 else
                 {
-                    for (var ci = 0; ci < outputTable.Columns.Length; ci++)
-                        body.Append("<td></td>");
+                    for (var ci = 0; ci < outputParam.Value.Table.Columns.Length; ci++)
+                        body.Append($"<td data-param=\"{encodedOutputName}\"></td>");
                 }
             }
 
@@ -3501,7 +3474,7 @@ public static class ReportGenerator
         body.Append("</tbody></table></div>");
     }
 
-    private static void RenderCell(StringBuilder body, TabularCell cell)
+    private static void RenderCell(StringBuilder body, TabularCell cell, string? dataParam = null)
     {
         var cellClass = cell.Status switch
         {
@@ -3514,7 +3487,8 @@ public static class ReportGenerator
         var cellDisplay = cell.Expectation is not null && cell.Status == VerificationStatus.Failure
             ? $"{FormatDisplayValue(cell.Value)}/{FormatDisplayValue(cell.Expectation)}"
             : FormatDisplayValue(cell.Value);
-        body.Append($"<td class=\"{cellClass}\">{cellDisplay}</td>");
+        var dataParamAttr = dataParam is not null ? $" data-param=\"{dataParam}\"" : "";
+        body.Append($"<td class=\"{cellClass}\"{dataParamAttr}>{cellDisplay}</td>");
     }
 
     private static string FormatDisplayValue(string? value)
