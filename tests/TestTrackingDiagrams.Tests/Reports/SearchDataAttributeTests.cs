@@ -642,11 +642,12 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // flushResults must write search data to DOM immediately per worker batch
-        var flushIdx = enrichBody.IndexOf("function flushResults");
-        Assert.True(flushIdx >= 0, "flushResults function should exist");
+        // flushSearchData must write accumulated search data to DOM in batches
+        var flushIdx = enrichBody.IndexOf("function flushSearchData");
+        Assert.True(flushIdx >= 0, "flushSearchData function should exist");
         var flushBody = enrichBody[flushIdx..];
         Assert.Contains("setAttribute", flushBody);
+        Assert.Contains("setTimeout", flushBody);
     }
 
     [Fact]
@@ -680,14 +681,14 @@ public class SearchDataAttributeTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
-        // Search text should be flushed to DOM immediately per worker batch
-        // via flushResults, not accumulated in memory first
+        // Search text should be accumulated in arrays then flushed once per element
         var enrichIdx = content.IndexOf("function enrichSearchData");
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // The main thread should flush results to the DOM via flushResults
-        Assert.Contains("flushResults", enrichBody);
+        // Results accumulated in arrays via accumulateResults, then flushed to DOM via flushSearchData
+        Assert.Contains("accumulateResults", enrichBody);
+        Assert.Contains("flushSearchData", enrichBody);
         Assert.Contains("setAttribute", enrichBody);
     }
 }

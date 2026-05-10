@@ -1365,6 +1365,8 @@ public static class ReportGenerator
 
                   var scenarioEls = {};
                   var rowEls = {};
+                  var scenarioTexts = {};
+                  var rowTexts = {};
                   var collectIdx = 0;
                   var COLLECT_BATCH = 100;
 
@@ -1380,6 +1382,7 @@ public static class ReportGenerator
                               sid = scenario.id || ('__s' + i);
                               if (!scenario.id) scenario.id = sid;
                               if (!scenarioEls[sid]) scenarioEls[sid] = scenario;
+                              if (!scenarioTexts[sid]) scenarioTexts[sid] = [];
                           }
                           var row = el.closest('tr[data-row-search]');
                           var rid = null;
@@ -1387,6 +1390,7 @@ public static class ReportGenerator
                               rid = row.getAttribute('data-row-id') || ('__r' + i);
                               if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
                               if (!rowEls[rid]) rowEls[rid] = row;
+                              if (!rowTexts[rid]) rowTexts[rid] = [];
                           }
                           batch.push({ b64: b64, sid: sid, rid: rid });
                       }
@@ -1402,20 +1406,57 @@ public static class ReportGenerator
                       return new Response(stream).text();
                   }
 
-                  function flushResults(results) {
+                  function accumulateResults(results) {
                       for (var i = 0; i < results.length; i++) {
                           var r = results[i];
-                          if (r.sid && scenarioEls[r.sid]) {
-                              var el = scenarioEls[r.sid];
-                              var existing = el.getAttribute('data-search') || '';
-                              el.setAttribute('data-search', existing + ' ' + r.text);
+                          if (r.sid && scenarioTexts[r.sid]) {
+                              scenarioTexts[r.sid].push(r.text);
                           }
-                          if (r.rid && rowEls[r.rid]) {
-                              var rel = rowEls[r.rid];
-                              var existing2 = rel.getAttribute('data-row-search') || '';
-                              rel.setAttribute('data-row-search', existing2 + ' ' + r.text);
+                          if (r.rid && rowTexts[r.rid]) {
+                              rowTexts[r.rid].push(r.text);
                           }
                       }
+                  }
+
+                  function flushSearchData() {
+                      var sids = Object.keys(scenarioTexts);
+                      var rids = Object.keys(rowTexts);
+                      var idx = 0;
+                      var FLUSH_BATCH = 100;
+
+                      function flushBatch() {
+                          var end = Math.min(idx + FLUSH_BATCH, sids.length + rids.length);
+                          for (var i = idx; i < end; i++) {
+                              if (i < sids.length) {
+                                  var sid = sids[i];
+                                  var el = scenarioEls[sid];
+                                  if (el && scenarioTexts[sid].length > 0) {
+                                      var prev = el.getAttribute('data-search') || '';
+                                      el.setAttribute('data-search', prev + ' ' + scenarioTexts[sid].join(' '));
+                                  }
+                              } else {
+                                  var ri = i - sids.length;
+                                  var rid = rids[ri];
+                                  var rel = rowEls[rid];
+                                  if (rel && rowTexts[rid].length > 0) {
+                                      var prev2 = rel.getAttribute('data-row-search') || '';
+                                      rel.setAttribute('data-row-search', prev2 + ' ' + rowTexts[rid].join(' '));
+                                  }
+                              }
+                          }
+                          idx = end;
+                          if (idx < sids.length + rids.length) {
+                              setTimeout(flushBatch, 0);
+                          } else {
+                              scenarioEls = null;
+                              rowEls = null;
+                              scenarioTexts = null;
+                              rowTexts = null;
+                              onEnrichComplete();
+                          }
+                      }
+
+                      flushBatch();
                   }
 
                   function enrichWithWorker() {
@@ -1461,7 +1502,7 @@ public static class ReportGenerator
                       }
 
                       worker.onmessage = function(e) {
-                          flushResults(e.data.results);
+                          accumulateResults(e.data.results);
                           if (e.data.done) {
                               if (collectIdx < elements.length) {
                                   setTimeout(function() {
@@ -1470,9 +1511,7 @@ public static class ReportGenerator
                                   }, 0);
                               } else {
                                   worker.terminate();
-                                  scenarioEls = null;
-                                  rowEls = null;
-                                  onEnrichComplete();
+                                  flushSearchData();
                               }
                           }
                       };
@@ -1492,9 +1531,7 @@ public static class ReportGenerator
 
                       function processNextChunk() {
                           if (collectIdx >= elements.length) {
-                              scenarioEls = null;
-                              rowEls = null;
-                              onEnrichComplete();
+                              flushSearchData();
                               return;
                           }
                           var collected = collectBatch();
@@ -1507,7 +1544,7 @@ public static class ReportGenerator
                                   (function(j) {
                                       promises.push(
                                           decompress(collected[j].b64).then(function(decoded) {
-                                              flushResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
+                                              accumulateResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
                                           }).catch(function() {})
                                       );
                                   })(i);

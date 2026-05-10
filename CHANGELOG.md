@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.45] - 2026-05-10
+
+### Fixed
+- **Search enrichment O(n²) DOM writes eliminated — no more 30-60s freeze on large reports** — v2.33.43's `flushResults()` wrote `setAttribute('data-search', existing + ' ' + text)` per diagram per Worker sub-batch, reading and rewriting the growing attribute string on every call. For 196 scenarios × 44 diagrams each, this caused ~3.9GB of cumulative DOM string reads+writes, blocking the main thread for 30-60 seconds. Now accumulates decompressed texts in JS arrays (`push` is O(1), no string copying) via `accumulateResults()`, then writes each element's `data-search` attribute exactly once at the end via `flushSearchData()`, batched 100 elements per `setTimeout` tick. Total main-thread blocking reduced from ~39 seconds to <200ms.
+
 ## [2.33.44] - 2026-05-10
 
 ### Fixed
