@@ -45,6 +45,9 @@ public static partial class AssertionExpressionFormatter
         // Remove null-forgiving operators (!)
         expr = expr.Replace("!", "");
 
+        // Remove null-conditional operators (?.)
+        expr = expr.Replace("?.", ".");
+
         // Split on .Should().
         var match = ShouldSplitRegex.Match(expr);
         if (!match.Success)

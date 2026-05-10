@@ -147,12 +147,11 @@ public static class StepCollector
             if (state.StepStack.Count == 0)
                 return;
 
-            var symbol = passed ? "\u2713" : "\u2717";
             var subStep = new CollectedStep
             {
                 OriginalKeyword = null,
                 EffectiveKeyword = null,
-                Text = $"{symbol} {expression}",
+                Text = expression,
                 StartTime = Stopwatch.GetTimestamp(),
                 EndTime = Stopwatch.GetTimestamp(),
                 Passed = passed

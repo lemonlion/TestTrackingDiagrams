@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.19] - 2026-05-10
+
+### Fixed
+- **Duplicate ✓/✗ symbols on assertion sub-steps in reports** — Assertion sub-steps displayed the pass/fail symbol twice: once from `StepCollector.AddAssertionSubStep` prepending it to the text, and again from the report renderer's own `step-status` icon span. Removed the symbol prefix from `AddAssertionSubStep` so the text is just the expression; the renderer's status icon is the single source of truth.
+- **Null-conditional `?.` operator not stripped from assertion expressions** — `AssertionExpressionFormatter` already stripped `!` (null-forgiving) but not `?.` (null-conditional), causing formatted subjects like "Foo? bar" instead of "Foo bar". Added `?.` → `.` replacement alongside the existing `!` removal.
+
 ## [2.33.18] - 2026-05-10
 
 ### Fixed

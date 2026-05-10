@@ -220,7 +220,7 @@ public class StepCollectorTests
         Assert.Single(steps);
         Assert.NotNull(steps[0].SubSteps);
         Assert.Equal(2, steps[0].SubSteps!.Length);
-        Assert.Equal("\u2713 result.Should().Be(42)", steps[0].SubSteps![0].Text);
+        Assert.Equal("result.Should().Be(42)", steps[0].SubSteps![0].Text);
         Assert.Equal(ExecutionResult.Passed, steps[0].SubSteps![0].Status);
     }
 
@@ -235,7 +235,7 @@ public class StepCollectorTests
         var steps = StepCollector.GetSteps(testId);
         Assert.Single(steps);
         Assert.NotNull(steps[0].SubSteps);
-        Assert.Equal("\u2717 result.Should().Be(42)", steps[0].SubSteps![0].Text);
+        Assert.Equal("result.Should().Be(42)", steps[0].SubSteps![0].Text);
         Assert.Equal(ExecutionResult.Failed, steps[0].SubSteps![0].Status);
     }
 
@@ -266,7 +266,7 @@ public class StepCollectorTests
         Assert.Single(steps);
         Assert.NotNull(steps[0].SubSteps);
         Assert.Single(steps[0].SubSteps!);
-        Assert.Equal("\u2713 x == 42", steps[0].SubSteps![0].Text);
+        Assert.Equal("x == 42", steps[0].SubSteps![0].Text);
         Assert.Equal(ExecutionResult.Passed, steps[0].SubSteps![0].Status);
     }
 
@@ -284,7 +284,7 @@ public class StepCollectorTests
         Assert.Single(steps);
         Assert.NotNull(steps[0].SubSteps);
         Assert.Single(steps[0].SubSteps!);
-        Assert.Equal("\u2717 x == 42", steps[0].SubSteps![0].Text);
+        Assert.Equal("x == 42", steps[0].SubSteps![0].Text);
         Assert.Equal(ExecutionResult.Failed, steps[0].SubSteps![0].Status);
     }
 

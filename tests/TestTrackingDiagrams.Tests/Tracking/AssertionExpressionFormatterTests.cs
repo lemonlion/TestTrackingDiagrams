@@ -306,4 +306,14 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(expression);
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("() => foo?.Bar.Should().Be(\"blah\")", "Foo bar should be \"blah\"")]
+    [InlineData("() => _response?.StatusCode.Should().Be(HttpStatusCode.OK)", "Response status code should be OK")]
+    [InlineData("() => a?.B?.C.Should().NotBeNull()", "A b c should not be null")]
+    public void Format_strips_null_conditional_operators(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
 }
