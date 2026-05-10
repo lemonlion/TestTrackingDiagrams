@@ -2992,7 +2992,8 @@ public static class ReportGenerator
             case StepParameterKind.Tabular when param.TabularValue is not null:
                 var colNames = string.Join(",", param.TabularValue.Columns.Select(c => c.Name));
                 body.Append($"<div class=\"step-param-table\" data-param=\"{System.Net.WebUtility.HtmlEncode(param.Name)}\" data-columns=\"{System.Net.WebUtility.HtmlEncode(colNames)}\">");
-                body.Append("<table><thead><tr><th></th>");
+                var showRowIndicator = param.TabularValue.Rows.Any(r => r.Type != TableRowType.Matching);
+                body.Append(showRowIndicator ? "<table><thead><tr><th></th>" : "<table><thead><tr>");
                 foreach (var col in param.TabularValue.Columns)
                 {
                     body.Append($"<th{(col.IsKey ? " class=\"key\"" : "")}>{System.Net.WebUtility.HtmlEncode(col.Name)}</th>");
@@ -3007,7 +3008,9 @@ public static class ReportGenerator
                         TableRowType.Missing => "-",
                         _ => ""
                     };
-                    body.Append($"<tr class=\"row-{row.Type.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>");
+                    body.Append(showRowIndicator
+                        ? $"<tr class=\"row-{row.Type.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>"
+                        : $"<tr class=\"row-{row.Type.ToString().ToLowerInvariant()}\">");
                     foreach (var cell in row.Values)
                     {
                         var cellClass = cell.Status switch
@@ -3098,8 +3101,11 @@ public static class ReportGenerator
         if (tabularParams.Length == 0) return;
 
         var hasSeparator = tabularParams.Length > 1;
+        var showRowIndicator = tabularParams.Any(t => t.Rows.Any(r => r.Type != TableRowType.Matching));
 
-        body.Append("<div class=\"step-param-combined-table\"><table><thead><tr><th></th>");
+        body.Append(showRowIndicator
+            ? "<div class=\"step-param-combined-table\"><table><thead><tr><th></th>"
+            : "<div class=\"step-param-combined-table\"><table><thead><tr>");
 
         // Input columns (all tables except the last)
         var inputTables = tabularParams.Length > 1 ? tabularParams[..^1] : tabularParams;
@@ -3141,7 +3147,9 @@ public static class ReportGenerator
                 _ => ""
             };
 
-            body.Append($"<tr class=\"row-{rowType.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>");
+            body.Append(showRowIndicator
+                ? $"<tr class=\"row-{rowType.ToString().ToLowerInvariant()}\"><td>{rowIndicator}</td>"
+                : $"<tr class=\"row-{rowType.ToString().ToLowerInvariant()}\">");
 
             // Input cells
             foreach (var table in inputTables)

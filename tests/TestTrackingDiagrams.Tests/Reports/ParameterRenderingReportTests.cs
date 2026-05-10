@@ -135,6 +135,8 @@ public class ParameterRenderingReportTests
         Assert.Contains("step-param-table", content);
         Assert.Contains("Alice", content);
         Assert.Contains("Age", content);
+        // All rows are Matching → no row indicator column
+        Assert.DoesNotContain("<td>=</td>", content);
     }
 
     [Fact]
@@ -391,6 +393,8 @@ public class ParameterRenderingReportTests
         var content = GenerateReport(features);
         Assert.Contains("param-failure", content);
         Assert.Contains("Fail/Pass", content);
+        // All rows are Matching → no row indicator column in combined table
+        Assert.DoesNotContain("<td>=</td>", content);
     }
 
     [Fact]
@@ -501,6 +505,9 @@ public class ParameterRenderingReportTests
         var content = GenerateReport(features);
         Assert.Contains("row-surplus", content);
         Assert.Contains("+", content);
+        // Mixed row types → indicator column IS present
+        Assert.Contains("<td>=</td>", content);
+        Assert.Contains("<td>+</td>", content);
     }
 
     [Fact]

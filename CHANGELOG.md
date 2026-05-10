@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.20] - 2026-05-10
+
+### Fixed
+- **Redundant "=" row indicator column in input-only step tables** — Tabular step parameters (ReqNRoll Gherkin tables, xUnit `TabularInputs`, etc.) rendered with a first column showing "=" on every row. This row-type indicator is only meaningful for verification tables that contain surplus (`+`) or missing (`-`) rows. The indicator column is now hidden when all rows are `Matching`, keeping it visible only for tables with mixed row types.
+
 ## [2.33.19] - 2026-05-10
 
 ### Fixed
