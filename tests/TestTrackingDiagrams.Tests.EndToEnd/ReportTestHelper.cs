@@ -1169,4 +1169,49 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    private const string StepDelimiterWithNotesPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Given the system is running
+        caller -> svc : POST /api/orders
+        note left
+        Content-Type: application/json
+        {"item":"Widget","qty":2}
+        end note
+        hnote across <<stepDelimiter>> #black:<color:white>Step: When I create an order
+        svc -> db : INSERT INTO Orders
+        note left
+        INSERT INTO Orders (Item, Qty)
+        VALUES ('Widget', 2)
+        end note
+        db --> svc : OK
+        svc --> caller : 201 Created
+        note left
+        {"id":"abc-123","status":"created"}
+        end note
+        @enduml
+        """;
+
+    public static string GenerateReportWithStepDelimitersAndNotes(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", StepDelimiterWithNotesPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

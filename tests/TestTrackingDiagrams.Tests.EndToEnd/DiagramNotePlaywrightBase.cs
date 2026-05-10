@@ -34,6 +34,9 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
     protected string GenerateMixedParticipantNotesReport(string fileName) =>
         ReportTestHelper.GenerateReportWithMixedParticipantNotes(TempDir, OutputDir, fileName);
 
+    protected string GenerateStepDelimitersAndNotesReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithStepDelimitersAndNotes(TempDir, OutputDir, fileName);
+
     protected async Task ExpandAndRenderLongNoteDiagram(string fileName)
     {
         await Page.GotoAsync(GenerateLongNoteReport(fileName));

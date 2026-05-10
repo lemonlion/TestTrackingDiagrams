@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.42] - 2026-05-10
+
+### Fixed
+- **Step delimiters reappear when collapsing a note while steps are hidden** — `setNoteState()` rebuilt the diagram from `_noteOriginalSource` and applied `applyAssertionFilter()` but not `applyStepsFilter()`, so step delimiter hnotes were restored in the rendered source even though the toggle still said "Steps Hidden". Now wraps the source with `applyStepsFilter()` to match the `processRenderQueue()` pattern.
+
 ## [2.33.41] - 2026-05-10
 
 ### Fixed

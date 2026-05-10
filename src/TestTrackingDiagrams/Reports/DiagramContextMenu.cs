@@ -2525,7 +2525,7 @@ public static class DiagramContextMenu
                 var origSource = container._noteOriginalSource;
                 if (!origSource) { container._noteSteps[noteIdx] = oldStep; return; }
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible);
+                var newSource = applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible);
 
                 container.setAttribute('data-plantuml', newSource);
 
