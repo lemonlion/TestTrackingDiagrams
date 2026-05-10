@@ -14,6 +14,7 @@ public record Scenario
     public string? ErrorStackTrace { get; set; }
     public TimeSpan? Duration { get; set; }
     public ScenarioStep[]? Steps { get; set; }
+    public ScenarioStep[]? BackgroundSteps { get; set; }
     public string[]? Labels { get; set; }
     public string[]? Categories { get; set; }
     public string? Rule { get; set; }

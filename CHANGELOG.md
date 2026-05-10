@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.46] - 2026-06-09
+
+### Added
+- **Background steps detection and rendering** — Scenarios sharing a common step prefix (within the same Rule group) now have those steps automatically extracted into a collapsible "Background" section. The `BackgroundStepsDetector` uses a heuristic approach: it groups scenarios by Rule, identifies the longest common prefix of steps (matching by Keyword + Text), extracts them into `Scenario.BackgroundSteps`, and trims them from `Steps`. The Background section renders collapsed by default, before the Steps section, in both standard and parameterized scenario views. Wired into all three framework adapters (ReqNRoll, LightBDD, BDDfy).
+- **Rule rendering E2E test coverage** — 8 Playwright tests covering rule section grouping, titles, open state, CSS classes, scenarios outside rules, multiple rules, scenario counts, and nested details.
+- **Background rendering E2E test coverage** — 8 Playwright tests covering background section presence, summary text, collapsed default state, step count, step text, DOM ordering, absence when not applicable, and multiple scenarios with shared background.
+
 ## [2.33.45] - 2026-05-10
 
 ### Fixed

@@ -27,15 +27,19 @@ internal static class FeatureResultExtensions
             .Select(f =>
             {
                 var labels = f.Info.Labels.ToArray();
-                return new Feature
+                var scenarios = f.GetScenarios()
+                        .OrderBy(s => s.Info.Name.ToString())
+                        .Select(MapScenario)
+                        .ToArray();
+
+                    BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+                    return new Feature
                 {
                     DisplayName = f.Info.Name.ToString().Titleize(),
                     Description = f.Info.Description,
                     Labels = labels.Length > 0 ? labels : null,
-                    Scenarios = f.GetScenarios()
-                        .OrderBy(s => s.Info.Name.ToString())
-                        .Select(MapScenario)
-                        .ToArray()
+                    Scenarios = scenarios
                 };
             }).ToArray();
     }

@@ -2185,6 +2185,18 @@ public static class ReportGenerator
                               """);
                 }
 
+                if (scenario.BackgroundSteps is { Length: > 0 })
+                {
+                    body.Append("""<details class="scenario-background">""");
+                    body.Append("""<summary class="h4">Background</summary>""");
+                    for (var bi = 0; bi < scenario.BackgroundSteps.Length; bi++)
+                    {
+                        var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;
+                        RenderStep(body, scenario.BackgroundSteps[bi], numberPrefix, skipTabularInline: false);
+                    }
+                    body.Append("</details>");
+                }
+
                 if (scenario.Steps is { Length: > 0 })
                 {
                     body.Append("""<details class="scenario-steps" open>""");
@@ -2860,6 +2872,18 @@ public static class ReportGenerator
                 var s = scenarios[ri];
                 var display = ri == 0 ? "" : " style=\"display:none\"";
                 body.Append($"<div class=\"param-detail-panel\" id=\"{prefix}-detail-{ri}\"{display}>");
+
+                if (s.BackgroundSteps is { Length: > 0 })
+                {
+                    body.Append("""<details class="scenario-background">""");
+                    body.Append("""<summary class="h4">Background</summary>""");
+                    for (var bi = 0; bi < s.BackgroundSteps.Length; bi++)
+                    {
+                        var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;
+                        RenderStep(body, s.BackgroundSteps[bi], numberPrefix, skipTabularInline: false);
+                    }
+                    body.Append("</details>");
+                }
 
                 if (s.Steps is { Length: > 0 })
                 {

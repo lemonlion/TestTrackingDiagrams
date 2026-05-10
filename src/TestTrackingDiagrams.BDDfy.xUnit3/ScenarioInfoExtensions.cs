@@ -19,12 +19,7 @@ internal static class ScenarioInfoExtensions
                     .FirstOrDefault(t => t.StartsWith(BDDfyConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
                     ?[BDDfyConstants.EndpointTagPrefix.Length..];
 
-                return new Feature
-                {
-                    DisplayName = featureGroup.Key.Titleize(),
-                    Endpoint = endpoint,
-                    Description = firstScenario.StoryDescription,
-                    Scenarios = DeduplicateScenarioTitles(featureGroup
+                var scenarios = DeduplicateScenarioTitles(featureGroup
                         .DistinctBy(x => x.TestId)
                         .OrderByDescending(x => x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
@@ -80,7 +75,16 @@ internal static class ScenarioInfoExtensions
                                 ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
                                 ExampleRawValues = exampleRawValues,
                             };
-                        }).ToArray())
+                        }).ToArray());
+
+                BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+                return new Feature
+                {
+                    DisplayName = featureGroup.Key.Titleize(),
+                    Endpoint = endpoint,
+                    Description = firstScenario.StoryDescription,
+                    Scenarios = scenarios
                 };
             }).ToArray();
     }

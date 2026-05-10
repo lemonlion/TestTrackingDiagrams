@@ -1214,4 +1214,192 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with Gherkin Rule grouping:
+    /// - Feature 1: 1 scenario outside any rule, then 2 rules with 2 scenarios each
+    /// - Feature 2: 1 rule with 2 scenarios (no scenarios outside rules)
+    /// </summary>
+    public static string GenerateReportWithRules(string tempDir, string outputDir, string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Order Management Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "r1", DisplayName = "Health check returns OK", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the service is running", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I call the health endpoint", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "I receive 200 OK", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "r2", DisplayName = "Create order with valid data", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2),
+                        Rule = "Valid Order Creation",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have a valid order payload", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I submit the order", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "the order is created", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "r3", DisplayName = "Create order with express shipping", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(3),
+                        Rule = "Valid Order Creation",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have an express order payload", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I submit the order", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "the order is created with express flag", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "r4", DisplayName = "Missing required field returns 400", IsHappyPath = false,
+                        Result = ExecutionResult.Failed, Duration = TimeSpan.FromSeconds(1),
+                        Rule = "Invalid Order Handling",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have an order missing the name field", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I submit the order", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "I receive a 400 Bad Request", Status = ExecutionResult.Failed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "r5", DisplayName = "Invalid quantity returns 400", IsHappyPath = false,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Rule = "Invalid Order Handling",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have an order with negative quantity", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I submit the order", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "I receive a 400 Bad Request", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            },
+            new Feature
+            {
+                DisplayName = "Payment Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "r6", DisplayName = "Charge card successfully", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2),
+                        Rule = "Card Payments",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have a valid card", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I charge the card", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "the payment succeeds", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "r7", DisplayName = "Declined card returns error", IsHappyPath = false,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Rule = "Card Payments",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have a declined card", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I charge the card", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "the payment is declined", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = Array.Empty<DiagramAsCode>();
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    public static string GenerateReportWithBackground(string tempDir, string outputDir, string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "User Registration Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "bg1", DisplayName = "Register with valid email", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2),
+                        BackgroundSteps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the registration service is running", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "And", Text = "the database is available", Status = ExecutionResult.Passed }
+                        ],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "When", Text = "I register with a valid email", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "my account is created", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "bg2", DisplayName = "Register with duplicate email", IsHappyPath = false,
+                        Result = ExecutionResult.Failed, Duration = TimeSpan.FromSeconds(3),
+                        BackgroundSteps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "the registration service is running", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "And", Text = "the database is available", Status = ExecutionResult.Passed }
+                        ],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "When", Text = "I register with a duplicate email", Status = ExecutionResult.Failed },
+                            new ScenarioStep { Keyword = "Then", Text = "I receive a conflict error", Status = ExecutionResult.Skipped }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "bg3", DisplayName = "View profile without background", IsHappyPath = false,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I am logged in", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "When", Text = "I view my profile", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "my details are shown", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = Array.Empty<DiagramAsCode>();
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

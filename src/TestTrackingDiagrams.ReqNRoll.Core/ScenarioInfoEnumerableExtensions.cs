@@ -26,13 +26,7 @@ internal static class ScenarioInfoEnumerableExtensions
                              && !firstScenario.ScenarioTags.Contains(t, StringComparer.OrdinalIgnoreCase))
                     .ToArray();
 
-                return new Feature
-                {
-                    DisplayName = featureGroup.Key.Titleize(),
-                    Endpoint = endpoint,
-                    Description = firstScenario.FeatureDescription,
-                    Labels = featureLabels.Length > 0 ? featureLabels : null,
-                    Scenarios = featureGroup
+                var scenarios = featureGroup
                         .DistinctBy(x => x.ScenarioId)
                         .OrderByDescending(x => x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
                         .ThenBy(x => x.ScenarioTitle)
@@ -72,7 +66,17 @@ internal static class ScenarioInfoEnumerableExtensions
                                 ExampleRawValues = x.ExampleRawValues,
                                 ExampleFlatValues = x.ExampleFlatValues,
                             };
-                        }).ToArray()
+                        }).ToArray();
+
+                BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+                return new Feature
+                {
+                    DisplayName = featureGroup.Key.Titleize(),
+                    Endpoint = endpoint,
+                    Description = firstScenario.FeatureDescription,
+                    Labels = featureLabels.Length > 0 ? featureLabels : null,
+                    Scenarios = scenarios
                 };
             }).ToArray();
     }
