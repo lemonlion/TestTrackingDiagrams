@@ -642,12 +642,11 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // flushSearchData must write accumulated search data to DOM in batches
+        // flushSearchData must write accumulated search data to JS-side index
         var flushIdx = enrichBody.IndexOf("function flushSearchData");
         Assert.True(flushIdx >= 0, "flushSearchData function should exist");
         var flushBody = enrichBody[flushIdx..];
-        Assert.Contains("setAttribute", flushBody);
-        Assert.Contains("setTimeout", flushBody);
+        Assert.Contains("_diagramSearchTexts", flushBody);
     }
 
     [Fact]
@@ -686,9 +685,85 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // Results accumulated in arrays via accumulateResults, then flushed to DOM via flushSearchData
+        // Results accumulated in arrays via accumulateResults, then flushed to JS index via flushSearchData
         Assert.Contains("accumulateResults", enrichBody);
         Assert.Contains("flushSearchData", enrichBody);
-        Assert.Contains("setAttribute", enrichBody);
+        Assert.Contains("_diagramSearchTexts", enrichBody);
+    }
+
+    [Fact]
+    public void FilterCache_merges_diagram_search_text_from_JS_index()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchFilterCacheMerge.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // fc() must merge diagram text from JS-side index into searchText
+        var fcIdx = content.IndexOf("function fc()");
+        Assert.True(fcIdx >= 0, "fc() function should exist");
+        var fcEnd = content.IndexOf("function applyVisibility", fcIdx);
+        var fcBody = content[fcIdx..fcEnd];
+
+        Assert.Contains("_diagramSearchTexts", fcBody);
+        Assert.Contains("data-search", fcBody);
+    }
+
+    [Fact]
+    public void Row_search_merges_diagram_text_from_JS_index()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchRowMerge.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // Row-level search must merge diagram row text from JS-side index
+        Assert.Contains("_diagramRowSearchTexts", content);
     }
 }

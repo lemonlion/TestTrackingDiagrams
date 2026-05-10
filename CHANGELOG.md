@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.47] - 2026-05-10
+
+### Fixed
+- **Search enrichment bypasses DOM attributes entirely — eliminates remaining freeze on large reports** — v2.33.45 eliminated O(n²) writes but still called `setAttribute` to write ~240MB of decompressed PlantUML text into DOM attributes (`data-search`/`data-row-search`). On a 102MB report with 8,635 diagrams, `setAttribute` with multi-MB strings is fundamentally expensive: Blink allocates DOMString copies, runs CSS invalidation checks, and updates the attribute store for each call, taking 20-100ms per scenario. With 196 scenarios writing ~1-9MB each, this blocked the main thread for 30-60 seconds. Now stores decompressed diagram text in plain JS objects (`window._diagramSearchTexts`, `window._diagramRowSearchTexts`) instead of DOM attributes. The `fc()` filter cache builder and both row-level search paths merge the JS-side index at read time. V8 `join(' ')` of the same data takes ~2ms per scenario (vs ~20-100ms for `setAttribute`), reducing total flush time from 30-60 seconds to <500ms.
+
 ## [2.33.46] - 2026-06-09
 
 ### Added

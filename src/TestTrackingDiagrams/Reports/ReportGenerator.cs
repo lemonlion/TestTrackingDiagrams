@@ -283,7 +283,7 @@ public static class ReportGenerator
                                                   var s = sc[si];
                                                   var raw = s.getAttribute('data-dependencies') || '';
                                                   var d = raw ? new Set(raw.split(',')) : new Set();
-                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false, dur: false, cat: false };
+                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: (s.getAttribute('data-search') || '') + (window._diagramSearchTexts && window._diagramSearchTexts[s.id] ? ' ' + window._diagramSearchTexts[s.id] : ''), hp: false, dep: false, st: false, sr: false, dur: false, cat: false };
                                                   items.push(item);
                                                   fMap.set(s, features[fi]);
                                               }
@@ -405,7 +405,8 @@ public static class ReportGenerator
                                                  for (var ri = 0; ri < rows.length; ri++) {
                                                      var tbl = rows[ri].closest('table');
                                                      if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
-                                                     var rowText = rows[ri].getAttribute('data-row-search') || '';
+                                                     var _rid = rows[ri].getAttribute('data-row-id');
+                                                     var rowText = (rows[ri].getAttribute('data-row-search') || '') + (window._diagramRowSearchTexts && _rid && window._diagramRowSearchTexts[_rid] ? ' ' + window._diagramRowSearchTexts[_rid] : '');
                                                      var allMatch = true;
                                                      for (var j = 0; j < advSearchTokens.length; j++) {
                                                          if (!rowText.includes(advSearchTokens[j])) { allMatch = false; break; }
@@ -513,7 +514,8 @@ public static class ReportGenerator
                                          for (var ri = 0; ri < rows.length; ri++) {
                                              var tbl = rows[ri].closest('table');
                                              if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
-                                             var rowText = rows[ri].getAttribute('data-row-search') || '';
+                                             var _rid2 = rows[ri].getAttribute('data-row-id');
+                                             var rowText = (rows[ri].getAttribute('data-row-search') || '') + (window._diagramRowSearchTexts && _rid2 && window._diagramRowSearchTexts[_rid2] ? ' ' + window._diagramRowSearchTexts[_rid2] : '');
                                              var allMatch = true;
                                              for (var j = 0; j < searchTokens.length; j++) {
                                                  if (!rowText.includes(searchTokens[j])) { allMatch = false; break; }
@@ -1369,6 +1371,8 @@ public static class ReportGenerator
                   var rowTexts = {};
                   var collectIdx = 0;
                   var COLLECT_BATCH = 100;
+                  window._diagramSearchTexts = {};
+                  window._diagramRowSearchTexts = {};
 
                   function collectBatch() {
                       var end = Math.min(collectIdx + COLLECT_BATCH, elements.length);
@@ -1420,43 +1424,26 @@ public static class ReportGenerator
 
                   function flushSearchData() {
                       var sids = Object.keys(scenarioTexts);
-                      var rids = Object.keys(rowTexts);
-                      var idx = 0;
-                      var FLUSH_BATCH = 100;
-
-                      function flushBatch() {
-                          var end = Math.min(idx + FLUSH_BATCH, sids.length + rids.length);
-                          for (var i = idx; i < end; i++) {
-                              if (i < sids.length) {
-                                  var sid = sids[i];
-                                  var el = scenarioEls[sid];
-                                  if (el && scenarioTexts[sid].length > 0) {
-                                      var prev = el.getAttribute('data-search') || '';
-                                      el.setAttribute('data-search', prev + ' ' + scenarioTexts[sid].join(' '));
-                                  }
-                              } else {
-                                  var ri = i - sids.length;
-                                  var rid = rids[ri];
-                                  var rel = rowEls[rid];
-                                  if (rel && rowTexts[rid].length > 0) {
-                                      var prev2 = rel.getAttribute('data-row-search') || '';
-                                      rel.setAttribute('data-row-search', prev2 + ' ' + rowTexts[rid].join(' '));
-                                  }
-                              }
+                      for (var i = 0; i < sids.length; i++) {
+                          var sid = sids[i];
+                          if (scenarioTexts[sid].length > 0) {
+                              window._diagramSearchTexts[sid] = scenarioTexts[sid].join(' ');
                           }
-                          idx = end;
-                          if (idx < sids.length + rids.length) {
-                              setTimeout(flushBatch, 0);
-                          } else {
-                              scenarioEls = null;
-                              rowEls = null;
-                              scenarioTexts = null;
-                              rowTexts = null;
-                              onEnrichComplete();
-                          }
+                          delete scenarioTexts[sid];
                       }
-
-                      flushBatch();
+                      var rids = Object.keys(rowTexts);
+                      for (var i = 0; i < rids.length; i++) {
+                          var rid = rids[i];
+                          if (rowTexts[rid].length > 0) {
+                              window._diagramRowSearchTexts[rid] = rowTexts[rid].join(' ');
+                          }
+                          delete rowTexts[rid];
+                      }
+                      scenarioEls = null;
+                      rowEls = null;
+                      scenarioTexts = null;
+                      rowTexts = null;
+                      onEnrichComplete();
                   }
 
                   function enrichWithWorker() {
