@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.39] - 2026-05-10
+
+### Fixed
+- **LightBDD assertion sub-steps not nested under steps in the report step list** — `FeatureResultExtensions.MapScenario()` only mapped LightBDD's native `IStepResult.GetSubSteps()` and never consulted `StepCollector.GetSteps()`, so assertion sub-steps added via `Track.That()` / `StepCollector.AddAssertionSubStep()` during step execution were lost from the step list (though they still appeared as hnotes in diagrams). Now merges collected assertion sub-steps from `StepCollector` into the mapped steps, matching the existing ReqNRoll behaviour.
+
 ## [2.33.38] - 2026-05-10
 
 ### Fixed

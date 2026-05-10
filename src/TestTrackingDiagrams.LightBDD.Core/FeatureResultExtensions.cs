@@ -7,6 +7,8 @@ using LightBDD.Core.Metadata;
 using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
 
+using TestTrackingDiagrams.Tracking;
+
 namespace TestTrackingDiagrams.LightBDD;
 
 internal static class FeatureResultExtensions
@@ -85,7 +87,8 @@ internal static class FeatureResultExtensions
             ErrorMessage = result.Status == ExecutionStatus.Failed ? result.StatusDetails : null,
             ErrorStackTrace = failedException?.StackTrace,
             Duration = result.ExecutionTime?.Duration,
-            Steps = MapSteps(result.GetSteps(), result.Status is ExecutionStatus.Ignored or ExecutionStatus.NotRun),
+            Steps = MapSteps(result.GetSteps(), result.Status is ExecutionStatus.Ignored or ExecutionStatus.NotRun,
+                StepCollector.GetSteps(result.Info.RuntimeId.ToString())),
             IsHappyPath = labels.Contains("Happy Path"),
             Labels = labels.Length > 0 ? labels : null,
             Categories = categories.Length > 0 ? categories : null,
@@ -196,7 +199,8 @@ internal static class FeatureResultExtensions
         return (cleanFormat, result);
     }
 
-    private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps, bool scenarioSkipped = false)
+    private static ScenarioStep[]? MapSteps(IEnumerable<IStepResult> steps, bool scenarioSkipped = false,
+        ScenarioStep[]? collectedSteps = null)
     {
         var stepArray = steps.ToArray();
         if (stepArray.Length == 0) return null;
@@ -204,14 +208,17 @@ internal static class FeatureResultExtensions
         var priorFailure = false;
         for (var i = 0; i < stepArray.Length; i++)
         {
-            mapped[i] = MapStep(stepArray[i], priorFailure, scenarioSkipped);
+            var collected = collectedSteps is not null && i < collectedSteps.Length
+                ? collectedSteps[i] : null;
+            mapped[i] = MapStep(stepArray[i], priorFailure, scenarioSkipped, collected);
             if (stepArray[i].Status == ExecutionStatus.Failed)
                 priorFailure = true;
         }
         return mapped;
     }
 
-    private static ScenarioStep MapStep(IStepResult step, bool priorFailure, bool scenarioSkipped)
+    private static ScenarioStep MapStep(IStepResult step, bool priorFailure, bool scenarioSkipped,
+        ScenarioStep? collected = null)
     {
         var keyword = step.Info.Name.StepTypeName?.OriginalName;
         var text = step.Info.Name.ToString();
@@ -235,13 +242,17 @@ internal static class FeatureResultExtensions
 
         var textSegments = BuildTextSegments(step, keyword);
 
+        // Merge sub-steps: prefer LightBDD native sub-steps, then overlay collected assertion sub-steps
+        var nativeSubSteps = MapSteps(step.GetSubSteps(), scenarioSkipped);
+        var subSteps = nativeSubSteps ?? collected?.SubSteps;
+
         return new ScenarioStep
         {
             Keyword = keyword,
             Text = text,
             Status = MapStepStatus(step.Status, priorFailure, scenarioSkipped),
             Duration = step.ExecutionTime?.Duration,
-            SubSteps = MapSteps(step.GetSubSteps(), scenarioSkipped),
+            SubSteps = subSteps,
             Comments = comments is { Length: > 0 } ? comments : null,
             Attachments = attachments is { Length: > 0 } ? attachments : null,
             Parameters = parameters,

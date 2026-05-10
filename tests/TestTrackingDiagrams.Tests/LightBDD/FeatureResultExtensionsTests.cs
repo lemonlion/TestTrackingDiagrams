@@ -5,6 +5,7 @@ using LightBDD.Core.Results.Parameters;
 using LightBDD.Core.Results.Parameters.Tabular;
 using TestTrackingDiagrams.LightBDD;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 using FileAttachment = LightBDD.Core.Results.FileAttachment;
 
 namespace TestTrackingDiagrams.Tests.LightBDD;
@@ -545,6 +546,21 @@ public class FeatureResultExtensionsTests
                 : null;
         }
 
+        public StubExecutionResult(Guid runtimeId, string name,
+            ExecutionStatus status = ExecutionStatus.Passed,
+            string? statusDetails = null,
+            TimeSpan? duration = null,
+            string[]? labels = null,
+            string[]? categories = null)
+        {
+            Info = new StubScenarioInfo(runtimeId, name, labels, categories);
+            Status = status;
+            StatusDetails = statusDetails;
+            ExecutionTime = duration.HasValue
+                ? new ExecutionTime(DateTimeOffset.UtcNow, duration.Value)
+                : null;
+        }
+
         public StubExecutionResult(string id,
             string nameFormat,
             INameParameterInfo[] nameParams,
@@ -813,5 +829,50 @@ public class FeatureResultExtensionsTests
         public IReadOnlyList<ITabularParameterRow> Rows => Array.Empty<ITabularParameterRow>();
         public string VerificationMessage => "";
         public ParameterVerificationStatus VerificationStatus => ParameterVerificationStatus.NotApplicable;
+    }
+
+    // ─── Assertion sub-step merging from StepCollector ──────────
+
+    [Fact]
+    public void ToFeatures_merges_assertion_substeps_from_StepCollector()
+    {
+        // Simulate the scenario RuntimeId that StepCollector uses as testId
+        var scenarioId = Guid.NewGuid().ToString();
+        var scenarioGuid = Guid.Parse(scenarioId);
+
+        // Stub scenario with steps
+        var scenario = new StubExecutionResult(scenarioGuid, "Test")
+            .WithStep(new StubStepResult("Given", "a valid request", ExecutionStatus.Passed))
+            .WithStep(new StubStepResult("When", "the request is sent", ExecutionStatus.Passed))
+            .WithStep(new StubStepResult("Then", "the response is valid", ExecutionStatus.Passed));
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        // Simulate what StepTrackingStepDecorator + Track.Assertion do:
+        // Steps are started/completed, and assertions are added as sub-steps
+        StepCollector.StartStep(scenarioId, "Given", "a valid request", null, null);
+        StepCollector.CompleteStep(scenarioId, passed: true);
+
+        StepCollector.StartStep(scenarioId, "When", "the request is sent", null, null);
+        StepCollector.CompleteStep(scenarioId, passed: true);
+
+        StepCollector.StartStep(scenarioId, "Then", "the response is valid", null, null);
+        StepCollector.AddAssertionSubStep(scenarioId, "response.StatusCode.Should().Be(200)", passed: true);
+        StepCollector.AddAssertionSubStep(scenarioId, "response.Body.Should().NotBeNull()", passed: true);
+        StepCollector.CompleteStep(scenarioId, passed: true);
+
+        var features = new[] { feature }.ToFeatures();
+        var steps = features[0].Scenarios[0].Steps!;
+
+        // Given and When should have no sub-steps
+        Assert.Null(steps[0].SubSteps);
+        Assert.Null(steps[1].SubSteps);
+
+        // Then should have the 2 assertion sub-steps
+        Assert.NotNull(steps[2].SubSteps);
+        Assert.Equal(2, steps[2].SubSteps!.Length);
+        Assert.Equal("response.StatusCode.Should().Be(200)", steps[2].SubSteps![0].Text);
+        Assert.Equal("response.Body.Should().NotBeNull()", steps[2].SubSteps![1].Text);
+
+        StepCollector.ClearSteps(scenarioId);
     }
 }
