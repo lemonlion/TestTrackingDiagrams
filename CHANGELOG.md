@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.36] - 2026-05-10
+
+### Fixed
+- **Parameterized test report: step layout state syncs across row switches** — When clicking through parameter table rows, the collapse/expand state of `<details>` elements (the Steps section, individual collapsible sub-steps, and failure result sections) is now synced from the outgoing panel to the incoming panel. Previously each row's panel maintained its own independent open/closed state, causing jarring layout shifts when switching between rows. Now the layout stays consistent and only the data values change.
+
 ## [2.33.35] - 2025-07-12
 
 ### Fixed
