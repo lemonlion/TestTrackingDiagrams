@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.37] - 2026-05-10
+
+### Fixed
+- **Search data enrichment fully chunked to prevent browser freezing** — The v2.33.33 Web Worker approach still froze the browser because DOM collection (reading 8,635 `data-plantuml-z` attributes in a tight loop), `postMessage` serialization (structured-cloning ~20-40MB in one call), and DOM flush (writing all `data-search` attributes synchronously) all blocked the main thread. Now every phase is chunked with `setTimeout` yields: DOM collection reads 200 elements per tick, items are sent to the Worker in 200-item batches instead of all at once, the Worker streams results back per-batch instead of accumulating all results, and `flushSearchData` writes 200 attributes per tick. The fallback path (no Worker) also uses smaller decompression batches (10 instead of 50).
+
 ## [2.33.36] - 2026-05-10
 
 ### Fixed

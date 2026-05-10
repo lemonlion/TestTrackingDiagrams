@@ -525,7 +525,7 @@ public class SearchDataAttributeTests
     }
 
     [Fact]
-    public void EnrichSearchData_worker_uses_batched_decompression()
+    public void EnrichSearchData_chunks_DOM_collection_to_avoid_blocking()
     {
         var features = new[]
         {
@@ -551,7 +551,7 @@ public class SearchDataAttributeTests
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchWorkerBatch.html", "Test", includeTestRunData: true,
+            null, "SearchChunkedDOM.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
@@ -559,8 +559,94 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // The worker code should batch decompressions using Promise.all
-        Assert.Contains("Promise.all", enrichBody);
+        // DOM collection must be chunked with setTimeout yields between batches
+        // so reading 8,635 data-plantuml-z attributes doesn't block the main thread
+        Assert.Contains("collectBatch", enrichBody);
+        Assert.Contains("setTimeout", enrichBody);
+    }
+
+    [Fact]
+    public void EnrichSearchData_sends_chunked_messages_to_worker()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchChunkedMsg.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+
+        // Worker must receive items in batches (not all at once) and stream back
+        // results per-batch to avoid synchronous structured clone overhead
+        Assert.Contains("postMessage", enrichBody);
+        // Worker should post results per batch, not accumulate all results
+        Assert.Contains("self.postMessage(batch", enrichBody);
+    }
+
+    [Fact]
+    public void EnrichSearchData_flushes_DOM_in_chunks()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchChunkedFlush.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+
+        // flushSearchData must yield between chunks of DOM writes
+        var flushIdx = enrichBody.IndexOf("function flushSearchData");
+        Assert.True(flushIdx >= 0, "flushSearchData function should exist");
+        var flushBody = enrichBody[flushIdx..];
+        Assert.Contains("setTimeout", flushBody);
     }
 
     [Fact]
