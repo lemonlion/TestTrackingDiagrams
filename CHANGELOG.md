@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.25] - 2026-05-10
+
+### Changed
+- **Step parameter tables always visible** — Step parameter tables (tabular, tree, inline) now render inside the `<summary>` element rather than after `</summary>`, so they remain visible when a step is collapsed. Only sub-steps are now collapsible. Steps with parameters but no sub-steps render as plain `<div>` elements instead of `<details>/<summary>`.
+
 ## [2.33.24] - 2026-07-06
 
 ### Added

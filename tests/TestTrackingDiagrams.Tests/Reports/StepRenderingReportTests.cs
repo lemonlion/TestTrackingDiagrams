@@ -606,7 +606,7 @@ public class StepRenderingReportTests
     }
 
     [Fact]
-    public void Report_inline_table_stays_open_without_substeps()
+    public void Report_inline_table_renders_without_collapsible_wrapper_when_no_substeps()
     {
         var scenario = new Scenario
         {
@@ -632,7 +632,56 @@ public class StepRenderingReportTests
             ]
         };
         var content = GenerateReport(MakeFeatures(scenario), "InlineTableOpen.html");
-        // Inline tables without sub-steps should remain expanded
-        Assert.Contains("<details class=\"step step-collapsible\" open>", content);
+        // Inline tables without sub-steps should render as a plain div, not a collapsible details
+        Assert.DoesNotContain("<details class=\"step step-collapsible\"", content);
+        Assert.Contains("<div class=\"step\">", content);
+        Assert.Contains("step-param-table", content);
+    }
+
+    [Fact]
+    public void Report_inline_table_with_substeps_renders_table_inside_summary()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Given", Text = "data", Status = ExecutionResult.Passed,
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "data",
+                            Kind = StepParameterKind.Tabular,
+                            TabularValue = new TabularParameterValue(
+                                [new TabularColumn("Name", false)],
+                                [new TabularRow(TableRowType.Matching,
+                                    [new TabularCell("Alice", null, VerificationStatus.NotApplicable)])])
+                        }
+                    ],
+                    SubSteps =
+                    [
+                        new ScenarioStep
+                        {
+                            Keyword = "Then", Text = "sub-step", Status = ExecutionResult.Passed
+                        }
+                    ]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "InlineTableWithSubSteps.html");
+        // Step should be collapsible (has sub-steps)
+        Assert.Contains("<details class=\"step step-collapsible\"", content);
+        // Table should appear before </summary> (inside summary), sub-steps after
+        var summaryEnd = content.IndexOf("</summary>");
+        var tablePos = content.IndexOf("step-param-table");
+        var subStepsPos = content.IndexOf("<div class=\"sub-steps\">");
+        Assert.True(summaryEnd > 0, "Should have a </summary> tag");
+        Assert.True(tablePos > 0, "Should have a step-param-table");
+        Assert.True(subStepsPos > 0, "Should have sub-steps div");
+        Assert.True(tablePos < summaryEnd, "Table should be inside <summary>");
+        Assert.True(subStepsPos > summaryEnd, "Sub-steps should be after </summary>");
     }
 }

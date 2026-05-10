@@ -2825,13 +2825,10 @@ public static class ReportGenerator
         };
 
         var hasSubSteps = step.SubSteps is { Length: > 0 };
-        var hasInlineTable = !skipTabularInline &&
-            step.Parameters?.Any(p => p.Kind == StepParameterKind.Tabular && p.TabularValue is not null) == true;
 
-        if (hasSubSteps || hasInlineTable)
+        if (hasSubSteps)
         {
-            var shouldExpand = !hasSubSteps || HasAnyFailed(step);
-            body.Append(shouldExpand
+            body.Append(HasAnyFailed(step)
                 ? "<details class=\"step step-collapsible\" open>"
                 : "<details class=\"step step-collapsible\">");
             body.Append("<summary>");
@@ -2910,11 +2907,6 @@ public static class ReportGenerator
             body.Append($" <span class=\"step-duration\">({FormatDurationBadge(step.Duration.Value)})</span>");
         }
 
-        if (hasSubSteps || hasInlineTable)
-        {
-            body.Append("</summary>");
-        }
-
         if (step.Comments is { Length: > 0 })
         {
             foreach (var comment in step.Comments)
@@ -2951,6 +2943,7 @@ public static class ReportGenerator
 
         if (hasSubSteps)
         {
+            body.Append("</summary>");
             body.Append("<div class=\"sub-steps\">");
             for (var ssi = 0; ssi < step.SubSteps!.Length; ssi++)
             {
@@ -2958,10 +2951,6 @@ public static class ReportGenerator
                 RenderStep(body, step.SubSteps[ssi], subPrefix);
             }
             body.Append("</div>");
-            body.Append("</details>");
-        }
-        else if (hasInlineTable)
-        {
             body.Append("</details>");
         }
         else
