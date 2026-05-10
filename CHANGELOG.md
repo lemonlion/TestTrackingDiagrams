@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.44] - 2026-05-10
+
+### Fixed
+- **Combined parameter table now renders inside the Steps section** — The `step-param-combined-table` (used when multiple steps each have tabular parameters) was rendered after the `</details>` closing tag of `scenario-steps`, making it invisible when the Steps section was collapsed. It now renders inside the Steps `<details>` element, after the final step.
+- **Step table reference buttons now scroll to and highlight the target table** — Clicking a `step-table-ref` button (e.g. `recipe`) now smoothly scrolls to the associated parameter table and applies a brief yellow highlight flash (1.5s fade). Previously, the buttons attempted to toggle table visibility via a `step-param-table-collapsed` CSS class, which did not work. The up/down arrow indicators have been removed from the button text.
+- **Combined table cells now have `data-param` attributes** — Each `<th>` and `<td>` in the combined parameter table now carries a `data-param` attribute matching the originating step parameter name, enabling the highlight JS to flash only the relevant columns when a step-table-ref button is clicked.
+
 ## [2.33.43] - 2026-05-10
 
 ### Fixed
