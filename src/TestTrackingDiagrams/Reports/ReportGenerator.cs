@@ -1314,26 +1314,38 @@ public static class ReportGenerator
                   }
 
                   var remaining = elements.length;
-                  for (var i = 0; i < elements.length; i++) {
-                      (function(el) {
-                          decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                              var text = decoded.toLowerCase();
-                              var scenario = el.closest('.scenario');
-                              if (scenario) {
-                                  var existing = scenario.getAttribute('data-search') || '';
-                                  scenario.setAttribute('data-search', existing + ' ' + text);
-                              }
-                              var row = el.closest('tr[data-row-search]');
-                              if (row) {
-                                  var existingRow = row.getAttribute('data-row-search') || '';
-                                  row.setAttribute('data-row-search', existingRow + ' ' + text);
-                              }
-                          }).catch(function() {}).finally(function() {
-                              remaining--;
-                              if (remaining === 0) onEnrichComplete();
-                          });
-                      })(elements[i]);
+                  var idx = 0;
+                  var BATCH = 50;
+
+                  function processBatch() {
+                      var end = Math.min(idx + BATCH, elements.length);
+                      for (var i = idx; i < end; i++) {
+                          (function(el) {
+                              decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                  var text = decoded.toLowerCase();
+                                  var scenario = el.closest('.scenario');
+                                  if (scenario) {
+                                      var existing = scenario.getAttribute('data-search') || '';
+                                      scenario.setAttribute('data-search', existing + ' ' + text);
+                                  }
+                                  var row = el.closest('tr[data-row-search]');
+                                  if (row) {
+                                      var existingRow = row.getAttribute('data-row-search') || '';
+                                      row.setAttribute('data-row-search', existingRow + ' ' + text);
+                                  }
+                              }).catch(function() {}).finally(function() {
+                                  remaining--;
+                                  if (remaining === 0) onEnrichComplete();
+                              });
+                          })(elements[i]);
+                      }
+                      idx = end;
+                      if (idx < elements.length) {
+                          setTimeout(processBatch, 0);
+                      }
                   }
+
+                  processBatch();
               }
 
               function onEnrichComplete() {

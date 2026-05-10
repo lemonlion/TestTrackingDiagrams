@@ -438,7 +438,7 @@ public static class Track
             // (Path.GetFileName doesn't recognize \ on Linux)
             var separatorIndex = callerFilePath.LastIndexOfAny(['/', '\\']);
             var fileName = separatorIndex >= 0 ? callerFilePath[(separatorIndex + 1)..] : callerFilePath;
-            plantUml += $"\n'__assertionLoc__:{fileName}:L{callerLineNumber}";
+            plantUml += $"\n'__^*__:{fileName}:L{callerLineNumber}";
         }
 
         DefaultTrackingDiagramOverride.InsertPlantUml(testId, plantUml);

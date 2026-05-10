@@ -1002,14 +1002,14 @@ public static class ReportTestHelper
         hnote across <<assertionNote>> #d4edda
         ✓ {{label}} status code should be created
         end note
-        '__assertionLoc__:OrderTests.cs:L42
+        '__^*__:OrderTests.cs:L42
 
         svc --> caller : 201 Created
 
         hnote across <<assertionNote>> #d4edda
         ✓ {{label}} response id should not be empty
         end note
-        '__assertionLoc__:OrderTests.cs:L45
+        '__^*__:OrderTests.cs:L45
 
         @enduml
         """;

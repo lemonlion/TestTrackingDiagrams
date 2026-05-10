@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.28] - 2025-07-10
+
+### Fixed
+- **Report freezing on large reports during search data loading** — The `enrichSearchData()` function decompressed all `data-plantuml-z` attributes in a tight synchronous loop, causing the browser to freeze on large reports (e.g. 102MB, 8,635 diagrams). Rewrote to use batched processing (50 elements per batch) with `setTimeout` yielding between batches to keep the UI responsive.
+
+### Changed
+- **Shortened assertion location PlantUML comment prefix** — Reduced the assertion source location comment prefix from `'__assertionLoc__:` to `'__^*__:` in PlantUML output, reducing report file size for projects with many tracked assertions.
+
 ## [2.33.27] - 2026-05-10
 
 ### Fixed

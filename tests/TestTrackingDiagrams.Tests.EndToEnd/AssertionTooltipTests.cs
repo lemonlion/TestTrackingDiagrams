@@ -4,7 +4,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 
 /// <summary>
 /// Tests that assertion source-location tooltips (SVG title elements) are added
-/// to assertion note shapes after rendering, based on __assertionLoc__ comments
+/// to assertion note shapes after rendering, based on __^*__ comments
 /// in the PlantUML source.
 /// </summary>
 [Collection(PlaywrightCollections.Diagrams)]

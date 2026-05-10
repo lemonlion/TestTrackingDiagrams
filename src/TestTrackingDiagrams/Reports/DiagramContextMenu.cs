@@ -2629,7 +2629,7 @@ public static class DiagramContextMenu
             function parseAssertionLocations(source) {
                 if (!source) return [];
                 var locs = [];
-                var re = /^'__assertionLoc__:(.+)$/gm;
+                var re = /^'__\^\*__:(.+)$/gm;
                 var m;
                 while ((m = re.exec(source)) !== null) {
                     locs.push(m[1]);

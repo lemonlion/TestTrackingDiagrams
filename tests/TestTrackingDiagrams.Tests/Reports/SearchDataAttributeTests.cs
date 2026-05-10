@@ -474,4 +474,44 @@ public class SearchDataAttributeTests
         Assert.Contains("data-plantuml-z", content);
         Assert.Contains("enrichSearchData", content);
     }
+
+    [Fact]
+    public void EnrichSearchData_uses_chunked_processing_to_avoid_blocking()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchChunked.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // The enrichSearchData function must yield back to the browser between chunks
+        // to prevent freezing on large reports (e.g. 8000+ diagrams in 100MB+ reports)
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        Assert.True(enrichIdx >= 0, "enrichSearchData function should exist");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+        Assert.Contains("setTimeout", enrichBody);
+    }
 }

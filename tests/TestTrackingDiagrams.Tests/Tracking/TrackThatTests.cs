@@ -274,7 +274,7 @@ public class TrackThatTests : IDisposable
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+        Assert.Contains("'__^*__:TrackThatTests.cs:L", logs[0].PlantUml!);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class TrackThatTests : IDisposable
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+        Assert.Contains("'__^*__:TrackThatTests.cs:L", logs[0].PlantUml!);
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class TrackThatTests : IDisposable
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Contains("'__assertionLoc__:TrackThatTests.cs:L", logs[0].PlantUml!);
+        Assert.Contains("'__^*__:TrackThatTests.cs:L", logs[0].PlantUml!);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public class TrackThatTests : IDisposable
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
         // Should contain just the filename, not a full path with directory separators before it
-        var locMatch = System.Text.RegularExpressions.Regex.Match(logs[0].PlantUml!, @"'__assertionLoc__:([^:]+):L(\d+)");
+        var locMatch = System.Text.RegularExpressions.Regex.Match(logs[0].PlantUml!, @"'__\^\*__:([^:]+):L(\d+)");
         Assert.True(locMatch.Success);
         var fileName = locMatch.Groups[1].Value;
         Assert.Equal("TrackThatTests.cs", fileName);
@@ -332,7 +332,7 @@ public class TrackThatTests : IDisposable
 
         var logs = GetAssertionLogs();
         Assert.NotEmpty(logs);
-        Assert.Contains("'__assertionLoc__:MyFile.cs:L99", logs[0].PlantUml!);
+        Assert.Contains("'__^*__:MyFile.cs:L99", logs[0].PlantUml!);
     }
 }
 
