@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Reports;
 
@@ -39,7 +40,8 @@ public class ParameterizedGroupRenderTests
         diagrams.Select(d => new DefaultDiagramsFetcher.DiagramAsCode(d.testId, "", d.plantuml)).ToArray();
 
     private string GenerateReport(Feature[] features, DefaultDiagramsFetcher.DiagramAsCode[]? diagrams = null, string? fileName = null,
-        bool groupParameterizedTests = true, int maxParameterColumns = 10, bool titleizeParameterNames = true)
+        bool groupParameterizedTests = true, int maxParameterColumns = 10, bool titleizeParameterNames = true,
+        RequestResponseLog[]? trackedLogs = null)
     {
         diagrams ??= features.SelectMany(f => f.Scenarios).Select(s => new DefaultDiagramsFetcher.DiagramAsCode(s.Id, "", "")).ToArray();
         var path = ReportGenerator.GenerateHtmlReport(
@@ -49,7 +51,8 @@ public class ParameterizedGroupRenderTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs,
             groupParameterizedTests: groupParameterizedTests,
             maxParameterColumns: maxParameterColumns,
-            titleizeParameterNames: titleizeParameterNames);
+            titleizeParameterNames: titleizeParameterNames,
+            trackedLogs: trackedLogs);
         return File.ReadAllText(path);
     }
 
@@ -1024,5 +1027,47 @@ public class ParameterizedGroupRenderTests
         Assert.DoesNotContain("<details class=\"param-expand\">", content);
         Assert.Contains(">hello</td>", content);
         Assert.Contains(">world</td>", content);
+    }
+
+    [Fact]
+    public void Parameterized_group_renders_assertion_toggles_when_diagrams_have_assertion_notes()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Verify(input: A)", outlineId: "Verify", exampleValues: new() { ["input"] = "A" }),
+            MakeScenario("s2", "Verify(input: B)", outlineId: "Verify", exampleValues: new() { ["input"] = "B" })
+        };
+        var diagrams = MakeDiagrams(
+            ("s1", "@startuml\nhnote over Caller <<assertionNote>> #d4edda\nAssert OK\nend note\n@enduml"),
+            ("s2", "@startuml\nhnote over Caller <<assertionNote>> #d4edda\nAssert OK\nend note\n@enduml"));
+        var content = GenerateReport(MakeFeature(scenarios), diagrams);
+
+        // Verify the parameterized group has scenario-level assertion toggle button in the diagram section
+        Assert.Contains("scenario-parameterized", content);
+        // The actual button element (not just the JS function definition) must be inside the parameterized group
+        var paramGroupStart = content.IndexOf("<details class=\"scenario scenario-parameterized");
+        Assert.True(paramGroupStart >= 0, "parameterized group not found");
+        var paramGroupHtml = content.Substring(paramGroupStart);
+        Assert.Contains("onclick=\"window._toggleScenarioAssertions(this)\">Assertions Hidden</button>", paramGroupHtml);
+    }
+
+    [Fact]
+    public void Parameterized_group_renders_step_toggles_when_diagrams_have_step_delimiters()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Steps(input: A)", outlineId: "Steps", exampleValues: new() { ["input"] = "A" }),
+            MakeScenario("s2", "Steps(input: B)", outlineId: "Steps", exampleValues: new() { ["input"] = "B" })
+        };
+        var diagrams = MakeDiagrams(
+            ("s1", "@startuml\nhnote across <<stepDelimiter>> #black\nStep: Given something\nend note\n@enduml"),
+            ("s2", "@startuml\nhnote across <<stepDelimiter>> #black\nStep: Given something\nend note\n@enduml"));
+        var content = GenerateReport(MakeFeature(scenarios), diagrams);
+
+        Assert.Contains("scenario-parameterized", content);
+        var paramGroupStart = content.IndexOf("<details class=\"scenario scenario-parameterized");
+        Assert.True(paramGroupStart >= 0, "parameterized group not found");
+        var paramGroupHtml = content.Substring(paramGroupStart);
+        Assert.Contains("onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>", paramGroupHtml);
     }
 }

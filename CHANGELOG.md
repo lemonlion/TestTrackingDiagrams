@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.27] - 2026-05-10
+
+### Fixed
+- **Parameterized group missing assertion/step toggle buttons** — Parameterized (grouped) test scenarios in reports were missing per-scenario "Assertions Shown/Hidden" and "Steps Shown/Hidden" toggle buttons in the diagram toolbar, even when the diagrams contained assertion notes or step delimiters. The `RenderParameterizedGroup` method was not receiving or rendering these toggles. Report-level toggles still worked.
+
 ## [2.33.26] - 2025-07-06
 
 ### Added
