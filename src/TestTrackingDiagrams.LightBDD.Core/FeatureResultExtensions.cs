@@ -317,6 +317,23 @@ internal static class FeatureResultExtensions
                 }
 
                 var nameParam = nameParams[paramIndex];
+
+                // If the formatted value is a complex object (record ToString or generic collection),
+                // emit a TableRef segment (clickable ▴ toggle) instead of an inline Param segment
+                if (ParameterParser.IsComplexObjectString(nameParam.FormattedValue))
+                {
+                    string? complexParamName = null;
+                    if (resultParams != null)
+                    {
+                        var inlineResults = resultParams.Where(rp => rp.Details is IInlineParameterDetails).ToArray();
+                        if (paramIndex < inlineResults.Length)
+                            complexParamName = inlineResults[paramIndex].Name;
+                    }
+                    segments.Add(StepTextSegment.TableRef(complexParamName ?? $"param{paramIndex}"));
+                    lastEnd = match.Index + match.Length;
+                    continue;
+                }
+
                 var expectation = inlineExpectations.GetValueOrDefault(paramIndex);
                 var paramValue = new InlineParameterValue(
                     nameParam.FormattedValue ?? "",

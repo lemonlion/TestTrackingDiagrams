@@ -754,8 +754,11 @@ public static class ReportGenerator
                                      function toggle_table_ref(btn) {
                                          var paramName = btn.getAttribute('data-param');
                                          var step = btn.closest('.step');
-                                         if (!step) return;
-                                         var table = step.querySelector('.step-param-table[data-param="' + paramName + '"]');
+                                         var table = step ? step.querySelector('.step-param-table[data-param="' + paramName + '"]') : null;
+                                         if (!table) {
+                                             var scenario = btn.closest('.scenario');
+                                             if (scenario) table = scenario.querySelector('.step-param-combined-table');
+                                         }
                                          if (!table) return;
                                          var collapsed = table.classList.toggle('step-param-table-collapsed');
                                          btn.innerHTML = paramName + (collapsed ? ' &#9662;' : ' &#9652;');

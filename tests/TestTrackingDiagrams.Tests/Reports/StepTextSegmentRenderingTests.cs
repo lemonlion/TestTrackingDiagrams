@@ -281,4 +281,28 @@ public class StepTextSegmentRenderingTests
         Assert.DoesNotContain("class=\"step-param-table step-param-table-collapsed\"", content);
         Assert.Contains("&#9652;", content); // up-arrow indicates expanded
     }
+
+    [Fact]
+    public void Toggle_table_ref_JS_has_combined_table_fallback()
+    {
+        // The toggle_table_ref function must fall back to .step-param-combined-table
+        // when .step-param-table is not found (combined table layout)
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a recipe",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a "),
+                StepTextSegment.TableRef("recipe")
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Verify the JS function contains the combined-table fallback
+        Assert.Contains("step-param-combined-table", content);
+        Assert.Contains("btn.closest('.scenario')", content);
+    }
 }

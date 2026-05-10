@@ -589,4 +589,46 @@ public class StepCollectorTests
         public string Name { get; set; } = "";
         public int Age { get; set; }
     }
+
+    private record ComplexTestData(string Name, int Temperature, string Flour);
+
+    [Fact]
+    public void Step_with_complex_object_param_truncates_to_type_name()
+    {
+        var testId = $"complex-param-{Guid.NewGuid():N}";
+        var complexObj = new ComplexTestData("Classic", 180, "Plain Flour");
+        // ToString() → "ComplexTestData { Name = Classic, Temperature = 180, Flour = Plain Flour }"
+
+        StepCollector.StartStep(testId, "Given", "a muffin recipe",
+            ["recipe"], [complexObj]);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.NotNull(steps[0].Parameters);
+        var param = steps[0].Parameters![0];
+        Assert.Equal("recipe", param.Name);
+        Assert.Equal(StepParameterKind.Inline, param.Kind);
+        // Should show truncated type name, not the full record ToString
+        Assert.Equal("[ComplexTestData]", param.InlineValue!.Value);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void Step_with_scalar_param_keeps_full_value()
+    {
+        var testId = $"scalar-param-{Guid.NewGuid():N}";
+
+        StepCollector.StartStep(testId, "Given", "a count",
+            ["count"], [42]);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        var param = steps[0].Parameters![0];
+        Assert.Equal("42", param.InlineValue!.Value);
+
+        StepCollector.ClearSteps(testId);
+    }
 }

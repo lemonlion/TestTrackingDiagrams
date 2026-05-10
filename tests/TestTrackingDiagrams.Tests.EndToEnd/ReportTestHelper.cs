@@ -1102,4 +1102,71 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with a step that has a TableRef toggle button and a tabular parameter table.
+    /// Used for testing the ▴ toggle button click functionality.
+    /// </summary>
+    public static string GenerateReportWithStepTableToggle(string tempDir, string outputDir, string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Step Toggle Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "st1", DisplayName = "Step with table toggle", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given",
+                                Text = "a muffin recipe",
+                                Status = ExecutionResult.Passed,
+                                TextSegments =
+                                [
+                                    StepTextSegment.Literal("a muffin "),
+                                    StepTextSegment.TableRef("recipe")
+                                ],
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "recipe",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Name", false), new TabularColumn("Flour", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("Classic", null, VerificationStatus.NotApplicable),
+                                                 new TabularCell("Plain Flour", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "I bake the muffin", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "it should be delicious", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("st1", "", PlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

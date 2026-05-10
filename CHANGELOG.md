@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.29] - 2026-05-10
+
+### Fixed
+- **Complex object parameters now truncated in step list and hnotes** — Step parameters with complex `ToString()` values (record types like `MuffinRecipeTestData { Name = Classic, Flour = Plain }`, generic collections like `List\`1[...]`) are now truncated to their type name (`[MuffinRecipeTestData]`, `[List<MyType>]`) instead of displaying the full `ToString()` representation. Affects LightBDD step text segments (now emit clickable ▴ toggle instead of inline value), LightBDD hnotes (step delimiters in sequence diagrams), BDDfy hnotes, and StepTracking (IL weaver) inline parameters.
+- **Step table ▴ toggle buttons now work in combined-table layout** — When both setup and assertion tabular parameters existed (triggering the combined table layout), clicking the ▴ toggle button on a step did nothing. The `toggle_table_ref` JS function searched for `.step-param-table` inside `.step`, but in combined mode the table renders as `.step-param-combined-table` at the `.scenario` level. The function now falls back to searching the scenario container for the combined table.
+
+### Added
+- `ParameterParser.IsComplexObjectString()` — Detects whether a string value represents a complex object (record-style `ToString()` or generic collection type).
+- `ParameterParser.ExtractTypeNameFromComplexString()` — Extracts a short type name from complex object strings (`MuffinRecipeTestData`, `List<String>`).
+- 4 new Playwright E2E tests (`StepTableToggleTests`) verifying ▴ toggle button rendering, click-to-collapse, click-twice-to-restore, and table data content.
+
 ## [2.33.28] - 2025-07-10
 
 ### Fixed

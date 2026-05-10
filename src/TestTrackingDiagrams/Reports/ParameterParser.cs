@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace TestTrackingDiagrams.Reports;
 
 /// <summary>
@@ -456,5 +458,79 @@ public static class ParameterParser
         while (i >= 0 && (value[i] == '.' || value[i] == '\u00B7'))
             i--;
         return i < value.Length - 1 ? value[..(i + 1)].TrimEnd() : value;
+    }
+
+    private static readonly Regex GenericTypePattern = new(@"^(?:[\w.]+\.)?(\w+)`\d+\[(.+)\]$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Returns true if the string value represents a complex object — either a record-style
+    /// ToString ("TypeName { Prop = Val, ... }") or a generic collection type ("List`1[...]").
+    /// </summary>
+    public static bool IsComplexObjectString(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+
+        // Record-style: "TypeName { Prop = Val, ... }"
+        if (TryParseRecordToString(value) is not null)
+            return true;
+
+        // Generic collection: "List`1[System.String]"
+        return GenericTypePattern.IsMatch(value);
+    }
+
+    /// <summary>
+    /// Extracts a short type name from a complex object string.
+    /// For record-style ("TypeName { ... }"), returns the type name before " { ".
+    /// For generic collection ("List`1[Namespace.Type]"), returns "List&lt;Type&gt;".
+    /// Returns null if the value is not a complex object string.
+    /// </summary>
+    public static string? ExtractTypeNameFromComplexString(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+
+        // Record-style: extract text before " { "
+        var braceOpen = value.IndexOf(" { ", StringComparison.Ordinal);
+        if (braceOpen > 0 && TryParseRecordToString(value) is not null)
+            return value[..braceOpen];
+
+        // Generic collection: "List`1[System.String]" → "List<String>"
+        var match = GenericTypePattern.Match(value);
+        if (match.Success)
+        {
+            var baseName = match.Groups[1].Value;
+            var argsRaw = match.Groups[2].Value;
+            // Split type args on ", " (top-level only)
+            var typeArgs = SplitTypeArgs(argsRaw);
+            var shortArgs = typeArgs.Select(a =>
+            {
+                var lastDot = a.LastIndexOf('.');
+                return lastDot >= 0 ? a[(lastDot + 1)..] : a;
+            });
+            return $"{baseName}<{string.Join(", ", shortArgs)}>";
+        }
+
+        return null;
+    }
+
+    private static List<string> SplitTypeArgs(string argsRaw)
+    {
+        var result = new List<string>();
+        var depth = 0;
+        var start = 0;
+        for (var i = 0; i < argsRaw.Length; i++)
+        {
+            var c = argsRaw[i];
+            if (c == '[') depth++;
+            else if (c == ']') depth--;
+            else if (c == ',' && depth == 0)
+            {
+                result.Add(argsRaw[start..i].Trim());
+                start = i + 1;
+            }
+        }
+        result.Add(argsRaw[start..].Trim());
+        return result;
     }
 }

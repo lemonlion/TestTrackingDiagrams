@@ -459,6 +459,52 @@ public class FeatureResultExtensionsTests
         Assert.DoesNotContain(step.TextSegments!, s => s.TableReference != null);
     }
 
+    [Fact]
+    public void MapStep_TextSegments_emits_TableRef_for_complex_object_param()
+    {
+        // FormattedValue is a complex record-style ToString — should emit TableRef, not Param
+        var complexValue = "MuffinRecipeTestData { Name = Classic, Flour = Plain Flour, Temperature = 180 }";
+        var stepResult = new StubStepResult("Given", "Given a muffin recipe \"{0}\"",
+            [new StubNameParam(complexValue, ParameterVerificationStatus.NotApplicable)],
+            ExecutionStatus.Passed)
+            .WithParameters(new StubParameterResult("recipe", new StubInlineDetails(complexValue, null)));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        // Should have: literal "a muffin recipe " + TableRef "recipe"
+        var tableRef = step.TextSegments!.FirstOrDefault(s => s.TableReference != null);
+        Assert.NotNull(tableRef);
+        Assert.Equal("recipe", tableRef!.TableReference);
+        // Should NOT have a Param segment with the full complex value
+        Assert.DoesNotContain(step.TextSegments!, s => s.Parameter?.Value == complexValue);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_keeps_Param_for_scalar_values()
+    {
+        // Scalar FormattedValue should still emit Param segment, not TableRef
+        var stepResult = new StubStepResult("Given", "Given customer has \"{0}\" in account",
+            [new StubNameParam("105", ParameterVerificationStatus.Success)],
+            ExecutionStatus.Passed)
+            .WithParameters(new StubParameterResult("amount", new StubInlineDetails("105", null)));
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+        // Should have a Param segment, not a TableRef
+        Assert.Contains(step.TextSegments!, s => s.Parameter?.Value == "105");
+        Assert.DoesNotContain(step.TextSegments!, s => s.TableReference != null);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult

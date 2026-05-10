@@ -1,6 +1,7 @@
 using LightBDD.Core.Execution;
 using LightBDD.Core.ExecutionContext;
 using LightBDD.Core.Extensibility.Execution;
+using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.LightBDD;
@@ -16,11 +17,7 @@ internal sealed class StepTrackingStepDecorator : IStepDecorator
     public async Task ExecuteAsync(IStep step, Func<Task> stepInvocation)
     {
         var keyword = step.Info.Name.StepTypeName?.OriginalName;
-        var text = step.Info.Name.ToString();
-
-        // Strip keyword prefix from the full text if present (LightBDD includes it)
-        if (keyword is not null && text.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
-            text = text[keyword.Length..].TrimStart();
+        var text = BuildTruncatedStepText(step, keyword);
 
         string? testId = null;
         try { testId = ScenarioExecutionContext.CurrentScenario.Info.RuntimeId.ToString(); }
@@ -44,5 +41,39 @@ internal sealed class StepTrackingStepDecorator : IStepDecorator
             if (testId is not null && StepCollector.HasActiveStep(testId))
                 StepCollector.CompleteStep(testId, passed: true);
         }
+    }
+
+    /// <summary>
+    /// Builds step text from NameFormat, truncating complex object parameters to [TypeName]
+    /// instead of embedding the full ToString() representation in the hnote.
+    /// </summary>
+    private static string BuildTruncatedStepText(IStep step, string? keyword)
+    {
+        var nameParams = step.Info.Name.Parameters.ToArray();
+        if (nameParams.Length == 0)
+        {
+            // No params — use ToString() directly
+            var text = step.Info.Name.ToString();
+            if (keyword is not null && text.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+                text = text[keyword.Length..].TrimStart();
+            return text;
+        }
+
+        var format = step.Info.Name.NameFormat;
+        if (keyword is not null && format.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            format = format[keyword.Length..].TrimStart();
+
+        // Replace {N} placeholders with actual or truncated values
+        for (var i = 0; i < nameParams.Length; i++)
+        {
+            var formattedValue = nameParams[i].FormattedValue ?? "";
+            var display = ParameterParser.IsComplexObjectString(formattedValue)
+                ? $"[{ParameterParser.ExtractTypeNameFromComplexString(formattedValue)}]"
+                : formattedValue;
+            format = format.Replace($"\"{{{i}}}\"", $"\"{display}\"");
+            format = format.Replace($"{{{i}}}", display);
+        }
+
+        return format;
     }
 }

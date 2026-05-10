@@ -649,4 +649,59 @@ public class ParameterParserTests
         Assert.Equal("Test", result!["Name"]);
         Assert.Equal("null", result["Value"]);
     }
+
+    // ── IsComplexObjectString tests ──
+
+    [Theory]
+    [InlineData("MuffinRecipeTestData { Name = Classic, Flour = Plain Flour }", true)]
+    [InlineData("AccountRiskScoreScenario { AccountAgeInDays = 89, Score = 320 }", true)]
+    [InlineData("Outer { Inner = Mid { Deep = 1 } }", true)]
+    [InlineData("System.Collections.Generic.List`1[MyNamespace.MyType]", true)]
+    [InlineData("List`1[System.String]", true)]
+    [InlineData("hello", false)]
+    [InlineData("42", false)]
+    [InlineData("null", false)]
+    [InlineData("true", false)]
+    [InlineData("", false)]
+    [InlineData("Plain text with spaces", false)]
+    [InlineData("Some { incomplete", false)]  // no closing brace, not matching record pattern
+    public void IsComplexObjectString_detects_complex_values(string input, bool expected)
+    {
+        Assert.Equal(expected, ParameterParser.IsComplexObjectString(input));
+    }
+
+    [Fact]
+    public void IsComplexObjectString_returns_false_for_null()
+    {
+        Assert.False(ParameterParser.IsComplexObjectString(null));
+    }
+
+    // ── ExtractTypeNameFromComplexString tests ──
+
+    [Theory]
+    [InlineData("MuffinRecipeTestData { Name = Classic, Flour = Plain }", "MuffinRecipeTestData")]
+    [InlineData("AccountRiskScoreScenario { Score = 42 }", "AccountRiskScoreScenario")]
+    [InlineData("System.Collections.Generic.List`1[MyNamespace.MyType]", "List<MyType>")]
+    [InlineData("List`1[System.String]", "List<String>")]
+    [InlineData("Dictionary`2[System.String, System.Int32]", "Dictionary<String, Int32>")]
+    [InlineData("MyNamespace.MyType`1[Other.Thing]", "MyType<Thing>")]
+    public void ExtractTypeNameFromComplexString_extracts_type_name(string input, string expected)
+    {
+        Assert.Equal(expected, ParameterParser.ExtractTypeNameFromComplexString(input));
+    }
+
+    [Theory]
+    [InlineData("hello")]
+    [InlineData("42")]
+    [InlineData("")]
+    public void ExtractTypeNameFromComplexString_returns_null_for_non_complex(string input)
+    {
+        Assert.Null(ParameterParser.ExtractTypeNameFromComplexString(input));
+    }
+
+    [Fact]
+    public void ExtractTypeNameFromComplexString_returns_null_for_null()
+    {
+        Assert.Null(ParameterParser.ExtractTypeNameFromComplexString(null));
+    }
 }

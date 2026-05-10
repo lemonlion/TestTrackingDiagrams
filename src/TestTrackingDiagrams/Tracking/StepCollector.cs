@@ -272,12 +272,19 @@ public static class StepCollector
             }
             else
             {
+                var stringValue = paramValues[i]?.ToString() ?? "null";
+                // Truncate complex objects (record ToString, generic collections) to [TypeName]
+                if (ParameterParser.IsComplexObjectString(stringValue))
+                {
+                    var typeName = ParameterParser.ExtractTypeNameFromComplexString(stringValue);
+                    stringValue = typeName is not null ? $"[{typeName}]" : stringValue;
+                }
                 result[i] = new StepParameter
                 {
                     Name = paramNames[i],
                     Kind = StepParameterKind.Inline,
                     InlineValue = new InlineParameterValue(
-                        Value: paramValues[i]?.ToString() ?? "null",
+                        Value: stringValue,
                         Expectation: null,
                         Status: VerificationStatus.NotApplicable)
                 };

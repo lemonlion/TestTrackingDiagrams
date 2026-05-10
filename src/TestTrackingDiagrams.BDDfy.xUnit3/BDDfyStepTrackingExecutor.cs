@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using TestStack.BDDfy;
+using TestTrackingDiagrams.Reports;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.BDDfy.xUnit3;
@@ -8,6 +10,9 @@ internal class BDDfyStepTrackingExecutor(IStepExecutor inner) : IStepExecutor
     private static readonly AsyncLocal<string?> CurrentStepTypeLocal = new();
 
     public static string? CurrentStepType => CurrentStepTypeLocal.Value;
+
+    // Matches record-style ToString: "TypeName { Prop = Val, ... }" (possibly nested)
+    private static readonly Regex RecordPattern = new(@"\b(\w+)\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}", RegexOptions.Compiled);
 
     public object Execute(Step step, object testObject)
     {
@@ -52,21 +57,28 @@ internal class BDDfyStepTrackingExecutor(IStepExecutor inner) : IStepExecutor
     /// <summary>
     /// Extracts the step text from BDDfy's step title, stripping the keyword prefix
     /// (e.g. "Given a user exists" → "a user exists"). Falls back to the full title
-    /// if no keyword prefix is present.
+    /// if no keyword prefix is present. Also truncates complex object parameters
+    /// (record-style ToString) to [TypeName] for cleaner hnote display.
     /// </summary>
     private static string ExtractStepText(string title, string? keyword)
     {
-        if (keyword is null)
-            return title.Trim();
-
-        var trimmed = title.Trim();
-        if (trimmed.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+        var text = title.Trim();
+        if (keyword is not null && text.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
         {
-            var afterKeyword = trimmed[keyword.Length..];
+            var afterKeyword = text[keyword.Length..];
             if (afterKeyword.Length > 0 && afterKeyword[0] == ' ')
-                return afterKeyword[1..];
+                text = afterKeyword[1..];
         }
 
-        return trimmed;
+        // Truncate record-style complex objects: "TypeName { ... }" → "[TypeName]"
+        text = RecordPattern.Replace(text, m =>
+        {
+            var fullMatch = m.Value;
+            return ParameterParser.IsComplexObjectString(fullMatch)
+                ? $"[{ParameterParser.ExtractTypeNameFromComplexString(fullMatch)}]"
+                : fullMatch;
+        });
+
+        return text;
     }
 }
