@@ -616,7 +616,6 @@ public class Stylesheets
                     flex-wrap: wrap;
                     gap: 0.5em;
                     align-items: center;
-                    margin-right: 2em;
                 }
 
                 .scenario-focused {
@@ -1316,7 +1315,6 @@ public class Stylesheets
                     }
 
                     .toolbar-right {
-                        margin-right: 0;
                         flex-wrap: wrap;
                         width: 100%;
                         box-sizing: border-box;

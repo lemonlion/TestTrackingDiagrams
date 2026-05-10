@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.21] - 2026-05-10
+
+### Fixed
+- **Report-level toolbar right-edge alignment** — The report-level toggle buttons (Assertions Shown/Hidden, Headers Shown/Hidden, Steps Shown/Hidden) had a `margin-right: 2em` that pushed them away from the right edge. Removed the margin so the toolbar right edge aligns with the filtering-box edge.
+
 ## [2.33.20] - 2026-05-10
 
 ### Fixed

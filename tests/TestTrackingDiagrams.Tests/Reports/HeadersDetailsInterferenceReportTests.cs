@@ -1,3 +1,4 @@
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Reports;
 using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 
@@ -155,5 +156,18 @@ public class HeadersDetailsInterferenceReportTests
         var btnOpen = precedingHtml.LastIndexOf("<button");
         var btnTag = precedingHtml[btnOpen..] + "data-toggle";
         Assert.DoesNotContain("data-state", btnTag);
+    }
+
+    [Fact]
+    public void Toolbar_right_has_no_right_margin()
+    {
+        // The toolbar-right should not have margin-right so that the toggle buttons
+        // (Assertions Shown/Hidden, etc.) align with the right edge of the filtering-box.
+        var css = Stylesheets.HtmlReportStyleSheet;
+        var idx = css.IndexOf(".toolbar-right {");
+        Assert.True(idx >= 0, ".toolbar-right CSS rule should exist");
+        var ruleEnd = css.IndexOf('}', idx);
+        var rule = css[idx..ruleEnd];
+        Assert.DoesNotContain("margin-right", rule);
     }
 }
