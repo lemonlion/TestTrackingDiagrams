@@ -1316,36 +1316,62 @@ public static class ReportGenerator
                       return;
                   }
 
-                  var remaining = elements.length;
+                  var scenarioTexts = {};
+                  var rowTexts = {};
                   var idx = 0;
                   var BATCH = 50;
 
                   function processBatch() {
                       var end = Math.min(idx + BATCH, elements.length);
+                      var promises = [];
                       for (var i = idx; i < end; i++) {
-                          (function(el) {
-                              decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                                  var text = decoded.toLowerCase();
-                                  var scenario = el.closest('.scenario');
-                                  if (scenario) {
-                                      var existing = scenario.getAttribute('data-search') || '';
-                                      scenario.setAttribute('data-search', existing + ' ' + text);
-                                  }
-                                  var row = el.closest('tr[data-row-search]');
-                                  if (row) {
-                                      var existingRow = row.getAttribute('data-row-search') || '';
-                                      row.setAttribute('data-row-search', existingRow + ' ' + text);
-                                  }
-                              }).catch(function() {}).finally(function() {
-                                  remaining--;
-                                  if (remaining === 0) onEnrichComplete();
-                              });
-                          })(elements[i]);
+                          (function(elIdx) {
+                              var el = elements[elIdx];
+                              promises.push(
+                                  decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                      var text = decoded.toLowerCase();
+                                      var scenario = el.closest('.scenario');
+                                      if (scenario) {
+                                          var sid = scenario.id || ('__s' + elIdx);
+                                          if (!scenario.id) scenario.id = sid;
+                                          scenarioTexts[sid] = (scenarioTexts[sid] || '') + ' ' + text;
+                                      }
+                                      var row = el.closest('tr[data-row-search]');
+                                      if (row) {
+                                          var rid = row.getAttribute('data-row-id') || ('__r' + elIdx);
+                                          if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
+                                          rowTexts[rid] = (rowTexts[rid] || '') + ' ' + text;
+                                      }
+                                  }).catch(function() {})
+                              );
+                          })(i);
                       }
                       idx = end;
-                      if (idx < elements.length) {
-                          setTimeout(processBatch, 0);
+                      Promise.all(promises).then(function() {
+                          if (idx < elements.length) {
+                              setTimeout(processBatch, 0);
+                          } else {
+                              flushSearchData();
+                          }
+                      });
+                  }
+
+                  function flushSearchData() {
+                      for (var sid in scenarioTexts) {
+                          var el = document.getElementById(sid);
+                          if (el) {
+                              var existing = el.getAttribute('data-search') || '';
+                              el.setAttribute('data-search', existing + scenarioTexts[sid]);
+                          }
                       }
+                      for (var rid in rowTexts) {
+                          var el = document.querySelector('[data-row-id="' + rid + '"]');
+                          if (el) {
+                              var existing = el.getAttribute('data-row-search') || '';
+                              el.setAttribute('data-row-search', existing + rowTexts[rid]);
+                          }
+                      }
+                      onEnrichComplete();
                   }
 
                   processBatch();

@@ -513,5 +513,57 @@ public class SearchDataAttributeTests
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
         Assert.Contains("setTimeout", enrichBody);
+
+        // Batches must wait for all Promises in the current batch to resolve before
+        // starting the next batch — otherwise all decompressions run concurrently
+        Assert.Contains("Promise.all", enrichBody);
+    }
+
+    [Fact]
+    public void EnrichSearchData_accumulates_search_text_before_flushing_to_DOM()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchAccumulate.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        // Search text should be accumulated in memory and flushed once per element,
+        // not incrementally appended via setAttribute inside each decompress callback.
+        // This avoids O(n^2) string concatenation on large reports.
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+
+        // The decompress .then() callback should NOT directly setAttribute('data-search', ...)
+        // It should accumulate text in a JS object and flush later.
+        var decompressIdx = enrichBody.IndexOf("decompress(");
+        var promiseAllIdx = enrichBody.IndexOf("Promise.all");
+        Assert.True(decompressIdx >= 0 && promiseAllIdx > decompressIdx, "decompress must appear before Promise.all");
+        var decompressCallbackBody = enrichBody[decompressIdx..promiseAllIdx];
+        Assert.DoesNotContain("setAttribute('data-search'", decompressCallbackBody);
+        Assert.DoesNotContain("setAttribute('data-row-search'", decompressCallbackBody);
     }
 }

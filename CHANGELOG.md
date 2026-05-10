@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.30] - 2025-07-12
+
+### Fixed
+- **Fixed enrichSearchData still crashing on large reports** — The v2.33.28 batched processing fix had a concurrency bug: `setTimeout(processBatch, 0)` fired the next batch immediately without waiting for the current batch's decompression Promises to resolve, so all 8,635 decompressions still ran concurrently. Rewrote to use `Promise.all()` to ensure each batch of 50 completes before starting the next. Also eliminated O(n²) string concatenation from repeated `setAttribute` calls by accumulating decompressed text in JS objects and flushing once per element at the end.
+
 ## [2.33.29] - 2026-05-10
 
 ### Fixed
