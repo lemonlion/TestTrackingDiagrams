@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.23] - 2026-05-10
+
+### Added
+- **Step delimiters in BDDfy sequence diagrams** — BDDfy tests now emit black `hnote` step delimiters (`Step: Given/When/Then ...`) into sequence diagrams at each step boundary, matching the behavior already available in Reqnroll and StepTracking (IL weaver) integrations. The `BDDfyStepTrackingExecutor` now brackets each step with `StepCollector.StartStep/CompleteStep`, enabling both step delimiters and assertion sub-step attachment during BDDfy step execution.
+- **Step delimiters in LightBDD sequence diagrams** — LightBDD tests now emit step delimiters via a new `StepTrackingStepDecorator` (`IStepDecorator`) registered automatically by `CreateStandardReportsWithDiagrams()`. Each LightBDD step is bracketed with `StepCollector.StartStep/CompleteStep`, enabling step delimiters and assertion sub-step attachment.
+
 ## [2.33.22] - 2026-05-10
 
 ### Fixed

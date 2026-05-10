@@ -57,6 +57,9 @@ namespace TestTrackingDiagrams.LightBDD
                     .EnableScenarioDecorator<ArgumentCaptureScenarioDecorator>();
             }
 
+            configuration.ExecutionExtensionsConfiguration()
+                .EnableStepDecorator<StepTrackingStepDecorator>();
+
             CreateStandardReportsWithDiagramsInternal(
                 configuration.ReportWritersConfiguration(), options, testAssembly, testCountResolver);
 

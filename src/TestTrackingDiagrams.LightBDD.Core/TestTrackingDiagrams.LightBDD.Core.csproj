@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="TestTrackingDiagrams.Tests" />
+    <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.LightBDD.xUnit3" />
+    <InternalsVisibleTo Include="TestTrackingDiagrams.Tests.LightBDD.TUnit" />
     <InternalsVisibleTo Include="TestTrackingDiagrams.LightBDD.xUnit2" />
     <InternalsVisibleTo Include="TestTrackingDiagrams.LightBDD.xUnit3" />
     <InternalsVisibleTo Include="TestTrackingDiagrams.LightBDD.TUnit" />
