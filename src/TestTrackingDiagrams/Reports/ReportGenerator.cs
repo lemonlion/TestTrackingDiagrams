@@ -403,6 +403,8 @@ public static class ReportGenerator
                                                  var rows = group.querySelectorAll('tr[data-row-search]');
                                                  var firstMatchRow = null;
                                                  for (var ri = 0; ri < rows.length; ri++) {
+                                                     var tbl = rows[ri].closest('table');
+                                                     if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
                                                      var rowText = rows[ri].getAttribute('data-row-search') || '';
                                                      var allMatch = true;
                                                      for (var j = 0; j < advSearchTokens.length; j++) {
@@ -509,6 +511,8 @@ public static class ReportGenerator
                                          var rows = group.querySelectorAll('tr[data-row-search]');
                                          var firstMatchRow = null;
                                          for (var ri = 0; ri < rows.length; ri++) {
+                                             var tbl = rows[ri].closest('table');
+                                             if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
                                              var rowText = rows[ri].getAttribute('data-row-search') || '';
                                              var allMatch = true;
                                              for (var j = 0; j < searchTokens.length; j++) {
@@ -879,6 +883,31 @@ public static class ReportGenerator
                                 }
                                 """;
 
+        // Toggle between grouped and flat parameter tables
+        var toggleFlattenParamsJs = """
+                                   function toggleFlattenParams(btn, prefix) {
+                                       var wrapper = btn.closest('.param-table-wrapper');
+                                       if (!wrapper) return;
+                                       var grouped = wrapper.querySelector('.param-table-grouped');
+                                       var flat = wrapper.querySelector('.param-table-flat');
+                                       if (!grouped || !flat) return;
+                                       var showFlat = grouped.style.display !== 'none';
+                                       // Read active row index from the currently visible table
+                                       var activeTable = showFlat ? grouped : flat;
+                                       var activeRow = activeTable.querySelector('tbody tr.row-active');
+                                       var activeIdx = activeRow ? activeRow.getAttribute('data-row-idx') : '0';
+                                       // Toggle visibility
+                                       grouped.style.display = showFlat ? 'none' : '';
+                                       flat.style.display = showFlat ? '' : 'none';
+                                       // Sync active row on the newly visible table
+                                       var newTable = showFlat ? flat : grouped;
+                                       var rows = newTable.querySelectorAll('tbody tr');
+                                       for (var i = 0; i < rows.length; i++) rows[i].classList.remove('row-active');
+                                       var target = newTable.querySelector('tbody tr[data-row-idx="' + activeIdx + '"]');
+                                       if (target) target.classList.add('row-active');
+                                   }
+                                   """;
+
         // R4: param-expand toggle auto-selects row + cell-subtable click isolation
         var paramExpandJs = """
                             document.addEventListener('DOMContentLoaded', function() {
@@ -898,6 +927,7 @@ public static class ReportGenerator
                                 });
                                 // Trigger column highlighting for initially active rows
                                 document.querySelectorAll('.param-test-table').forEach(function(table) {
+                                    if (table.style.display === 'none') return;
                                     var activeRow = table.querySelector('tbody tr.row-active');
                                     if (activeRow) {
                                         var prefix = table.getAttribute('data-prefix') || '';
@@ -1427,6 +1457,7 @@ public static class ReportGenerator
                                 {{copyScenarioNameFunction}}
                                 {{toggleExamplesDetailFunction}}
                                 {{selectRowFunction}}
+                                {{toggleFlattenParamsJs}}
                                 {{paramExpandJs}}
                                 {{toggleTimelineFunction}}
                                 {{toggleComponentDiagramFunction}}
@@ -2454,12 +2485,16 @@ public static class ReportGenerator
         body.Append($"<summary class=\"h3{(hasFailure ? " failed" : hasSkipped ? " skipped" : "")}\">{encodedGroupName}{happyPathBadge}{summaryText}{durationBadge}<button class=\"copy-scenario-name\" title=\"Copy scenario name\" data-scenario-name=\"{encodedGroupName}\" onclick=\"copy_scenario_name(this, event)\">&#128203;</button><a class=\"scenario-link\" href=\"#{anchorId}\" title=\"Link to this scenario\" onclick=\"event.stopPropagation()\">&#128279;</a></summary>");
 
         // Parameter table
-        body.Append($"<table class=\"param-test-table\" data-prefix=\"{prefix}\"><thead>");
+        var hasFlatView = group.FlatParameterNames is { Length: > 0 };
+        if (hasFlatView) body.Append("<div class=\"param-table-wrapper\">");
+        var groupedTableClass = hasFlatView ? " param-table-grouped" : "";
+        body.Append($"<table class=\"param-test-table{groupedTableClass}\" data-prefix=\"{prefix}\"><thead>");
         if (group.Rule is ParameterDisplayRule.ScalarColumns or ParameterDisplayRule.FlattenedObject && group.ParameterNames.Length > 0)
         {
             // R1/R2: Two-row header with master "Input Parameters" header
             body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
-            body.Append($"<th colspan=\"{group.ParameterNames.Length}\" class=\"master-header\">Input Parameters</th>");
+            var toggleBtn = hasFlatView ? $"<button class=\"flatten-toggle\" onclick=\"toggleFlattenParams(this,'{prefix}')\" title=\"Show flattened columns\">+</button>" : "";
+            body.Append($"<th colspan=\"{group.ParameterNames.Length}\" class=\"master-header\">{toggleBtn}Input Parameters</th>");
             body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
             body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
             body.Append("<tr>");
@@ -2573,6 +2608,81 @@ public static class ReportGenerator
             body.Append("</tr>");
         }
         body.Append("</tbody></table>");
+
+        // Flat parameter table (hidden by default) — shows original Gherkin Example columns as scalar values
+        if (hasFlatView)
+        {
+            var flatNames = group.FlatParameterNames!;
+            body.Append($"<table class=\"param-test-table param-table-flat\" data-prefix=\"{prefix}\" style=\"display:none\"><thead>");
+            body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
+            body.Append($"<th colspan=\"{flatNames.Length}\" class=\"master-header\"><button class=\"flatten-toggle\" onclick=\"toggleFlattenParams(this,'{prefix}')\" title=\"Show grouped columns\">\u2212</button>Input Parameters</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
+            body.Append("<tr>");
+            foreach (var name in flatNames)
+            {
+                var displayName = titleizeParameterNames ? name.Titleize() : name;
+                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(displayName)}</th>");
+            }
+            body.Append("</tr></thead><tbody>");
+
+            for (var ri = 0; ri < scenarios.Length; ri++)
+            {
+                var s = scenarios[ri];
+                var rowStatusClass = s.Result switch
+                {
+                    ExecutionResult.Passed => "row-passed",
+                    ExecutionResult.Failed => "row-failed",
+                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "row-skipped",
+                    ExecutionResult.Bypassed => "row-bypassed",
+                    _ => ""
+                };
+                var activeClass = ri == 0 ? " row-active" : "";
+                var badgeClass = s.Result switch
+                {
+                    ExecutionResult.Passed => "badge-pass",
+                    ExecutionResult.Failed => "badge-fail",
+                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "badge-skip",
+                    ExecutionResult.Bypassed => "badge-bypass",
+                    _ => ""
+                };
+                var badgeText = s.Result switch
+                {
+                    ExecutionResult.Passed => "Passed",
+                    ExecutionResult.Failed => "Failed",
+                    ExecutionResult.Skipped => "Skipped",
+                    ExecutionResult.Bypassed => "Bypassed",
+                    ExecutionResult.SkippedAfterFailure => "Skipped",
+                    _ => ""
+                };
+
+                var rowSearchParts = new List<string> { s.DisplayName };
+                if (featureDisplayName is not null) rowSearchParts.Add(featureDisplayName);
+                if (featureDescription is not null) rowSearchParts.Add(featureDescription);
+                if (featureLabels is { Length: > 0 }) rowSearchParts.AddRange(featureLabels);
+                if (s.Categories is { Length: > 0 }) rowSearchParts.AddRange(s.Categories);
+                if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
+                if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
+                CollectStepText(s.Steps, rowSearchParts);
+                var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
+
+                body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
+                body.Append($"<td>{ri + 1}</td>");
+
+                foreach (var name in flatNames)
+                {
+                    var val = s.ExampleFlatValues?.GetValueOrDefault(name, "") ?? "";
+                    body.Append($"<td class=\"mono\">{FormatDisplayValue(val)}</td>");
+                }
+
+                var rowDuration = s.Duration.HasValue ? FormatDurationBadge(s.Duration.Value) : "";
+                body.Append($"<td><span class=\"status-badge {badgeClass}\">{badgeText}</span></td>");
+                body.Append($"<td class=\"mono\">{rowDuration}</td>");
+                body.Append("</tr>");
+            }
+            body.Append("</tbody></table>");
+            body.Append("</div>"); // close param-table-wrapper
+        }
 
         // Detail panels (steps, failure) — rendered below the parameter table
         var hasAnyDetail = scenarios.Any(s => s.Steps is { Length: > 0 } || s.Result == ExecutionResult.Failed);

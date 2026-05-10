@@ -9,5 +9,6 @@ public record ParameterizedGroup(
     string[] ParameterNames,
     ParameterDisplayRule Rule,
     Scenario[] Scenarios,
-    bool AllDiagramsIdentical
+    bool AllDiagramsIdentical,
+    string[]? FlatParameterNames = null
 );

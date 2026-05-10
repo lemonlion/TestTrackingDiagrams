@@ -429,12 +429,73 @@ public class ParameterGrouperTests
         Assert.Equal("A", groups[0].Scenarios[1].ExampleValues!["Band"]);
     }
 
+    [Fact]
+    public void FlatParameterNames_populated_when_scenarios_have_ExampleFlatValues()
+    {
+        var s1 = MakeScenario("s1", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+            exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain", ["Sugar"] = "100g" });
+        var s2 = MakeScenario("s2", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+            exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole", ["Sugar"] = "80g" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.NotNull(groups[0].FlatParameterNames);
+        Assert.Equal(["RecipeName", "Flour", "Sugar"], groups[0].FlatParameterNames);
+    }
+
+    [Fact]
+    public void FlatParameterNames_null_when_scenarios_have_no_ExampleFlatValues()
+    {
+        var s1 = MakeScenario("s1", "Test(region: UK)", outlineId: "Test",
+            exampleValues: new() { ["region"] = "UK" });
+        var s2 = MakeScenario("s2", "Test(region: US)", outlineId: "Test",
+            exampleValues: new() { ["region"] = "US" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Null(groups[0].FlatParameterNames);
+    }
+
+    [Fact]
+    public void FlatParameterNames_null_when_only_some_scenarios_have_ExampleFlatValues()
+    {
+        var s1 = MakeScenario("s1", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+            exampleFlatValues: new() { ["Flour"] = "Plain" });
+        var s2 = MakeScenario("s2", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        Assert.Single(groups);
+        Assert.Null(groups[0].FlatParameterNames);
+    }
+
+    [Fact]
+    public void ExampleFlatValues_deep_cloned_during_Analyze()
+    {
+        var originalFlat = new Dictionary<string, string> { ["Flour"] = "Plain" };
+        var s1 = MakeScenario("s1", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+            exampleFlatValues: originalFlat);
+        var s2 = MakeScenario("s2", "Test(recipe)", outlineId: "Test",
+            exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+            exampleFlatValues: new() { ["Flour"] = "Whole" });
+
+        var (groups, _) = ParameterGrouper.Analyze([s1, s2]);
+        // Modify original — should not affect cloned values
+        originalFlat["Flour"] = "MUTATED";
+        Assert.Equal("Plain", groups[0].Scenarios[0].ExampleFlatValues!["Flour"]);
+    }
+
     private static Scenario MakeScenario(
         string id, string displayName,
         string? outlineId = null,
         Dictionary<string, string>? exampleValues = null,
         Dictionary<string, object?>? exampleRawValues = null,
         string? exampleDisplayName = null,
+        Dictionary<string, string>? exampleFlatValues = null,
         ExecutionResult result = ExecutionResult.Passed)
     {
         return new Scenario
@@ -445,6 +506,7 @@ public class ParameterGrouperTests
             ExampleValues = exampleValues,
             ExampleRawValues = exampleRawValues,
             ExampleDisplayName = exampleDisplayName,
+            ExampleFlatValues = exampleFlatValues,
             Result = result
         };
     }

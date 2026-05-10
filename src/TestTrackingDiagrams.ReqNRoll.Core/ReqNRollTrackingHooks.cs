@@ -106,6 +106,7 @@ public class ReqNRollTrackingHooks
         var arguments = _scenarioContext.ScenarioInfo.Arguments;
         Dictionary<string, string>? exampleValues = null;
         Dictionary<string, object?>? exampleRawValues = null;
+        Dictionary<string, string>? exampleFlatValues = null;
         if (arguments is { Count: > 0 })
         {
             var flatValues = new Dictionary<string, string>();
@@ -115,6 +116,11 @@ public class ReqNRollTrackingHooks
             // Build structured ExampleValues/ExampleRawValues by grouping flat columns
             // based on step table data
             (exampleValues, exampleRawValues) = ExampleValueGrouper.BuildStructured(flatValues, steps);
+
+            // Preserve original flat values when grouping changed the key set
+            // (enables the flatten/unflatten toggle in the report)
+            if (exampleRawValues is not null && !exampleValues.Keys.OrderBy(k => k).SequenceEqual(flatValues.Keys.OrderBy(k => k)))
+                exampleFlatValues = flatValues;
         }
 
         ReqNRollScenarioCollector.Collect(new ReqNRollScenarioInfo
@@ -132,7 +138,8 @@ public class ReqNRollTrackingHooks
             Rule = _scenarioContext.RuleInfo?.Title,
             OutlineId = exampleValues is not null ? _scenarioContext.ScenarioInfo.Title : null,
             ExampleValues = exampleValues,
-            ExampleRawValues = exampleRawValues
+            ExampleRawValues = exampleRawValues,
+            ExampleFlatValues = exampleFlatValues
         });
 
         ReqNRollTestContext.CurrentTestInfo = null;

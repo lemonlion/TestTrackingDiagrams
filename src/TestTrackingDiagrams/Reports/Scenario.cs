@@ -20,5 +20,6 @@ public record Scenario
     public string? OutlineId { get; set; }
     public Dictionary<string, string>? ExampleValues { get; set; }
     public Dictionary<string, object?>? ExampleRawValues { get; set; }
+    public Dictionary<string, string>? ExampleFlatValues { get; set; }
     public string? ExampleDisplayName { get; set; }
 }

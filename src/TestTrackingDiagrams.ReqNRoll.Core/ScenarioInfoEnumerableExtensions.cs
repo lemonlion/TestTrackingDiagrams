@@ -70,6 +70,7 @@ internal static class ScenarioInfoEnumerableExtensions
                                 OutlineId = x.OutlineId,
                                 ExampleValues = x.ExampleValues,
                                 ExampleRawValues = x.ExampleRawValues,
+                                ExampleFlatValues = x.ExampleFlatValues,
                             };
                         }).ToArray()
                 };

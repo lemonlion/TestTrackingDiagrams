@@ -19,7 +19,8 @@ public class ParameterizedGroupRenderTests
         string? outlineId = null, Dictionary<string, string>? exampleValues = null,
         Dictionary<string, object?>? exampleRawValues = null,
         string? exampleDisplayName = null, string? errorMessage = null, string? errorStackTrace = null,
-        TimeSpan? duration = null, ScenarioStep[]? steps = null, bool isHappyPath = false) =>
+        TimeSpan? duration = null, ScenarioStep[]? steps = null, bool isHappyPath = false,
+        Dictionary<string, string>? exampleFlatValues = null) =>
         new()
         {
             Id = id,
@@ -29,6 +30,7 @@ public class ParameterizedGroupRenderTests
             ExampleValues = exampleValues,
             ExampleRawValues = exampleRawValues,
             ExampleDisplayName = exampleDisplayName,
+            ExampleFlatValues = exampleFlatValues,
             ErrorMessage = errorMessage,
             ErrorStackTrace = errorStackTrace,
             Duration = duration,
@@ -1069,5 +1071,152 @@ public class ParameterizedGroupRenderTests
         Assert.True(paramGroupStart >= 0, "parameterized group not found");
         var paramGroupHtml = content.Substring(paramGroupStart);
         Assert.Contains("onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>", paramGroupHtml);
+    }
+
+    [Fact]
+    public void Flat_values_renders_two_tables_with_toggle_buttons()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain" }),
+            MakeScenario("s2", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Should have a wrapper div
+        Assert.Contains("param-table-wrapper", content);
+        // Should have grouped table (visible) with + button
+        Assert.Contains("param-table-grouped", content);
+        Assert.Contains("flatten-toggle", content);
+        // Should have flat table (hidden) with - button
+        Assert.Contains("param-table-flat", content);
+    }
+
+    [Fact]
+    public void Flat_table_renders_original_column_headers()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain" }),
+            MakeScenario("s2", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Extract the flat table section
+        var flatTableStart = content.IndexOf("param-table-flat");
+        Assert.True(flatTableStart >= 0, "flat table not found");
+        var flatTableHtml = content.Substring(flatTableStart);
+
+        // Should have the original flat column headers
+        Assert.Contains("Recipe Name", flatTableHtml); // "RecipeName" titleized
+        Assert.Contains("Flour", flatTableHtml);
+    }
+
+    [Fact]
+    public void Flat_table_renders_scalar_values_only()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+                exampleRawValues: new() { ["Recipe"] = new Dictionary<string, object?> { ["Flour"] = "Plain" } },
+                exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain" }),
+            MakeScenario("s2", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+                exampleRawValues: new() { ["Recipe"] = new Dictionary<string, object?> { ["Flour"] = "Whole" } },
+                exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Find the flat table element in HTML (not CSS)
+        var marker = "<table class=\"param-test-table param-table-flat\"";
+        var flatStart = content.IndexOf(marker);
+        Assert.True(flatStart >= 0, "flat table element not found");
+        var flatEnd = content.IndexOf("</table>", flatStart);
+        var flatTableHtml = content.Substring(flatStart, flatEnd - flatStart + "</table>".Length);
+        Assert.DoesNotContain("cell-subtable", flatTableHtml);
+        Assert.DoesNotContain("param-expand", flatTableHtml);
+        // But should have mono scalar values
+        Assert.Contains("Classic", flatTableHtml);
+        Assert.Contains("Rustic", flatTableHtml);
+    }
+
+    [Fact]
+    public void Flat_table_rows_have_no_id_attribute()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain" }),
+            MakeScenario("s2", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Extract the flat table
+        var flatStart = content.IndexOf("param-table-flat");
+        var flatEnd = content.IndexOf("</table>", flatStart);
+        var flatTableHtml = content.Substring(flatStart, flatEnd - flatStart + "</table>".Length);
+
+        // Rows should have data-row-idx but not id
+        Assert.Contains("data-row-idx", flatTableHtml);
+        Assert.DoesNotContain("id=\"scenario-", flatTableHtml);
+    }
+
+    [Fact]
+    public void Grouped_table_hidden_by_default_flat_table_visible_when_no_flat_values()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Process(region: UK)", outlineId: "Process",
+                exampleValues: new() { ["region"] = "UK" }),
+            MakeScenario("s2", "Process(region: US)", outlineId: "Process",
+                exampleValues: new() { ["region"] = "US" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Extract just the scenario HTML (after the <style> block)
+        var scenarioStart = content.IndexOf("<details class=\"scenario scenario-parameterized");
+        Assert.True(scenarioStart >= 0, "parameterized group not found");
+        var scenarioHtml = content.Substring(scenarioStart);
+
+        // Should not have a wrapper, toggle, or grouped class in the actual HTML
+        Assert.DoesNotContain("param-table-wrapper", scenarioHtml);
+        Assert.DoesNotContain("flatten-toggle", scenarioHtml);
+        Assert.DoesNotContain("param-table-grouped", scenarioHtml);
+    }
+
+    [Fact]
+    public void Flat_table_is_hidden_by_default()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Plain }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Classic", ["Flour"] = "Plain" }),
+            MakeScenario("s2", "Recipe(recipe)", outlineId: "Recipe",
+                exampleValues: new() { ["Recipe"] = "{ Flour = Whole }" },
+                exampleFlatValues: new() { ["RecipeName"] = "Rustic", ["Flour"] = "Whole" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // Find the flat table element (in the HTML body, not CSS)
+        // The pattern is: <table class="param-test-table param-table-flat" ... style="display:none">
+        var marker = "<table class=\"param-test-table param-table-flat\"";
+        var flatIdx = content.IndexOf(marker);
+        Assert.True(flatIdx >= 0, "flat table element not found");
+        var tagEnd = content.IndexOf(">", flatIdx);
+        var tableTag = content.Substring(flatIdx, tagEnd - flatIdx + 1);
+        Assert.Contains("display:none", tableTag);
     }
 }

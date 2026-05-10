@@ -1228,6 +1228,23 @@ public class Stylesheets
                 .param-test-table tbody tr.row-active.row-skipped { background: #fef9e7; }
                 .param-test-table tbody tr.row-search-match { box-shadow: inset 4px 0 0 #4285f4; }
                 .param-test-table .mono { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; }
+                .param-table-wrapper { overflow-x: auto; }
+                .flatten-toggle {
+                    background: none;
+                    border: 1px solid #bbb;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 1em;
+                    width: 1.5em;
+                    height: 1.5em;
+                    line-height: 1;
+                    padding: 0;
+                    margin-right: 0.4em;
+                    vertical-align: middle;
+                    color: #555;
+                }
+                .flatten-toggle:hover { background: #ddd; color: #333; }
 
                 /* Status badges */
                 .status-badge {

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.32] - 2025-07-12
+
+### Added
+- **Flatten toggle for parameterized test tables** — ReqNRoll parameterized groups now render a `+` toggle button in the "Input Parameters" header. Clicking it switches from the default grouped/complex view (with R3 sub-tables and R4 expandable objects) to a flat view showing the original Gherkin Examples columns as scalar values. Clicking `−` returns to the grouped view. Active row selection syncs between tables on toggle, and search skips rows in the hidden table. The flat table wrapper supports horizontal scrolling when columns are wide.
+- `Scenario.ExampleFlatValues` property preserving the original ReqNRoll ScenarioContext argument values before `BuildStructured()` transforms them into grouped columns.
+- `ParameterizedGroup.FlatParameterNames` computed from `ExampleFlatValues` when all scenarios in a group have flat values.
+- 10 new Playwright E2E tests (`FlattenToggleTests`) verifying toggle rendering, visibility, row sync, detail panel switching, search scoping, and horizontal scroll.
+
 ## [2.33.31] - 2025-07-12
 
 ### Fixed

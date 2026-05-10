@@ -27,7 +27,8 @@ public static class ParameterGrouper
         scenarios = scenarios.Select(s => s with
         {
             ExampleValues = s.ExampleValues is not null ? new Dictionary<string, string>(s.ExampleValues) : null,
-            ExampleRawValues = s.ExampleRawValues is not null ? new Dictionary<string, object?>(s.ExampleRawValues) : null
+            ExampleRawValues = s.ExampleRawValues is not null ? new Dictionary<string, object?>(s.ExampleRawValues) : null,
+            ExampleFlatValues = s.ExampleFlatValues is not null ? new Dictionary<string, string>(s.ExampleFlatValues) : null
         }).ToArray();
 
         var groups = new List<ParameterizedGroup>();
@@ -90,7 +91,17 @@ public static class ParameterGrouper
         var (paramNames, rule) = DetermineParamsAndRule(members, maxColumns);
         var identical = diagramComparer?.Invoke(members) ?? false;
 
-        return new ParameterizedGroup(groupName, paramNames, rule, members, identical);
+        // Compute flat parameter names when all members have ExampleFlatValues
+        string[]? flatParamNames = null;
+        if (members.All(m => m.ExampleFlatValues is { Count: > 0 }))
+        {
+            flatParamNames = members
+                .SelectMany(m => m.ExampleFlatValues!.Keys)
+                .Distinct()
+                .ToArray();
+        }
+
+        return new ParameterizedGroup(groupName, paramNames, rule, members, identical, flatParamNames);
     }
 
     private static bool HasParameters(Scenario[] members) =>
