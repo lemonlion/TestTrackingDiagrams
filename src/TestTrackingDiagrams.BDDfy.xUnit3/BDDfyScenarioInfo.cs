@@ -27,6 +27,13 @@ public record BDDfyScenarioInfo
     /// Parameter names corresponding to <see cref="RawArguments"/>, extracted from the test method's signature.
     /// </summary>
     public string[]? ParameterNames { get; init; }
+
+    /// <summary>
+    /// The raw test method name (e.g. "My_test_method"), used to compute OutlineId for
+    /// parameterized scenario grouping. Using the raw method name avoids issues where
+    /// truncated generic type notation in scenario titles breaks bracket-based base name extraction.
+    /// </summary>
+    public string? TestMethodName { get; init; }
 }
 
 /// <summary>

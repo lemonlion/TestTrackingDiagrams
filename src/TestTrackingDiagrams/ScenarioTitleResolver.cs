@@ -46,7 +46,7 @@ public static partial class ScenarioTitleResolver
             return resolvedTitle;
 
         if (paramContent.Length > MaxParameterLength)
-            paramContent = paramContent[..MaxParameterLength] + "...";
+            paramContent = paramContent[..MaxParameterLength] + "\u2026";
 
         return $"{resolvedTitle} [{paramContent}]";
     }
@@ -74,7 +74,7 @@ public static partial class ScenarioTitleResolver
             if (paramContent.Length > 0)
             {
                 parameters = paramContent.Length > MaxParameterLength
-                    ? paramContent[..MaxParameterLength] + "..."
+                    ? paramContent[..MaxParameterLength] + "\u2026"
                     : paramContent;
             }
         }

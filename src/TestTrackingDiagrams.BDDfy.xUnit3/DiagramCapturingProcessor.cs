@@ -79,6 +79,7 @@ public class DiagramCapturingProcessor : IProcessor
                 ErrorStackTrace = failedException?.StackTrace,
                 RawArguments = rawArgs,
                 ParameterNames = paramNames,
+                TestMethodName = testMethodName,
             });
         }
     }

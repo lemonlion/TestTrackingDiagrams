@@ -154,9 +154,26 @@ public class ScenarioTitleResolverTests
             "Some title",
             $"Ns.C.Method(account: \"{longValue}\")");
 
-        Assert.EndsWith("...]", result);
+        Assert.EndsWith("…]", result);
         Assert.StartsWith("Some title [", result);
         Assert.True(result.Length < 300, "Result should be significantly shorter than the raw parameter content");
+    }
+
+    [Fact]
+    public void AppendTestParameters_WhenParametersContainGenericTypes_TruncationUsesUnicodeEllipsis()
+    {
+        // Simulates MemberData with complex objects whose ToString() includes .NET generic type notation
+        // e.g. List`1[Namespace.TypeName] — the backtick+brackets must not confuse downstream parsing
+        var complexParam = """recipeName: "Classic", recipe: MuffinRecipeTestData { Ingredients = IngredientSet { Flour = Plain Flour, Apples = Granny Smith, Cinnamon = Ceylon }, Toppings = System.Collections.Generic.List`1[BreakfastProvider.Tests.Component.Shared.Models.AppleCinnamonMuffins.ToppingData] }, temperature: 180, durationMinutes: 25, panType: "Standard", expected: MuffinBatchExpectation { ExpectedIngredientCount = 5, ExpectedToppingCount = 2, HasBakingInfo = True }""";
+        var result = ScenarioTitleResolver.AppendTestParameters(
+            "Different muffin recipes should produce the expected batch",
+            $"Ns.Class.Different_muffin_recipes_should_produce_the_expected_batch({complexParam})");
+
+        // Must use Unicode ellipsis (…) not three dots (...) to prevent FormatScenarioDisplayName
+        // from treating truncation dots as namespace separators
+        Assert.EndsWith("…]", result);
+        Assert.DoesNotContain("...", result);
+        Assert.StartsWith("Different muffin recipes should produce the expected batch [", result);
     }
 
     [Fact]
@@ -215,7 +232,7 @@ public class ScenarioTitleResolverTests
     {
         var longValue = new string('x', 300);
         var result = ScenarioTitleResolver.FormatScenarioDisplayName($"Ns.Class.TestMethod(a: \"{longValue}\")");
-        Assert.EndsWith("...]", result);
+        Assert.EndsWith("…]", result);
         Assert.StartsWith("Test method [", result);
     }
 

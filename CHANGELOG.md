@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.31] - 2025-07-12
+
+### Fixed
+- **BDDfy outline group header showing `]` for complex parameterized tests** — Complex `[Theory]` parameters with generic type notation (e.g. `List`1[TypeName]`) caused `ExtractBaseName` to fail when the parameter string was truncated at 200 characters, producing `]` as the outline group header instead of the humanized test method name. Fixed by using the raw test method name (`TestMethodName`) for OutlineId computation (matching the xUnit3 adapter approach), and replacing the truncation marker `...` with Unicode ellipsis `…` to prevent `FormatScenarioDisplayName` from treating truncation dots as namespace separators.
+
 ## [2.33.30] - 2025-07-12
 
 ### Fixed

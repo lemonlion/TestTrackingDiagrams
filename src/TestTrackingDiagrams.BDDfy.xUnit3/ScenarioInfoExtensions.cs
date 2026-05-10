@@ -49,7 +49,7 @@ internal static class ScenarioInfoExtensions
                             {
                                 exampleValues = structured.Value.StringValues;
                                 exampleRawValues = structured.Value.RawValues;
-                                outlineId = ParameterParser.ExtractBaseName(x.ScenarioTitle);
+                                outlineId = x.TestMethodName ?? ParameterParser.ExtractBaseName(x.ScenarioTitle);
                             }
                             else
                             {
@@ -57,7 +57,7 @@ internal static class ScenarioInfoExtensions
                                 if (parsed is { Count: > 0 })
                                 {
                                     exampleValues = parsed;
-                                    outlineId = ParameterParser.ExtractBaseName(x.ScenarioTitle);
+                                    outlineId = x.TestMethodName ?? ParameterParser.ExtractBaseName(x.ScenarioTitle);
                                 }
                             }
 

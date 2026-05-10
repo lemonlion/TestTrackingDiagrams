@@ -14,7 +14,10 @@ public class BDDfyScenarioInfoExtensionsTests
         string[]? tags = null,
         List<BDDfyStepInfo>? steps = null,
         TestStack.BDDfy.Result result = TestStack.BDDfy.Result.Passed,
-        TimeSpan duration = default)
+        TimeSpan duration = default,
+        object?[]? rawArguments = null,
+        string[]? parameterNames = null,
+        string? testMethodName = null)
     {
         return new BDDfyScenarioInfo
         {
@@ -25,7 +28,10 @@ public class BDDfyScenarioInfoExtensionsTests
             Tags = tags ?? [],
             Steps = steps ?? [],
             Result = result,
-            Duration = duration
+            Duration = duration,
+            RawArguments = rawArguments,
+            ParameterNames = parameterNames,
+            TestMethodName = testMethodName,
         };
     }
 
@@ -319,5 +325,63 @@ public class BDDfyScenarioInfoExtensionsTests
         var info = MakeScenario(steps: [], result: TestStack.BDDfy.Result.Failed);
         var features = new[] { info }.ToFeatures();
         Assert.Equal(ExecutionResult.Failed, features[0].Scenarios[0].Result);
+    }
+
+    // ── OutlineId from TestMethodName ──
+
+    [Fact]
+    public void ToFeatures_uses_TestMethodName_for_OutlineId_when_structured_params_available()
+    {
+        // When raw arguments and TestMethodName are provided, OutlineId should be the raw
+        // method name — not parsed from the scenario title (which may contain truncated
+        // generic type notation that breaks ExtractBaseName)
+        var scenario1 = MakeScenario(
+            testId: "t1",
+            scenarioTitle: "Different muffin recipes should produce the expected batch [recipeName: \"Classic\", recipe: MuffinRecipeTestData { Toppings = System.Collections.Generic.List`1[ToppingData] …]",
+            rawArguments: ["Classic", 180],
+            parameterNames: ["recipeName", "temperature"],
+            testMethodName: "Different_muffin_recipes_should_produce_the_expected_batch");
+
+        var scenario2 = MakeScenario(
+            testId: "t2",
+            scenarioTitle: "Different muffin recipes should produce the expected batch [recipeName: \"Rustic\", recipe: MuffinRecipeTestData { Toppings = System.Collections.Generic.List`1[ToppingData] …]",
+            rawArguments: ["Rustic", 175],
+            parameterNames: ["recipeName", "temperature"],
+            testMethodName: "Different_muffin_recipes_should_produce_the_expected_batch");
+
+        var features = new[] { scenario1, scenario2 }.ToFeatures();
+        var scenarios = features[0].Scenarios;
+
+        // Both should share the same OutlineId based on the raw method name
+        Assert.Equal("Different_muffin_recipes_should_produce_the_expected_batch", scenarios[0].OutlineId);
+        Assert.Equal(scenarios[0].OutlineId, scenarios[1].OutlineId);
+    }
+
+    [Fact]
+    public void ToFeatures_falls_back_to_ExtractBaseName_when_TestMethodName_is_null()
+    {
+        var scenario = MakeScenario(
+            scenarioTitle: "Some scenario [param: value]",
+            rawArguments: ["value"],
+            parameterNames: ["param"],
+            testMethodName: null);
+
+        var features = new[] { scenario }.ToFeatures();
+
+        Assert.Equal("Some scenario", features[0].Scenarios[0].OutlineId);
+    }
+
+    [Fact]
+    public void ToFeatures_uses_TestMethodName_for_OutlineId_on_string_parsed_path()
+    {
+        // Even when no raw arguments exist (fallback to title parsing), TestMethodName
+        // should be used for OutlineId when available
+        var scenario = MakeScenario(
+            scenarioTitle: "Some scenario [param: value]",
+            testMethodName: "Some_test_method");
+
+        var features = new[] { scenario }.ToFeatures();
+
+        Assert.Equal("Some_test_method", features[0].Scenarios[0].OutlineId);
     }
 }
