@@ -37,6 +37,10 @@ public class ReqNRollTrackingHooks
         ReqNRollTestContext.CurrentStepType = stepType;
         TestPhaseContext.Current = PhaseConfiguration.ResolvePhaseFromStepType(stepType);
         _scenarioContext[ReqNRollConstants.StepStopwatchKey] = Stopwatch.StartNew();
+
+        // Push a step onto StepCollector so assertion tracking sub-steps attach here
+        var scenarioId = (string)_scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey];
+        StepCollector.StartStep(scenarioId, stepType, _scenarioContext.StepContext.StepInfo.Text, null, null);
     }
 
     [AfterStep(Order = int.MaxValue)]
@@ -76,6 +80,11 @@ public class ReqNRollTrackingHooks
             if (captures.Count > 0)
                 inlineParams = captures.ToArray();
         }
+
+        // Pop the StepCollector step so assertion sub-steps are captured
+        var scenarioId = (string)_scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey];
+        var passed = stepContext.Status == ScenarioExecutionStatus.OK;
+        StepCollector.CompleteStep(scenarioId, passed);
 
         steps.Add(new ReqNRollStepInfo(
             stepContext.StepInfo.StepInstance.StepDefinitionKeyword.ToString(),

@@ -1,6 +1,7 @@
 using Reqnroll;
 using TestTrackingDiagrams;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ReqNRoll;
 
@@ -61,7 +62,7 @@ internal static class ScenarioInfoEnumerableExtensions
                                 ErrorStackTrace = x.TestError?.StackTrace,
                                 Duration = x.Duration,
                                 Steps = x.Steps.Count > 0
-                                    ? MapSteps(x.Steps)
+                                    ? MapSteps(x.Steps, StepCollector.GetSteps(x.ScenarioId))
                                     : null,
                                 Labels = labels.Length > 0 ? labels : null,
                                 Categories = categories.Length > 0 ? categories : null,
@@ -75,7 +76,7 @@ internal static class ScenarioInfoEnumerableExtensions
             }).ToArray();
     }
 
-    private static ScenarioStep[] MapSteps(List<ReqNRollStepInfo> steps)
+    private static ScenarioStep[] MapSteps(List<ReqNRollStepInfo> steps, ScenarioStep[]? collectedSteps = null)
     {
         var mapped = new ScenarioStep[steps.Count];
         var priorFailure = false;
@@ -90,6 +91,9 @@ internal static class ScenarioInfoEnumerableExtensions
                 DocString = steps[i].DocString,
                 Parameters = ParseTableText(steps[i].TableText),
                 TextSegments = BuildTextSegments(steps[i]),
+                SubSteps = collectedSteps is not null && i < collectedSteps.Length
+                    ? collectedSteps[i].SubSteps
+                    : null,
             };
             if (steps[i].Status == ScenarioExecutionStatus.TestError || steps[i].Status == ScenarioExecutionStatus.BindingError)
                 priorFailure = true;

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.22] - 2026-05-10
+
+### Fixed
+- **ReqNRoll assertion sub-steps not appearing in reports** — Assertions (`.Should()` calls) inside ReqNRoll step definitions were not surfacing as sub-steps in the test run report. The ReqNRoll hooks now bracket each step with `StepCollector.StartStep/CompleteStep` so that `Track.LogAssertion` can attach assertion sub-steps during execution, and `MapSteps` merges them into the report output.
+
 ## [2.33.21] - 2026-05-10
 
 ### Fixed

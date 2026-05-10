@@ -1,6 +1,7 @@
 using Reqnroll;
 using TestTrackingDiagrams.ReqNRoll;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.ReqNRoll;
 
@@ -297,5 +298,81 @@ public class ReqNRollScenarioInfoExtensionsTests
         var info = MakeScenario(featureTitle: featureTitle);
         var features = new[] { info }.ToFeatures();
         Assert.Equal(expected, features[0].DisplayName);
+    }
+
+    // ─── Assertion sub-steps mapping ────────────────────────────────
+
+    [Fact]
+    public void ToFeatures_maps_assertion_sub_steps_from_StepCollector()
+    {
+        var scenarioId = "assertion-sub-step-test-" + Guid.NewGuid();
+
+        // Simulate what the hooks will do: push a step, add assertion sub-steps, complete
+        StepCollector.StartStep(scenarioId, "Then", "the response should be valid", null, null);
+        StepCollector.AddAssertionSubStep(scenarioId, "Response status code should be 200", true);
+        StepCollector.AddAssertionSubStep(scenarioId, "Response body should contain items", true);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        var info = MakeScenario(scenarioId: scenarioId, steps:
+        [
+            new ReqNRollStepInfo("Then", "the response should be valid", ScenarioExecutionStatus.OK)
+        ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var step = features[0].Scenarios[0].Steps![0];
+
+            Assert.NotNull(step.SubSteps);
+            Assert.Equal(2, step.SubSteps!.Length);
+            Assert.Equal("Response status code should be 200", step.SubSteps[0].Text);
+            Assert.Equal("Response body should contain items", step.SubSteps[1].Text);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(scenarioId);
+        }
+    }
+
+    [Fact]
+    public void ToFeatures_maps_assertion_sub_steps_only_to_matching_step_index()
+    {
+        var scenarioId = "assertion-index-test-" + Guid.NewGuid();
+
+        // Step 0 (Given): no assertions
+        StepCollector.StartStep(scenarioId, "Given", "a request", null, null);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        // Step 1 (When): no assertions
+        StepCollector.StartStep(scenarioId, "When", "the request is sent", null, null);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        // Step 2 (Then): has assertions
+        StepCollector.StartStep(scenarioId, "Then", "the response is valid", null, null);
+        StepCollector.AddAssertionSubStep(scenarioId, "Status should be OK", true);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        var info = MakeScenario(scenarioId: scenarioId, steps:
+        [
+            new ReqNRollStepInfo("Given", "a request", ScenarioExecutionStatus.OK),
+            new ReqNRollStepInfo("When", "the request is sent", ScenarioExecutionStatus.OK),
+            new ReqNRollStepInfo("Then", "the response is valid", ScenarioExecutionStatus.OK)
+        ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var steps = features[0].Scenarios[0].Steps!;
+
+            Assert.Null(steps[0].SubSteps);
+            Assert.Null(steps[1].SubSteps);
+            Assert.NotNull(steps[2].SubSteps);
+            Assert.Single(steps[2].SubSteps!);
+            Assert.Equal("Status should be OK", steps[2].SubSteps![0].Text);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(scenarioId);
+        }
     }
 }
