@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.33] - 2025-07-12
+
+### Fixed
+- **Search data enrichment moved to Web Worker to prevent browser freezing** — The `enrichSearchData()` function decompressed `data-plantuml-z` attributes on the main thread, causing the browser to display "page not responding" on large reports (e.g. 102MB, 8,635 diagrams) even with the v2.33.30 Promise.all batching fix. All gzip decompression now runs in an inline Web Worker (background thread via Blob URL), keeping the main thread completely free for user interaction while the "Loading search data…" overlay is displayed. Falls back to the previous main-thread batching approach on browsers without Web Worker support.
+
 ## [2.33.32] - 2025-07-12
 
 ### Added

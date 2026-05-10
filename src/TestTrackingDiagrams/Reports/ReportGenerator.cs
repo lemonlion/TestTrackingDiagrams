@@ -1332,6 +1332,102 @@ public static class ReportGenerator
         var enrichSearchDataScript = hasInteractiveDiagrams && diagrams.Length > 0
             ? """
               function enrichSearchData() {
+                  var elements = document.querySelectorAll('[data-plantuml-z]');
+                  if (elements.length === 0) {
+                      onEnrichComplete();
+                      return;
+                  }
+
+                  // Collect data from DOM on main thread (fast, synchronous)
+                  var items = [];
+                  for (var i = 0; i < elements.length; i++) {
+                      var el = elements[i];
+                      var b64 = el.getAttribute('data-plantuml-z');
+                      var scenario = el.closest('.scenario');
+                      var sid = null;
+                      if (scenario) {
+                          sid = scenario.id || ('__s' + i);
+                          if (!scenario.id) scenario.id = sid;
+                      }
+                      var row = el.closest('tr[data-row-search]');
+                      var rid = null;
+                      if (row) {
+                          rid = row.getAttribute('data-row-id') || ('__r' + i);
+                          if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
+                      }
+                      items.push({ b64: b64, sid: sid, rid: rid });
+                  }
+
+                  if (typeof Worker !== 'undefined') {
+                      enrichWithWorker(items);
+                  } else {
+                      enrichWithFallback(items);
+                  }
+              }
+
+              function enrichWithWorker(items) {
+                  var workerCode = [
+                      'self.onmessage = function(e) {',
+                      '    var items = e.data;',
+                      '    var results = [];',
+                      '    var idx = 0;',
+                      '    var BATCH = 100;',
+                      '    function decompress(base64) {',
+                      '        var raw = atob(base64);',
+                      '        var bytes = new Uint8Array(raw.length);',
+                      '        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);',
+                      '        var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));',
+                      '        return new Response(stream).text();',
+                      '    }',
+                      '    function processBatch() {',
+                      '        var end = Math.min(idx + BATCH, items.length);',
+                      '        var promises = [];',
+                      '        for (var i = idx; i < end; i++) {',
+                      '            (function(j) {',
+                      '                promises.push(decompress(items[j].b64).then(function(decoded) {',
+                      '                    results.push({ idx: j, text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
+                      '                }).catch(function() {}));',
+                      '            })(i);',
+                      '        }',
+                      '        idx = end;',
+                      '        Promise.all(promises).then(function() {',
+                      '            if (idx < items.length) {',
+                      '                processBatch();',
+                      '            } else {',
+                      '                self.postMessage(results);',
+                      '            }',
+                      '        });',
+                      '    }',
+                      '    processBatch();',
+                      '};'
+                  ].join('\n');
+                  var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+                  var worker = new Worker(URL.createObjectURL(workerBlob));
+                  worker.onmessage = function(e) {
+                      var results = e.data;
+                      var scenarioTexts = {};
+                      var rowTexts = {};
+                      for (var i = 0; i < results.length; i++) {
+                          var r = results[i];
+                          if (r.sid) scenarioTexts[r.sid] = (scenarioTexts[r.sid] || '') + ' ' + r.text;
+                          if (r.rid) rowTexts[r.rid] = (rowTexts[r.rid] || '') + ' ' + r.text;
+                      }
+                      flushSearchData(scenarioTexts, rowTexts);
+                      worker.terminate();
+                  };
+                  worker.onerror = function() {
+                      worker.terminate();
+                      enrichWithFallback(items);
+                  };
+                  worker.postMessage(items.map(function(it) { return { b64: it.b64, sid: it.sid, rid: it.rid }; }));
+              }
+
+              function enrichWithFallback(items) {
+                  var scenarioTexts = {};
+                  var rowTexts = {};
+                  var idx = 0;
+                  var BATCH = 50;
+
                   function decompress(base64) {
                       var raw = atob(base64);
                       var bytes = new Uint8Array(raw.length);
@@ -1340,71 +1436,49 @@ public static class ReportGenerator
                       return new Response(stream).text();
                   }
 
-                  var elements = document.querySelectorAll('[data-plantuml-z]');
-                  if (elements.length === 0) {
-                      onEnrichComplete();
-                      return;
-                  }
-
-                  var scenarioTexts = {};
-                  var rowTexts = {};
-                  var idx = 0;
-                  var BATCH = 50;
-
                   function processBatch() {
-                      var end = Math.min(idx + BATCH, elements.length);
+                      var end = Math.min(idx + BATCH, items.length);
                       var promises = [];
                       for (var i = idx; i < end; i++) {
-                          (function(elIdx) {
-                              var el = elements[elIdx];
+                          (function(j) {
                               promises.push(
-                                  decompress(el.getAttribute('data-plantuml-z')).then(function(decoded) {
+                                  decompress(items[j].b64).then(function(decoded) {
                                       var text = decoded.toLowerCase();
-                                      var scenario = el.closest('.scenario');
-                                      if (scenario) {
-                                          var sid = scenario.id || ('__s' + elIdx);
-                                          if (!scenario.id) scenario.id = sid;
-                                          scenarioTexts[sid] = (scenarioTexts[sid] || '') + ' ' + text;
-                                      }
-                                      var row = el.closest('tr[data-row-search]');
-                                      if (row) {
-                                          var rid = row.getAttribute('data-row-id') || ('__r' + elIdx);
-                                          if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
-                                          rowTexts[rid] = (rowTexts[rid] || '') + ' ' + text;
-                                      }
+                                      if (items[j].sid) scenarioTexts[items[j].sid] = (scenarioTexts[items[j].sid] || '') + ' ' + text;
+                                      if (items[j].rid) rowTexts[items[j].rid] = (rowTexts[items[j].rid] || '') + ' ' + text;
                                   }).catch(function() {})
                               );
                           })(i);
                       }
                       idx = end;
                       Promise.all(promises).then(function() {
-                          if (idx < elements.length) {
+                          if (idx < items.length) {
                               setTimeout(processBatch, 0);
                           } else {
-                              flushSearchData();
+                              flushSearchData(scenarioTexts, rowTexts);
                           }
                       });
                   }
 
-                  function flushSearchData() {
-                      for (var sid in scenarioTexts) {
-                          var el = document.getElementById(sid);
-                          if (el) {
-                              var existing = el.getAttribute('data-search') || '';
-                              el.setAttribute('data-search', existing + scenarioTexts[sid]);
-                          }
-                      }
-                      for (var rid in rowTexts) {
-                          var el = document.querySelector('[data-row-id="' + rid + '"]');
-                          if (el) {
-                              var existing = el.getAttribute('data-row-search') || '';
-                              el.setAttribute('data-row-search', existing + rowTexts[rid]);
-                          }
-                      }
-                      onEnrichComplete();
-                  }
-
                   processBatch();
+              }
+
+              function flushSearchData(scenarioTexts, rowTexts) {
+                  for (var sid in scenarioTexts) {
+                      var el = document.getElementById(sid);
+                      if (el) {
+                          var existing = el.getAttribute('data-search') || '';
+                          el.setAttribute('data-search', existing + scenarioTexts[sid]);
+                      }
+                  }
+                  for (var rid in rowTexts) {
+                      var el = document.querySelector('[data-row-id="' + rid + '"]');
+                      if (el) {
+                          var existing = el.getAttribute('data-row-search') || '';
+                          el.setAttribute('data-row-search', existing + rowTexts[rid]);
+                      }
+                  }
+                  onEnrichComplete();
               }
 
               function onEnrichComplete() {

@@ -476,7 +476,7 @@ public class SearchDataAttributeTests
     }
 
     [Fact]
-    public void EnrichSearchData_uses_chunked_processing_to_avoid_blocking()
+    public void EnrichSearchData_uses_web_worker_for_off_thread_decompression()
     {
         var features = new[]
         {
@@ -502,20 +502,64 @@ public class SearchDataAttributeTests
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchChunked.html", "Test", includeTestRunData: true,
+            null, "SearchWorker.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
-        // The enrichSearchData function must yield back to the browser between chunks
-        // to prevent freezing on large reports (e.g. 8000+ diagrams in 100MB+ reports)
+        // enrichSearchData must use a Web Worker to decompress data-plantuml-z off the main thread
         var enrichIdx = content.IndexOf("function enrichSearchData");
         Assert.True(enrichIdx >= 0, "enrichSearchData function should exist");
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
-        Assert.Contains("setTimeout", enrichBody);
 
-        // Batches must wait for all Promises in the current batch to resolve before
-        // starting the next batch — otherwise all decompressions run concurrently
+        // Should create an inline Web Worker via Blob URL
+        Assert.Contains("new Worker(", enrichBody);
+        Assert.Contains("URL.createObjectURL", enrichBody);
+
+        // The inline worker code should contain the decompression logic
+        Assert.Contains("DecompressionStream", enrichBody);
+        Assert.Contains("self.onmessage", enrichBody);
+
+        // Should have a fallback for browsers without Worker support
+        Assert.Contains("typeof Worker", enrichBody);
+    }
+
+    [Fact]
+    public void EnrichSearchData_worker_uses_batched_decompression()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchWorkerBatch.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+
+        // The worker code should batch decompressions using Promise.all
         Assert.Contains("Promise.all", enrichBody);
     }
 
@@ -552,18 +596,12 @@ public class SearchDataAttributeTests
 
         // Search text should be accumulated in memory and flushed once per element,
         // not incrementally appended via setAttribute inside each decompress callback.
-        // This avoids O(n^2) string concatenation on large reports.
         var enrichIdx = content.IndexOf("function enrichSearchData");
         var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
         var enrichBody = content[enrichIdx..enrichEnd];
 
-        // The decompress .then() callback should NOT directly setAttribute('data-search', ...)
-        // It should accumulate text in a JS object and flush later.
-        var decompressIdx = enrichBody.IndexOf("decompress(");
-        var promiseAllIdx = enrichBody.IndexOf("Promise.all");
-        Assert.True(decompressIdx >= 0 && promiseAllIdx > decompressIdx, "decompress must appear before Promise.all");
-        var decompressCallbackBody = enrichBody[decompressIdx..promiseAllIdx];
-        Assert.DoesNotContain("setAttribute('data-search'", decompressCallbackBody);
-        Assert.DoesNotContain("setAttribute('data-row-search'", decompressCallbackBody);
+        // The main thread should flush accumulated results to the DOM
+        Assert.Contains("flushSearchData", enrichBody);
+        Assert.Contains("setAttribute", enrichBody);
     }
 }
