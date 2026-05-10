@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.24] - 2026-07-06
+
+### Added
+- **Cross-SDK IL weaver tests** — 18 new tests that compile fixtures with .NET 9, 10, and 11 preview SDKs (both Debug and Release), then weave and execute them to verify the IL weaver produces valid IL across different Roslyn codegen patterns (degenerate async state machines, real async with awaits, null-conditional branches). Uses isolated `AssemblyLoadContext` for each fixture and `TestAssemblyBuilder.BuildWithSdk()` which shells out to `dotnet build` with pinned SDK versions via temporary `global.json` files.
+- **Assertion Tracking tests added to CI** — The `tests/TestTrackingDiagrams.Tests.AssertionTracking` project now has its own CI job. .NET 9 SDK also installed in CI for cross-SDK test coverage.
+
 ## [2.33.23] - 2026-05-10
 
 ### Added

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    This project is NOT built as part of the solution.
+    It is compiled on-demand by TestAssemblyBuilder.BuildWithSdk() using
+    'dotnet build' with specific SDK versions to produce test DLLs whose
+    IL patterns reflect each compiler's codegen.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
+    <LangVersion>preview</LangVersion>
+    <!-- Suppress warnings that would fail the build in test fixtures -->
+    <NoWarn>$(NoWarn);CS1998;CS8602;CS8604;CS8629</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="8.9.0" />
+  </ItemGroup>
+
+  <!-- The source file to compile is passed via /p:FixtureSource=... -->
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(FixtureSource)" Condition="'$(FixtureSource)' != ''" />
+    <Compile Include="Attributes.cs" />
+  </ItemGroup>
+
+</Project>

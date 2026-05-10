@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Exclude the fixture project's files from this project's compilation.
+         Fixtures/ is only used by TestAssemblyBuilder.BuildWithSdk via file copy. -->
+    <Compile Remove="Fixtures\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
