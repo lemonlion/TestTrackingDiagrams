@@ -1385,99 +1385,6 @@ public static class ReportGenerator
                       return batch;
                   }
 
-                  if (typeof Worker !== 'undefined') {
-                      enrichWithWorker(elements, collectBatch, collectIdx, scenarioTexts, rowTexts);
-                  } else {
-                      enrichWithFallback(elements, collectBatch, collectIdx, scenarioTexts, rowTexts);
-                  }
-              }
-
-              function enrichWithWorker(elements, collectBatch, collectIdx, scenarioTexts, rowTexts) {
-                  var workerCode = [
-                      'self.onmessage = function(e) {',
-                      '    var items = e.data;',
-                      '    var batchResults = [];',
-                      '    var idx = 0;',
-                      '    var BATCH = 100;',
-                      '    function decompress(base64) {',
-                      '        var raw = atob(base64);',
-                      '        var bytes = new Uint8Array(raw.length);',
-                      '        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);',
-                      '        var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));',
-                      '        return new Response(stream).text();',
-                      '    }',
-                      '    function processBatch() {',
-                      '        var end = Math.min(idx + BATCH, items.length);',
-                      '        var promises = [];',
-                      '        for (var i = idx; i < end; i++) {',
-                      '            (function(j) {',
-                      '                promises.push(decompress(items[j].b64).then(function(decoded) {',
-                      '                    batchResults.push({ text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
-                      '                }).catch(function() {}));',
-                      '            })(i);',
-                      '        }',
-                      '        idx = end;',
-                      '        Promise.all(promises).then(function() {',
-                      '            self.postMessage(batchResults);',
-                      '            batchResults = [];',
-                      '            if (idx < items.length) {',
-                      '                processBatch();',
-                      '            }',
-                      '        });',
-                      '    }',
-                      '    if (items.length === 0) { self.postMessage([]); return; }',
-                      '    processBatch();',
-                      '};'
-                  ].join('\n');
-                  var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-                  var worker;
-                  try { worker = new Worker(URL.createObjectURL(workerBlob)); } catch(ex) {
-                      enrichWithFallback(elements, collectBatch, collectIdx, scenarioTexts, rowTexts);
-                      return;
-                  }
-                  var pending = 0;
-                  var allCollected = false;
-
-                  worker.onmessage = function(e) {
-                      var results = e.data;
-                      for (var i = 0; i < results.length; i++) {
-                          var r = results[i];
-                          if (r.sid) scenarioTexts[r.sid] = (scenarioTexts[r.sid] || '') + ' ' + r.text;
-                          if (r.rid) rowTexts[r.rid] = (rowTexts[r.rid] || '') + ' ' + r.text;
-                      }
-                      pending--;
-                      if (allCollected && pending === 0) {
-                          worker.terminate();
-                          flushSearchData(scenarioTexts, rowTexts);
-                      }
-                  };
-                  worker.onerror = function() {
-                      worker.terminate();
-                      enrichWithFallback(elements, collectBatch, collectIdx, scenarioTexts, rowTexts);
-                  };
-
-                  function sendNextBatch() {
-                      var batch = collectBatch();
-                      if (batch.length > 0) {
-                          pending++;
-                          worker.postMessage(batch);
-                      }
-                      if (collectIdx < elements.length) {
-                          setTimeout(sendNextBatch, 0);
-                      } else {
-                          allCollected = true;
-                          if (pending === 0) {
-                              worker.terminate();
-                              flushSearchData(scenarioTexts, rowTexts);
-                          }
-                      }
-                  }
-                  sendNextBatch();
-              }
-
-              function enrichWithFallback(elements, collectBatch, collectIdx, scenarioTexts, rowTexts) {
-                  var BATCH = 10;
-
                   function decompress(base64) {
                       var raw = atob(base64);
                       var bytes = new Uint8Array(raw.length);
@@ -1486,79 +1393,175 @@ public static class ReportGenerator
                       return new Response(stream).text();
                   }
 
-                  var allItems = [];
-                  function collectAndDecompress() {
-                      var batch = collectBatch();
-                      for (var k = 0; k < batch.length; k++) allItems.push(batch[k]);
-                      if (collectIdx < elements.length) {
-                          setTimeout(collectAndDecompress, 0);
-                      } else {
-                          decompressIdx = 0;
-                          processDecompressBatch();
+                  function accumulateResults(results) {
+                      for (var i = 0; i < results.length; i++) {
+                          var r = results[i];
+                          if (r.sid) scenarioTexts[r.sid] = (scenarioTexts[r.sid] || '') + ' ' + r.text;
+                          if (r.rid) rowTexts[r.rid] = (rowTexts[r.rid] || '') + ' ' + r.text;
                       }
                   }
 
-                  var decompressIdx = 0;
-                  function processDecompressBatch() {
-                      var end = Math.min(decompressIdx + BATCH, allItems.length);
-                      var promises = [];
-                      for (var i = decompressIdx; i < end; i++) {
-                          (function(j) {
-                              promises.push(
-                                  decompress(allItems[j].b64).then(function(decoded) {
-                                      var text = decoded.toLowerCase();
-                                      if (allItems[j].sid) scenarioTexts[allItems[j].sid] = (scenarioTexts[allItems[j].sid] || '') + ' ' + text;
-                                      if (allItems[j].rid) rowTexts[allItems[j].rid] = (rowTexts[allItems[j].rid] || '') + ' ' + text;
-                                  }).catch(function() {})
-                              );
-                          })(i);
-                      }
-                      decompressIdx = end;
-                      Promise.all(promises).then(function() {
-                          if (decompressIdx < allItems.length) {
-                              setTimeout(processDecompressBatch, 0);
+                  function flushSearchData() {
+                      var sids = Object.keys(scenarioTexts);
+                      var rids = Object.keys(rowTexts);
+                      var si = 0, ri = 0;
+                      var FLUSH_BATCH = 200;
+
+                      function flushBatch() {
+                          var count = 0;
+                          while (si < sids.length && count < FLUSH_BATCH) {
+                              var sid = sids[si++];
+                              var el = document.getElementById(sid);
+                              if (el) {
+                                  var existing = el.getAttribute('data-search') || '';
+                                  el.setAttribute('data-search', existing + scenarioTexts[sid]);
+                              }
+                              count++;
+                          }
+                          while (ri < rids.length && count < FLUSH_BATCH) {
+                              var rid = rids[ri++];
+                              var el = document.querySelector('[data-row-id="' + rid + '"]');
+                              if (el) {
+                                  var existing = el.getAttribute('data-row-search') || '';
+                                  el.setAttribute('data-row-search', existing + rowTexts[rid]);
+                              }
+                              count++;
+                          }
+                          if (si < sids.length || ri < rids.length) {
+                              setTimeout(flushBatch, 0);
                           } else {
-                              flushSearchData(scenarioTexts, rowTexts);
+                              onEnrichComplete();
                           }
-                      });
+                      }
+                      flushBatch();
                   }
 
-                  collectAndDecompress();
-              }
+                  function enrichWithWorker() {
+                      var workerCode = [
+                          'self.onmessage = function(e) {',
+                          '    var items = e.data;',
+                          '    var batchResults = [];',
+                          '    var idx = 0;',
+                          '    var BATCH = 100;',
+                          '    function decompress(base64) {',
+                          '        var raw = atob(base64);',
+                          '        var bytes = new Uint8Array(raw.length);',
+                          '        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);',
+                          '        var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));',
+                          '        return new Response(stream).text();',
+                          '    }',
+                          '    function processBatch() {',
+                          '        var end = Math.min(idx + BATCH, items.length);',
+                          '        var promises = [];',
+                          '        for (var i = idx; i < end; i++) {',
+                          '            (function(j) {',
+                          '                promises.push(decompress(items[j].b64).then(function(decoded) {',
+                          '                    batchResults.push({ text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
+                          '                }).catch(function() {}));',
+                          '            })(i);',
+                          '        }',
+                          '        idx = end;',
+                          '        Promise.all(promises).then(function() {',
+                          '            self.postMessage(batchResults);',
+                          '            batchResults = [];',
+                          '            if (idx < items.length) {',
+                          '                processBatch();',
+                          '            }',
+                          '        });',
+                          '    }',
+                          '    if (items.length === 0) { self.postMessage([]); return; }',
+                          '    processBatch();',
+                          '};'
+                      ].join('\n');
+                      var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+                      var worker;
+                      try { worker = new Worker(URL.createObjectURL(workerBlob)); } catch(ex) {
+                          enrichWithFallback();
+                          return;
+                      }
+                      var pending = 0;
+                      var allCollected = false;
 
-              function flushSearchData(scenarioTexts, rowTexts) {
-                  var sids = Object.keys(scenarioTexts);
-                  var rids = Object.keys(rowTexts);
-                  var si = 0, ri = 0;
-                  var FLUSH_BATCH = 200;
+                      worker.onmessage = function(e) {
+                          accumulateResults(e.data);
+                          pending--;
+                          if (allCollected && pending === 0) {
+                              worker.terminate();
+                              flushSearchData();
+                          }
+                      };
+                      worker.onerror = function() {
+                          worker.terminate();
+                          enrichWithFallback();
+                      };
 
-                  function flushBatch() {
-                      var count = 0;
-                      while (si < sids.length && count < FLUSH_BATCH) {
-                          var sid = sids[si++];
-                          var el = document.getElementById(sid);
-                          if (el) {
-                              var existing = el.getAttribute('data-search') || '';
-                              el.setAttribute('data-search', existing + scenarioTexts[sid]);
+                      function sendNextBatch() {
+                          var batch = collectBatch();
+                          if (batch.length > 0) {
+                              pending++;
+                              worker.postMessage(batch);
                           }
-                          count++;
-                      }
-                      while (ri < rids.length && count < FLUSH_BATCH) {
-                          var rid = rids[ri++];
-                          var el = document.querySelector('[data-row-id="' + rid + '"]');
-                          if (el) {
-                              var existing = el.getAttribute('data-row-search') || '';
-                              el.setAttribute('data-row-search', existing + rowTexts[rid]);
+                          if (collectIdx < elements.length) {
+                              setTimeout(sendNextBatch, 0);
+                          } else {
+                              allCollected = true;
+                              if (pending === 0) {
+                                  worker.terminate();
+                                  flushSearchData();
+                              }
                           }
-                          count++;
                       }
-                      if (si < sids.length || ri < rids.length) {
-                          setTimeout(flushBatch, 0);
-                      } else {
-                          onEnrichComplete();
-                      }
+                      sendNextBatch();
                   }
-                  flushBatch();
+
+                  function enrichWithFallback() {
+                      var BATCH = 10;
+                      var allItems = [];
+
+                      function collectAndDecompress() {
+                          var batch = collectBatch();
+                          for (var k = 0; k < batch.length; k++) allItems.push(batch[k]);
+                          if (collectIdx < elements.length) {
+                              setTimeout(collectAndDecompress, 0);
+                          } else {
+                              decompressIdx = 0;
+                              processDecompressBatch();
+                          }
+                      }
+
+                      var decompressIdx = 0;
+                      function processDecompressBatch() {
+                          var end = Math.min(decompressIdx + BATCH, allItems.length);
+                          var promises = [];
+                          for (var i = decompressIdx; i < end; i++) {
+                              (function(j) {
+                                  promises.push(
+                                      decompress(allItems[j].b64).then(function(decoded) {
+                                          var text = decoded.toLowerCase();
+                                          if (allItems[j].sid) scenarioTexts[allItems[j].sid] = (scenarioTexts[allItems[j].sid] || '') + ' ' + text;
+                                          if (allItems[j].rid) rowTexts[allItems[j].rid] = (rowTexts[allItems[j].rid] || '') + ' ' + text;
+                                      }).catch(function() {})
+                                  );
+                              })(i);
+                          }
+                          decompressIdx = end;
+                          Promise.all(promises).then(function() {
+                              if (decompressIdx < allItems.length) {
+                                  setTimeout(processDecompressBatch, 0);
+                              } else {
+                                  flushSearchData();
+                              }
+                          });
+                      }
+
+                      collectAndDecompress();
+                  }
+
+                  if (typeof Worker !== 'undefined') {
+                      enrichWithWorker();
+                  } else {
+                      enrichWithFallback();
+                  }
               }
 
               function onEnrichComplete() {

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.38] - 2026-05-10
+
+### Fixed
+- **Search data enrichment closure variable shadowing caused searchbar to stay disabled** — `enrichWithWorker()` and `enrichWithFallback()` received `collectIdx` as a parameter (passed by value from `enrichSearchData()`), which shadowed the outer closure variable that `collectBatch()` actually modifies. As a result, `sendNextBatch()` always checked the stale parameter value (0), never reaching the `else` branch to set `allCollected = true`, so `flushSearchData` and `onEnrichComplete` never fired — leaving the searchbar permanently disabled. Fixed by nesting all helper functions (`enrichWithWorker`, `enrichWithFallback`, `flushSearchData`, `collectBatch`, `decompress`, `accumulateResults`) inside `enrichSearchData()` so they share closure variables directly instead of receiving them as parameters.
+
 ## [2.33.37] - 2026-05-10
 
 ### Fixed
