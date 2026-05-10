@@ -10,21 +10,41 @@ public static class TabularDeserializer
 {
     public static T Deserialize<T>(string[] columnNames, object?[] values)
     {
-        var instance = Activator.CreateInstance<T>();
-        var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite)
-            .ToDictionary(p => SanitizeName(p.Name), p => p);
-
+        var valueMap = new Dictionary<string, object?>();
         for (var i = 0; i < columnNames.Length && i < values.Length; i++)
+            valueMap[SanitizeName(columnNames[i])] = values[i];
+
+        // Try parameterless constructor first (classes with property setters)
+        var ctor = typeof(T).GetConstructor(Type.EmptyTypes);
+        if (ctor != null)
         {
-            var key = SanitizeName(columnNames[i]);
-            if (properties.TryGetValue(key, out var prop))
-            {
-                prop.SetValue(instance, ConvertValue(values[i], prop.PropertyType));
-            }
+            var instance = (T)ctor.Invoke(null);
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanWrite)
+                .ToDictionary(p => SanitizeName(p.Name), p => p);
+
+            foreach (var kvp in valueMap)
+                if (properties.TryGetValue(kvp.Key, out var prop))
+                    prop.SetValue(instance, ConvertValue(kvp.Value, prop.PropertyType));
+
+            return instance;
         }
 
-        return instance;
+        // Fall back to constructor-based instantiation (records)
+        var bestCtor = typeof(T).GetConstructors()
+            .OrderByDescending(c => c.GetParameters().Length).First();
+        var parameters = bestCtor.GetParameters();
+        var args = new object?[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var paramKey = SanitizeName(parameters[i].Name!);
+            if (valueMap.TryGetValue(paramKey, out var value))
+                args[i] = ConvertValue(value, parameters[i].ParameterType);
+            else
+                args[i] = parameters[i].ParameterType.IsValueType
+                    ? Activator.CreateInstance(parameters[i].ParameterType) : null;
+        }
+        return (T)bestCtor.Invoke(args);
     }
 
     internal static string SanitizeName(string name) =>

@@ -680,4 +680,50 @@ public class ParameterizedGroupTests : PlaywrightTestBase
         var svgCount = await firstDiagram.Locator("svg").CountAsync();
         Assert.True(svgCount > 0, "First row diagram SVG should still be present after switching back");
     }
+
+    // ── Layout state sync across row switches ──
+
+    [Fact]
+    public async Task Collapsing_steps_section_syncs_to_other_rows()
+    {
+        await Page.GotoAsync(GenerateParamReport("ParamLayoutSync.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFeatures();
+
+        var group = Page.Locator("details.scenario-parameterized");
+        await group.Locator("summary").First.ClickAsync();
+
+        // Verify Steps section is initially open on row 0
+        var stepsDetails0 = group.Locator(".param-detail-panel").Nth(0).Locator("details.scenario-steps");
+        await Expect(stepsDetails0).ToHaveAttributeAsync("open", "");
+
+        // Collapse the Steps section on row 0
+        await stepsDetails0.Locator("summary").ClickAsync();
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var panel = document.querySelector('.param-detail-panel:not([style*="display: none"], [style*="display:none"])');
+                var d = panel && panel.querySelector('details.scenario-steps');
+                return d && !d.open;
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        // Click row 1
+        await group.Locator("tbody tr").Nth(1).ClickAsync();
+
+        // Steps section on row 1 should also be collapsed (synced from row 0)
+        var stepsDetails1 = group.Locator(".param-detail-panel").Nth(1).Locator("details.scenario-steps");
+        var isOpen = await Page.EvaluateAsync<bool>("""
+            () => {
+                var panels = document.querySelectorAll('.param-detail-panel');
+                for (var p of panels) {
+                    if (p.style.display !== 'none') {
+                        var d = p.querySelector('details.scenario-steps');
+                        return d ? d.open : true;
+                    }
+                }
+                return true;
+            }
+        """);
+        Assert.False(isOpen, "Steps section on row 1 should be collapsed after syncing from row 0");
+    }
 }

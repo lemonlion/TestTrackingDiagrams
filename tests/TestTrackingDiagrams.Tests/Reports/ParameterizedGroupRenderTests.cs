@@ -1219,4 +1219,19 @@ public class ParameterizedGroupRenderTests
         var tableTag = content.Substring(flatIdx, tagEnd - flatIdx + 1);
         Assert.Contains("display:none", tableTag);
     }
+
+    [Fact]
+    public void SelectRow_syncs_details_open_state_from_outgoing_to_incoming_panel()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", "Test(x: 1)", outlineId: "Test", exampleValues: new() { ["x"] = "1" }),
+            MakeScenario("s2", "Test(x: 2)", outlineId: "Test", exampleValues: new() { ["x"] = "2" })
+        };
+        var content = GenerateReport(MakeFeature(scenarios));
+
+        // selectRow JS should capture outgoing panel's <details> open states and apply them to incoming panel
+        Assert.Contains("querySelectorAll('details')", content);
+        Assert.Contains(".open", content); // reads open property
+    }
 }

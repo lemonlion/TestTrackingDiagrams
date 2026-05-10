@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.35] - 2025-07-12
+
+### Fixed
+- **`TabularDeserializer` now supports C# records with primary constructors** — `Deserialize<T>()` previously called `Activator.CreateInstance<T>()` which requires a parameterless constructor, throwing `MissingMethodException` for record types like `record InvalidFieldFromRequest(string? Field, object? Value, string Reason)`. Now tries the parameterless constructor first (existing class behavior), then falls back to constructor-based instantiation matching parameters by sanitized name.
+
 ## [2.33.34] - 2025-07-12
 
 ### Added

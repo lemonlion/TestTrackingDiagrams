@@ -825,11 +825,29 @@ public static class ReportGenerator
                                     for (var i = 0; i < rows.length; i++) rows[i].classList.remove('row-active');
                                     clickedRow.classList.add('row-active');
                                     var idx = clickedRow.getAttribute('data-row-idx');
-                                    // Switch detail panels
+                                    // Capture outgoing panel's <details> open states before hiding
                                     var panels = document.querySelectorAll('[id^="' + prefix + '-detail-"]');
+                                    var outgoing = null;
+                                    for (var i = 0; i < panels.length; i++) {
+                                        if (panels[i].style.display !== 'none') { outgoing = panels[i]; break; }
+                                    }
+                                    var detailStates = [];
+                                    if (outgoing) {
+                                        outgoing.querySelectorAll('details').forEach(function(d) { detailStates.push(d.open); });
+                                    }
+                                    // Switch detail panels
                                     for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
                                     var activePanel = document.getElementById(prefix + '-detail-' + idx);
-                                    if (activePanel) activePanel.style.display = '';
+                                    if (activePanel) {
+                                        // Sync <details> open states from outgoing panel
+                                        if (detailStates.length > 0) {
+                                            var incoming = activePanel.querySelectorAll('details');
+                                            for (var i = 0; i < incoming.length && i < detailStates.length; i++) {
+                                                incoming[i].open = detailStates[i];
+                                            }
+                                        }
+                                        activePanel.style.display = '';
+                                    }
                                     // Switch diagram divs (sequence)
                                     var diagrams = document.querySelectorAll('[id^="' + prefix + '-diagram-"]');
                                     for (var i = 0; i < diagrams.length; i++) diagrams[i].style.display = 'none';

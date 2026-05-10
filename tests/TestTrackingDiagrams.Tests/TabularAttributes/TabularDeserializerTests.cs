@@ -211,4 +211,60 @@ public class TabularDeserializerTests
         Assert.Equal("42", result.Name); // int → string via ToString()
         Assert.Equal(42, result.Age);
     }
+
+    // ── Record support ──────────────────────────────────────────────
+
+    private record SimpleRecord(string Name, int Age);
+    private record NullableRecord(string? Name, int? Age);
+    private record RecordWithEnum(Color FavoriteColor);
+    private record RecordWithSpacedNames(string FirstName, string LastName);
+
+    [Fact]
+    public void Deserializes_record_with_primary_constructor()
+    {
+        var result = TabularDeserializer.Deserialize<SimpleRecord>(
+            ["Name", "Age"], ["Alice", 30]);
+
+        Assert.Equal("Alice", result.Name);
+        Assert.Equal(30, result.Age);
+    }
+
+    [Fact]
+    public void Deserializes_record_with_nullable_params()
+    {
+        var result = TabularDeserializer.Deserialize<NullableRecord>(
+            ["Name", "Age"], [null, null]);
+
+        Assert.Null(result.Name);
+        Assert.Null(result.Age);
+    }
+
+    [Fact]
+    public void Deserializes_record_with_enum_param()
+    {
+        var result = TabularDeserializer.Deserialize<RecordWithEnum>(
+            ["FavoriteColor"], ["Green"]);
+
+        Assert.Equal(Color.Green, result.FavoriteColor);
+    }
+
+    [Fact]
+    public void Deserializes_record_with_spaced_column_names()
+    {
+        var result = TabularDeserializer.Deserialize<RecordWithSpacedNames>(
+            ["First Name", "Last Name"], ["Jane", "Doe"]);
+
+        Assert.Equal("Jane", result.FirstName);
+        Assert.Equal("Doe", result.LastName);
+    }
+
+    [Fact]
+    public void Deserializes_record_with_missing_columns_uses_defaults()
+    {
+        var result = TabularDeserializer.Deserialize<SimpleRecord>(
+            ["Name"], ["Alice"]);
+
+        Assert.Equal("Alice", result.Name);
+        Assert.Equal(0, result.Age); // default for int
+    }
 }
