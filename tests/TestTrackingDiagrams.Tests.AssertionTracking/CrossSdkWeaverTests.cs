@@ -109,6 +109,231 @@ public class CrossSdkWeaverTests
         }
         """;
 
+    private const string TernaryAsyncSource = """
+        using System.Threading.Tasks;
+        using FluentAssertions;
+        using TestTrackingDiagrams.Tracking;
+
+        [assembly: TrackAssertions]
+
+        public class Tests
+        {
+            public async Task Ternary_assertion()
+            {
+                var flag = true;
+                await Task.Yield();
+                (flag ? "yes" : "no").Should().Be("yes");
+            }
+        }
+        """;
+
+    private const string TryCatchFinallySource = """
+        using System;
+        using System.Threading.Tasks;
+        using FluentAssertions;
+        using TestTrackingDiagrams.Tracking;
+
+        [assembly: TrackAssertions]
+
+        public class Tests
+        {
+            public async Task Try_catch_finally_assertion()
+            {
+                string result = "initial";
+                try
+                {
+                    await Task.Yield();
+                    result = "success";
+                }
+                catch (Exception)
+                {
+                    result = "failed";
+                }
+                finally
+                {
+                    // Side-effect only — assertions in finally are unusual but valid
+                    _ = result.Length;
+                }
+                result.Should().Be("success");
+            }
+        }
+        """;
+
+    private const string SwitchExpressionSource = """
+        using System.Threading.Tasks;
+        using FluentAssertions;
+        using TestTrackingDiagrams.Tracking;
+
+        [assembly: TrackAssertions]
+
+        public class Tests
+        {
+            public async Task Switch_expression_assertion()
+            {
+                var value = 2;
+                await Task.Yield();
+                var label = value switch
+                {
+                    1 => "one",
+                    2 => "two",
+                    _ => "other"
+                };
+                label.Should().Be("two");
+            }
+        }
+        """;
+
+    private const string AwaitUsingSource = """
+        using System;
+        using System.Threading.Tasks;
+        using FluentAssertions;
+        using TestTrackingDiagrams.Tracking;
+
+        [assembly: TrackAssertions]
+
+        public class AsyncDisposable : IAsyncDisposable
+        {
+            public bool Disposed { get; private set; }
+            public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+        }
+
+        public class Tests
+        {
+            public async Task Await_using_assertion()
+            {
+                var resource = new AsyncDisposable();
+                await using (resource.ConfigureAwait(false))
+                {
+                    await Task.Yield();
+                    resource.Disposed.Should().BeFalse();
+                }
+                resource.Disposed.Should().BeTrue();
+            }
+        }
+        """;
+
+    // ========== .NET 8 SDK tests ==========
+
+    [Fact]
+    public void Net8_Debug_AsyncNoAwait_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AsyncNoAwaitDebug", AsyncNoAwaitSource,
+            "8.0.0", "net8.0", "Debug",
+            ["The_value_should_not_be_null", "The_value_should_be_hello"]);
+    }
+
+    [Fact]
+    public void Net8_Release_AsyncNoAwait_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AsyncNoAwaitRelease", AsyncNoAwaitSource,
+            "8.0.0", "net8.0", "Release",
+            ["The_value_should_not_be_null", "The_value_should_be_hello"]);
+    }
+
+    [Fact]
+    public void Net8_Debug_AsyncWithAwait_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AsyncWithAwaitDebug", AsyncWithAwaitSource,
+            "8.0.0", "net8.0", "Debug",
+            ["Delayed_assertion", "Multiple_assertions_with_await"]);
+    }
+
+    [Fact]
+    public void Net8_Release_AsyncWithAwait_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AsyncWithAwaitRelease", AsyncWithAwaitSource,
+            "8.0.0", "net8.0", "Release",
+            ["Delayed_assertion", "Multiple_assertions_with_await"]);
+    }
+
+    [Fact]
+    public void Net8_Debug_NullConditional_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8NullCondDebug", NullConditionalSource,
+            "8.0.0", "net8.0", "Debug",
+            ["Null_conditional_assertion", "Null_conditional_with_null_value"],
+            expectAllPass: false);
+    }
+
+    [Fact]
+    public void Net8_Release_NullConditional_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8NullCondRelease", NullConditionalSource,
+            "8.0.0", "net8.0", "Release",
+            ["Null_conditional_assertion", "Null_conditional_with_null_value"],
+            expectAllPass: false);
+    }
+
+    [Fact]
+    public void Net8_Debug_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8TernaryDebug", TernaryAsyncSource,
+            "8.0.0", "net8.0", "Debug", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Release_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8TernaryRelease", TernaryAsyncSource,
+            "8.0.0", "net8.0", "Release", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Debug_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8TryCatchDebug", TryCatchFinallySource,
+            "8.0.0", "net8.0", "Debug", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Release_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8TryCatchRelease", TryCatchFinallySource,
+            "8.0.0", "net8.0", "Release", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Debug_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8SwitchExprDebug", SwitchExpressionSource,
+            "8.0.0", "net8.0", "Debug", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Release_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8SwitchExprRelease", SwitchExpressionSource,
+            "8.0.0", "net8.0", "Release", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Debug_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AwaitUsingDebug", AwaitUsingSource,
+            "8.0.0", "net8.0", "Debug", ["Await_using_assertion"]);
+    }
+
+    [Fact]
+    public void Net8_Release_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("8.0");
+        AssertWeaveAndExecute("Net8AwaitUsingRelease", AwaitUsingSource,
+            "8.0.0", "net8.0", "Release", ["Await_using_assertion"]);
+    }
+
     // ========== .NET 9 SDK tests ==========
 
     [Fact]
@@ -167,6 +392,70 @@ public class CrossSdkWeaverTests
             expectAllPass: false);
     }
 
+    [Fact]
+    public void Net9_Debug_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9TernaryDebug", TernaryAsyncSource,
+            "9.0.0", "net9.0", "Debug", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Release_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9TernaryRelease", TernaryAsyncSource,
+            "9.0.0", "net9.0", "Release", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Debug_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9TryCatchDebug", TryCatchFinallySource,
+            "9.0.0", "net9.0", "Debug", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Release_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9TryCatchRelease", TryCatchFinallySource,
+            "9.0.0", "net9.0", "Release", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Debug_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9SwitchExprDebug", SwitchExpressionSource,
+            "9.0.0", "net9.0", "Debug", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Release_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9SwitchExprRelease", SwitchExpressionSource,
+            "9.0.0", "net9.0", "Release", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Debug_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9AwaitUsingDebug", AwaitUsingSource,
+            "9.0.0", "net9.0", "Debug", ["Await_using_assertion"]);
+    }
+
+    [Fact]
+    public void Net9_Release_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("9.0");
+        AssertWeaveAndExecute("Net9AwaitUsingRelease", AwaitUsingSource,
+            "9.0.0", "net9.0", "Release", ["Await_using_assertion"]);
+    }
+
     // ========== .NET 10 SDK tests ==========
 
     [Fact]
@@ -223,6 +512,70 @@ public class CrossSdkWeaverTests
             "10.0.0", "net10.0", "Release",
             ["Null_conditional_assertion", "Null_conditional_with_null_value"],
             expectAllPass: false);
+    }
+
+    [Fact]
+    public void Net10_Debug_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10TernaryDebug", TernaryAsyncSource,
+            "10.0.0", "net10.0", "Debug", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Release_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10TernaryRelease", TernaryAsyncSource,
+            "10.0.0", "net10.0", "Release", ["Ternary_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Debug_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10TryCatchDebug", TryCatchFinallySource,
+            "10.0.0", "net10.0", "Debug", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Release_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10TryCatchRelease", TryCatchFinallySource,
+            "10.0.0", "net10.0", "Release", ["Try_catch_finally_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Debug_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10SwitchExprDebug", SwitchExpressionSource,
+            "10.0.0", "net10.0", "Debug", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Release_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10SwitchExprRelease", SwitchExpressionSource,
+            "10.0.0", "net10.0", "Release", ["Switch_expression_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Debug_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10AwaitUsingDebug", AwaitUsingSource,
+            "10.0.0", "net10.0", "Debug", ["Await_using_assertion"]);
+    }
+
+    [Fact]
+    public void Net10_Release_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfSdkMissing("10.0");
+        AssertWeaveAndExecute("Net10AwaitUsingRelease", AwaitUsingSource,
+            "10.0.0", "net10.0", "Release", ["Await_using_assertion"]);
     }
 
     // ========== .NET 11 Preview SDK tests ==========
@@ -288,6 +641,78 @@ public class CrossSdkWeaverTests
             "11.0.100-preview.3", "net10.0", "Release",
             ["Null_conditional_assertion", "Null_conditional_with_null_value"],
             expectAllPass: false, dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Debug_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11TernaryDebug", TernaryAsyncSource,
+            "11.0.100-preview.3", "net10.0", "Debug", ["Ternary_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Release_TernaryAsync_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11TernaryRelease", TernaryAsyncSource,
+            "11.0.100-preview.3", "net10.0", "Release", ["Ternary_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Debug_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11TryCatchDebug", TryCatchFinallySource,
+            "11.0.100-preview.3", "net10.0", "Debug", ["Try_catch_finally_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Release_TryCatchFinally_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11TryCatchRelease", TryCatchFinallySource,
+            "11.0.100-preview.3", "net10.0", "Release", ["Try_catch_finally_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Debug_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11SwitchExprDebug", SwitchExpressionSource,
+            "11.0.100-preview.3", "net10.0", "Debug", ["Switch_expression_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Release_SwitchExpression_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11SwitchExprRelease", SwitchExpressionSource,
+            "11.0.100-preview.3", "net10.0", "Release", ["Switch_expression_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Debug_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11AwaitUsingDebug", AwaitUsingSource,
+            "11.0.100-preview.3", "net10.0", "Debug", ["Await_using_assertion"],
+            dotnetPath: DotNet11Path);
+    }
+
+    [Fact]
+    public void Net11_Release_AwaitUsing_WeaveAndExecute()
+    {
+        SkipIfNet11Missing();
+        AssertWeaveAndExecute("Net11AwaitUsingRelease", AwaitUsingSource,
+            "11.0.100-preview.3", "net10.0", "Release", ["Await_using_assertion"],
+            dotnetPath: DotNet11Path);
     }
 
     // ========== Helpers ==========

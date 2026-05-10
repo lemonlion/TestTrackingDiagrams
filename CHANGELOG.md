@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.26] - 2025-07-06
+
+### Added
+- **Expanded cross-SDK IL weaver tests** — Added 4 new high-risk codegen patterns (ternary expressions, try/catch/finally, switch expressions, await using) and .NET 8 SDK tests. Cross-SDK test count increased from 18 to 56 tests covering 7 patterns × 4 SDKs (8, 9, 10, 11) × 2 configurations (Debug, Release).
+- **Multi-target assertion tracking tests** — Test project now targets net8.0, net9.0, and net10.0 to run IL weaver output through each CLR version's verifier. Uses TFM-conditional Microsoft.Build.Utilities.Core versions (17.11.48/17.14.28/18.4.0) for runtime compatibility.
+- **.NET 8 SDK installed in CI** — CI workflow now installs .NET 8.0.x alongside 9.0.x and 10.0.x for cross-SDK test coverage.
+
 ## [2.33.25] - 2026-05-10
 
 ### Changed
