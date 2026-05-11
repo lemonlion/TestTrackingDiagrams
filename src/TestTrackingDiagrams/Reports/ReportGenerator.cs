@@ -2024,7 +2024,7 @@ public static class ReportGenerator
                         .ToArray() ?? [];
 
                     wholeTestContent = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
-                        wholeTestSegments, scenario.Id, boundaryLogs, wholeTestVisualization);
+                        wholeTestSegments, scenario.Id, boundaryLogs, wholeTestVisualization, diagramDataMap);
                 }
 
                 var hasSequenceDiagrams = diagramsForTest.Length > 0;
@@ -2747,7 +2747,7 @@ public static class ReportGenerator
                     .Select(l => ($"{l.Method.Value}: {l.Uri.PathAndQuery}", l.Timestamp!.Value))
                     .ToArray() ?? [];
                 wholeTestContents[ri] = InternalFlowHtmlGenerator.GetWholeTestFlowContent(
-                    wholeTestSegments, s.Id, boundaryLogs, wholeTestVisualization);
+                    wholeTestSegments, s.Id, boundaryLogs, wholeTestVisualization, diagramDataMap);
             }
         }
 

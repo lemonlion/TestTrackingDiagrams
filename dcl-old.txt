@@ -1,0 +1,100 @@
+LINE 2561:             document.addEventListener('DOMContentLoaded', function() {
+LINE 2562:     // Restore filters from URL hash if present
+LINE 2563:     if (window.location.hash && window.location.hash.length > 1) {
+LINE 2564:         parse_url_hash();
+LINE 2565:     }
+LINE 2566: });
+LINE 2567:         </script>
+LINE 2568:         <script defer src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_16384@v1.2026.3beta6-patched/viz-global.js"></script>
+LINE 2569: <script defer src="https://cdn.jsdelivr.net/gh/lemonlion/plantuml-js-plantuml_limit_size_16384@v1.2026.3beta6-patched/plantuml.js"></script>
+LINE 2570: <script>
+LINE 2571:     document.addEventListener('DOMContentLoaded', function() {
+LINE 2572:         document.body.classList.add('plantuml-ready');
+LINE 2573:         plantumlLoad();
+LINE 2574:         var renderQueue = [];
+LINE 2575:         var rendering = false;
+LINE 2576:         function extractIflowMap(source) {
+LINE 2577:             var map = {};
+LINE 2578:             var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
+LINE 2579:             var m;
+LINE 2580:             while ((m = re.exec(source)) !== null) {
+LINE 2581:                 var key = m[2].split('\\n').join('').replace(/\s+/g, '');
+LINE 2582:                 map[key] = m[1];
+LINE 2583:             }
+LINE 2584:             return map;
+LINE 2585:         }
+LINE 2586:         function processQueue() {
+LINE 2587:             if (rendering || renderQueue.length === 0) return;
+LINE 2588:             rendering = true;
+LINE 2589:             var item = renderQueue.shift();
+LINE 2590:             var lines = item.source.split('\n');
+LINE 2591:             var mo = new MutationObserver(function() {
+LINE 2592:                 mo.disconnect();
+LINE 2593:                 item.el.dataset.rendered = '1';
+LINE 2594:                 bindIflowLinks(item.el, item.source);
+LINE 2595:                 if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
+LINE 2596:                 requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
+LINE 2597:                 rendering = false;
+LINE 2598:                 processQueue();
+LINE 2599:             });
+LINE 2600:             mo.observe(item.el, { childList: true, subtree: true });
+LINE 2601:             try {
+LINE 2602:                 window.plantuml.render(lines, item.el.id);
+LINE 2603:             } catch(e) {
+LINE 2604:                 mo.disconnect();
+LINE 2605:                 item.el.dataset.rendered = '1';
+LINE 2606:                 rendering = false;
+LINE 2607:                 var msg = (e && e.message) ? e.message : String(e);
+LINE 2608:                 if (msg.indexOf('too large') >= 0) {
+LINE 2609:                     item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
+LINE 2610:                         + '<strong>Diagram too large for client-side rendering.</strong><br>'
+LINE 2611:                         + 'Use <code>PlantUmlRendering.Server</code> or <code>PlantUmlRendering.Local</code> for large diagrams.'
+LINE 2612:                         + '<details style="margin-top:0.5em"><summary>Raw PlantUML</summary><pre style="white-space:pre-wrap">'
+LINE 2613:                         + item.source.replace(/</g,'&lt;') + '</pre></details></div>';
+LINE 2614:                 } else {
+LINE 2615:                     item.el.textContent = 'Render error: ' + msg;
+LINE 2616:                 }
+LINE 2617:                 processQueue();
+LINE 2618:             }
+LINE 2619:         }
+LINE 2620:         window._iflowBindLinks = function(container, source) { bindIflowLinks(container, source); };
+LINE 2621:         function bindIflowLinks(container, source) {
+LINE 2622:             if (!container) return;
+LINE 2623:             var iflowData = window.__iflowSegments || {};
+LINE 2624:             var config = window.__iflowConfig || {};
+LINE 2625:             var hoverOnly = config.hasDataBehavior === 'showLinkOnHover';
+LINE 2626:             var bound = 0;
+LINE 2627:             container.querySelectorAll('a').forEach(function(a) {
+LINE 2628:                 var href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
+LINE 2629:                 if (href.indexOf('#iflow-') !== 0) return;
+LINE 2630:                 var segId = href.substring(1);
+LINE 2631:                 if (!iflowData[segId]) return;
+LINE 2632:                 if (hoverOnly) {
+LINE 2633:                     a.removeAttribute('xlink:href');
+LINE 2634:                     a.removeAttribute('href');
+LINE 2635:                     a.classList.add('iflow-link-hover');
+LINE 2636:                 } else {
+LINE 2637:                     a.style.cursor = 'pointer';
+LINE 2638:                 }
+LINE 2639:                 a.addEventListener('click', function(ev) {
+LINE 2640:                     ev.preventDefault();
+LINE 2641:                     ev.stopPropagation();
+LINE 2642:                     if (window._iflowShowPopup) window._iflowShowPopup(segId);
+LINE 2643:                 });
+LINE 2644:                 bound++;
+LINE 2645:             });
+LINE 2646:             if (bound > 0) return;
+LINE 2647:             if (!source) return;
+LINE 2648:             var iflowMap = extractIflowMap(source);
+LINE 2649:             if (Object.keys(iflowMap).length === 0) return;
+LINE 2650:             var allTexts = Array.from(container.querySelectorAll('text'));
+LINE 2651:             var blueIndices = new Set();
+LINE 2652:             allTexts.forEach(function(t, idx) {
+LINE 2653:                 if ((t.getAttribute('fill') || '').toLowerCase() === '#0000ff') {
+LINE 2654:                     blueIndices.add(idx);
+LINE 2655:                     t.setAttribute('fill', '#000000');
+LINE 2656:                     t.removeAttribute('text-decoration');
+LINE 2657:                 }
+LINE 2658:             });
+LINE 2659:             var groups = [];
+LINE 2660:             var curGrp = [];

@@ -118,11 +118,16 @@ public static class InternalFlowHtmlGenerator
         return sb.ToString();
     }
 
-    private static string RenderActivityDiagramHtml(InternalFlowSegment segment)
+    private static string RenderActivityDiagramHtml(InternalFlowSegment segment, Dictionary<string, string>? diagramDataMap = null)
     {
         var plantuml = InternalFlowRenderer.RenderActivityDiagram(segment);
         var id = $"iflow-puml-{segment.RequestResponseId}-{segment.BoundaryType.ToString().ToLowerInvariant()}";
         var compressed = CompressToBase64(plantuml);
+        if (diagramDataMap is not null)
+        {
+            diagramDataMap[id] = compressed;
+            return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-diagram-type=\"plantuml\"></div>";
+        }
         return $"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>";
     }
 
@@ -134,7 +139,8 @@ public static class InternalFlowHtmlGenerator
         Dictionary<string, InternalFlowSegment> wholeTestSegments,
         string testId,
         (string Label, DateTimeOffset Timestamp)[] boundaryLogs,
-        WholeTestFlowVisualization visualization)
+        WholeTestFlowVisualization visualization,
+        Dictionary<string, string>? diagramDataMap = null)
     {
         if (visualization == WholeTestFlowVisualization.None)
             return null;
@@ -147,7 +153,7 @@ public static class InternalFlowHtmlGenerator
         var flameHtml = "";
 
         if (visualization is WholeTestFlowVisualization.ActivityDiagram or WholeTestFlowVisualization.Both)
-            activityHtml = RenderWholeTestActivityDiagramHtml(segment);
+            activityHtml = RenderWholeTestActivityDiagramHtml(segment, diagramDataMap);
 
         if (visualization is WholeTestFlowVisualization.FlameChart or WholeTestFlowVisualization.Both)
         {
@@ -229,7 +235,7 @@ public static class InternalFlowHtmlGenerator
         return sb.ToString();
     }
 
-    private static string RenderWholeTestActivityDiagramHtml(InternalFlowSegment segment)
+    private static string RenderWholeTestActivityDiagramHtml(InternalFlowSegment segment, Dictionary<string, string>? diagramDataMap = null)
     {
         var batches = InternalFlowRenderer.RenderActivityDiagramBatched(segment);
         if (batches.Length == 0)
@@ -242,7 +248,15 @@ public static class InternalFlowHtmlGenerator
                 ? $"iflow-puml-whole-{segment.TestId}"
                 : $"iflow-puml-whole-{segment.TestId}-{i}";
             var compressed = CompressToBase64(batches[i]);
-            sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>");
+            if (diagramDataMap is not null)
+            {
+                diagramDataMap[id] = compressed;
+                sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-diagram-type=\"plantuml\"></div>");
+            }
+            else
+            {
+                sb.Append($"<div class=\"plantuml-browser iflow-diagram\" id=\"{id}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>");
+            }
         }
         return sb.ToString();
     }

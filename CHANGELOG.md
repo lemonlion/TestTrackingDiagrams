@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.58] - 2026-05-11
+
+### Fixed
+- **Internal flow activity diagrams now use JSON script block instead of HTML attributes** — The v2.33.55 migration of diagram data from `data-plantuml-z` HTML attributes to the `<script id="puml-data">` JSON block only covered sequence diagrams. Internal flow activity diagrams (whole-test-flow and per-boundary) still emitted `data-plantuml-z` directly on each `<div>`, leaving 7,231 large attributes (~85MB) in the HTML for projects with many internal flow spans. These are now stored in the same `diagramDataMap` and emitted in the JSON block. The JS `getPumlZ()` helper already looks up by element ID in the JSON map, so no client-side changes were needed.
+
 ## [2.33.57] - 2026-05-11
 
 ### Fixed
