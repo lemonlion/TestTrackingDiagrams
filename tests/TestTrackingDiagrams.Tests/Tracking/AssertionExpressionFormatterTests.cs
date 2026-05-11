@@ -316,4 +316,16 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(expression);
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("claim.Should()\n    .NotBeNull()\n    .And\n    .Be(value)", "Claim should not be null")]
+    [InlineData("claim.Should() .NotBeNull() .And .Be(value)", "Claim should not be null")]
+    [InlineData("claim.Should()\r\n    .NotBeNull()\r\n    .And\r\n    .HaveLength(length)", "Claim should not be null")]
+    [InlineData("() => claim.Should()\n    .NotBeNull()", "Claim should not be null")]
+    [InlineData("() => result.Should()\n    .Be(42)", "Result should be 42")]
+    public void Format_handles_multiline_expressions_with_whitespace_around_dots(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
 }

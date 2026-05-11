@@ -48,6 +48,9 @@ public static partial class AssertionExpressionFormatter
         // Remove null-conditional operators (?.)
         expr = expr.Replace("?.", ".");
 
+        // Normalize whitespace around dots (multi-line expressions from [CallerArgumentExpression])
+        expr = Regex.Replace(expr, @"\s+\.", ".");
+
         // Split on .Should().
         var match = ShouldSplitRegex.Match(expr);
         if (!match.Success)

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.51] - 2026-05-11
+
+### Fixed
+- **Multi-line fluent assertion expressions not parsed correctly** — `AssertionExpressionFormatter` failed to parse expressions where `[CallerArgumentExpression]` captured multi-line code with whitespace before dots (e.g. `claim.Should()\n    .NotBeNull()\n    .And\n    .Be(value)`). The `.Should().` regex and `.And.` detection both required dots immediately adjacent with no whitespace. Now normalizes `\s+\.` → `.` before parsing, so multi-line fluent chains are formatted correctly.
+
 ## [2.33.50] - 2026-05-11
 
 ### Added
