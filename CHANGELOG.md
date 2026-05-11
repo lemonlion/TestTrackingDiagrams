@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.60] - 2026-05-11
+
+### Fixed
+- **step-table-ref buttons do nothing for simple inline parameter values** — When a step had parameters like `grantTypes: "authorisationcode"` or `allowRefreshToken: "True"` (simple scalar values, not tabular or complex objects), the report rendered dead `<button class="step-table-ref">` elements that did nothing on click. Now simple inline values render as `<span class="step-param-inline">` showing the actual value, and parameters with no match render as plain text. Buttons are only produced for parameters that have a backing table/tree or a large complex value to expand.
+
 ## [2.33.59] - 2026-05-11
 
 ### Fixed

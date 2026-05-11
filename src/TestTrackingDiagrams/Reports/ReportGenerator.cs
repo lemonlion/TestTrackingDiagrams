@@ -3082,10 +3082,25 @@ public static class ReportGenerator
                     }
                     else
                     {
-                        // Table/Tree parameter — render as before (scrolls to table)
-                        body.Append("</span>");
-                        body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
-                        body.Append("<span class=\"step-text\">");
+                        // Check for simple inline value (not complex), or no matching param at all
+                        if (matchingParam is { Kind: StepParameterKind.Inline, InlineValue: not null })
+                        {
+                            // Simple inline value — render as inline span showing the value
+                            var display = FormatDisplayValue(matchingParam.InlineValue.Value);
+                            body.Append($"<span class=\"step-param-inline param-na\" title=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{display}</span>");
+                        }
+                        else if (matchingParam is { Kind: StepParameterKind.Tabular or StepParameterKind.Tree })
+                        {
+                            // Table/Tree parameter — render as button (scrolls to table)
+                            body.Append("</span>");
+                            body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
+                            body.Append("<span class=\"step-text\">");
+                        }
+                        else
+                        {
+                            // No matching parameter — render as plain text
+                            body.Append(System.Net.WebUtility.HtmlEncode(seg.TableReference));
+                        }
                     }
                 }
                 else if (seg.Text is not null)

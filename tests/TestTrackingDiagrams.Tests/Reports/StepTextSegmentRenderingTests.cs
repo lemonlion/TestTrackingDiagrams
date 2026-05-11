@@ -445,4 +445,62 @@ public class StepTextSegmentRenderingTests
         Assert.Contains("data-value", content);
         Assert.Contains("step-table-ref-active", content);
     }
+
+    [Fact]
+    public void TableRef_with_simple_inline_value_renders_as_inline_span()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a client with grantTypes",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a client with "),
+                StepTextSegment.TableRef("grantTypes")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "grantTypes",
+                    Kind = StepParameterKind.Inline,
+                    InlineValue = new InlineParameterValue(
+                        "authorisationcode",
+                        null, VerificationStatus.NotApplicable)
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Simple inline value should render as inline span, NOT as a dead button
+        Assert.Contains("step-param-inline", content);
+        Assert.Contains("authorisationcode", content);
+        Assert.DoesNotContain("toggle_table_ref(this)\" data-param=\"grantTypes\"", content);
+    }
+
+    [Fact]
+    public void TableRef_with_no_matching_parameter_renders_as_plain_text()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a client with grants",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a client with "),
+                StepTextSegment.TableRef("grants")
+            ],
+            // No parameters at all
+            Parameters = null
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // No matching parameter: should render as plain text, NOT as a dead button
+        Assert.Contains("grants", content);
+        Assert.DoesNotContain("toggle_table_ref(this)\" data-param=\"grants\"", content);
+    }
 }
