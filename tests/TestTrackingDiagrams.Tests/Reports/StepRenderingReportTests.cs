@@ -199,6 +199,74 @@ public class StepRenderingReportTests
         Assert.Contains("screenshot.png", content);
     }
 
+    [Theory]
+    [InlineData("screenshot.png")]
+    [InlineData("result.jpg")]
+    [InlineData("diff.jpeg")]
+    [InlineData("animation.gif")]
+    [InlineData("photo.webp")]
+    public void Report_renders_image_attachments_as_inline_img(string fileName)
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Then", Text = "the page looks right",
+                    Attachments = [new FileAttachment(fileName, $"attachments/{fileName}")]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), $"ImgAttach_{fileName}.html");
+        Assert.Contains("<img", content);
+        Assert.Contains($"attachments/{fileName}", content);
+        Assert.Contains("attachment-image", content);
+    }
+
+    [Fact]
+    public void Report_renders_non_image_attachments_as_links()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Then", Text = "the log is saved",
+                    Attachments = [new FileAttachment("output.txt", "attachments/output.txt")]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "NonImgAttach.html");
+        Assert.DoesNotContain("<img", content);
+        Assert.Contains("<a class=\"step-attachment\"", content);
+        Assert.Contains("output.txt", content);
+    }
+
+    [Fact]
+    public void Report_image_attachment_is_wrapped_in_clickable_link()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            Steps =
+            [
+                new ScenarioStep
+                {
+                    Keyword = "Then", Text = "the page looks right",
+                    Attachments = [new FileAttachment("screenshot.png", "attachments/screenshot.png")]
+                }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "ImgAttachLink.html");
+        // Image should be inside an anchor that opens lightbox
+        Assert.Contains("attachment-image-link", content);
+        Assert.Contains("attachments/screenshot.png", content);
+    }
+
     [Fact]
     public void Report_renders_feature_description()
     {

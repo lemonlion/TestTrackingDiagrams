@@ -3096,15 +3096,17 @@ public static class ReportGenerator
                             body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
                             body.Append("<span class=\"step-text\">");
                         }
-                        else if (seg.TableReferenceFormattedValue is not null)
-                        {
-                            // No matching parameter but has a formatted value (e.g. bracket-appended CompositeStep params)
-                            body.Append($"<span class=\"step-param-inline param-na\" title=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReferenceFormattedValue)}</span>");
-                        }
                         else
                         {
-                            // No matching parameter — render as plain text
-                            body.Append(System.Net.WebUtility.HtmlEncode(seg.TableReference));
+                            // No matching parameter — render formatted value if available, otherwise plain text
+                            if (seg.TableReferenceFormattedValue is not null)
+                            {
+                                body.Append($"<span class=\"step-param-inline param-na\" title=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReferenceFormattedValue)}</span>");
+                            }
+                            else
+                            {
+                                body.Append(System.Net.WebUtility.HtmlEncode(seg.TableReference));
+                            }
                         }
                     }
                 }
@@ -3143,7 +3145,15 @@ public static class ReportGenerator
         {
             foreach (var attachment in step.Attachments)
             {
-                body.Append($"<a class=\"step-attachment\" href=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\">{System.Net.WebUtility.HtmlEncode(attachment.Name)}</a>");
+                var ext = Path.GetExtension(attachment.Name).ToLowerInvariant();
+                if (ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp")
+                {
+                    body.Append($"<img class=\"attachment-image\" src=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\" alt=\"{System.Net.WebUtility.HtmlEncode(attachment.Name)}\" />");
+                }
+                else
+                {
+                    body.Append($"<a class=\"step-attachment\" href=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\">{System.Net.WebUtility.HtmlEncode(attachment.Name)}</a>");
+                }
             }
         }
 
@@ -3493,6 +3503,10 @@ public static class ReportGenerator
                         ["errorStackTrace"] = s.ErrorStackTrace,
                         ["labels"] = s.Labels ?? [],
                         ["categories"] = s.Categories ?? [],
+                        ["rule"] = s.Rule,
+                        ["outlineId"] = s.OutlineId,
+                        ["exampleValues"] = s.ExampleValues,
+                        ["backgroundSteps"] = (s.BackgroundSteps ?? []).Select(MapStepJson).ToArray(),
                         ["steps"] = (s.Steps ?? []).Select(MapStepJson).ToArray()
                     };
 
@@ -3530,7 +3544,8 @@ public static class ReportGenerator
         step.Text,
         Status = step.Status?.ToString(),
         DurationSeconds = step.Duration?.TotalSeconds,
-        SubSteps = (step.SubSteps ?? []).Select(MapStepJson).ToArray()
+        SubSteps = (step.SubSteps ?? []).Select(MapStepJson).ToArray(),
+        Attachments = (step.Attachments ?? []).Select(a => new { a.Name, a.RelativePath }).ToArray()
     };
 
     private static string GenerateTestRunReportXml(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
@@ -3562,6 +3577,8 @@ public static class ReportGenerator
                                         s.ErrorStackTrace != null ? new XElement("ErrorStackTrace", s.ErrorStackTrace) : null,
                                         (s.Labels is { Length: > 0 }) ? new XElement("Labels", s.Labels.Select(l => new XElement("Label", l))) : null,
                                         (s.Categories is { Length: > 0 }) ? new XElement("Categories", s.Categories.Select(c => new XElement("Category", c))) : null,
+                                        s.Rule != null ? new XElement("Rule", s.Rule) : null,
+                                        (s.BackgroundSteps is { Length: > 0 }) ? new XElement("BackgroundSteps", s.BackgroundSteps.Select(MapStepXml)) : null,
                                         (s.Steps is { Length: > 0 }) ? new XElement("Steps", s.Steps.Select(MapStepXml)) : null
                                     };
 
@@ -3611,7 +3628,8 @@ public static class ReportGenerator
             new XElement("Text", step.Text),
             step.Status != null ? new XElement("Status", step.Status.ToString()) : null,
             step.Duration != null ? new XElement("DurationSeconds", step.Duration.Value.TotalSeconds.ToString("F3")) : null,
-            (step.SubSteps is { Length: > 0 }) ? new XElement("SubSteps", step.SubSteps.Select(MapStepXml)) : null
+            (step.SubSteps is { Length: > 0 }) ? new XElement("SubSteps", step.SubSteps.Select(MapStepXml)) : null,
+            (step.Attachments is { Length: > 0 }) ? new XElement("Attachments", step.Attachments.Select(a => new XElement("Attachment", new XElement("Name", a.Name), new XElement("RelativePath", a.RelativePath)))) : null
         );
 
     private static string GenerateTestRunReportYaml(Feature[] features, DateTime startTime, DateTime endTime, ILookup<string, string>? diagramLookup, ILookup<string, RequestResponseLog>? logLookup)
@@ -3668,6 +3686,16 @@ public static class ReportGenerator
                         yml.Append("          - " + cat.SanitiseForYml() + "\n");
                 }
 
+                if (scenario.Rule is not null)
+                    yml.Append("        Rule: " + scenario.Rule.SanitiseForYml() + "\n");
+
+                if (scenario.BackgroundSteps is { Length: > 0 })
+                {
+                    yml.Append("        BackgroundSteps:\n");
+                    foreach (var step in scenario.BackgroundSteps)
+                        AppendTestRunYamlStep(yml, step, "          ");
+                }
+
                 if (scenario.Steps is { Length: > 0 })
                 {
                     yml.Append("        Steps:\n");
@@ -3715,6 +3743,16 @@ public static class ReportGenerator
             yml.Append(indent + "  SubSteps:\n");
             foreach (var sub in step.SubSteps)
                 AppendTestRunYamlStep(yml, sub, indent + "    ");
+        }
+
+        if (step.Attachments is { Length: > 0 })
+        {
+            yml.Append(indent + "  Attachments:\n");
+            foreach (var att in step.Attachments)
+            {
+                yml.Append(indent + "    - Name: " + att.Name.SanitiseForYml() + "\n");
+                yml.Append(indent + "      RelativePath: " + att.RelativePath.SanitiseForYml() + "\n");
+            }
         }
     }
 
@@ -4157,6 +4195,14 @@ public static class ReportGenerator
                                         ["errorStackTrace"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true },
                                         ["labels"] = new Dictionary<string, object?> { ["type"] = "array", ["items"] = new Dictionary<string, object?> { ["type"] = "string" } },
                                         ["categories"] = new Dictionary<string, object?> { ["type"] = "array", ["items"] = new Dictionary<string, object?> { ["type"] = "string" } },
+                                        ["rule"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true, ["description"] = "Gherkin Rule grouping this scenario belongs to" },
+                                        ["outlineId"] = new Dictionary<string, object?> { ["type"] = "string", ["nullable"] = true, ["description"] = "Original scenario outline name for parameterized scenarios" },
+                                        ["exampleValues"] = new Dictionary<string, object?> { ["type"] = "object", ["nullable"] = true, ["description"] = "Example parameter values for parameterized scenarios", ["additionalProperties"] = new Dictionary<string, object?> { ["type"] = "string" } },
+                                        ["backgroundSteps"] = new Dictionary<string, object?>
+                                        {
+                                            ["type"] = "array",
+                                            ["items"] = new Dictionary<string, object?> { ["$ref"] = "#/$defs/step" }
+                                        },
                                         ["steps"] = new Dictionary<string, object?>
                                         {
                                             ["type"] = "array",
@@ -4194,6 +4240,19 @@ public static class ReportGenerator
                         {
                             ["type"] = "array",
                             ["items"] = new Dictionary<string, object?> { ["$ref"] = "#/$defs/step" }
+                        },
+                        ["attachments"] = new Dictionary<string, object?>
+                        {
+                            ["type"] = "array",
+                            ["items"] = new Dictionary<string, object?>
+                            {
+                                ["type"] = "object",
+                                ["properties"] = new Dictionary<string, object?>
+                                {
+                                    ["name"] = new Dictionary<string, object?> { ["type"] = "string" },
+                                    ["relativePath"] = new Dictionary<string, object?> { ["type"] = "string" }
+                                }
+                            }
                         }
                     }
                 },
@@ -4266,6 +4325,20 @@ public static class ReportGenerator
                             new XElement(xs + "element", new XAttribute("name", "Step"), new XAttribute("type", "StepType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
                         )
                     )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Attachments"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Attachment"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"),
+                                new XElement(xs + "complexType",
+                                    new XElement(xs + "sequence",
+                                        new XElement(xs + "element", new XAttribute("name", "Name"), new XAttribute("type", "xs:string")),
+                                        new XElement(xs + "element", new XAttribute("name", "RelativePath"), new XAttribute("type", "xs:string"))
+                                    )
+                                )
+                            )
+                        )
+                    )
                 )
             ));
 
@@ -4313,6 +4386,14 @@ public static class ReportGenerator
                     new XElement(xs + "complexType",
                         new XElement(xs + "sequence",
                             new XElement(xs + "element", new XAttribute("name", "Category"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
+                        )
+                    )
+                ),
+                new XElement(xs + "element", new XAttribute("name", "Rule"), new XAttribute("type", "xs:string"), new XAttribute("minOccurs", "0")),
+                new XElement(xs + "element", new XAttribute("name", "BackgroundSteps"), new XAttribute("minOccurs", "0"),
+                    new XElement(xs + "complexType",
+                        new XElement(xs + "sequence",
+                            new XElement(xs + "element", new XAttribute("name", "Step"), new XAttribute("type", "StepType"), new XAttribute("minOccurs", "0"), new XAttribute("maxOccurs", "unbounded"))
                         )
                     )
                 ),

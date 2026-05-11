@@ -6,22 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.33.63] - 2026-05-11
-
-### Changed
-- **Removed "Step:" prefix from step delimiter hnotes** — Step delimiter hnotes in sequence diagrams now show just the keyword and text (e.g. `Given the system is running`) instead of `Step: Given the system is running`. The `<<stepDelimiter>>` PlantUML stereotype already identifies them for the UI toggle — the prefix was redundant visual noise.
-
-## [2.33.62] - 2026-05-11
+## [2.33.64] - 2026-05-11
 
 ### Fixed
-- **LightBDD bracket-appended parameters render as concatenated names without values** — When a LightBDD CompositeStep method has bracket-appended `string[]` parameters (e.g. `[grantTypes: "{0}"] [scopes: "{1}"]`), the report rendered them as concatenated param names like "requestsgrantTypesscopes" with no spaces or values. Two fixes: (1) `BuildTextSegments()` now emits a space literal before each appended TableRef segment and passes the formatted value via the new `StepTextSegment.TableRef(name, formattedValue)` overload; (2) the HTML renderer now displays the formatted value as an inline param span (with the param name as tooltip) when no backing `IParameterResult` exists — the typical case for CompositeStep methods.
-
-## [2.33.61] - 2026-05-11
-
-### Fixed
-- **BDDfy assertion sub-steps not merged into report step list** — When BDDfy tests used `[assembly: TrackAssertions]` (IL weaver) or `Track.That()`, assertion sub-steps collected by `StepCollector.AddAssertionSubStep()` during `BDDfyStepTrackingExecutor.Execute()` were silently discarded. `MapSteps()` only mapped BDDfy's native step data without consulting `StepCollector`. Now merges `SubSteps` and `Attachments` from collected steps into each mapped BDDfy step at the corresponding index — the same pattern used by ReqNRoll and LightBDD adapters.
-- **xUnit2 adapter missing `StepCollector` fallback for `[GivenStep]`/`[WhenStep]`/`[ThenStep]`** — The xUnit2 `ScenarioInfoCollectionExtensions.ToFeatures()` never populated `Scenario.Steps` from `StepCollector`, so steps produced by the `StepTracking` IL weaver were lost in reports. Now uses `StepCollector.GetSteps(x.Id)` as the step source.
-- **MSTest adapter missing `StepCollector` fallback for `[GivenStep]`/`[WhenStep]`/`[ThenStep]`** — Same fix as xUnit2: `TestContextEnumerableExtensions.ToFeatures()` now populates `Scenario.Steps` from `StepCollector.GetSteps(x.TestId)`.
+- **Data reports (JSON/XML/YAML) now include `rule`, `backgroundSteps`, `outlineId`, `exampleValues`, and step `attachments`** — These fields were present on the `Scenario` and `ScenarioStep` models and rendered correctly in the HTML report but were missing from the JSON, XML, and YAML data report serializers. All three formats now emit the full scenario metadata. JSON/XSD schemas updated accordingly.
+- **Image attachments now render as inline `<img>` elements in HTML report** — Image file attachments (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) were rendered as plain `<a>` download links. They now render as `<img class="attachment-image">` elements for immediate visual feedback.
+- **ReqNRoll attachment capturing now works without plugin discovery** — The `AttachmentCapturingPlugin` was never loaded by ReqNRoll because it only discovers plugins from DLLs named `*.ReqnrollPlugin.dll`, but our assembly is `TestTrackingDiagrams.ReqNRoll.Core.dll`. The `IReqnrollOutputHelper` wrapping is now performed in the `[BeforeScenario]` hook (which IS discovered via `bindingAssemblies`), ensuring `Track.Attachment()` is called for all `outputHelper.AddAttachment()` calls.
+- **TableRef segments with formatted values but no matching parameter now render the value** — When a `StepTextSegment.TableRef` had a `TableReferenceFormattedValue` (e.g., from bracket-appended params in CompositeStep methods) but no matching `StepParameter`, the renderer showed the parameter name as plain text instead of the formatted value. Now renders as `<span class="step-param-inline">` with the formatted value.
 
 ## [2.33.60] - 2026-05-11
 

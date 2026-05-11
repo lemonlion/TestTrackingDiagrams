@@ -1059,4 +1059,242 @@ public class TestRunReportDataTests
         Assert.Equal(ScenarioStableId.Compute("Checkout", "Pay with visa", "Pay with card"), s1StableId);
         Assert.Equal(ScenarioStableId.Compute("Checkout", "Pay with mastercard", "Pay with card"), s2StableId);
     }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_rule()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Accounts",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Create account", Result = ExecutionResult.Passed, Rule = "Account creation" },
+                    new Scenario { Id = "s2", DisplayName = "Login", Result = ExecutionResult.Passed }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_rule.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenarios = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios");
+
+        Assert.Equal("Account creation", scenarios[0].GetProperty("rule").GetString());
+        Assert.Equal(JsonValueKind.Null, scenarios[1].GetProperty("rule").ValueKind);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_xml_includes_rule()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Accounts",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Create account", Result = ExecutionResult.Passed, Rule = "Account creation" },
+                    new Scenario { Id = "s2", DisplayName = "Login", Result = ExecutionResult.Passed }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_rule.xml", DataFormat.Xml);
+        var doc = XDocument.Parse(File.ReadAllText(path));
+        var scenarios = doc.Root!.Element("Features")!.Element("Feature")!.Element("Scenarios")!.Elements("Scenario").ToArray();
+
+        Assert.Equal("Account creation", scenarios[0].Element("Rule")?.Value);
+        Assert.Null(scenarios[1].Element("Rule"));
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_yaml_includes_rule()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Accounts",
+                Scenarios =
+                [
+                    new Scenario { Id = "s1", DisplayName = "Create account", Result = ExecutionResult.Passed, Rule = "Account creation" }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_rule.yml", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("Rule: Account creation", content);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_step_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed,
+                                Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_attachments.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var step = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios")[0].GetProperty("steps")[0];
+        var attachments = step.GetProperty("attachments");
+
+        Assert.Equal(1, attachments.GetArrayLength());
+        Assert.Equal("openapi.json", attachments[0].GetProperty("name").GetString());
+        Assert.Equal("artifacts/openapi.json", attachments[0].GetProperty("relativePath").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_xml_includes_step_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed,
+                                Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_attachments.xml", DataFormat.Xml);
+        var doc = XDocument.Parse(File.ReadAllText(path));
+        var step = doc.Root!.Element("Features")!.Element("Feature")!.Element("Scenarios")!.Element("Scenario")!.Element("Steps")!.Element("Step")!;
+        var attachment = step.Element("Attachments")?.Element("Attachment");
+
+        Assert.NotNull(attachment);
+        Assert.Equal("openapi.json", attachment!.Element("Name")?.Value);
+        Assert.Equal("artifacts/openapi.json", attachment.Element("RelativePath")?.Value);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_yaml_includes_step_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed,
+                                Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_attachments.yml", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("Attachments:", content);
+        Assert.Contains("Name: openapi.json", content);
+        Assert.Contains("RelativePath: artifacts/openapi.json", content);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_backgroundSteps()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        BackgroundSteps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "common setup", Status = ExecutionResult.Passed }
+                        ],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "When", Text = "action", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_bg.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenario = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios")[0];
+        var bgSteps = scenario.GetProperty("backgroundSteps");
+
+        Assert.Equal(1, bgSteps.GetArrayLength());
+        Assert.Equal("common setup", bgSteps[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_json_includes_outlineId_and_exampleValues()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Checkout",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Pay with visa", Result = ExecutionResult.Passed,
+                        OutlineId = "Pay with card",
+                        ExampleValues = new Dictionary<string, string> { ["card"] = "visa" }
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_outline.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenario = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios")[0];
+
+        Assert.Equal("Pay with card", scenario.GetProperty("outlineId").GetString());
+        Assert.Equal("visa", scenario.GetProperty("exampleValues").GetProperty("card").GetString());
+    }
 }

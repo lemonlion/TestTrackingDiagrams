@@ -28,6 +28,23 @@ public class ReqNRollTrackingHooks
         _scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey] = scenarioId;
         _scenarioContext[ReqNRollConstants.StepsCollectionKey] = new List<ReqNRollStepInfo>();
         ReqNRollTestContext.CurrentTestInfo = (_scenarioContext.ScenarioInfo.Title, scenarioId);
+
+        // Wrap IReqnrollOutputHelper to capture attachments for the report.
+        // This replaces the plugin-based approach (AttachmentCapturingPlugin) which doesn't work
+        // because ReqNRoll only discovers plugins from DLLs named *.ReqnrollPlugin.dll.
+        try
+        {
+            var outputHelper = _scenarioContext.ScenarioContainer.Resolve<IReqnrollOutputHelper>();
+            if (outputHelper is not AttachmentCapturingOutputHelper)
+            {
+                _scenarioContext.ScenarioContainer.RegisterInstanceAs<IReqnrollOutputHelper>(
+                    new AttachmentCapturingOutputHelper(outputHelper));
+            }
+        }
+        catch
+        {
+            // IReqnrollOutputHelper may not be available in all test runner configurations
+        }
     }
 
     [BeforeStep(Order = int.MinValue)]

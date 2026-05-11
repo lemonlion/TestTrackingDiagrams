@@ -700,6 +700,55 @@ public class Stylesheets
                     color: rgb(66, 133, 244);
                 }
 
+                .attachment-image-container {
+                    display: block;
+                    margin: 0.5em 0 0.5em 1.5em;
+                }
+
+                .attachment-image-link {
+                    display: inline-block;
+                    cursor: pointer;
+                }
+
+                .attachment-image {
+                    max-width: 320px;
+                    max-height: 240px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    transition: box-shadow 0.2s;
+                }
+
+                .attachment-image:hover {
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                }
+
+                .attachment-image-name {
+                    display: block;
+                    font-size: 0.8em;
+                    color: #666;
+                    margin-top: 0.2em;
+                }
+
+                .lightbox-overlay {
+                    display: none;
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.85);
+                    z-index: 10000;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: zoom-out;
+                }
+
+                .lightbox-overlay.active { display: flex; }
+
+                .lightbox-overlay img {
+                    max-width: 90vw;
+                    max-height: 90vh;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+                }
+
                 .step-docstring {
                     background: #f5f5f5;
                     border: 1px solid #ddd;
@@ -1504,6 +1553,8 @@ public class Stylesheets
                 .dep-mode-toggle, .cat-mode-toggle { background: #F5F3FF; }
                 .scenario-focused { outline-color: #8B5CF6; }
                 .step-attachment { color: #8B5CF6; }
+                .attachment-image { border-color: #A78BFA; }
+                .attachment-image-name { color: #A78BFA; }
 
                 .details-radio-btn.details-active {
                     background: #8B5CF6;
