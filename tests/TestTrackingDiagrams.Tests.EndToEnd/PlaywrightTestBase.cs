@@ -62,6 +62,9 @@ public abstract class PlaywrightTestBase : IAsyncLifetime
     protected string GenerateReportWithBackground(string fileName) =>
         ReportTestHelper.GenerateReportWithBackground(TempDir, OutputDir, fileName);
 
+    protected string GenerateReportWithAttachments(string fileName) =>
+        ReportTestHelper.GenerateReportWithAttachments(TempDir, OutputDir, fileName);
+
     protected string ServePage(string html, [System.Runtime.CompilerServices.CallerMemberName] string? testName = null)
     {
         var path = Path.Combine(TempDir, $"{testName}.html");

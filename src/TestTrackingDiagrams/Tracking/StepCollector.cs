@@ -162,6 +162,60 @@ public static class StepCollector
     }
 
     /// <summary>
+    /// Adds a file attachment to the currently active step, or as a scenario-level attachment
+    /// when no step is active.
+    /// </summary>
+    public static void AddAttachment(string? testId, string filePath, string? name)
+    {
+        if (testId is null)
+            return;
+
+        var resolvedName = name ?? ExtractFileName(filePath);
+        var attachment = new FileAttachment(resolvedName, filePath);
+        var state = States.GetOrAdd(testId, _ => new TestStepState());
+
+        lock (state)
+        {
+            if (state.StepStack.Count > 0)
+            {
+                var currentStep = state.StepStack.Peek();
+                currentStep.Attachments ??= new List<FileAttachment>();
+                currentStep.Attachments.Add(attachment);
+            }
+            else
+            {
+                state.ScenarioAttachments ??= new List<FileAttachment>();
+                state.ScenarioAttachments.Add(attachment);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns scenario-level attachments (those added when no step was active).
+    /// </summary>
+    public static FileAttachment[]? GetScenarioAttachments(string? testId)
+    {
+        if (testId is null)
+            return null;
+
+        if (!States.TryGetValue(testId, out var state))
+            return null;
+
+        lock (state)
+        {
+            return state.ScenarioAttachments is { Count: > 0 }
+                ? state.ScenarioAttachments.ToArray()
+                : null;
+        }
+    }
+
+    private static string ExtractFileName(string filePath)
+    {
+        var separatorIndex = filePath.LastIndexOfAny(['/', '\\']);
+        return separatorIndex >= 0 ? filePath[(separatorIndex + 1)..] : filePath;
+    }
+
+    /// <summary>
     /// Returns whether there's an active (in-progress) step for the given test.
     /// </summary>
     public static bool HasActiveStep(string? testId)
@@ -309,6 +363,9 @@ public static class StepCollector
             Parameters = step.Parameters,
             SubSteps = step.SubSteps.Count > 0
                 ? step.SubSteps.Select(ToScenarioStep).ToArray()
+                : null,
+            Attachments = step.Attachments is { Count: > 0 }
+                ? step.Attachments.ToArray()
                 : null
         };
     }
@@ -355,6 +412,7 @@ public static class StepCollector
         public Stack<CollectedStep> StepStack { get; } = new();
         public List<CollectedStep> CompletedSteps { get; } = new();
         public string? LastKeywordCategory { get; set; }
+        public List<FileAttachment>? ScenarioAttachments { get; set; }
     }
 
     private class CollectedStep
@@ -368,5 +426,6 @@ public static class StepCollector
         public string? ErrorMessage { get; set; }
         public StepParameter[]? Parameters { get; set; }
         public List<CollectedStep> SubSteps { get; } = new();
+        public List<FileAttachment>? Attachments { get; set; }
     }
 }

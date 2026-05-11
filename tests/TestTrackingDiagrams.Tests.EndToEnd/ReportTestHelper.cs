@@ -1402,4 +1402,72 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    public static string GenerateReportWithAttachments(string tempDir, string outputDir, string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Upload Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "att1", DisplayName = "Upload with screenshot", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2),
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "When", Text = "I upload a file", Status = ExecutionResult.Passed,
+                                Attachments = [new FileAttachment("screenshot.png", "files/screenshot.png")]
+                            },
+                            new ScenarioStep { Keyword = "Then", Text = "the file is stored", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "att2", DisplayName = "Upload with multiple attachments", IsHappyPath = false,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(3),
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "When", Text = "I upload multiple files", Status = ExecutionResult.Passed,
+                                Attachments =
+                                [
+                                    new FileAttachment("log.txt", "files/log.txt"),
+                                    new FileAttachment("trace.json", "files/trace.json")
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "Then", Text = "all files are stored", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "att3", DisplayName = "Step without attachments", IsHappyPath = false,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "When", Text = "I do nothing special", Status = ExecutionResult.Passed },
+                            new ScenarioStep { Keyword = "Then", Text = "no attachments exist", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = Array.Empty<DiagramAsCode>();
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

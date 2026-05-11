@@ -237,9 +237,11 @@ internal static class FeatureResultExtensions
         text = StripNamespacesFromText(text);
 
         var comments = step.Comments?.ToArray();
-        var attachments = step.FileAttachments?
+        var nativeAttachments = step.FileAttachments?
             .Select(a => new Reports.FileAttachment(a.Name, a.RelativePath))
             .ToArray();
+        var collectedAttachments = collected?.Attachments;
+        var attachments = MergeAttachments(nativeAttachments, collectedAttachments);
         var parameters = step.Parameters?.Count > 0
             ? step.Parameters.Select(MapParameter).ToArray()
             : null;
@@ -262,6 +264,14 @@ internal static class FeatureResultExtensions
             Parameters = parameters,
             TextSegments = textSegments,
         };
+    }
+
+    private static Reports.FileAttachment[]? MergeAttachments(
+        Reports.FileAttachment[]? native, Reports.FileAttachment[]? collected)
+    {
+        if (native is null or { Length: 0 }) return collected;
+        if (collected is null or { Length: 0 }) return native;
+        return [..native, ..collected];
     }
 
     // Matches "{N}" placeholders (with surrounding quotes) in NameFormat

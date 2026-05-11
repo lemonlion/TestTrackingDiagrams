@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.48] - 2026-05-10
+
+### Added
+- **`Track.Attachment()` API for capturing file attachments** — New `Track.Attachment(filePath, name?)` static method attaches files to the current step (or scenario when no step is active). Attachments render as `<a class="step-attachment">` download links in the report. Name defaults to the file name when not provided. Works with all framework adapters.
+- **`StepCollector.AddAttachment()` and `GetScenarioAttachments()`** — Backing store for `Track.Attachment()`. Supports step-level and scenario-level attachments, including nested steps.
+- **Attachment merging in ReqNRoll and LightBDD adapters** — `StepCollector` attachments from `Track.Attachment()` are now merged into mapped steps alongside framework-native attachments (LightBDD `FileAttachments`).
+- **`AttachmentCapturingOutputHelper` decorator** — Wraps Reqnroll's `IReqnrollOutputHelper` to automatically intercept `AddAttachment(filePath)` calls and route them through `Track.Attachment()`, so attachments added via Reqnroll's output helper appear in TTD reports.
+- **`AttachmentCapturingPlugin` runtime plugin** — Reqnroll `IRuntimePlugin` that registers the `AttachmentCapturingOutputHelper` decorator at test thread initialization. Activated automatically via `[assembly: RuntimePlugin]`.
+- **Attachment rendering E2E tests** — 4 Playwright tests verifying attachment link rendering, correct href, multiple attachments per step, and absence when no attachments.
+- **11 unit tests** — 7 for `Track.Attachment` (step-level, scenario-level, name defaulting, no-op without test ID, nested steps, path separators) + 4 for `AttachmentCapturingOutputHelper` (delegation, Track integration, passthrough).
+
 ## [2.33.47] - 2026-05-10
 
 ### Fixed

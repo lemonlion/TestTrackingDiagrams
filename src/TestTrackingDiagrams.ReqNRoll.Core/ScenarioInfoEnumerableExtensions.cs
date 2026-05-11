@@ -99,6 +99,9 @@ internal static class ScenarioInfoEnumerableExtensions
                 SubSteps = collectedSteps is not null && i < collectedSteps.Length
                     ? collectedSteps[i].SubSteps
                     : null,
+                Attachments = collectedSteps is not null && i < collectedSteps.Length
+                    ? collectedSteps[i].Attachments
+                    : null,
             };
             if (steps[i].Status == ScenarioExecutionStatus.TestError || steps[i].Status == ScenarioExecutionStatus.BindingError)
                 priorFailure = true;
