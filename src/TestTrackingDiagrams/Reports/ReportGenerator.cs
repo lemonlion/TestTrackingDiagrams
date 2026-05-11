@@ -765,7 +765,22 @@ public static class ReportGenerator
                                              var scenario = btn.closest('.scenario');
                                              if (scenario) table = scenario.querySelector('.step-param-combined-table');
                                          }
-                                         if (!table) return;
+                                         if (!table) {
+                                             var val = btn.getAttribute('data-value');
+                                             if (!val) return;
+                                             var existing = btn.nextElementSibling;
+                                             if (existing && existing.classList.contains('step-param-expand')) {
+                                                 existing.remove();
+                                                 btn.classList.remove('step-table-ref-active');
+                                                 return;
+                                             }
+                                             var pre = document.createElement('pre');
+                                             pre.className = 'step-param-expand';
+                                             pre.textContent = val;
+                                             btn.after(pre);
+                                             btn.classList.add('step-table-ref-active');
+                                             return;
+                                         }
                                          table.scrollIntoView({behavior:'smooth',block:'nearest'});
                                          var cells = table.querySelectorAll('[data-param="' + paramName + '"]');
                                          if (cells.length > 0) {
@@ -3256,10 +3271,36 @@ public static class ReportGenerator
                 }
                 else if (seg.TableReference is not null)
                 {
-                    // Table references render outside the step-text span — close and reopen
-                    body.Append("</span>");
-                    body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
-                    body.Append("<span class=\"step-text\">");
+                    // Check if this table reference has a backing table/tree parameter
+                    var matchingParam = step.Parameters?.FirstOrDefault(p => p.Name == seg.TableReference);
+                    if (matchingParam is { Kind: StepParameterKind.Inline, InlineValue: not null } &&
+                        ParameterParser.IsComplexObjectString(matchingParam.InlineValue.Value))
+                    {
+                        // Complex inline value with no backing table — render based on size
+                        if (ParameterParser.IsSmallComplexValue(matchingParam.InlineValue.Value))
+                        {
+                            // Small: render inline like a normal parameter
+                            var inlineDisplay = ParameterParser.FormatComplexValueInline(matchingParam.InlineValue.Value)
+                                                ?? matchingParam.InlineValue.Value;
+                            body.Append($"<span class=\"step-param-inline param-na\" title=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(inlineDisplay)}</span>");
+                        }
+                        else
+                        {
+                            // Large: render as expandable button with data-value
+                            var json = ParameterParser.FormatComplexValueAsJson(matchingParam.InlineValue.Value)
+                                       ?? matchingParam.InlineValue.Value;
+                            body.Append("</span>");
+                            body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\" data-value=\"{System.Net.WebUtility.HtmlEncode(json)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
+                            body.Append("<span class=\"step-text\">");
+                        }
+                    }
+                    else
+                    {
+                        // Table/Tree parameter — render as before (scrolls to table)
+                        body.Append("</span>");
+                        body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
+                        body.Append("<span class=\"step-text\">");
+                    }
                 }
                 else if (seg.Text is not null)
                 {

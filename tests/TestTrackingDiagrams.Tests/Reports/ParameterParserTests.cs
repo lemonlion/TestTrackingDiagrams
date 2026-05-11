@@ -704,4 +704,118 @@ public class ParameterParserTests
     {
         Assert.Null(ParameterParser.ExtractTypeNameFromComplexString(null));
     }
+
+    // ── IsSmallComplexValue tests ──
+
+    [Theory]
+    [InlineData("MuffinRecipeTestData { Name = Classic, Flour = Plain }", true)] // 2 fields < 5
+    [InlineData("Rec { A = 1, B = 2, C = 3, D = 4 }", true)] // 4 fields < 5
+    [InlineData("Rec { A = 1, B = 2, C = 3, D = 4, E = 5 }", false)] // 5 fields >= 5
+    [InlineData("Rec { A = 1, B = 2, C = 3, D = 4, E = 5, F = 6 }", false)] // 6 fields
+    [InlineData("Outer { Inner = Mid { Deep = 1 } }", false)] // nested record value → not small
+    [InlineData("List`1[System.String]", false)] // generic collection → not parseable, not small
+    public void IsSmallComplexValue_detects_small_records(string input, bool expected)
+    {
+        Assert.Equal(expected, ParameterParser.IsSmallComplexValue(input));
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("hello", false)]
+    public void IsSmallComplexValue_returns_false_for_non_complex(string? input, bool expected)
+    {
+        Assert.Equal(expected, ParameterParser.IsSmallComplexValue(input));
+    }
+
+    // ── FormatComplexValueInline tests ──
+
+    [Fact]
+    public void FormatComplexValueInline_small_record_formats_without_type_name()
+    {
+        var result = ParameterParser.FormatComplexValueInline("MuffinRecipeTestData { Name = Classic, Flour = Plain Flour }");
+        Assert.Equal("{ Name: Classic, Flour: Plain Flour }", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueInline_single_field_record()
+    {
+        var result = ParameterParser.FormatComplexValueInline("Score { Value = 42 }");
+        Assert.Equal("{ Value: 42 }", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueInline_null_values_shown()
+    {
+        var result = ParameterParser.FormatComplexValueInline("Rec { Name = Test, Value = }");
+        Assert.Equal("{ Name: Test, Value: null }", result);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("hello")]
+    [InlineData("List`1[System.String]")]
+    public void FormatComplexValueInline_returns_null_for_non_parseable(string? input)
+    {
+        Assert.Null(ParameterParser.FormatComplexValueInline(input));
+    }
+
+    // ── FormatComplexValueAsJson tests ──
+
+    [Fact]
+    public void FormatComplexValueAsJson_record_to_json()
+    {
+        var result = ParameterParser.FormatComplexValueAsJson("MuffinRecipeTestData { Name = Classic, Flour = Plain Flour }");
+        Assert.NotNull(result);
+        Assert.Contains("\"Name\": \"Classic\"", result);
+        Assert.Contains("\"Flour\": \"Plain Flour\"", result);
+        Assert.DoesNotContain("MuffinRecipeTestData", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueAsJson_formats_with_indentation()
+    {
+        var result = ParameterParser.FormatComplexValueAsJson("Rec { A = 1, B = 2 }");
+        Assert.NotNull(result);
+        // Should be multi-line formatted JSON
+        Assert.Contains("\n", result);
+        Assert.Contains("  ", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueAsJson_null_values()
+    {
+        var result = ParameterParser.FormatComplexValueAsJson("Rec { Name = Test, Value = }");
+        Assert.NotNull(result);
+        Assert.Contains("\"Value\": null", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueAsJson_numeric_values_unquoted()
+    {
+        var result = ParameterParser.FormatComplexValueAsJson("Rec { Count = 42, Rate = 0.5 }");
+        Assert.NotNull(result);
+        Assert.Contains("\"Count\": 42", result);
+        Assert.Contains("\"Rate\": 0.5", result);
+    }
+
+    [Fact]
+    public void FormatComplexValueAsJson_boolean_values_unquoted()
+    {
+        var result = ParameterParser.FormatComplexValueAsJson("Rec { Active = True, Deleted = False }");
+        Assert.NotNull(result);
+        Assert.Contains("\"Active\": true", result);
+        Assert.Contains("\"Deleted\": false", result);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("hello")]
+    [InlineData("List`1[System.String]")]
+    public void FormatComplexValueAsJson_returns_null_for_non_parseable(string? input)
+    {
+        Assert.Null(ParameterParser.FormatComplexValueAsJson(input));
+    }
 }

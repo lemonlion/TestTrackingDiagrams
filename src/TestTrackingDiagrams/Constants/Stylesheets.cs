@@ -952,6 +952,25 @@ public class Stylesheets
                 .step-table-ref:hover {
                     background: #cfd8dc;
                 }
+                .step-table-ref-active {
+                    background: #cfd8dc;
+                    border-color: #90a4ae;
+                }
+                .step-param-expand {
+                    display: block;
+                    margin: 4px 0 4px 6px;
+                    padding: 6px 10px;
+                    background: #f5f5f5;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 3px;
+                    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                    font-size: 0.82em;
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    color: #37474f;
+                }
 
                 .step-param-combined-table {
                     margin: 8px 0 4px 24px;

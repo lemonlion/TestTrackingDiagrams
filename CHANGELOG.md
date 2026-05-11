@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.50] - 2026-05-11
+
+### Added
+- **Step-table-ref buttons with no backing table now display their values** — When a step parameter is a complex object (record ToString like `TypeName { Name = Classic, Flour = Plain }`) that was rendered as a clickable table-ref button but had no corresponding tabular parameter, clicking the button previously did nothing. Now:
+  - **Small values** (records with fewer than 5 simple fields): rendered inline as a styled span with grey background showing the parsed field values (e.g., `{ Name: Classic, Flour: Plain Flour }`), replacing the non-functional button entirely.
+  - **Large values** (5+ fields or nested records): the button remains but clicking it toggles a formatted JSON expansion block below with proper indentation, unquoted numeric/boolean values, and null handling. A second click collapses it.
+
 ## [2.33.49] - 2026-05-11
 
 ### Changed

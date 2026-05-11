@@ -1470,4 +1470,86 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    public static string GenerateReportWithComplexInlineParams(string tempDir, string outputDir, string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Complex Param Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "cp1", DisplayName = "Small complex param renders inline", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given",
+                                Text = "a small recipe",
+                                Status = ExecutionResult.Passed,
+                                TextSegments =
+                                [
+                                    StepTextSegment.Literal("a small "),
+                                    StepTextSegment.TableRef("recipe")
+                                ],
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "recipe",
+                                        Kind = StepParameterKind.Inline,
+                                        InlineValue = new InlineParameterValue(
+                                            "MuffinRecipeTestData { Name = Classic, Flour = Plain Flour }",
+                                            null, VerificationStatus.NotApplicable)
+                                    }
+                                ]
+                            },
+                            new ScenarioStep
+                            {
+                                Keyword = "When",
+                                Text = "I apply a large config",
+                                Status = ExecutionResult.Passed,
+                                TextSegments =
+                                [
+                                    StepTextSegment.Literal("I apply a large "),
+                                    StepTextSegment.TableRef("config")
+                                ],
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "config",
+                                        Kind = StepParameterKind.Inline,
+                                        InlineValue = new InlineParameterValue(
+                                            "AppConfig { Host = localhost, Port = 8080, Timeout = 30, RetryCount = 3, Debug = True }",
+                                            null, VerificationStatus.NotApplicable)
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "Then", Text = "it should succeed", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("cp1", "", PlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

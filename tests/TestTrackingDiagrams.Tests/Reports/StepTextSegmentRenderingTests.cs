@@ -307,4 +307,142 @@ public class StepTextSegmentRenderingTests
         // Should NOT contain toggle/collapse logic
         Assert.DoesNotContain("step-param-table-collapsed", content);
     }
+
+    [Fact]
+    public void TableRef_with_small_inline_value_renders_as_inline_span()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a recipe",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a "),
+                StepTextSegment.TableRef("recipe")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "recipe",
+                    Kind = StepParameterKind.Inline,
+                    InlineValue = new InlineParameterValue(
+                        "MuffinRecipeTestData { Name = Classic, Flour = Plain Flour }",
+                        null, VerificationStatus.NotApplicable)
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Should render as inline span, NOT as a button
+        Assert.Contains("step-param-inline", content);
+        Assert.Contains("{ Name: Classic, Flour: Plain Flour }", content);
+        Assert.DoesNotContain("data-value=", content);
+    }
+
+    [Fact]
+    public void TableRef_with_large_inline_value_renders_as_expandable_button()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a config",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a "),
+                StepTextSegment.TableRef("config")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "config",
+                    Kind = StepParameterKind.Inline,
+                    InlineValue = new InlineParameterValue(
+                        "Config { A = 1, B = 2, C = 3, D = 4, E = 5 }",
+                        null, VerificationStatus.NotApplicable)
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Should render as button with data-value attribute
+        Assert.Contains("step-table-ref", content);
+        Assert.Contains("data-value=", content);
+        Assert.Contains("data-param=\"config\"", content);
+        // The JSON should be in the data-value
+        Assert.Contains("&quot;A&quot;: 1", content);
+    }
+
+    [Fact]
+    public void TableRef_with_tabular_param_still_renders_as_table_button()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Then",
+            Text = "step verifies items",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("step verifies "),
+                StepTextSegment.TableRef("items")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "items",
+                    Kind = StepParameterKind.Tabular,
+                    TabularValue = new TabularParameterValue(
+                        [new TabularColumn("Name", false)],
+                        [new TabularRow(TableRowType.Matching, [new TabularCell("X", null, VerificationStatus.NotApplicable)])])
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Should render as regular button (no data-value), with backing table
+        Assert.Contains("step-table-ref", content);
+        Assert.DoesNotContain("data-value=", content);
+        Assert.Contains("step-param-table", content);
+    }
+
+    [Fact]
+    public void Toggle_table_ref_JS_handles_data_value_expansion()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "a config",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("a "),
+                StepTextSegment.TableRef("config")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "config",
+                    Kind = StepParameterKind.Inline,
+                    InlineValue = new InlineParameterValue(
+                        "Config { A = 1, B = 2, C = 3, D = 4, E = 5 }",
+                        null, VerificationStatus.NotApplicable)
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // JS should handle expansion when no table found
+        Assert.Contains("step-param-expand", content);
+        Assert.Contains("data-value", content);
+        Assert.Contains("step-table-ref-active", content);
+    }
 }

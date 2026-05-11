@@ -533,4 +533,82 @@ public static class ParameterParser
         result.Add(argsRaw[start..].Trim());
         return result;
     }
+
+    /// <summary>
+    /// Returns true if the complex object value is small enough to render inline
+    /// (record with fewer than 5 simple fields, without nested records).
+    /// </summary>
+    public static bool IsSmallComplexValue(string? value)
+    {
+        var props = TryParseRecordToString(value);
+        if (props is null || props.Count == 0)
+            return false;
+
+        if (props.Count >= 5)
+            return false;
+
+        // If any value itself looks like a nested record, it's not small
+        foreach (var v in props.Values)
+        {
+            if (TryParseRecordToString(v) is not null)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Formats a small complex object value for inline display.
+    /// Record-style "TypeName { Name = Val, Flour = Plain }" → "{ Name: Val, Flour: Plain }".
+    /// Returns null if the value cannot be parsed.
+    /// </summary>
+    public static string? FormatComplexValueInline(string? value)
+    {
+        var props = TryParseRecordToString(value);
+        if (props is null || props.Count == 0)
+            return null;
+
+        var parts = props.Select(kv => $"{kv.Key}: {kv.Value}");
+        return $"{{ {string.Join(", ", parts)} }}";
+    }
+
+    /// <summary>
+    /// Formats a complex object value as pretty-printed JSON (without the TypeName).
+    /// Record-style values are converted to JSON objects with proper quoting of string values.
+    /// Returns null if the value cannot be parsed.
+    /// </summary>
+    public static string? FormatComplexValueAsJson(string? value)
+    {
+        var props = TryParseRecordToString(value);
+        if (props is null || props.Count == 0)
+            return null;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("{");
+        var entries = props.ToArray();
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var (key, val) = entries[i];
+            sb.Append($"  \"{key}\": ");
+            sb.Append(FormatJsonValue(val));
+            if (i < entries.Length - 1)
+                sb.Append(',');
+            sb.AppendLine();
+        }
+        sb.Append('}');
+        return sb.ToString();
+    }
+
+    private static string FormatJsonValue(string val)
+    {
+        if (val == "null")
+            return "null";
+        if (val.Equals("true", StringComparison.OrdinalIgnoreCase))
+            return "true";
+        if (val.Equals("false", StringComparison.OrdinalIgnoreCase))
+            return "false";
+        if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
+            return val;
+        return $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+    }
 }
