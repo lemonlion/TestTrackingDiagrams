@@ -1236,6 +1236,104 @@ public class TestRunReportDataTests
     }
 
     [Fact]
+    public void GenerateTestRunReportData_json_includes_scenario_level_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_scenario_attachments.json", DataFormat.Json);
+        var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var scenario = doc.RootElement.GetProperty("features")[0].GetProperty("scenarios")[0];
+        var attachments = scenario.GetProperty("attachments");
+
+        Assert.Equal(1, attachments.GetArrayLength());
+        Assert.Equal("openapi.json", attachments[0].GetProperty("name").GetString());
+        Assert.Equal("artifacts/openapi.json", attachments[0].GetProperty("relativePath").GetString());
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_xml_includes_scenario_level_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_scenario_attachments.xml", DataFormat.Xml);
+        var doc = XDocument.Parse(File.ReadAllText(path));
+        var scenario = doc.Root!.Element("Features")!.Element("Feature")!.Element("Scenarios")!.Element("Scenario")!;
+        var attachment = scenario.Element("Attachments")?.Element("Attachment");
+
+        Assert.NotNull(attachment);
+        Assert.Equal("openapi.json", attachment!.Element("Name")?.Value);
+        Assert.Equal("artifacts/openapi.json", attachment.Element("RelativePath")?.Value);
+    }
+
+    [Fact]
+    public void GenerateTestRunReportData_yaml_includes_scenario_level_attachments()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Generate spec", Result = ExecutionResult.Passed,
+                        Attachments = [new FileAttachment("openapi.json", "artifacts/openapi.json")],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Then", Text = "spec is generated", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateTestRunReportData(features, DateTime.UtcNow, DateTime.UtcNow, "TestRunData_scenario_attachments.yml", DataFormat.Yaml);
+        var content = File.ReadAllText(path);
+
+        // Should appear at scenario level (not step level)
+        Assert.Contains("Attachments:", content);
+        Assert.Contains("Name: openapi.json", content);
+        Assert.Contains("RelativePath: artifacts/openapi.json", content);
+    }
+
+    [Fact]
     public void GenerateTestRunReportData_json_includes_backgroundSteps()
     {
         var features = new[]

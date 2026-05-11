@@ -752,4 +752,60 @@ public class StepRenderingReportTests
         Assert.True(tablePos < summaryEnd, "Table should be inside <summary>");
         Assert.True(subStepsPos > summaryEnd, "Sub-steps should be after </summary>");
     }
+
+    [Fact]
+    public void Report_renders_scenario_level_attachments()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Upload spec",
+            Result = ExecutionResult.Passed,
+            Attachments = [new FileAttachment("openapi.json", "attachments/openapi.json")],
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Then", Text = "the spec is valid", Status = ExecutionResult.Passed }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "ScenarioAttach.html");
+        Assert.Contains("scenario-attachments", content);
+        Assert.Contains("openapi.json", content);
+    }
+
+    [Fact]
+    public void Report_renders_scenario_level_image_attachment_as_img()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Screenshot test",
+            Result = ExecutionResult.Passed,
+            Attachments = [new FileAttachment("screenshot.png", "attachments/screenshot.png")],
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Then", Text = "done", Status = ExecutionResult.Passed }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "ScenarioImgAttach.html");
+        Assert.Contains("<img", content);
+        Assert.Contains("attachment-image", content);
+        Assert.Contains("attachments/screenshot.png", content);
+    }
+
+    [Fact]
+    public void Report_renders_scenario_level_non_image_attachment_as_link()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Log test",
+            Result = ExecutionResult.Passed,
+            Attachments = [new FileAttachment("output.txt", "attachments/output.txt")],
+            Steps =
+            [
+                new ScenarioStep { Keyword = "Then", Text = "done", Status = ExecutionResult.Passed }
+            ]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "ScenarioLinkAttach.html");
+        Assert.DoesNotContain("<img", content);
+        Assert.Contains("step-attachment", content);
+        Assert.Contains("output.txt", content);
+    }
 }

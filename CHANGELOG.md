@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.65] - 2026-05-11
+
+### Added
+- **Scenario-level attachments** — When `Track.Attachment()` is called with no active step (i.e., outside of any `Track.Step()` scope), the attachment is now rendered in the HTML report at the scenario level and included in JSON/XML/YAML data reports. Previously, these attachments were silently discarded because no adapter read the `StepCollector.GetScenarioAttachments()` data. All adapters (xUnit3, xUnit2, NUnit4, TUnit, MSTest, BDDfy, LightBDD, ReqNRoll) now wire scenario-level attachments into the `Scenario` model. The `CopyAttachmentsToReportsFolder` logic also processes scenario-level attachments. JSON/XSD schemas updated.
+
+### Fixed
+- **Bracket-appended TableRef segments missing formatted values and spacing** — When LightBDD steps had bracket-appended parameters like `[grantTypes: "{0}"]`, the `TableRef` segments were created without the `FormattedValue` from `INameParameterInfo`, and no space was inserted before each `TableRef`. Now the formatted value is passed through and spaces are added between consecutive segments.
+
 ## [2.33.64] - 2026-05-11
 
 ### Fixed

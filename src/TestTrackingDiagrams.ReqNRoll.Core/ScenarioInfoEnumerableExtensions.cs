@@ -65,6 +65,7 @@ internal static class ScenarioInfoEnumerableExtensions
                                 ExampleValues = x.ExampleValues,
                                 ExampleRawValues = x.ExampleRawValues,
                                 ExampleFlatValues = x.ExampleFlatValues,
+                                Attachments = StepCollector.GetScenarioAttachments(x.ScenarioId),
                             };
                         }).ToArray();
 

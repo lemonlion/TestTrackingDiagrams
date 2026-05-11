@@ -50,7 +50,8 @@ internal static class TestContextEnumerableExtensions
                                 OutlineId = parsed is { Count: > 0 } ? (structuredParams is not null ? GetStructuredOutlineId(x) : ParameterParser.ExtractBaseName(displayName)) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null,
                                 ExampleRawValues = rawValues,
-                                Steps = StepCollector.GetSteps(x.Id) is { Length: > 0 } steps ? steps : null
+                                Steps = StepCollector.GetSteps(x.Id) is { Length: > 0 } steps ? steps : null,
+                                Attachments = StepCollector.GetScenarioAttachments(x.Id)
                             };
                         }).ToArray()
                 };

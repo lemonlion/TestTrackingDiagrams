@@ -74,6 +74,7 @@ internal static class ScenarioInfoExtensions
                                 OutlineId = outlineId,
                                 ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
                                 ExampleRawValues = exampleRawValues,
+                                Attachments = StepCollector.GetScenarioAttachments(x.TestId),
                             };
                         }).ToArray());
 

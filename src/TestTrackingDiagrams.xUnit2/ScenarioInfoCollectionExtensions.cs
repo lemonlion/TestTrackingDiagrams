@@ -33,6 +33,7 @@ internal static class ScenarioInfoCollectionExtensions
                                 ErrorStackTrace = x.ErrorStackTrace ?? string.Empty,
                                 Duration = x.Duration,
                                 Steps = StepCollector.GetSteps(x.Id) is { Length: > 0 } steps ? steps : null,
+                                Attachments = StepCollector.GetScenarioAttachments(x.Id),
                                 OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(x.ScenarioName) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null
                             };

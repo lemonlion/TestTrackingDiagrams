@@ -99,6 +99,7 @@ internal static class FeatureResultExtensions
             OutlineId = outlineId,
             ExampleValues = exampleValues is { Count: > 0 } ? exampleValues : null,
             ExampleRawValues = exampleRawValues,
+            Attachments = StepCollector.GetScenarioAttachments(result.Info.RuntimeId.ToString()),
         };
     }
 
@@ -394,19 +395,19 @@ internal static class FeatureResultExtensions
         }
 
         // Append TableRef segments for bracket-appended params
-        foreach (var (idx, paramName) in bracketParams.OrderBy(kv => kv.Key))
+        foreach (var (paramIndex, paramName) in bracketParams.OrderBy(kv => kv.Key))
         {
-            // Ensure a space separates the previous segment from the TableRef
+            // Ensure there's a space before the TableRef (it was stripped with the bracket text)
             if (segments.Count > 0)
             {
                 var last = segments[^1];
                 if (last.Text != null && !last.Text.EndsWith(' '))
                     segments.Add(StepTextSegment.Literal(" "));
-                else if (last.Text == null)
+                else if (last.Text == null && last.TableReference != null)
                     segments.Add(StepTextSegment.Literal(" "));
             }
 
-            var formattedValue = idx < nameParams.Length ? nameParams[idx].FormattedValue : null;
+            var formattedValue = paramIndex < nameParams.Length ? nameParams[paramIndex].FormattedValue : null;
             segments.Add(StepTextSegment.TableRef(paramName, formattedValue));
         }
 

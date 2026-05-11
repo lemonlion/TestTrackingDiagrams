@@ -307,6 +307,40 @@ public class AttachmentCopyTests : IDisposable
         Assert.Contains(">OpenAPI Spec</a>", content);
     }
 
+    [Fact]
+    public void Copies_scenario_level_attachments_to_reports_folder()
+    {
+        var sourceFile = Path.Combine(_tempDir, "spec.json");
+        File.WriteAllText(sourceFile, "{}");
+        var reportsDir = Path.Combine(_tempDir, "Reports");
+        Directory.CreateDirectory(reportsDir);
+
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Attachments = [new FileAttachment("spec.json", sourceFile)],
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "When", Text = "a step", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        ReportGenerator.CopyAttachmentsToReportsFolder(features, reportsDir);
+
+        Assert.True(File.Exists(Path.Combine(reportsDir, "attachments", "spec.json")));
+        Assert.Equal("attachments/spec.json", features[0].Scenarios[0].Attachments![0].RelativePath);
+    }
+
     private static Feature[] CreateFeatures(FileAttachment attachment)
     {
         return
