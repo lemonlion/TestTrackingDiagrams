@@ -1062,8 +1062,8 @@ public class ParameterizedGroupRenderTests
             MakeScenario("s2", "Steps(input: B)", outlineId: "Steps", exampleValues: new() { ["input"] = "B" })
         };
         var diagrams = MakeDiagrams(
-            ("s1", "@startuml\nhnote across <<stepDelimiter>> #black\nStep: Given something\nend note\n@enduml"),
-            ("s2", "@startuml\nhnote across <<stepDelimiter>> #black\nStep: Given something\nend note\n@enduml"));
+            ("s1", "@startuml\nhnote across <<stepDelimiter>> #black\nGiven something\nend note\n@enduml"),
+            ("s2", "@startuml\nhnote across <<stepDelimiter>> #black\nGiven something\nend note\n@enduml"));
         var content = GenerateReport(MakeFeature(scenarios), diagrams);
 
         Assert.Contains("scenario-parameterized", content);

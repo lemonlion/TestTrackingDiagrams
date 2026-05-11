@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.63] - 2026-05-11
+
+### Changed
+- **Removed "Step:" prefix from step delimiter hnotes** — Step delimiter hnotes in sequence diagrams now show just the keyword and text (e.g. `Given the system is running`) instead of `Step: Given the system is running`. The `<<stepDelimiter>>` PlantUML stereotype already identifies them for the UI toggle — the prefix was redundant visual noise.
+
 ## [2.33.62] - 2026-05-11
 
 ### Fixed

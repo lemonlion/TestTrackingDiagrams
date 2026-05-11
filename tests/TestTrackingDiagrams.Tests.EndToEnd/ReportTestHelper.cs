@@ -1176,13 +1176,13 @@ public static class ReportTestHelper
         participant "OrderService" as svc
         participant "Database" as db
 
-        hnote across <<stepDelimiter>> #black:<color:white>Step: Given the system is running
+        hnote across <<stepDelimiter>> #black:<color:white>Given the system is running
         caller -> svc : POST /api/orders
         note left
         Content-Type: application/json
         {"item":"Widget","qty":2}
         end note
-        hnote across <<stepDelimiter>> #black:<color:white>Step: When I create an order
+        hnote across <<stepDelimiter>> #black:<color:white>When I create an order
         svc -> db : INSERT INTO Orders
         note left
         INSERT INTO Orders (Item, Qty)

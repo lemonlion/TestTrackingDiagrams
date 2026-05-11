@@ -75,7 +75,7 @@ public static class StepCollector
                 ? $"{step.EffectiveKeyword} {text}"
                 : text;
             DefaultTrackingDiagramOverride.InsertPlantUml(testId,
-                $"hnote across <<stepDelimiter>> #black:<color:white>Step: {label}");
+                $"hnote across <<stepDelimiter>> #black:<color:white>{label}");
         }
 
         // Phase transitions: set ambient test phase based on keyword
