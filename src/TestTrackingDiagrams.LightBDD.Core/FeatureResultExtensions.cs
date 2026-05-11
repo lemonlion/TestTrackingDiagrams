@@ -394,9 +394,20 @@ internal static class FeatureResultExtensions
         }
 
         // Append TableRef segments for bracket-appended params
-        foreach (var (_, paramName) in bracketParams.OrderBy(kv => kv.Key))
+        foreach (var (idx, paramName) in bracketParams.OrderBy(kv => kv.Key))
         {
-            segments.Add(StepTextSegment.TableRef(paramName));
+            // Ensure a space separates the previous segment from the TableRef
+            if (segments.Count > 0)
+            {
+                var last = segments[^1];
+                if (last.Text != null && !last.Text.EndsWith(' '))
+                    segments.Add(StepTextSegment.Literal(" "));
+                else if (last.Text == null)
+                    segments.Add(StepTextSegment.Literal(" "));
+            }
+
+            var formattedValue = idx < nameParams.Length ? nameParams[idx].FormattedValue : null;
+            segments.Add(StepTextSegment.TableRef(paramName, formattedValue));
         }
 
         return segments.Count > 0 ? segments.ToArray() : null;

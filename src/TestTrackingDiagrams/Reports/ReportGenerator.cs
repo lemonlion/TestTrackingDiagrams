@@ -3096,6 +3096,11 @@ public static class ReportGenerator
                             body.Append($"<button class=\"step-table-ref\" onclick=\"toggle_table_ref(this)\" data-param=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReference)}</button>");
                             body.Append("<span class=\"step-text\">");
                         }
+                        else if (seg.TableReferenceFormattedValue is not null)
+                        {
+                            // No matching parameter but has a formatted value (e.g. bracket-appended CompositeStep params)
+                            body.Append($"<span class=\"step-param-inline param-na\" title=\"{System.Net.WebUtility.HtmlEncode(seg.TableReference)}\">{System.Net.WebUtility.HtmlEncode(seg.TableReferenceFormattedValue)}</span>");
+                        }
                         else
                         {
                             // No matching parameter — render as plain text

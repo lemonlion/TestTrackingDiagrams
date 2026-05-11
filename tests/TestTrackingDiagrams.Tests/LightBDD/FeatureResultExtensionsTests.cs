@@ -441,6 +441,7 @@ public class FeatureResultExtensionsTests
         var tableRef = step.TextSegments!.FirstOrDefault(s => s.TableReference != null);
         Assert.NotNull(tableRef);
         Assert.Equal("items", tableRef!.TableReference);
+        Assert.Equal("<$items>", tableRef.TableReferenceFormattedValue);
     }
 
     [Fact]
@@ -505,6 +506,73 @@ public class FeatureResultExtensionsTests
         // Should have a Param segment, not a TableRef
         Assert.Contains(step.TextSegments!, s => s.Parameter?.Value == "105");
         Assert.DoesNotContain(step.TextSegments!, s => s.TableReference != null);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_bracket_params_carry_FormattedValue()
+    {
+        // NameFormat: "A client valid for authenticated authorisation requests [grantTypes: \"{0}\"] [scopes: \"{1}\"]"
+        // Both params are bracket-appended (no inline placeholders in the base text)
+        var stepResult = new StubStepResult("Given",
+            "Given A client valid for authenticated authorisation requests [grantTypes: \"{0}\"] [scopes: \"{1}\"]",
+            [new StubNameParam("client_credentials"), new StubNameParam("openid, profile")],
+            ExecutionStatus.Passed);
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+
+        var tableRefs = step.TextSegments!.Where(s => s.TableReference != null).ToArray();
+        Assert.Equal(2, tableRefs.Length);
+
+        Assert.Equal("grantTypes", tableRefs[0].TableReference);
+        Assert.Equal("client_credentials", tableRefs[0].TableReferenceFormattedValue);
+
+        Assert.Equal("scopes", tableRefs[1].TableReference);
+        Assert.Equal("openid, profile", tableRefs[1].TableReferenceFormattedValue);
+    }
+
+    [Fact]
+    public void MapStep_TextSegments_bracket_params_have_space_before_each_TableRef()
+    {
+        // NameFormat: "requests [grantTypes: \"{0}\"] [scopes: \"{1}\"]"
+        // After stripping bracket params, literal is "requests" — a space must appear before each TableRef
+        var stepResult = new StubStepResult("Given",
+            "Given requests [grantTypes: \"{0}\"] [scopes: \"{1}\"]",
+            [new StubNameParam("client_credentials"), new StubNameParam("openid")],
+            ExecutionStatus.Passed);
+
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.NotNull(step.TextSegments);
+
+        // Verify the segments flow correctly with spaces
+        // Expected: Literal("requests") + Literal(" ") + TableRef("grantTypes") + Literal(" ") + TableRef("scopes")
+        // OR: Literal("requests ") + TableRef(...) + Literal(" ") + TableRef(...)
+        // Key assertion: the rendered text should NOT concatenate without spaces
+        var rendered = string.Join("", step.TextSegments!.Select(s =>
+            s.Text ?? s.TableReference ?? ""));
+        Assert.DoesNotContain("requestsgrantTypes", rendered);
+        Assert.DoesNotContain("grantTypesscopes", rendered);
+
+        // There should be space before each TableRef
+        for (var i = 0; i < step.TextSegments!.Length; i++)
+        {
+            if (step.TextSegments[i].TableReference != null && i > 0)
+            {
+                var prev = step.TextSegments[i - 1];
+                Assert.True(prev.Text != null && prev.Text.EndsWith(" "),
+                    $"Segment before TableRef '{step.TextSegments[i].TableReference}' should end with space, but was '{prev.Text}'");
+            }
+        }
     }
 
     // ── Stub implementations ──

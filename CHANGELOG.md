@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.62] - 2026-05-11
+
+### Fixed
+- **LightBDD bracket-appended parameters render as concatenated names without values** — When a LightBDD CompositeStep method has bracket-appended `string[]` parameters (e.g. `[grantTypes: "{0}"] [scopes: "{1}"]`), the report rendered them as concatenated param names like "requestsgrantTypesscopes" with no spaces or values. Two fixes: (1) `BuildTextSegments()` now emits a space literal before each appended TableRef segment and passes the formatted value via the new `StepTextSegment.TableRef(name, formattedValue)` overload; (2) the HTML renderer now displays the formatted value as an inline param span (with the param name as tooltip) when no backing `IParameterResult` exists — the typical case for CompositeStep methods.
+
 ## [2.33.61] - 2026-05-11
 
 ### Fixed

@@ -503,4 +503,71 @@ public class StepTextSegmentRenderingTests
         Assert.Contains("grants", content);
         Assert.DoesNotContain("toggle_table_ref(this)\" data-param=\"grants\"", content);
     }
+
+    [Fact]
+    public void TableRef_with_formatted_value_and_no_matching_parameter_renders_value_as_inline_span()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Given",
+            Text = "A client valid for authenticated authorisation requests",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("A client valid for authenticated authorisation requests "),
+                StepTextSegment.TableRef("grantTypes", "client_credentials"),
+                StepTextSegment.Literal(" "),
+                StepTextSegment.TableRef("scopes", "openid, profile")
+            ],
+            // No parameters — CompositeStep bracket params don't have IParameterResult entries
+            Parameters = null
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // Should render formatted values as inline param spans, not the param names
+        Assert.Contains("step-param-inline", content);
+        Assert.Contains("client_credentials", content);
+        Assert.Contains("openid, profile", content);
+        Assert.Contains("title=\"grantTypes\"", content);
+        Assert.Contains("title=\"scopes\"", content);
+        // Should NOT render as plain text param names
+        Assert.DoesNotContain(">grantTypes<", content);
+        Assert.DoesNotContain(">scopes<", content);
+        // Should NOT render as dead buttons
+        Assert.DoesNotContain("toggle_table_ref(this)\" data-param=\"grantTypes\"", content);
+    }
+
+    [Fact]
+    public void TableRef_with_formatted_value_but_matching_tabular_param_still_renders_as_button()
+    {
+        var step = new ScenarioStep
+        {
+            Keyword = "Then",
+            Text = "step verifies items",
+            Status = ExecutionResult.Passed,
+            TextSegments =
+            [
+                StepTextSegment.Literal("step verifies "),
+                StepTextSegment.TableRef("items", "some value")
+            ],
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "items",
+                    Kind = StepParameterKind.Tabular,
+                    TabularValue = new TabularParameterValue(
+                        [new TabularColumn("Name", false)],
+                        [new TabularRow(TableRowType.Matching, [new TabularCell("X", null, VerificationStatus.NotApplicable)])])
+                }
+            ]
+        };
+
+        var content = GenerateReport(FeaturesWithStep(step));
+
+        // When a matching tabular param exists, it should still render as button (ignore formatted value)
+        Assert.Contains("step-table-ref", content);
+        Assert.Contains("step-param-table", content);
+    }
 }

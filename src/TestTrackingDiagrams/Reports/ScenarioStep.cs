@@ -41,6 +41,9 @@ public record StepTextSegment
     /// <summary>A reference to a tabular/tree parameter rendered below the step. Renders as a clickable toggle. Mutually exclusive with <see cref="Text"/> and <see cref="Parameter"/>.</summary>
     public string? TableReference { get; init; }
 
+    /// <summary>The formatted value for a table reference parameter, used when no backing IParameterResult exists (e.g. bracket-appended params in CompositeStep methods).</summary>
+    public string? TableReferenceFormattedValue { get; init; }
+
     /// <summary>Creates a literal text segment.</summary>
     public static StepTextSegment Literal(string text) => new() { Text = text };
 
@@ -49,4 +52,7 @@ public record StepTextSegment
 
     /// <summary>Creates a table/tree parameter reference segment that toggles visibility of the associated table.</summary>
     public static StepTextSegment TableRef(string paramName) => new() { TableReference = paramName };
+
+    /// <summary>Creates a table/tree parameter reference segment with a formatted value fallback for display when no backing parameter data exists.</summary>
+    public static StepTextSegment TableRef(string paramName, string? formattedValue) => new() { TableReference = paramName, TableReferenceFormattedValue = formattedValue };
 }
