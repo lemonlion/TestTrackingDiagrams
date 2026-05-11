@@ -1701,6 +1701,7 @@ public static class ReportGenerator
         body.Append("</div>");
 
         var plantUmlBrowserCounter = 0;
+        var diagramDataMap = new Dictionary<string, string>();
 
         // Pre-compute median span count for outlier detection
         var medianSpanCount = 0;
@@ -1802,7 +1803,8 @@ public static class ReportGenerator
         {
             var compDiagramId = $"puml-{plantUmlBrowserCounter++}";
             var compDiagramCompressed = InternalFlowHtmlGenerator.CompressToBase64(componentDiagramPlantUml);
-            body.Append($"""<div id="component-diagram" class="component-diagram-section" style="display:none"><div class="plantuml-browser" id="{compDiagramId}" data-plantuml-z="{compDiagramCompressed}" data-diagram-type="plantuml"></div></div>""");
+            diagramDataMap[compDiagramId] = compDiagramCompressed;
+            body.Append($"""<div id="component-diagram" class="component-diagram-section" style="display:none"><div class="plantuml-browser" id="{compDiagramId}" data-diagram-type="plantuml"></div></div>""");
         }
 
         body.Append("<div id=\"report-content\">");
@@ -1887,7 +1889,7 @@ public static class ReportGenerator
                     RenderParameterizedGroup(body, group, groupPrefix, diagramsByTestId, scenarioDependencies,
                         scenarioDiagramSearchTerms,
                         showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
-                        ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
+                        ref plantUmlBrowserCounter, diagramDataMap, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
                         titleizeParameterNames,
                         hasAssertionNotes: hasAssertionNotes,
                         hasStepDelimiters: hasStepDelimiters,
@@ -2111,15 +2113,18 @@ public static class ReportGenerator
                             {
                                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
                                 var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
+                                diagramDataMap[diagramId] = compressed;
                                 body.Append($"""
-                                         <div class="plantuml-browser" id="{diagramId}" data-plantuml-z="{compressed}" data-diagram-type="plantuml"></div>
+                                         <div class="plantuml-browser" id="{diagramId}" data-diagram-type="plantuml"></div>
                                          """);
                             }
                             else if (isInlineSvg)
                             {
+                                var svgDiagramId = $"puml-svg-{plantUmlBrowserCounter++}";
                                 var sourceCompressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
+                                diagramDataMap[svgDiagramId] = sourceCompressed;
                                 body.Append($"""
-                                         <div class="plantuml-inline-svg" data-plantuml-z="{sourceCompressed}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
+                                         <div class="plantuml-inline-svg" id="{svgDiagramId}" data-diagram-type="plantuml">{diagram.ImgSrc}</div>
                                          """);
                             }
                             else
@@ -2173,6 +2178,12 @@ public static class ReportGenerator
         }
 
         html += body;
+        if (diagramDataMap.Count > 0)
+        {
+            html += "<script id=\"puml-data\" type=\"application/json\">";
+            html += System.Text.Json.JsonSerializer.Serialize(diagramDataMap);
+            html += "</script>";
+        }
         html += """
                     </body>
                 </html>
@@ -2387,6 +2398,7 @@ public static class ReportGenerator
         bool isInlineSvg,
         bool lazyLoadImages,
         ref int plantUmlBrowserCounter,
+        Dictionary<string, string> diagramDataMap,
         Dictionary<string, InternalFlowSegment>? wholeTestSegments,
         RequestResponseLog[]? trackedLogs,
         WholeTestFlowVisualization wholeTestVisualization,
@@ -2825,7 +2837,7 @@ public static class ReportGenerator
                     if (firstDiagrams.Length > 0)
                     {
                         body.Append("<span class=\"param-diagram-identical-badge\">All diagrams identical across test cases</span>");
-                        RenderDiagramsForScenario(body, firstDiagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                        RenderDiagramsForScenario(body, firstDiagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter, diagramDataMap);
                     }
                 }
                 else
@@ -2837,7 +2849,7 @@ public static class ReportGenerator
                         body.Append($"<div id=\"{prefix}-diagram-{ri}\"{display}>");
                         var diagrams = diagramsByTestId[s.Id].ToArray();
                         if (diagrams.Length > 0)
-                            RenderDiagramsForScenario(body, diagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter);
+                            RenderDiagramsForScenario(body, diagrams, isPlantUmlBrowser, isInlineSvg, lazyLoadImages, ref plantUmlBrowserCounter, diagramDataMap);
                         body.Append("</div>");
                     }
                 }
@@ -2911,7 +2923,8 @@ public static class ReportGenerator
         bool isPlantUmlBrowser,
         bool isInlineSvg,
         bool lazyLoadImages,
-        ref int plantUmlBrowserCounter)
+        ref int plantUmlBrowserCounter,
+        Dictionary<string, string> diagramDataMap)
     {
         var lazyLoadAttr = lazyLoadImages ? " loading=\"lazy\"" : "";
         foreach (var diagram in diagrams)
@@ -2920,12 +2933,15 @@ public static class ReportGenerator
             {
                 var diagramId = $"puml-{plantUmlBrowserCounter++}";
                 var compressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
-                body.Append($"<div class=\"plantuml-browser\" id=\"{diagramId}\" data-plantuml-z=\"{compressed}\" data-diagram-type=\"plantuml\"></div>");
+                diagramDataMap[diagramId] = compressed;
+                body.Append($"<div class=\"plantuml-browser\" id=\"{diagramId}\" data-diagram-type=\"plantuml\"></div>");
             }
             else if (isInlineSvg)
             {
+                var svgDiagramId = $"puml-svg-{plantUmlBrowserCounter++}";
                 var sourceCompressed = InternalFlowHtmlGenerator.CompressToBase64(diagram.CodeBehind);
-                body.Append($"<div class=\"plantuml-inline-svg\" data-plantuml-z=\"{sourceCompressed}\" data-diagram-type=\"plantuml\">{diagram.ImgSrc}</div>");
+                diagramDataMap[svgDiagramId] = sourceCompressed;
+                body.Append($"<div class=\"plantuml-inline-svg\" id=\"{svgDiagramId}\" data-diagram-type=\"plantuml\">{diagram.ImgSrc}</div>");
             }
             else
             {

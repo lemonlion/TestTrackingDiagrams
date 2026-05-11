@@ -65,9 +65,9 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml-z=", content);
+        Assert.Contains("id=\"puml-data\"", content);
         Assert.Contains("plantuml-browser", content);
-        // Diagram source is compressed, not in data-plantuml attribute
+        // Diagram source is compressed in JSON script block, not in data-plantuml attribute
         Assert.DoesNotContain("data-plantuml=\"@startuml", content);
     }
 
@@ -95,7 +95,7 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml-z=", content);
+        Assert.Contains("id=\"puml-data\"", content);
         Assert.Contains("data-diagram-type=\"plantuml\"", content);
     }
 
@@ -148,8 +148,8 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        Assert.Contains("data-plantuml-z=\"", content);
-        // Raw XSS payload should not appear in data-plantuml (it's compressed)
+        Assert.Contains("id=\"puml-data\"", content);
+        // Raw XSS payload should not appear in data-plantuml (it's compressed in JSON block)
         Assert.DoesNotContain("data-plantuml=\"", content);
         // Unescaped script tags should never appear in HTML
         Assert.DoesNotContain("<script>alert", content);
@@ -312,12 +312,17 @@ public class PlantUmlBrowserReportGeneratorTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
 
         var content = File.ReadAllText(html);
-        // Diagram source is now gzip+base64 compressed in data-plantuml-z
-        var dataAttrStart = content.IndexOf("data-plantuml-z=\"", StringComparison.Ordinal);
-        Assert.True(dataAttrStart >= 0);
-        var afterAttr = content.Substring(dataAttrStart + "data-plantuml-z=\"".Length);
-        var attrEnd = afterAttr.IndexOf("\"", StringComparison.Ordinal);
-        var compressed = afterAttr[..attrEnd];
+        // Diagram source is now in a JSON script block
+        var scriptTag = "<script id=\"puml-data\" type=\"application/json\">";
+        var scriptStart = content.IndexOf(scriptTag, StringComparison.Ordinal);
+        Assert.True(scriptStart >= 0);
+        var jsonStart = scriptStart + scriptTag.Length;
+        var scriptEnd = content.IndexOf("</script>", jsonStart, StringComparison.Ordinal);
+        var json = content[jsonStart..scriptEnd];
+        var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        Assert.NotNull(map);
+        Assert.NotEmpty(map);
+        var compressed = map.Values.First();
         // Verify it's valid base64
         var bytes = Convert.FromBase64String(compressed);
         Assert.True(bytes.Length > 0);

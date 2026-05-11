@@ -397,6 +397,15 @@ public static class DiagramContextMenu
                 // Expose rendering lock globally so processRenderQueue (note state changes)
                 // can avoid calling plantuml.render() concurrently — TeaVM uses global state.
                 window._plantumlRendering = false;
+                var _pumlData = null;
+                function getPumlZ(el) {
+                    if (!_pumlData) {
+                        var s = document.getElementById('puml-data');
+                        _pumlData = s ? JSON.parse(s.textContent) : {};
+                    }
+                    return _pumlData[el.id] || el.getAttribute('data-plantuml-z') || null;
+                }
+                window._getPumlZ = getPumlZ;
                 function extractIflowMap(source) {
                     var map = {};
                     var re = /\[\[#(iflow-[^\s\]]+)\s+([^\]]+)\]\]/g;
@@ -547,15 +556,18 @@ public static class DiagramContextMenu
                             el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
                             processQueue();
-                        } else if (el.hasAttribute('data-plantuml-z')) {
-                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                                el.setAttribute('data-plantuml', decoded);
-                                var src = decoded;
-                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                el.setAttribute('data-plantuml', src);
-                                renderQueue.push({ el: el, source: src });
-                                processQueue();
-                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        } else {
+                            var pumlZ = getPumlZ(el);
+                            if (pumlZ) {
+                                decompressGzipBase64(pumlZ).then(function(decoded) {
+                                    el.setAttribute('data-plantuml', decoded);
+                                    var src = decoded;
+                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                    el.setAttribute('data-plantuml', src);
+                                    renderQueue.push({ el: el, source: src });
+                                    processQueue();
+                                }).catch(function() { el.textContent = 'Decompression error'; });
+                            }
                         }
                     });
                 }, { rootMargin: '200px' });
@@ -579,15 +591,18 @@ public static class DiagramContextMenu
                             el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
                             processQueue();
-                        } else if (el.hasAttribute('data-plantuml-z')) {
-                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                                el.setAttribute('data-plantuml', decoded);
-                                var src = decoded;
-                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                el.setAttribute('data-plantuml', src);
-                                renderQueue.push({ el: el, source: src });
-                                processQueue();
-                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        } else {
+                            var pumlZ = getPumlZ(el);
+                            if (pumlZ) {
+                                decompressGzipBase64(pumlZ).then(function(decoded) {
+                                    el.setAttribute('data-plantuml', decoded);
+                                    var src = decoded;
+                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                    el.setAttribute('data-plantuml', src);
+                                    renderQueue.push({ el: el, source: src });
+                                    processQueue();
+                                }).catch(function() { el.textContent = 'Decompression error'; });
+                            }
                         }
                     });
                 };
@@ -606,15 +621,18 @@ public static class DiagramContextMenu
                             if (window._preProcessSource) source = window._preProcessSource(el, source);
                             el.setAttribute('data-plantuml', source);
                             renderQueue.push({ el: el, source: source });
-                        } else if (el.hasAttribute('data-plantuml-z')) {
-                            decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                                el.setAttribute('data-plantuml', decoded);
-                                var src = decoded;
-                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                el.setAttribute('data-plantuml', src);
-                                renderQueue.push({ el: el, source: src });
-                                processQueue();
-                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        } else {
+                            var pumlZ = getPumlZ(el);
+                            if (pumlZ) {
+                                decompressGzipBase64(pumlZ).then(function(decoded) {
+                                    el.setAttribute('data-plantuml', decoded);
+                                    var src = decoded;
+                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                    el.setAttribute('data-plantuml', src);
+                                    renderQueue.push({ el: el, source: src });
+                                    processQueue();
+                                }).catch(function() { el.textContent = 'Decompression error'; });
+                            }
                         }
                     });
                     processQueue();
@@ -674,8 +692,9 @@ public static class DiagramContextMenu
             async function getSourceAsync(container) {
                 var src = container.getAttribute('data-plantuml');
                 if (src) return src;
-                if (container.hasAttribute('data-plantuml-z')) {
-                    var decoded = await decompressGzipBase64(container.getAttribute('data-plantuml-z'));
+                var pumlZ = window._getPumlZ ? window._getPumlZ(container) : container.getAttribute('data-plantuml-z');
+                if (pumlZ) {
+                    var decoded = await decompressGzipBase64(pumlZ);
                     container.setAttribute('data-plantuml', decoded);
                     return decoded;
                 }
@@ -1589,11 +1608,14 @@ public static class DiagramContextMenu
                             var source = el.getAttribute('data-plantuml');
                             if (source) {
                                 renderEl(source);
-                            } else if (el.hasAttribute('data-plantuml-z')) {
-                                decompressGzipBase64(el.getAttribute('data-plantuml-z')).then(function(decoded) {
-                                    el.setAttribute('data-plantuml', decoded);
-                                    renderEl(decoded);
-                                }).catch(function() { el.dataset.rendered = '1'; el.textContent = 'Decompression error'; });
+                            } else {
+                                var pumlZ = window._getPumlZ ? window._getPumlZ(el) : el.getAttribute('data-plantuml-z');
+                                if (pumlZ) {
+                                    decompressGzipBase64(pumlZ).then(function(decoded) {
+                                        el.setAttribute('data-plantuml', decoded);
+                                        renderEl(decoded);
+                                    }).catch(function() { el.dataset.rendered = '1'; el.textContent = 'Decompression error'; });
+                                }
                             }
                         });
                     }

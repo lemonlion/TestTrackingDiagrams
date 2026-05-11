@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
 
@@ -53,9 +54,17 @@ public static class ReportParser
             return sources;
 
         // BrowserJs / InlineSvg mode: data-plantuml-z (gzip+base64 compressed)
-        return document.QuerySelectorAll("details.scenario [data-plantuml-z], div.scenario [data-plantuml-z]")
+        sources = document.QuerySelectorAll("details.scenario [data-plantuml-z], div.scenario [data-plantuml-z]")
             .Select(el => DecompressFromBase64(el.GetAttribute("data-plantuml-z") ?? ""))
             .Where(s => s.Length > 0 && IsSequenceDiagram(s))
+            .ToArray();
+
+        if (sources.Length > 0)
+            return sources;
+
+        // JSON script block mode: puml-data (diagram data consolidated in single script element)
+        return ExtractFromPumlDataBlock(document)
+            .Where(IsSequenceDiagram)
             .ToArray();
     }
 
@@ -96,6 +105,19 @@ public static class ReportParser
                     .Select(el => DecompressFromBase64(el.GetAttribute("data-plantuml-z") ?? ""))
                     .Where(s => s.Length > 0)
                     .ToArray();
+            }
+
+            // JSON script block fallback (puml-data)
+            if (plantUmlSources.Length == 0)
+            {
+                var pumlMap = GetPumlDataMap(document);
+                if (pumlMap.Count > 0)
+                {
+                    plantUmlSources = scenario.QuerySelectorAll("[id^='puml-']")
+                        .Select(el => pumlMap.TryGetValue(el.Id ?? "", out var v) ? DecompressFromBase64(v) : "")
+                        .Where(s => s.Length > 0)
+                        .ToArray();
+                }
             }
 
             results.Add(new ParsedScenario(name, isHappyPath, plantUmlSources));
@@ -179,5 +201,24 @@ public static class ReportParser
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
         using var reader = new StreamReader(gzip, Encoding.UTF8);
         return reader.ReadToEnd().Trim();
+    }
+
+    private static Dictionary<string, string> GetPumlDataMap(IDocument document)
+    {
+        var script = document.QuerySelector("script#puml-data");
+        if (script is null || string.IsNullOrWhiteSpace(script.TextContent))
+            return new Dictionary<string, string>();
+
+        return JsonSerializer.Deserialize<Dictionary<string, string>>(script.TextContent)
+               ?? new Dictionary<string, string>();
+    }
+
+    private static string[] ExtractFromPumlDataBlock(IDocument document)
+    {
+        return GetPumlDataMap(document)
+            .Values
+            .Select(DecompressFromBase64)
+            .Where(s => s.Length > 0)
+            .ToArray();
     }
 }

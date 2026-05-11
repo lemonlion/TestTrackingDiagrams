@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.55] - 2026-05-11
+
+### Changed
+- **Diagram data moved from HTML attributes to JSON script block** — PlantUML diagram source data (gzip+base64 compressed) is no longer stored in individual `data-plantuml-z` HTML attributes on each `<div>` element. Instead, all diagram data is consolidated into a single `<script id="puml-data" type="application/json">` block emitted before `</body>`. This eliminates the HTML parser bottleneck caused by tokenizing thousands of large quoted attribute values (e.g., 8,635 diagrams × ~12KB each ≈ 100MB of attribute data). The browser's HTML tokenizer processes script content as a single text node without quote/entity handling, and `JSON.parse()` is called lazily only when diagram data is needed. Backward compatibility is maintained: the JS `getPumlZ()` helper falls back to `getAttribute('data-plantuml-z')` for internal flow and component diagrams that still use the attribute approach.
+
 ## [2.33.54] - 2026-05-11
 
 ### Added

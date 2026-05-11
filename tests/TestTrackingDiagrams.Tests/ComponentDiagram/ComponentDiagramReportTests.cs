@@ -366,7 +366,7 @@ public class ComponentDiagramReportTests : IDisposable
         var content = File.ReadAllText(html);
         Assert.Contains("component-diagram-section", content);
         Assert.Contains("Component Diagram", content);
-        Assert.Contains("data-plantuml-z=", content);
+        Assert.Contains("id=\"puml-data\"", content);
         Assert.Contains("plantuml-browser", content);
     }
 
