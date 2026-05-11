@@ -193,28 +193,6 @@ public class Stylesheets
                     cursor: not-allowed;
                 }
 
-                #searchbar:disabled::placeholder {
-                    color: transparent;
-                }
-
-                .search-loading-overlay {
-                    position: absolute;
-                    left: 0.5em;
-                    top: 0;
-                    bottom: 0;
-                    display: flex;
-                    align-items: center;
-                    pointer-events: none;
-                    color: rgb(150, 150, 150);
-                    font-size: 0.9em;
-                    animation: pulse-search-loading 2s ease-in-out infinite;
-                }
-
-                @keyframes pulse-search-loading {
-                    0%, 100% { opacity: 0.4; }
-                    50% { opacity: 1; }
-                }
-
                 .search-help-toggle {
                     flex-shrink: 0;
                     width: 1.6em;

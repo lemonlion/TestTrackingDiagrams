@@ -319,7 +319,7 @@ public class SearchDataAttributeTests
     }
 
     [Fact]
-    public void Data_search_does_not_contain_plantuml_source()
+    public void Data_search_does_not_contain_raw_plantuml_source()
     {
         var features = new[]
         {
@@ -356,12 +356,13 @@ public class SearchDataAttributeTests
         var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("create order"));
         Assert.NotNull(scenarioSearch);
         Assert.DoesNotContain("@startuml", scenarioSearch);
+        // Raw aliases (without quoted participant declarations) should NOT appear
         Assert.DoesNotContain("paymentgateway", scenarioSearch);
         Assert.DoesNotContain("orderservice", scenarioSearch);
     }
 
     [Fact]
-    public void Data_search_for_parameterized_group_does_not_contain_plantuml_source()
+    public void Data_search_for_parameterized_group_does_not_contain_raw_plantuml_source()
     {
         var features = new[]
         {
@@ -407,7 +408,6 @@ public class SearchDataAttributeTests
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
-        // Check both data-search (group level) and data-row-search (row level)
         var searchValues = ExtractDataSearchValues(content);
         foreach (var sv in searchValues)
         {
@@ -428,7 +428,7 @@ public class SearchDataAttributeTests
     }
 
     [Fact]
-    public void Report_contains_search_loading_infrastructure()
+    public void Search_bar_is_immediately_usable_without_loading_state()
     {
         var features = new[]
         {
@@ -448,35 +448,24 @@ public class SearchDataAttributeTests
 
         var diagrams = new[]
         {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nparticipant \"Order Service\" as OS\nOS -> DB\n@enduml")
         };
 
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchLoading.html", "Test", includeTestRunData: true,
+            null, "SearchNoLoading.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
 
-        // The search bar should start disabled
+        // Search bar should exist and NOT be disabled
         Assert.Contains("id=\"searchbar\"", content);
-        var searchBarIdx = content.IndexOf("id=\"searchbar\"");
-        var searchBarRegion = content.Substring(Math.Max(0, searchBarIdx - 50), Math.Min(content.Length - searchBarIdx + 50, 400));
-        Assert.Contains("disabled", searchBarRegion);
-
-        // There should be a loading overlay element
-        Assert.Contains("search-loading-overlay", content);
-
-        // Placeholder text should be hidden while loading (disabled state)
-        Assert.Contains("#searchbar:disabled::placeholder", content);
-
-        // There should be JS that decompresses plantuml-z and enriches data-search
-        Assert.Contains("data-plantuml-z", content);
-        Assert.Contains("enrichSearchData", content);
+        Assert.DoesNotContain("search-loading-overlay", content);
+        Assert.DoesNotContain("enrichSearchData", content);
     }
 
     [Fact]
-    public void EnrichSearchData_uses_web_worker_for_off_thread_decompression()
+    public void Data_search_includes_diagram_participant_names()
     {
         var features = new[]
         {
@@ -487,8 +476,8 @@ public class SearchDataAttributeTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                        Id = "s1", DisplayName = "Create order", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "a valid request", Status = ExecutionResult.Passed }]
                     }
                 ]
             }
@@ -496,36 +485,25 @@ public class SearchDataAttributeTests
 
         var diagrams = new[]
         {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nparticipant \"Order Service\" as OS\ndatabase \"PostgreSQL\" as DB\nOS -> DB : save\n@enduml")
         };
 
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchWorker.html", "Test", includeTestRunData: true,
+            null, "SearchParticipants.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
+        var searchValues = ExtractDataSearchValues(content);
 
-        // enrichSearchData must use a Web Worker to decompress data-plantuml-z off the main thread
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        Assert.True(enrichIdx >= 0, "enrichSearchData function should exist");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // Should create an inline Web Worker via Blob URL
-        Assert.Contains("new Worker(", enrichBody);
-        Assert.Contains("URL.createObjectURL", enrichBody);
-
-        // The inline worker code should contain the decompression logic
-        Assert.Contains("DecompressionStream", enrichBody);
-        Assert.Contains("self.onmessage", enrichBody);
-
-        // Should have a fallback for browsers without Worker support
-        Assert.Contains("typeof Worker", enrichBody);
+        var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("create order"));
+        Assert.NotNull(scenarioSearch);
+        Assert.Contains("order service", scenarioSearch);
+        Assert.Contains("postgresql", scenarioSearch);
     }
 
     [Fact]
-    public void EnrichSearchData_chunks_DOM_collection_to_avoid_blocking()
+    public void Data_search_includes_diagram_request_urls()
     {
         var features = new[]
         {
@@ -536,8 +514,8 @@ public class SearchDataAttributeTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                        Id = "s1", DisplayName = "Process payment", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "a valid card", Status = ExecutionResult.Passed }]
                     }
                 ]
             }
@@ -545,28 +523,25 @@ public class SearchDataAttributeTests
 
         var diagrams = new[]
         {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nparticipant \"API Gateway\" as GW\nGW -> PaySvc : POST: /api/payments/charge\nPaySvc -> GW : 200 OK\n@enduml")
         };
 
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchChunkedDOM.html", "Test", includeTestRunData: true,
+            null, "SearchUrls.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
+        var searchValues = ExtractDataSearchValues(content);
 
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // DOM collection must be chunked with setTimeout yields between batches
-        // so reading 8,635 data-plantuml-z attributes doesn't block the main thread
-        Assert.Contains("collectBatch", enrichBody);
-        Assert.Contains("setTimeout", enrichBody);
+        var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("process payment"));
+        Assert.NotNull(scenarioSearch);
+        Assert.Contains("/api/payments/charge", scenarioSearch);
+        Assert.Contains("api gateway", scenarioSearch);
     }
 
     [Fact]
-    public void EnrichSearchData_sends_chunked_messages_to_worker()
+    public void Data_search_for_parameterized_group_includes_diagram_terms()
     {
         var features = new[]
         {
@@ -577,8 +552,17 @@ public class SearchDataAttributeTests
                 [
                     new Scenario
                     {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                        Id = "s1", DisplayName = "Withdraw $200", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Amount"] = "$200" },
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "the account has funds", Status = ExecutionResult.Passed }]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Withdraw $500", Result = ExecutionResult.Passed,
+                        OutlineId = "withdraw-cash",
+                        ExampleValues = new Dictionary<string, string> { ["Amount"] = "$500" },
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "the account has funds", Status = ExecutionResult.Passed }]
                     }
                 ]
             }
@@ -586,227 +570,91 @@ public class SearchDataAttributeTests
 
         var diagrams = new[]
         {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nparticipant \"Banking API\" as BA\nBA -> Ledger : GET: /accounts/balance\n@enduml"),
+            new DefaultDiagramsFetcher.DiagramAsCode("s2", "", "@startuml\nparticipant \"Banking API\" as BA\nBA -> Ledger : GET: /accounts/balance\n@enduml")
         };
 
         var path = ReportGenerator.GenerateHtmlReport(
             diagrams, features,
             DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchChunkedMsg.html", "Test", includeTestRunData: true,
+            null, "SearchParamDiagram.html", "Test", includeTestRunData: true,
             diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
         var content = File.ReadAllText(path);
+        var searchValues = ExtractDataSearchValues(content);
 
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // Worker must receive items in batches (not all at once) and stream back
-        // results per sub-batch to avoid large structured clone overhead
-        Assert.Contains("postMessage", enrichBody);
-        // Worker should stream results per sub-batch with a done flag
-        Assert.Contains("self.postMessage({ results:", enrichBody);
+        var groupSearch = searchValues.FirstOrDefault(v => v.Contains("withdraw"));
+        Assert.NotNull(groupSearch);
+        Assert.Contains("banking api", groupSearch);
+        Assert.Contains("/accounts/balance", groupSearch);
     }
 
     [Fact]
-    public void EnrichSearchData_flushes_DOM_in_chunks()
+    public void ExtractDiagramSearchTerms_extracts_participant_display_names()
     {
-        var features = new[]
-        {
-            new Feature
-            {
-                DisplayName = "F1",
-                Scenarios =
-                [
-                    new Scenario
-                    {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
-                    }
-                ]
-            }
-        };
+        var source = """
+            @startuml
+            participant "Order Service" as OS
+            actor "Customer" as C
+            database "PostgreSQL" as DB
+            boundary "API Gateway" as GW
+            control "Scheduler" as SCH
+            entity "Invoice" as INV
+            collections "Events" as EV
+            queue "Message Bus" as MB
+            OS -> DB : save
+            @enduml
+            """;
 
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
-        };
+        var terms = ReportGenerator.ExtractDiagramSearchTerms(source);
 
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchChunkedFlush.html", "Test", includeTestRunData: true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-        var content = File.ReadAllText(path);
-
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // flushSearchData must write accumulated search data to JS-side index
-        var flushIdx = enrichBody.IndexOf("function flushSearchData");
-        Assert.True(flushIdx >= 0, "flushSearchData function should exist");
-        var flushBody = enrichBody[flushIdx..];
-        Assert.Contains("_diagramSearchTexts", flushBody);
+        Assert.Contains("Order Service", terms);
+        Assert.Contains("Customer", terms);
+        Assert.Contains("PostgreSQL", terms);
+        Assert.Contains("API Gateway", terms);
+        Assert.Contains("Scheduler", terms);
+        Assert.Contains("Invoice", terms);
+        Assert.Contains("Events", terms);
+        Assert.Contains("Message Bus", terms);
     }
 
     [Fact]
-    public void EnrichSearchData_accumulates_search_text_before_flushing_to_DOM()
+    public void ExtractDiagramSearchTerms_extracts_request_urls()
     {
-        var features = new[]
-        {
-            new Feature
-            {
-                DisplayName = "F1",
-                Scenarios =
-                [
-                    new Scenario
-                    {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
-                    }
-                ]
-            }
-        };
+        var source = """
+            @startuml
+            participant "API" as A
+            A -> B : GET: /api/orders
+            B -> C : POST: /api/payments/charge
+            C -> D : DELETE: /api/sessions/abc123
+            @enduml
+            """;
 
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
-        };
+        var terms = ReportGenerator.ExtractDiagramSearchTerms(source);
 
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchAccumulate.html", "Test", includeTestRunData: true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-        var content = File.ReadAllText(path);
-
-        // Search text should be accumulated in arrays then flushed once per element
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // Results accumulated in arrays via accumulateResults, then flushed to JS index via flushSearchData
-        Assert.Contains("accumulateResults", enrichBody);
-        Assert.Contains("flushSearchData", enrichBody);
-        Assert.Contains("_diagramSearchTexts", enrichBody);
+        Assert.Contains("/api/orders", terms);
+        Assert.Contains("/api/payments/charge", terms);
+        Assert.Contains("/api/sessions/abc123", terms);
     }
 
     [Fact]
-    public void FilterCache_merges_diagram_search_text_from_JS_index()
+    public void ExtractDiagramSearchTerms_returns_empty_for_no_matching_lines()
     {
-        var features = new[]
-        {
-            new Feature
-            {
-                DisplayName = "F1",
-                Scenarios =
-                [
-                    new Scenario
-                    {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
-                    }
-                ]
-            }
-        };
+        var source = """
+            @startuml
+            A -> B : hello
+            B -> A : world
+            @enduml
+            """;
 
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
-        };
+        var terms = ReportGenerator.ExtractDiagramSearchTerms(source);
 
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchFilterCacheMerge.html", "Test", includeTestRunData: true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-        var content = File.ReadAllText(path);
-
-        // fc() must merge diagram text from JS-side index into searchText
-        var fcIdx = content.IndexOf("function fc()");
-        Assert.True(fcIdx >= 0, "fc() function should exist");
-        var fcEnd = content.IndexOf("function applyVisibility", fcIdx);
-        var fcBody = content[fcIdx..fcEnd];
-
-        Assert.Contains("_diagramSearchTexts", fcBody);
-        Assert.Contains("data-search", fcBody);
+        Assert.Empty(terms);
     }
 
     [Fact]
-    public void Row_search_merges_diagram_text_from_JS_index()
+    public void ExtractDiagramSearchTerms_handles_empty_and_null_input()
     {
-        var features = new[]
-        {
-            new Feature
-            {
-                DisplayName = "F1",
-                Scenarios =
-                [
-                    new Scenario
-                    {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
-                    }
-                ]
-            }
-        };
-
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
-        };
-
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchRowMerge.html", "Test", includeTestRunData: true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-        var content = File.ReadAllText(path);
-
-        // Row-level search must merge diagram row text from JS-side index
-        Assert.Contains("_diagramRowSearchTexts", content);
-    }
-
-    [Fact]
-    public void EnrichSearchData_extracts_only_participants_and_urls()
-    {
-        var features = new[]
-        {
-            new Feature
-            {
-                DisplayName = "F1",
-                Scenarios =
-                [
-                    new Scenario
-                    {
-                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
-                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
-                    }
-                ]
-            }
-        };
-
-        var diagrams = new[]
-        {
-            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
-        };
-
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, "SearchExtractTerms.html", "Test", includeTestRunData: true,
-            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
-        var content = File.ReadAllText(path);
-
-        var enrichIdx = content.IndexOf("function enrichSearchData");
-        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
-        var enrichBody = content[enrichIdx..enrichEnd];
-
-        // Worker and fallback must use extractSearchTerms to filter PlantUML to participant names + URLs only
-        Assert.Contains("extractSearchTerms", enrichBody);
-        // Must have participant regex pattern for participant/actor/entity/database/boundary/control/collections/queue
-        Assert.Contains("participantRe", enrichBody);
-        // Must have URL regex pattern for HTTP methods
-        Assert.Contains("GET|POST|PUT|DELETE|PATCH", enrichBody);
+        Assert.Empty(ReportGenerator.ExtractDiagramSearchTerms(""));
+        Assert.Empty(ReportGenerator.ExtractDiagramSearchTerms(null!));
     }
 }

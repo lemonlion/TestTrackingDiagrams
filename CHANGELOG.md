@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.52] - 2026-05-11
+
+### Changed
+- **Search enrichment moved entirely server-side** — Previously, diagram participant names and request URLs were extracted client-side using a Web Worker that decompressed gzipped PlantUML source in the browser, causing a 30–60 second freeze on large reports (e.g., 102MB / 8,635 diagrams). Now the extraction happens at report generation time in C#, with terms baked directly into `data-search` and `data-row-search` attributes. The search bar is immediately usable on page load with no loading overlay, disabled state, or client-side decompression. Non-diagram search data (scenario names, step text, feature names, status, tags) remains unchanged.
+
+### Removed
+- **Client-side search enrichment infrastructure** — Removed the Web Worker, gzip decompression fallback, `enrichSearchData` script, loading overlay, disabled searchbar state, and `_diagramSearchTexts`/`_diagramRowSearchTexts` JS-side merge logic. CSS for `.search-loading-overlay`, `pulse-search-loading` animation, and `#searchbar:disabled::placeholder` also removed.
+
 ## [2.33.51] - 2026-05-11
 
 ### Fixed

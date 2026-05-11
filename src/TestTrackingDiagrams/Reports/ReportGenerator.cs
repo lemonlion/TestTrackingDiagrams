@@ -283,7 +283,7 @@ public static class ReportGenerator
                                                   var s = sc[si];
                                                   var raw = s.getAttribute('data-dependencies') || '';
                                                   var d = raw ? new Set(raw.split(',')) : new Set();
-                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: (s.getAttribute('data-search') || '') + (window._diagramSearchTexts && window._diagramSearchTexts[s.id] ? ' ' + window._diagramSearchTexts[s.id] : ''), hp: false, dep: false, st: false, sr: false, dur: false, cat: false };
+                                                  var item = { el: s, deps: d, status: s.getAttribute('data-status') || '', isHappy: s.classList.contains('happy-path'), f: features[fi], searchText: s.getAttribute('data-search') || '', hp: false, dep: false, st: false, sr: false, dur: false, cat: false };
                                                   items.push(item);
                                                   fMap.set(s, features[fi]);
                                               }
@@ -405,8 +405,7 @@ public static class ReportGenerator
                                                  for (var ri = 0; ri < rows.length; ri++) {
                                                      var tbl = rows[ri].closest('table');
                                                      if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
-                                                     var _rid = rows[ri].getAttribute('data-row-id');
-                                                     var rowText = (rows[ri].getAttribute('data-row-search') || '') + (window._diagramRowSearchTexts && _rid && window._diagramRowSearchTexts[_rid] ? ' ' + window._diagramRowSearchTexts[_rid] : '');
+                                                     var rowText = rows[ri].getAttribute('data-row-search') || '';
                                                      var allMatch = true;
                                                      for (var j = 0; j < advSearchTokens.length; j++) {
                                                          if (!rowText.includes(advSearchTokens[j])) { allMatch = false; break; }
@@ -514,8 +513,7 @@ public static class ReportGenerator
                                          for (var ri = 0; ri < rows.length; ri++) {
                                              var tbl = rows[ri].closest('table');
                                              if (tbl && tbl.style.display === 'none') { rows[ri].classList.remove('row-search-match'); continue; }
-                                             var _rid2 = rows[ri].getAttribute('data-row-id');
-                                             var rowText = (rows[ri].getAttribute('data-row-search') || '') + (window._diagramRowSearchTexts && _rid2 && window._diagramRowSearchTexts[_rid2] ? ' ' + window._diagramRowSearchTexts[_rid2] : '');
+                                             var rowText = rows[ri].getAttribute('data-row-search') || '';
                                              var allMatch = true;
                                              for (var j = 0; j < searchTokens.length; j++) {
                                                  if (!rowText.includes(searchTokens[j])) { allMatch = false; break; }
@@ -1371,262 +1369,7 @@ public static class ReportGenerator
         var customCssBlock = customCss is not null ? $"<style>{customCss}</style>" : "";
         var faviconLink = $"<link rel=\"icon\" href=\"{customFaviconBase64 ?? Constants.DefaultFavicon.DataUri}\">";
 
-        var enrichSearchDataScript = hasInteractiveDiagrams && diagrams.Length > 0
-            ? """
-              function enrichSearchData() {
-                  var elements = document.querySelectorAll('[data-plantuml-z]');
-                  if (elements.length === 0) {
-                      onEnrichComplete();
-                      return;
-                  }
-
-                  var scenarioEls = {};
-                  var rowEls = {};
-                  var scenarioTexts = {};
-                  var rowTexts = {};
-                  var collectIdx = 0;
-                  var COLLECT_BATCH = 100;
-                  window._diagramSearchTexts = {};
-                  window._diagramRowSearchTexts = {};
-
-                  function collectBatch() {
-                      var end = Math.min(collectIdx + COLLECT_BATCH, elements.length);
-                      var batch = [];
-                      for (var i = collectIdx; i < end; i++) {
-                          var el = elements[i];
-                          var b64 = el.getAttribute('data-plantuml-z');
-                          var scenario = el.closest('.scenario');
-                          var sid = null;
-                          if (scenario) {
-                              sid = scenario.id || ('__s' + i);
-                              if (!scenario.id) scenario.id = sid;
-                              if (!scenarioEls[sid]) scenarioEls[sid] = scenario;
-                              if (!scenarioTexts[sid]) scenarioTexts[sid] = [];
-                          }
-                          var row = el.closest('tr[data-row-search]');
-                          var rid = null;
-                          if (row) {
-                              rid = row.getAttribute('data-row-id') || ('__r' + i);
-                              if (!row.getAttribute('data-row-id')) row.setAttribute('data-row-id', rid);
-                              if (!rowEls[rid]) rowEls[rid] = row;
-                              if (!rowTexts[rid]) rowTexts[rid] = [];
-                          }
-                          batch.push({ b64: b64, sid: sid, rid: rid });
-                      }
-                      collectIdx = end;
-                      return batch;
-                  }
-
-                  function decompress(base64) {
-                      var raw = atob(base64);
-                      var bytes = new Uint8Array(raw.length);
-                      for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-                      var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-                      return new Response(stream).text();
-                  }
-
-                  var _participantRe = /^(?:actor|boundary|control|entity|database|collections|queue|participant)\s+"([^"]+)"/;
-                  var _urlRe = /:\s*(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|CONNECT|TRACE):\s*(\S+)/;
-                  function extractSearchTerms(text) {
-                      var lines = text.split('\n');
-                      var names = {};
-                      var urls = [];
-                      for (var i = 0; i < lines.length; i++) {
-                          var line = lines[i].trim();
-                          var pm = line.match(_participantRe);
-                          if (pm) { names[pm[1]] = 1; continue; }
-                          var am = line.match(_urlRe);
-                          if (am) urls.push(am[1]);
-                      }
-                      var parts = Object.keys(names);
-                      for (var j = 0; j < urls.length; j++) parts.push(urls[j]);
-                      return parts.join(' ');
-                  }
-
-                  function accumulateResults(results) {
-                      for (var i = 0; i < results.length; i++) {
-                          var r = results[i];
-                          if (r.sid && scenarioTexts[r.sid]) {
-                              scenarioTexts[r.sid].push(r.text);
-                          }
-                          if (r.rid && rowTexts[r.rid]) {
-                              rowTexts[r.rid].push(r.text);
-                          }
-                      }
-                  }
-
-                  function flushSearchData() {
-                      var sids = Object.keys(scenarioTexts);
-                      for (var i = 0; i < sids.length; i++) {
-                          var sid = sids[i];
-                          if (scenarioTexts[sid].length > 0) {
-                              window._diagramSearchTexts[sid] = scenarioTexts[sid].join(' ');
-                          }
-                          delete scenarioTexts[sid];
-                      }
-                      var rids = Object.keys(rowTexts);
-                      for (var i = 0; i < rids.length; i++) {
-                          var rid = rids[i];
-                          if (rowTexts[rid].length > 0) {
-                              window._diagramRowSearchTexts[rid] = rowTexts[rid].join(' ');
-                          }
-                          delete rowTexts[rid];
-                      }
-                      scenarioEls = null;
-                      rowEls = null;
-                      scenarioTexts = null;
-                      rowTexts = null;
-                      onEnrichComplete();
-                  }
-
-                  function enrichWithWorker() {
-                      var workerCode = [
-                          'var participantRe = /^(?:actor|boundary|control|entity|database|collections|queue|participant)\\s+"([^"]+)"/;',
-                          'var urlRe = /:\\s*(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|CONNECT|TRACE):\\s*(\\S+)/;',
-                          'function extractSearchTerms(text) {',
-                          '    var lines = text.split("\\n");',
-                          '    var names = {};',
-                          '    var urls = [];',
-                          '    for (var i = 0; i < lines.length; i++) {',
-                          '        var line = lines[i].trim();',
-                          '        var pm = line.match(participantRe);',
-                          '        if (pm) { names[pm[1]] = 1; continue; }',
-                          '        var am = line.match(urlRe);',
-                          '        if (am) urls.push(am[1]);',
-                          '    }',
-                          '    var parts = Object.keys(names);',
-                          '    for (var j = 0; j < urls.length; j++) parts.push(urls[j]);',
-                          '    return parts.join(" ");',
-                          '}',
-                          'self.onmessage = function(e) {',
-                          '    var items = e.data;',
-                          '    var results = [];',
-                          '    var idx = 0;',
-                          '    var BATCH = 50;',
-                          '    function decompress(base64) {',
-                          '        var raw = atob(base64);',
-                          '        var bytes = new Uint8Array(raw.length);',
-                          '        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);',
-                          '        var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));',
-                          '        return new Response(stream).text();',
-                          '    }',
-                          '    function processBatch() {',
-                          '        var end = Math.min(idx + BATCH, items.length);',
-                          '        var promises = [];',
-                          '        for (var i = idx; i < end; i++) {',
-                          '            (function(j) {',
-                          '                promises.push(decompress(items[j].b64).then(function(decoded) {',
-                          '                    var terms = extractSearchTerms(decoded);',
-                          '                    if (terms) results.push({ text: terms.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
-                          '                }).catch(function() {}));',
-                          '            })(i);',
-                          '        }',
-                          '        idx = end;',
-                          '        Promise.all(promises).then(function() {',
-                          '            self.postMessage({ results: results, done: idx >= items.length });',
-                          '            results = [];',
-                          '            if (idx < items.length) processBatch();',
-                          '        });',
-                          '    }',
-                          '    if (items.length === 0) { self.postMessage({ results: [], done: true }); return; }',
-                          '    processBatch();',
-                          '};'
-                      ].join('\n');
-                      var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-                      var worker;
-                      try { worker = new Worker(URL.createObjectURL(workerBlob)); } catch(ex) {
-                          enrichWithFallback();
-                          return;
-                      }
-
-                      worker.onmessage = function(e) {
-                          accumulateResults(e.data.results);
-                          if (e.data.done) {
-                              if (collectIdx < elements.length) {
-                                  setTimeout(function() {
-                                      var batch = collectBatch();
-                                      worker.postMessage(batch);
-                                  }, 0);
-                              } else {
-                                  worker.terminate();
-                                  flushSearchData();
-                              }
-                          }
-                      };
-                      worker.onerror = function() {
-                          worker.terminate();
-                          enrichWithFallback();
-                      };
-
-                      var batch = collectBatch();
-                      if (batch.length > 0) {
-                          worker.postMessage(batch);
-                      }
-                  }
-
-                  function enrichWithFallback() {
-                      var BATCH = 10;
-
-                      function processNextChunk() {
-                          if (collectIdx >= elements.length) {
-                              flushSearchData();
-                              return;
-                          }
-                          var collected = collectBatch();
-                          var didx = 0;
-
-                          function decompressSub() {
-                              var end = Math.min(didx + BATCH, collected.length);
-                              var promises = [];
-                              for (var i = didx; i < end; i++) {
-                                  (function(j) {
-                                      promises.push(
-                                          decompress(collected[j].b64).then(function(decoded) {
-                                              var terms = extractSearchTerms(decoded);
-                                              if (terms) accumulateResults([{ text: terms.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
-                                          }).catch(function() {})
-                                      );
-                                  })(i);
-                              }
-                              didx = end;
-                              Promise.all(promises).then(function() {
-                                  if (didx < collected.length) {
-                                      setTimeout(decompressSub, 0);
-                                  } else {
-                                      setTimeout(processNextChunk, 0);
-                                  }
-                              });
-                          }
-
-                          decompressSub();
-                      }
-
-                      processNextChunk();
-                  }
-
-                  if (typeof Worker !== 'undefined') {
-                      enrichWithWorker();
-                  } else {
-                      enrichWithFallback();
-                  }
-              }
-
-              function onEnrichComplete() {
-                  _filterCache = null;
-                  var sb = document.getElementById('searchbar');
-                  if (sb) {
-                      sb.disabled = false;
-                      sb.focus();
-                  }
-                  var overlay = document.querySelector('.search-loading-overlay');
-                  if (overlay) overlay.remove();
-              }
-
-              document.addEventListener('DOMContentLoaded', function() {
-                  setTimeout(enrichSearchData, 50);
-              });
-              """
-            : "";
+        var enrichSearchDataScript = "";
 
         var advancedSearchScript = AdvancedSearchJs.Value;
 
@@ -1819,19 +1562,24 @@ public static class ReportGenerator
 
         var diagramsByTestId = diagrams.ToLookup(x => x.TestRuntimeId);
 
-        // Extract dependencies per scenario from diagram source code
+        // Extract dependencies and search terms per scenario from diagram source code
         var scenarioDependencies = new Dictionary<string, HashSet<string>>();
+        var scenarioDiagramSearchTerms = new Dictionary<string, HashSet<string>>();
         var allDependencies = new HashSet<string>();
         foreach (var feature in features)
         foreach (var scenario in feature.Scenarios)
         {
             var deps = new HashSet<string>();
+            var searchTerms = new HashSet<string>();
             foreach (var diagram in diagramsByTestId[scenario.Id])
             {
                 foreach (var dep in ExtractDependencies(diagram.CodeBehind, diagramFormat))
                     deps.Add(dep);
+                foreach (var term in ExtractDiagramSearchTerms(diagram.CodeBehind))
+                    searchTerms.Add(term);
             }
             scenarioDependencies[scenario.Id] = deps;
+            scenarioDiagramSearchTerms[scenario.Id] = searchTerms;
             foreach (var d in deps) allDependencies.Add(d);
         }
 
@@ -1839,7 +1587,7 @@ public static class ReportGenerator
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
                     <div class="filters">
-                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()"{(hasInteractiveDiagrams && diagrams.Length > 0 ? " disabled" : "")} />{(hasInteractiveDiagrams && diagrams.Length > 0 ? "<div class=\"search-loading-overlay\">Loading search data\u2026</div>" : "")}<button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
+                    <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /><button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
                     <div class="search-help-panel" style="display:none">
                     <table class="search-help-table">
                     <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
@@ -2131,6 +1879,7 @@ public static class ReportGenerator
                     renderedGroupKeys.Add(groupKey!);
                     var groupPrefix = $"pgrp{paramGroupCounter++}";
                     RenderParameterizedGroup(body, group, groupPrefix, diagramsByTestId, scenarioDependencies,
+                        scenarioDiagramSearchTerms,
                         showStepNumbers, isPlantUmlBrowser, isInlineSvg, lazyLoadImages,
                         ref plantUmlBrowserCounter, wholeTestSegments, trackedLogs, wholeTestVisualization, medianSpanCount,
                         titleizeParameterNames,
@@ -2172,6 +1921,8 @@ public static class ReportGenerator
                 if (scenario.Labels is { Length: > 0 }) searchParts.AddRange(scenario.Labels);
                 if (failed && scenario.ErrorMessage is not null) searchParts.Add(scenario.ErrorMessage);
                 CollectStepText(scenario.Steps, searchParts);
+                if (scenarioDiagramSearchTerms.TryGetValue(scenario.Id, out var diagramTerms) && diagramTerms.Count > 0)
+                    searchParts.AddRange(diagramTerms);
                 var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
                 var categoriesAttr = scenario.Categories is { Length: > 0 }
@@ -2624,6 +2375,7 @@ public static class ReportGenerator
         string prefix,
         ILookup<string, DefaultDiagramsFetcher.DiagramAsCode> diagramsByTestId,
         Dictionary<string, HashSet<string>> scenarioDependencies,
+        Dictionary<string, HashSet<string>> scenarioDiagramSearchTerms,
         bool showStepNumbers,
         bool isPlantUmlBrowser,
         bool isInlineSvg,
@@ -2663,6 +2415,8 @@ public static class ReportGenerator
             if (s.Labels is { Length: > 0 }) searchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) searchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, searchParts);
+            if (scenarioDiagramSearchTerms.TryGetValue(s.Id, out var diagramTerms) && diagramTerms.Count > 0)
+                searchParts.AddRange(diagramTerms);
         }
         var searchAttr = $" data-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", searchParts).ToLowerInvariant())}\"";
 
@@ -2767,6 +2521,8 @@ public static class ReportGenerator
             if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
             CollectStepText(s.Steps, rowSearchParts);
+            if (scenarioDiagramSearchTerms.TryGetValue(s.Id, out var rowDiagramTerms) && rowDiagramTerms.Count > 0)
+                rowSearchParts.AddRange(rowDiagramTerms);
             var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
             var rowAnchorId = scenarioAnchorIds?.GetValueOrDefault(s.Id) ?? GenerateScenarioAnchorId(s.DisplayName);
@@ -2881,6 +2637,8 @@ public static class ReportGenerator
                 if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
                 if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
                 CollectStepText(s.Steps, rowSearchParts);
+                if (scenarioDiagramSearchTerms.TryGetValue(s.Id, out var rowDiagramTerms2) && rowDiagramTerms2.Count > 0)
+                    rowSearchParts.AddRange(rowDiagramTerms2);
                 var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
 
                 body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
@@ -4123,6 +3881,35 @@ public static class ReportGenerator
         }
 
         return deps;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex ParticipantRegex = new(
+        @"^(?:actor|boundary|control|entity|database|collections|queue|participant)\s+""([^""]+)""",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static readonly System.Text.RegularExpressions.Regex UrlRegex = new(
+        @":\s*(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|CONNECT|TRACE):\s*(\S+)",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    internal static HashSet<string> ExtractDiagramSearchTerms(string codeBehind)
+    {
+        var terms = new HashSet<string>();
+        if (string.IsNullOrEmpty(codeBehind)) return terms;
+
+        foreach (var line in codeBehind.Split('\n'))
+        {
+            var trimmed = line.Trim();
+
+            var participantMatch = ParticipantRegex.Match(trimmed);
+            if (participantMatch.Success)
+                terms.Add(participantMatch.Groups[1].Value);
+
+            var urlMatch = UrlRegex.Match(trimmed);
+            if (urlMatch.Success)
+                terms.Add(urlMatch.Groups[1].Value);
+        }
+
+        return terms;
     }
 
     private static void CollectStepText(ScenarioStep[]? steps, List<string> parts)
