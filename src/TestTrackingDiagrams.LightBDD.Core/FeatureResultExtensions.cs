@@ -248,9 +248,14 @@ internal static class FeatureResultExtensions
 
         var textSegments = BuildTextSegments(step, keyword);
 
-        // Merge sub-steps: prefer LightBDD native sub-steps, then overlay collected assertion sub-steps
-        var nativeSubSteps = MapSteps(step.GetSubSteps(), scenarioSkipped);
-        var subSteps = nativeSubSteps ?? collected?.SubSteps;
+        // Merge sub-steps: pass collected data recursively so assertions inside sub-steps are preserved
+        var collectedSubs = collected?.SubSteps;
+        var nativeSubSteps = MapSteps(step.GetSubSteps(), scenarioSkipped, collectedSubs);
+        ScenarioStep[]? subSteps;
+        if (nativeSubSteps is not null && collectedSubs is not null && collectedSubs.Length > nativeSubSteps.Length)
+            subSteps = [..nativeSubSteps, ..collectedSubs[nativeSubSteps.Length..]];
+        else
+            subSteps = nativeSubSteps ?? collectedSubs;
 
         return new ScenarioStep
         {

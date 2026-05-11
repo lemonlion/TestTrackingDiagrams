@@ -10,6 +10,7 @@ using FileAttachment = LightBDD.Core.Results.FileAttachment;
 
 namespace TestTrackingDiagrams.Tests.LightBDD;
 
+[Collection("StepCollectorOptions")]
 public class FeatureResultExtensionsTests
 {
     [Fact]
@@ -872,6 +873,85 @@ public class FeatureResultExtensionsTests
         Assert.Equal(2, steps[2].SubSteps!.Length);
         Assert.Equal("response.StatusCode.Should().Be(200)", steps[2].SubSteps![0].Text);
         Assert.Equal("response.Body.Should().NotBeNull()", steps[2].SubSteps![1].Text);
+
+        StepCollector.ClearSteps(scenarioId);
+    }
+
+    [Fact]
+    public void ToFeatures_preserves_assertions_inside_native_substeps()
+    {
+        var scenarioId = Guid.NewGuid().ToString();
+        var scenarioGuid = Guid.Parse(scenarioId);
+
+        // LightBDD step "Then validate" has a native sub-step "And check status"
+        var thenStep = new StubStepResult("Then", "validate", ExecutionStatus.Passed)
+            .WithSubStep(new StubStepResult("And", "check status", ExecutionStatus.Passed));
+        var scenario = new StubExecutionResult(scenarioGuid, "Test")
+            .WithStep(new StubStepResult("Given", "a request", ExecutionStatus.Passed))
+            .WithStep(thenStep);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        // Simulate decorator: parent "Then" has a child sub-step "And check status"
+        // Assertions are made inside the sub-step
+        StepCollector.StartStep(scenarioId, "Given", "a request", null, null);
+        StepCollector.CompleteStep(scenarioId, passed: true);
+
+        StepCollector.StartStep(scenarioId, "Then", "validate", null, null);
+        StepCollector.StartStep(scenarioId, "And", "check status", null, null);
+        StepCollector.AddAssertionSubStep(scenarioId, "status.Should().Be(200)", passed: true);
+        StepCollector.AddAssertionSubStep(scenarioId, "body.Should().NotBeNull()", passed: true);
+        StepCollector.CompleteStep(scenarioId, passed: true); // completes "And check status"
+        StepCollector.CompleteStep(scenarioId, passed: true); // completes "Then validate"
+
+        var features = new[] { feature }.ToFeatures();
+        var steps = features[0].Scenarios[0].Steps!;
+
+        // Given should have no sub-steps
+        Assert.Null(steps[0].SubSteps);
+
+        // Then should have the native sub-step "check status"
+        Assert.NotNull(steps[1].SubSteps);
+        Assert.Single(steps[1].SubSteps!);
+        Assert.Equal("check status", steps[1].SubSteps![0].Text);
+
+        // The native sub-step should have the 2 assertion sub-sub-steps
+        Assert.NotNull(steps[1].SubSteps![0].SubSteps);
+        Assert.Equal(2, steps[1].SubSteps![0].SubSteps!.Length);
+        Assert.Equal("status.Should().Be(200)", steps[1].SubSteps![0].SubSteps![0].Text);
+        Assert.Equal("body.Should().NotBeNull()", steps[1].SubSteps![0].SubSteps![1].Text);
+
+        StepCollector.ClearSteps(scenarioId);
+    }
+
+    [Fact]
+    public void ToFeatures_preserves_parent_level_assertions_alongside_native_substeps()
+    {
+        var scenarioId = Guid.NewGuid().ToString();
+        var scenarioGuid = Guid.Parse(scenarioId);
+
+        // LightBDD step "Then validate" has a native sub-step "And check status"
+        var thenStep = new StubStepResult("Then", "validate", ExecutionStatus.Passed)
+            .WithSubStep(new StubStepResult("And", "check status", ExecutionStatus.Passed));
+        var scenario = new StubExecutionResult(scenarioGuid, "Test")
+            .WithStep(thenStep);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        // Simulate decorator: sub-step completes first, then parent-level assertion
+        StepCollector.StartStep(scenarioId, "Then", "validate", null, null);
+        StepCollector.StartStep(scenarioId, "And", "check status", null, null);
+        StepCollector.CompleteStep(scenarioId, passed: true); // completes "And check status"
+        // Parent-level assertion made after sub-step completes
+        StepCollector.AddAssertionSubStep(scenarioId, "overall.Should().BeTrue()", passed: true);
+        StepCollector.CompleteStep(scenarioId, passed: true); // completes "Then validate"
+
+        var features = new[] { feature }.ToFeatures();
+        var steps = features[0].Scenarios[0].Steps!;
+
+        // Then should have both: the native sub-step AND the parent-level assertion
+        Assert.NotNull(steps[0].SubSteps);
+        Assert.Equal(2, steps[0].SubSteps!.Length);
+        Assert.Equal("check status", steps[0].SubSteps![0].Text);
+        Assert.Equal("overall.Should().BeTrue()", steps[0].SubSteps![1].Text);
 
         StepCollector.ClearSteps(scenarioId);
     }

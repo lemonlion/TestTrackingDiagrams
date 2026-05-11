@@ -4,6 +4,7 @@ using TestTrackingDiagrams.TabularAttributes;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("StepCollectorOptions")]
 public class StepCollectorTests
 {
     [Fact]
@@ -630,5 +631,30 @@ public class StepCollectorTests
         Assert.Equal("42", param.InlineValue!.Value);
 
         StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void AddAssertionSubStep_skipped_when_IncludeTrackedAssertionsInStepList_is_false()
+    {
+        var testId = $"no-assertions-{Guid.NewGuid():N}";
+        var original = StepCollector.Options;
+
+        try
+        {
+            StepCollector.Options = new StepTrackingOptions { IncludeTrackedAssertionsInStepList = false };
+            StepCollector.StartStep(testId, "Then", "Verify result", null, null);
+            StepCollector.AddAssertionSubStep(testId, "result.Should().Be(42)", passed: true);
+            StepCollector.AddAssertionSubStep(testId, "result.Should().BePositive()", passed: true);
+            StepCollector.CompleteStep(testId, passed: true);
+
+            var steps = StepCollector.GetSteps(testId);
+            Assert.Single(steps);
+            Assert.Null(steps[0].SubSteps); // No assertion sub-steps recorded
+        }
+        finally
+        {
+            StepCollector.Options = original;
+            StepCollector.ClearSteps(testId);
+        }
     }
 }

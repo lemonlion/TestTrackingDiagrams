@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.56] - 2026-05-11
+
+### Fixed
+- **Assertions lost when LightBDD steps have native sub-steps** — When a LightBDD step had composite sub-steps (e.g., a `Then` step with `And` sub-steps), tracked assertions made during those sub-steps were silently discarded. The merge logic in `FeatureResultExtensions.MapStep()` now passes collected assertion data recursively into sub-step mapping, and appends any parent-level assertions that were made outside the native sub-steps.
+
+### Added
+- **`IncludeTrackedAssertionsInStepList` option** — New `StepTrackingOptions.IncludeTrackedAssertionsInStepList` flag (default: `true`) allows disabling assertion sub-steps in the report step list. When set to `false`, `Track.That()` assertions still appear in sequence diagrams but are not added as sub-steps under their parent step.
+
 ## [2.33.55] - 2026-05-11
 
 ### Changed

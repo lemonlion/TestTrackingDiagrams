@@ -139,6 +139,9 @@ public static class StepCollector
         if (testId is null)
             return;
 
+        if (!Options.IncludeTrackedAssertionsInStepList)
+            return;
+
         if (!States.TryGetValue(testId, out var state))
             return;
 

@@ -17,4 +17,7 @@ public record StepTrackingOptions
 
     /// <summary>Whether to insert step delimiter hnotes into sequence diagrams when top-level steps start. Default: true.</summary>
     public bool ShowStepDelimiters { get; set; } = true;
+
+    /// <summary>Whether tracked assertions (via Track.That) appear as sub-steps in the report step list. Default: true.</summary>
+    public bool IncludeTrackedAssertionsInStepList { get; set; } = true;
 }
