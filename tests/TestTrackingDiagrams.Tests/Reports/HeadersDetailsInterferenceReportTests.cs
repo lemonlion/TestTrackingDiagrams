@@ -170,4 +170,16 @@ public class HeadersDetailsInterferenceReportTests
         var rule = css[idx..ruleEnd];
         Assert.DoesNotContain("margin-right", rule);
     }
+
+    [Fact]
+    public void Scenario_has_content_visibility_auto_for_large_report_performance()
+    {
+        var css = Stylesheets.HtmlReportStyleSheet;
+        var idx = css.IndexOf(".scenario {");
+        Assert.True(idx >= 0, ".scenario CSS rule should exist");
+        var ruleEnd = css.IndexOf('}', idx);
+        var rule = css[idx..ruleEnd];
+        Assert.Contains("content-visibility: auto", rule);
+        Assert.Contains("contain-intrinsic-size:", rule);
+    }
 }

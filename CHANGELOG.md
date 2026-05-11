@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.54] - 2026-05-11
+
+### Added
+- **`content-visibility: auto` on `.scenario` elements** — Tells the browser to skip layout and paint for off-screen scenario sections, significantly reducing initial rendering cost on large reports. Combined with the existing feature-level `content-visibility`, this means only scenarios actually visible in the viewport are rendered. On a 102MB report with 196 scenarios (each containing ~44 diagrams), this avoids laying out ~190 off-screen scenarios on page load.
+
 ## [2.33.53] - 2026-05-11
 
 ### Added

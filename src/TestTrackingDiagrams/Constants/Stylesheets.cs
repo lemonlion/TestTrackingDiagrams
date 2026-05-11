@@ -44,6 +44,8 @@ public class Stylesheets
                     background-color: white;
                     padding: 1em;
                     border-radius: 10px;
+                    content-visibility: auto;
+                    contain-intrinsic-size: auto 150px;
                 }
                 
                 .example-diagrams {
