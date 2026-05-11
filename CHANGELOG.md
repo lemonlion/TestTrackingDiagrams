@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.57] - 2026-05-11
+
+### Fixed
+- **Increased E2E test timeouts for CI stability** — Two `NoteButtonsAfterHeaderHideTests` tests (`Headers_hidden_full_3_state_cycle` and `Headers_hidden_up_arrow_visible_when_expanded`) were timing out on GitHub Actions due to slower headless Chromium execution under parallel test load. Increased wait timeouts from 10s to 30s and added an explicit `WaitForNoteElements()` guard after the collapsed-state transition to ensure rendering is fully complete before asserting button presence.
+
 ## [2.33.56] - 2026-05-11
 
 ### Fixed

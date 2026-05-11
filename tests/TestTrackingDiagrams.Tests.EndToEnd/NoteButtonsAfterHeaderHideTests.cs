@@ -136,9 +136,10 @@ public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
 
         // truncated → collapsed
         await DoubleClickFirstNoteAndWait();
+        await WaitForNoteElements();
         await Page.WaitForFunctionAsync(
             "() => document.querySelectorAll('[data-note-btn=\"plus\"]').length > 0",
-            null, new() { Timeout = 10000, PollingInterval = 200 });
+            null, new() { Timeout = 30000, PollingInterval = 200 });
 
         // collapsed → truncated
         var plusBefore = await Page.Locator("[data-note-btn='plus']").CountAsync();
@@ -217,7 +218,7 @@ public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
                     Array.from(i.querySelectorAll('text')).some(t => t.textContent.includes('\u25B2'))
                     && i.style.opacity !== '0');
             }
-        """, null, new() { Timeout = 10000, PollingInterval = 200 });
+        """, null, new() { Timeout = 30000, PollingInterval = 200 });
     }
 
     [Fact]
