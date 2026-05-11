@@ -1,4 +1,5 @@
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.xUnit2;
 
@@ -31,6 +32,7 @@ internal static class ScenarioInfoCollectionExtensions
                                 ErrorMessage = x.ErrorMessage ?? string.Empty,
                                 ErrorStackTrace = x.ErrorStackTrace ?? string.Empty,
                                 Duration = x.Duration,
+                                Steps = StepCollector.GetSteps(x.Id) is { Length: > 0 } steps ? steps : null,
                                 OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(x.ScenarioName) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null
                             };

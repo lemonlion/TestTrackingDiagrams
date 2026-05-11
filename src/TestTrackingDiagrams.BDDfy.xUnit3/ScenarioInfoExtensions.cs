@@ -68,7 +68,7 @@ internal static class ScenarioInfoExtensions
                                 ErrorStackTrace = x.ErrorStackTrace,
                                 Duration = x.Duration != TimeSpan.Zero ? x.Duration : null,
                                 Steps = x.Steps.Count > 0
-                                    ? MapSteps(x.Steps)
+                                    ? MapSteps(x.Steps, StepCollector.GetSteps(x.TestId))
                                     : StepCollector.GetSteps(x.TestId) is { Length: > 0 } collectedSteps ? collectedSteps : null,
                                 Labels = labels.Length > 0 ? labels : null,
                                 OutlineId = outlineId,
@@ -89,7 +89,7 @@ internal static class ScenarioInfoExtensions
             }).ToArray();
     }
 
-    private static ScenarioStep[] MapSteps(List<BDDfyStepInfo> steps)
+    private static ScenarioStep[] MapSteps(List<BDDfyStepInfo> steps, ScenarioStep[]? collectedSteps = null)
     {
         var mapped = new ScenarioStep[steps.Count];
         var priorFailure = false;
@@ -101,6 +101,12 @@ internal static class ScenarioInfoExtensions
                 Text = steps[i].Text,
                 Status = steps[i].Result.ToStepResult(priorFailure),
                 Duration = steps[i].Duration,
+                SubSteps = collectedSteps is not null && i < collectedSteps.Length
+                    ? collectedSteps[i].SubSteps
+                    : null,
+                Attachments = collectedSteps is not null && i < collectedSteps.Length
+                    ? collectedSteps[i].Attachments
+                    : null,
             };
             if (steps[i].Result == TestStack.BDDfy.Result.Failed)
                 priorFailure = true;

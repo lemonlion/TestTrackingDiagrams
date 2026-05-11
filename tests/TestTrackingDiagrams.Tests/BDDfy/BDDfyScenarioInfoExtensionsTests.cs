@@ -1,6 +1,7 @@
 using System.Linq;
 using TestTrackingDiagrams.BDDfy.xUnit3;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.BDDfy;
 
@@ -383,5 +384,85 @@ public class BDDfyScenarioInfoExtensionsTests
         var features = new[] { scenario }.ToFeatures();
 
         Assert.Equal("Some_test_method", features[0].Scenarios[0].OutlineId);
+    }
+
+    // ─── Assertion sub-step merging from StepCollector ──────────
+
+    [Fact]
+    public void ToFeatures_merges_assertion_substeps_from_StepCollector_into_native_steps()
+    {
+        var testId = "bddfy-assert-merge-" + Guid.NewGuid();
+
+        // Simulate BDDfyStepTrackingExecutor: push step, add assertions, complete
+        StepCollector.StartStep(testId, "Then", "the response should be valid", null, null);
+        StepCollector.AddAssertionSubStep(testId, "response.StatusCode.Should().Be(200)", passed: true);
+        StepCollector.AddAssertionSubStep(testId, "response.Body.Should().NotBeNull()", passed: true);
+        StepCollector.CompleteStep(testId, true);
+
+        var info = MakeScenario(
+            testId: testId,
+            steps:
+            [
+                new BDDfyStepInfo("Then", "the response should be valid")
+            ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var step = features[0].Scenarios[0].Steps![0];
+
+            Assert.NotNull(step.SubSteps);
+            Assert.Equal(2, step.SubSteps!.Length);
+            Assert.Equal("response.StatusCode.Should().Be(200)", step.SubSteps[0].Text);
+            Assert.Equal("response.Body.Should().NotBeNull()", step.SubSteps[1].Text);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(testId);
+        }
+    }
+
+    [Fact]
+    public void ToFeatures_merges_assertion_substeps_only_to_matching_step_index()
+    {
+        var testId = "bddfy-assert-index-" + Guid.NewGuid();
+
+        // Step 0: Given — no assertions
+        StepCollector.StartStep(testId, "Given", "a valid request", null, null);
+        StepCollector.CompleteStep(testId, true);
+
+        // Step 1: When — no assertions
+        StepCollector.StartStep(testId, "When", "the request is sent", null, null);
+        StepCollector.CompleteStep(testId, true);
+
+        // Step 2: Then — has assertions
+        StepCollector.StartStep(testId, "Then", "the response is 200", null, null);
+        StepCollector.AddAssertionSubStep(testId, "status.Should().Be(200)", passed: true);
+        StepCollector.CompleteStep(testId, true);
+
+        var info = MakeScenario(
+            testId: testId,
+            steps:
+            [
+                new BDDfyStepInfo("Given", "a valid request"),
+                new BDDfyStepInfo("When", "the request is sent"),
+                new BDDfyStepInfo("Then", "the response is 200")
+            ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var steps = features[0].Scenarios[0].Steps!;
+
+            Assert.Null(steps[0].SubSteps);
+            Assert.Null(steps[1].SubSteps);
+            Assert.NotNull(steps[2].SubSteps);
+            Assert.Single(steps[2].SubSteps!);
+            Assert.Equal("status.Should().Be(200)", steps[2].SubSteps![0].Text);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(testId);
+        }
     }
 }

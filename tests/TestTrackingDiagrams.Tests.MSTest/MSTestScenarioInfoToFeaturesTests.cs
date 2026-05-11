@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TestTrackingDiagrams.MSTest;
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.MSTest;
 
@@ -290,6 +291,43 @@ public class MSTestScenarioInfoToFeaturesTests
         Assert.IsNotNull(scenario.ExampleValues);
         // Should keep positional keys since count doesn't match
         Assert.IsTrue(scenario.ExampleValues!.ContainsKey("arg0"));
+    }
+
+    [TestMethod]
+    public void ShouldPopulateStepsFromStepCollector()
+    {
+        var testId = "mstest-steps-" + Guid.NewGuid();
+
+        StepCollector.StartStep(testId, "Given", "a valid request", null, null);
+        StepCollector.CompleteStep(testId, true);
+        StepCollector.StartStep(testId, "When", "the request is sent", null, null);
+        StepCollector.CompleteStep(testId, true);
+
+        var infos = new[] { CreateScenarioInfo(testId: testId) };
+
+        try
+        {
+            var features = infos.ToFeatures();
+            var scenario = features[0].Scenarios[0];
+
+            Assert.IsNotNull(scenario.Steps);
+            Assert.AreEqual(2, scenario.Steps!.Length);
+            Assert.AreEqual("Given", scenario.Steps[0].Keyword);
+            Assert.AreEqual("a valid request", scenario.Steps[0].Text);
+            Assert.AreEqual("When", scenario.Steps[1].Keyword);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(testId);
+        }
+    }
+
+    [TestMethod]
+    public void ShouldLeaveStepsNullWhenStepCollectorEmpty()
+    {
+        var infos = new[] { CreateScenarioInfo() };
+        var features = infos.ToFeatures();
+        Assert.IsNull(features[0].Scenarios[0].Steps);
     }
 
     private static MSTestScenarioInfo CreateScenarioInfo(

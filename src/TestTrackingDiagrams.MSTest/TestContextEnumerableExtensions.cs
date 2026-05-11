@@ -1,4 +1,5 @@
 using TestTrackingDiagrams.Reports;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.MSTest;
 
@@ -35,6 +36,7 @@ internal static class TestContextEnumerableExtensions
                                 ErrorMessage = x.ErrorMessage,
                                 ErrorStackTrace = x.ErrorStackTrace,
                                 Duration = x.Duration,
+                                Steps = StepCollector.GetSteps(x.TestId) is { Length: > 0 } steps ? steps : null,
                                 OutlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null,
                                 ExampleValues = parsed is { Count: > 0 } ? parsed : null
                             };

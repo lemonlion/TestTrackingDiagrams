@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.61] - 2026-05-11
+
+### Fixed
+- **BDDfy assertion sub-steps not merged into report step list** — When BDDfy tests used `[assembly: TrackAssertions]` (IL weaver) or `Track.That()`, assertion sub-steps collected by `StepCollector.AddAssertionSubStep()` during `BDDfyStepTrackingExecutor.Execute()` were silently discarded. `MapSteps()` only mapped BDDfy's native step data without consulting `StepCollector`. Now merges `SubSteps` and `Attachments` from collected steps into each mapped BDDfy step at the corresponding index — the same pattern used by ReqNRoll and LightBDD adapters.
+- **xUnit2 adapter missing `StepCollector` fallback for `[GivenStep]`/`[WhenStep]`/`[ThenStep]`** — The xUnit2 `ScenarioInfoCollectionExtensions.ToFeatures()` never populated `Scenario.Steps` from `StepCollector`, so steps produced by the `StepTracking` IL weaver were lost in reports. Now uses `StepCollector.GetSteps(x.Id)` as the step source.
+- **MSTest adapter missing `StepCollector` fallback for `[GivenStep]`/`[WhenStep]`/`[ThenStep]`** — Same fix as xUnit2: `TestContextEnumerableExtensions.ToFeatures()` now populates `Scenario.Steps` from `StepCollector.GetSteps(x.TestId)`.
+
 ## [2.33.60] - 2026-05-11
 
 ### Fixed
