@@ -68,4 +68,23 @@ public class AttachmentRenderingTests : PlaywrightTestBase
         var links = scenario.Locator("a.step-attachment");
         Assert.Equal(0, await links.CountAsync());
     }
+
+    [Fact]
+    public async Task Absolute_path_attachment_is_copied_and_href_rewritten()
+    {
+        var url = GenerateReportWithCopiedAttachment("AttCopy.html");
+        await Page.GotoAsync(url);
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+
+        var attachmentLink = Page.Locator("a.step-attachment").First;
+        await attachmentLink.WaitForAsync();
+        var href = await attachmentLink.GetAttributeAsync("href");
+        Assert.Equal("attachments/openapi.json", href);
+
+        var text = await attachmentLink.InnerTextAsync();
+        Assert.Equal("OpenAPI Spec", text);
+    }
 }

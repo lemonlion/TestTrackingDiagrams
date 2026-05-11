@@ -1471,6 +1471,55 @@ public static class ReportTestHelper
         return new Uri(path).AbsoluteUri;
     }
 
+    public static string GenerateReportWithCopiedAttachment(string tempDir, string outputDir, string fileName)
+    {
+        // Create a real source file with an absolute path
+        var sourceFile = Path.Combine(tempDir, "openapi.json");
+        File.WriteAllText(sourceFile, "{\"openapi\":\"3.0.0\"}");
+
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "API Spec Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "copy1", DisplayName = "Spec is written to disk", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1),
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "the openapi spec is written to disk",
+                                Status = ExecutionResult.Passed,
+                                Attachments = [new FileAttachment("OpenAPI Spec", sourceFile)]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Run the copy logic (rewrites RelativePath to attachments/openapi.json)
+        var reportsDir = Path.Combine(tempDir, "Reports");
+        Directory.CreateDirectory(reportsDir);
+        ReportGenerator.CopyAttachmentsToReportsFolder(features, reportsDir);
+
+        var diagrams = Array.Empty<DiagramAsCode>();
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
     public static string GenerateReportWithComplexInlineParams(string tempDir, string outputDir, string fileName)
     {
         var features = new[]

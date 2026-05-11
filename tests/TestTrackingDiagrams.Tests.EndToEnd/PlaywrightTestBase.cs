@@ -65,6 +65,9 @@ public abstract class PlaywrightTestBase : IAsyncLifetime
     protected string GenerateReportWithAttachments(string fileName) =>
         ReportTestHelper.GenerateReportWithAttachments(TempDir, OutputDir, fileName);
 
+    protected string GenerateReportWithCopiedAttachment(string fileName) =>
+        ReportTestHelper.GenerateReportWithCopiedAttachment(TempDir, OutputDir, fileName);
+
     protected string GenerateReportWithComplexInlineParams(string fileName) =>
         ReportTestHelper.GenerateReportWithComplexInlineParams(TempDir, OutputDir, fileName);
 

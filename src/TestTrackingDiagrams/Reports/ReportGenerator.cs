@@ -153,6 +153,12 @@ public static class ReportGenerator
             componentDiagramPlantUml = ComponentDiagramGenerator.GeneratePlantUml(componentRelationships, componentOptions, useC4: !useBrowserJs);
         }
 
+        // Copy attachment files into the Reports directory so that HTML links resolve
+        // when reports are uploaded to GitHub Pages or CI artifacts.
+        var reportsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+        Directory.CreateDirectory(reportsDir);
+        CopyAttachmentsToReportsFolder(features, reportsDir);
+
         var actions = new List<Action>();
 
         if (options.GenerateSpecificationsReport)
@@ -217,10 +223,10 @@ public static class ReportGenerator
         if (options.PublishCiArtifacts)
         {
             var ciEnv = CiEnvironmentDetector.Detect();
-            var reportsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-            if (Directory.Exists(reportsDirectory))
+            var ciReportsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+            if (Directory.Exists(ciReportsDir))
             {
-                var reportFiles = Directory.GetFiles(reportsDirectory)
+                var reportFiles = Directory.GetFiles(ciReportsDir)
                     .Where(f => f.EndsWith(".html") || f.EndsWith(".yml") || f.EndsWith(".md") || f.EndsWith(".json") || f.EndsWith(".xml"))
                     .ToArray();
                 CiArtifactPublisher.Publish(reportFiles, ciEnv, options.CiArtifactName, options.CiArtifactRetentionDays);
@@ -3843,6 +3849,115 @@ public static class ReportGenerator
                 element.Add(MapSpecStepXml(sub));
         }
         return element;
+    }
+
+    /// <summary>
+    /// Copies attachment files referenced by steps into the reports directory and rewrites
+    /// their <see cref="FileAttachment.RelativePath"/> to point to the local copy.
+    /// Attachments whose source file does not exist or whose path is already relative
+    /// to an <c>attachments/</c> subfolder are left unchanged.
+    /// </summary>
+    public static void CopyAttachmentsToReportsFolder(Feature[] features, string reportsDirectory)
+    {
+        var attachmentsDir = Path.Combine(reportsDirectory, "attachments");
+        var copiedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var feature in features)
+        {
+            if (feature.Scenarios is null) continue;
+            foreach (var scenario in feature.Scenarios)
+            {
+                if (scenario.BackgroundSteps is { Length: > 0 })
+                    ProcessSteps(scenario.BackgroundSteps, attachmentsDir, copiedFiles, usedNames);
+                if (scenario.Steps is { Length: > 0 })
+                    ProcessSteps(scenario.Steps, attachmentsDir, copiedFiles, usedNames);
+            }
+        }
+    }
+
+    private static void ProcessSteps(ScenarioStep[] steps, string attachmentsDir,
+        Dictionary<string, string> copiedFiles, HashSet<string> usedNames)
+    {
+        for (var i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            if (step.Attachments is { Length: > 0 })
+                step.Attachments = ProcessAttachments(step.Attachments, attachmentsDir, copiedFiles, usedNames);
+            if (step.SubSteps is { Length: > 0 })
+                ProcessSteps(step.SubSteps, attachmentsDir, copiedFiles, usedNames);
+        }
+    }
+
+    private static FileAttachment[] ProcessAttachments(FileAttachment[] attachments, string attachmentsDir,
+        Dictionary<string, string> copiedFiles, HashSet<string> usedNames)
+    {
+        var result = new FileAttachment[attachments.Length];
+        for (var i = 0; i < attachments.Length; i++)
+        {
+            var att = attachments[i];
+            var sourcePath = att.RelativePath;
+
+            // Skip paths already pointing to attachments/ subfolder
+            if (sourcePath.StartsWith("attachments/", StringComparison.OrdinalIgnoreCase) ||
+                sourcePath.StartsWith("attachments\\", StringComparison.OrdinalIgnoreCase))
+            {
+                result[i] = att;
+                continue;
+            }
+
+            // Resolve to absolute if relative
+            var fullPath = Path.IsPathRooted(sourcePath)
+                ? sourcePath
+                : Path.GetFullPath(sourcePath, AppDomain.CurrentDomain.BaseDirectory);
+
+            if (!File.Exists(fullPath))
+            {
+                result[i] = att;
+                continue;
+            }
+
+            // Check if we've already copied this exact source file
+            var normalizedSource = Path.GetFullPath(fullPath);
+            if (copiedFiles.TryGetValue(normalizedSource, out var existingRelative))
+            {
+                result[i] = att with { RelativePath = existingRelative };
+                continue;
+            }
+
+            // Deduplicate the destination file name
+            var fileName = Path.GetFileName(fullPath);
+            var destName = GetUniqueFileName(fileName, usedNames);
+            usedNames.Add(destName);
+
+            Directory.CreateDirectory(attachmentsDir);
+            var destPath = Path.Combine(attachmentsDir, destName);
+            File.Copy(fullPath, destPath, overwrite: true);
+
+            var relativePath = $"attachments/{destName}";
+            copiedFiles[normalizedSource] = relativePath;
+            result[i] = att with { RelativePath = relativePath };
+        }
+
+        return result;
+    }
+
+    private static string GetUniqueFileName(string fileName, HashSet<string> usedNames)
+    {
+        if (!usedNames.Contains(fileName))
+            return fileName;
+
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+        var ext = Path.GetExtension(fileName);
+        var counter = 2;
+        string candidate;
+        do
+        {
+            candidate = $"{nameWithoutExt}_{counter}{ext}";
+            counter++;
+        } while (usedNames.Contains(candidate));
+
+        return candidate;
     }
 
     private static string WriteFile(string text, string fileName)

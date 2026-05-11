@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.53] - 2026-05-11
+
+### Added
+- **Attachment files automatically copied to Reports folder** — When `Track.Attachment()` is used with absolute or non-relative file paths, the referenced files are now automatically copied into `Reports/attachments/` during report generation. The `<a href>` in the HTML is rewritten to `attachments/{filename}`, making attachment links work correctly when reports are uploaded to GitHub Pages, published as CI artifacts, or viewed from any location. Duplicate file names from different source paths are deduplicated (e.g. `report.txt`, `report_2.txt`). Paths already pointing to `attachments/` are left unchanged.
+
 ## [2.33.52] - 2026-05-11
 
 ### Changed
