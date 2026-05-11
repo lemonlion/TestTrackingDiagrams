@@ -853,19 +853,21 @@ public static class ReportGenerator
                                     for (var i = 0; i < rows.length; i++) rows[i].classList.remove('row-active');
                                     clickedRow.classList.add('row-active');
                                     var idx = clickedRow.getAttribute('data-row-idx');
+                                    // Scope queries to the scenario container instead of the full document
+                                    var container = table.closest('.scenario') || document;
+                                    var activePanel = document.getElementById(prefix + '-detail-' + idx);
                                     // Capture outgoing panel's <details> open states before hiding
-                                    var panels = document.querySelectorAll('[id^="' + prefix + '-detail-"]');
+                                    var panels = container.querySelectorAll('[id^="' + prefix + '-detail-"]');
                                     var outgoing = null;
                                     for (var i = 0; i < panels.length; i++) {
                                         if (panels[i].style.display !== 'none') { outgoing = panels[i]; break; }
                                     }
                                     var detailStates = [];
-                                    if (outgoing) {
+                                    if (outgoing && outgoing !== activePanel) {
                                         outgoing.querySelectorAll('details').forEach(function(d) { detailStates.push(d.open); });
                                     }
                                     // Switch detail panels
                                     for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
-                                    var activePanel = document.getElementById(prefix + '-detail-' + idx);
                                     if (activePanel) {
                                         // Sync <details> open states from outgoing panel
                                         if (detailStates.length > 0) {
@@ -877,7 +879,7 @@ public static class ReportGenerator
                                         activePanel.style.display = '';
                                     }
                                     // Switch diagram divs (sequence)
-                                    var diagrams = document.querySelectorAll('[id^="' + prefix + '-diagram-"]');
+                                    var diagrams = container.querySelectorAll('[id^="' + prefix + '-diagram-"]');
                                     for (var i = 0; i < diagrams.length; i++) diagrams[i].style.display = 'none';
                                     var activeDiagram = document.getElementById(prefix + '-diagram-' + idx);
                                     if (activeDiagram) {
@@ -885,7 +887,7 @@ public static class ReportGenerator
                                         if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(activeDiagram);
                                     }
                                     // Switch activity diagram divs
-                                    var activities = document.querySelectorAll('[id^="' + prefix + '-activity-"]');
+                                    var activities = container.querySelectorAll('[id^="' + prefix + '-activity-"]');
                                     for (var i = 0; i < activities.length; i++) activities[i].style.display = 'none';
                                     var activeActivity = document.getElementById(prefix + '-activity-' + idx);
                                     if (activeActivity) {
@@ -893,39 +895,43 @@ public static class ReportGenerator
                                         if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(activeActivity);
                                     }
                                     // Switch flame chart divs
-                                    var flames = document.querySelectorAll('[id^="' + prefix + '-flame-"]');
+                                    var flames = container.querySelectorAll('[id^="' + prefix + '-flame-"]');
                                     for (var i = 0; i < flames.length; i++) flames[i].style.display = 'none';
                                     var activeFlame = document.getElementById(prefix + '-flame-' + idx);
                                     if (activeFlame) {
                                         activeFlame.style.display = '';
                                         if (window._renderFlameCharts) window._renderFlameCharts(activeFlame);
                                     }
-                                    // Highlight step-table columns matching parameter table headers
-                                    if (activePanel) {
-                                        var headerRow = table.querySelector('thead tr:last-child') || table.querySelector('thead tr');
-                                        var paramCols = [];
-                                        if (headerRow) {
-                                            headerRow.querySelectorAll('th.sub-header').forEach(function(th) {
-                                                paramCols.push(th.textContent.trim());
-                                            });
-                                        }
-                                        activePanel.querySelectorAll('.step-param-table').forEach(function(spt) {
-                                            var cols = (spt.getAttribute('data-columns') || '').split(',');
-                                            var tbl = spt.querySelector('table');
-                                            if (!tbl) return;
-                                            var ths = tbl.querySelectorAll('thead th');
-                                            var trs = tbl.querySelectorAll('tbody tr');
-                                            for (var ci = 0; ci < ths.length; ci++) {
-                                                var colName = ths[ci].textContent.trim();
-                                                var isMatch = paramCols.indexOf(colName) >= 0;
-                                                ths[ci].classList.toggle('col-highlight', isMatch);
-                                                trs.forEach(function(tr) {
-                                                    var td = tr.children[ci];
-                                                    if (td) td.classList.toggle('col-highlight', isMatch);
-                                                });
-                                            }
+                                    highlightColumns(table, prefix);
+                                }
+                                function highlightColumns(table, prefix) {
+                                    var activeRow = table.querySelector('tbody tr.row-active');
+                                    if (!activeRow) return;
+                                    var idx = activeRow.getAttribute('data-row-idx');
+                                    var activePanel = document.getElementById(prefix + '-detail-' + idx);
+                                    if (!activePanel) return;
+                                    var headerRow = table.querySelector('thead tr:last-child') || table.querySelector('thead tr');
+                                    var paramCols = [];
+                                    if (headerRow) {
+                                        headerRow.querySelectorAll('th.sub-header').forEach(function(th) {
+                                            paramCols.push(th.textContent.trim());
                                         });
                                     }
+                                    activePanel.querySelectorAll('.step-param-table').forEach(function(spt) {
+                                        var tbl = spt.querySelector('table');
+                                        if (!tbl) return;
+                                        var ths = tbl.querySelectorAll('thead th');
+                                        var trs = tbl.querySelectorAll('tbody tr');
+                                        for (var ci = 0; ci < ths.length; ci++) {
+                                            var colName = ths[ci].textContent.trim();
+                                            var isMatch = paramCols.indexOf(colName) >= 0;
+                                            ths[ci].classList.toggle('col-highlight', isMatch);
+                                            trs.forEach(function(tr) {
+                                                var td = tr.children[ci];
+                                                if (td) td.classList.toggle('col-highlight', isMatch);
+                                            });
+                                        }
+                                    });
                                 }
                                 """;
 
@@ -977,7 +983,7 @@ public static class ReportGenerator
                                     var activeRow = table.querySelector('tbody tr.row-active');
                                     if (activeRow) {
                                         var prefix = table.getAttribute('data-prefix') || '';
-                                        selectRow(activeRow, prefix);
+                                        highlightColumns(table, prefix);
                                     }
                                 });
                             });

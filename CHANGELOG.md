@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.59] - 2026-05-11
+
+### Fixed
+- **Report page freeze (~60s) on large reports caused by unscoped DOM queries** — The `selectRow()` function used `document.querySelectorAll` with `[id^="prefix-"]` attribute selectors to find detail panels, diagrams, activity diagrams, and flame charts. On a 141MB report with 196 scenarios and ~8,600 diagrams, each of these selectors scanned the entire 2M+ node DOM. Additionally, the `DOMContentLoaded` handler called `selectRow()` for every `.param-test-table` at page load — triggering full-document scans before the page was even interactive. Fixed by: (1) scoping all `querySelectorAll` calls in `selectRow()` to `table.closest('.scenario')` instead of `document`, (2) extracting column highlighting into a lightweight `highlightColumns()` function, (3) calling `highlightColumns()` instead of `selectRow()` from the `DOMContentLoaded` handler, and (4) guarding the detail-states sync to skip when the outgoing panel is the same as the incoming panel (which is always true at initial load). Load time drops from ~60s to ~5s on a 196-scenario Platform.IdentityProvider report.
+
 ## [2.33.58] - 2026-05-11
 
 ### Fixed
