@@ -766,4 +766,47 @@ public class SearchDataAttributeTests
         // Row-level search must merge diagram row text from JS-side index
         Assert.Contains("_diagramRowSearchTexts", content);
     }
+
+    [Fact]
+    public void EnrichSearchData_extracts_only_participants_and_urls()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "S1", Result = ExecutionResult.Passed,
+                        Steps = [new ScenarioStep { Keyword = "Given", Text = "something", Status = ExecutionResult.Passed }]
+                    }
+                ]
+            }
+        };
+
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("s1", "", "@startuml\nA -> B\n@enduml")
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "SearchExtractTerms.html", "Test", includeTestRunData: true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+        var content = File.ReadAllText(path);
+
+        var enrichIdx = content.IndexOf("function enrichSearchData");
+        var enrichEnd = content.IndexOf("function onEnrichComplete", enrichIdx);
+        var enrichBody = content[enrichIdx..enrichEnd];
+
+        // Worker and fallback must use extractSearchTerms to filter PlantUML to participant names + URLs only
+        Assert.Contains("extractSearchTerms", enrichBody);
+        // Must have participant regex pattern for participant/actor/entity/database/boundary/control/collections/queue
+        Assert.Contains("participantRe", enrichBody);
+        // Must have URL regex pattern for HTTP methods
+        Assert.Contains("GET|POST|PUT|DELETE|PATCH", enrichBody);
+    }
 }

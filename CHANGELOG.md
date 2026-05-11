@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.49] - 2026-05-11
+
+### Changed
+- **Search enrichment now indexes only participant names and request URLs from diagrams** — Previously, the entire decompressed PlantUML source text (~240MB across 8,635 diagrams) was indexed for search, causing a 30-60 second browser freeze even after bypassing DOM attributes (v2.33.47). The structured clone from Worker to main thread, GC pressure from holding ~240MB of strings, and the `join()` flush all contributed. Now the Worker extracts only deduped participant/actor/entity/database/boundary/control/collections/queue display names and HTTP request URLs (`GET: /path`, `POST: /api/endpoint`, etc.) from each diagram, reducing indexed data from ~240MB to ~1-2MB. Non-diagram search data (scenario names, step text, feature names, status, tags) remains unchanged.
+
 ## [2.33.48] - 2026-05-10
 
 ### Added

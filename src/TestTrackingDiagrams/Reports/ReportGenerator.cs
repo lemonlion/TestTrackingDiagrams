@@ -1410,6 +1410,24 @@ public static class ReportGenerator
                       return new Response(stream).text();
                   }
 
+                  var _participantRe = /^(?:actor|boundary|control|entity|database|collections|queue|participant)\s+"([^"]+)"/;
+                  var _urlRe = /:\s*(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|CONNECT|TRACE):\s*(\S+)/;
+                  function extractSearchTerms(text) {
+                      var lines = text.split('\n');
+                      var names = {};
+                      var urls = [];
+                      for (var i = 0; i < lines.length; i++) {
+                          var line = lines[i].trim();
+                          var pm = line.match(_participantRe);
+                          if (pm) { names[pm[1]] = 1; continue; }
+                          var am = line.match(_urlRe);
+                          if (am) urls.push(am[1]);
+                      }
+                      var parts = Object.keys(names);
+                      for (var j = 0; j < urls.length; j++) parts.push(urls[j]);
+                      return parts.join(' ');
+                  }
+
                   function accumulateResults(results) {
                       for (var i = 0; i < results.length; i++) {
                           var r = results[i];
@@ -1448,6 +1466,23 @@ public static class ReportGenerator
 
                   function enrichWithWorker() {
                       var workerCode = [
+                          'var participantRe = /^(?:actor|boundary|control|entity|database|collections|queue|participant)\\s+"([^"]+)"/;',
+                          'var urlRe = /:\\s*(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|CONNECT|TRACE):\\s*(\\S+)/;',
+                          'function extractSearchTerms(text) {',
+                          '    var lines = text.split("\\n");',
+                          '    var names = {};',
+                          '    var urls = [];',
+                          '    for (var i = 0; i < lines.length; i++) {',
+                          '        var line = lines[i].trim();',
+                          '        var pm = line.match(participantRe);',
+                          '        if (pm) { names[pm[1]] = 1; continue; }',
+                          '        var am = line.match(urlRe);',
+                          '        if (am) urls.push(am[1]);',
+                          '    }',
+                          '    var parts = Object.keys(names);',
+                          '    for (var j = 0; j < urls.length; j++) parts.push(urls[j]);',
+                          '    return parts.join(" ");',
+                          '}',
                           'self.onmessage = function(e) {',
                           '    var items = e.data;',
                           '    var results = [];',
@@ -1466,7 +1501,8 @@ public static class ReportGenerator
                           '        for (var i = idx; i < end; i++) {',
                           '            (function(j) {',
                           '                promises.push(decompress(items[j].b64).then(function(decoded) {',
-                          '                    results.push({ text: decoded.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
+                          '                    var terms = extractSearchTerms(decoded);',
+                          '                    if (terms) results.push({ text: terms.toLowerCase(), sid: items[j].sid, rid: items[j].rid });',
                           '                }).catch(function() {}));',
                           '            })(i);',
                           '        }',
@@ -1531,7 +1567,8 @@ public static class ReportGenerator
                                   (function(j) {
                                       promises.push(
                                           decompress(collected[j].b64).then(function(decoded) {
-                                              accumulateResults([{ text: decoded.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
+                                              var terms = extractSearchTerms(decoded);
+                                              if (terms) accumulateResults([{ text: terms.toLowerCase(), sid: collected[j].sid, rid: collected[j].rid }]);
                                           }).catch(function() {})
                                       );
                                   })(i);
