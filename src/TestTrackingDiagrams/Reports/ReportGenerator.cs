@@ -1930,6 +1930,7 @@ public static class ReportGenerator
                 // Pre-build searchable text: feature context + scenario name + error info + step text + diagram sources + tags
                 var searchParts = new List<string> { feature.DisplayName, scenario.DisplayName };
                 if (feature.Description is not null) searchParts.Add(feature.Description);
+                if (scenario.Rule is not null) searchParts.Add(scenario.Rule);
                 if (feature.Labels is { Length: > 0 }) searchParts.AddRange(feature.Labels);
                 if (scenario.Categories is { Length: > 0 }) searchParts.AddRange(scenario.Categories);
                 if (scenario.Labels is { Length: > 0 }) searchParts.AddRange(scenario.Labels);
@@ -2453,6 +2454,7 @@ public static class ReportGenerator
         foreach (var s in scenarios)
         {
             searchParts.Add(s.DisplayName);
+            if (s.Rule is not null) searchParts.Add(s.Rule);
             if (s.Categories is { Length: > 0 }) searchParts.AddRange(s.Categories);
             if (s.Labels is { Length: > 0 }) searchParts.AddRange(s.Labels);
             if (s.ErrorMessage is not null) searchParts.Add(s.ErrorMessage);

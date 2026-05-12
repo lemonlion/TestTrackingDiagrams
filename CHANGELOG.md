@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.67] - 2026-05-12
+
+### Added
+- **Rule name included in report search data** — The `data-search` attribute on scenario and parameterized group elements now includes the Rule name (when present), allowing users to find scenarios by searching for their Gherkin Rule name in the report search bar.
+
 ## [2.33.66] - 2026-05-12
 
 ### Fixed

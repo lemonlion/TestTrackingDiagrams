@@ -657,4 +657,111 @@ public class SearchDataAttributeTests
         Assert.Empty(ReportGenerator.ExtractDiagramSearchTerms(""));
         Assert.Empty(ReportGenerator.ExtractDiagramSearchTerms(null!));
     }
+
+    [Fact]
+    public void Data_search_includes_rule_name()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Scenario with rule", Result = ExecutionResult.Passed,
+                        Rule = "Business Rule Alpha",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "some context", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        var searchValues = ExtractDataSearchValues(content);
+
+        var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("scenario with rule"));
+        Assert.NotNull(scenarioSearch);
+        Assert.Contains("business rule alpha", scenarioSearch);
+    }
+
+    [Fact]
+    public void Data_search_includes_rule_name_in_parameterized_group()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Param scenario", Result = ExecutionResult.Passed,
+                        Rule = "Parameterized Rule Bravo",
+                        OutlineId = "param-grp",
+                        ExampleValues = new Dictionary<string, string> { ["Val"] = "one" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "a value", Status = ExecutionResult.Passed }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Param scenario", Result = ExecutionResult.Passed,
+                        Rule = "Parameterized Rule Bravo",
+                        OutlineId = "param-grp",
+                        ExampleValues = new Dictionary<string, string> { ["Val"] = "two" },
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "another value", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        var searchValues = ExtractDataSearchValues(content);
+
+        var groupSearch = searchValues.FirstOrDefault(v => v.Contains("param scenario"));
+        Assert.NotNull(groupSearch);
+        Assert.Contains("parameterized rule bravo", groupSearch);
+    }
+
+    [Fact]
+    public void Data_search_excludes_rule_when_null()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F1",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "No rule scenario", Result = ExecutionResult.Passed,
+                        Rule = null,
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "some context", Status = ExecutionResult.Passed }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+        var searchValues = ExtractDataSearchValues(content);
+
+        var scenarioSearch = searchValues.FirstOrDefault(v => v.Contains("no rule scenario"));
+        Assert.NotNull(scenarioSearch);
+        // Should only contain feature name, scenario name, and step text - no "rule" word injected
+        Assert.Equal("f1 no rule scenario some context", scenarioSearch);
+    }
 }
