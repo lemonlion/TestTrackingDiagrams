@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Reqnroll;
+using Reqnroll.Events;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.ReqNRoll;
@@ -29,21 +30,23 @@ public class ReqNRollTrackingHooks
         _scenarioContext[ReqNRollConstants.StepsCollectionKey] = new List<ReqNRollStepInfo>();
         ReqNRollTestContext.CurrentTestInfo = (_scenarioContext.ScenarioInfo.Title, scenarioId);
 
-        // Wrap IReqnrollOutputHelper to capture attachments for the report.
-        // This replaces the plugin-based approach (AttachmentCapturingPlugin) which doesn't work
-        // because ReqNRoll only discovers plugins from DLLs named *.ReqnrollPlugin.dll.
+        // Subscribe to AttachmentAddedEvent to capture attachments for the report.
+        // We use the event system instead of wrapping IReqnrollOutputHelper because
+        // BoDi's RegisterInstanceAs throws if the type has already been resolved,
+        // and swallowing that exception silently caused attachments to never be captured.
         try
         {
-            var outputHelper = _scenarioContext.ScenarioContainer.Resolve<IReqnrollOutputHelper>();
-            if (outputHelper is not AttachmentCapturingOutputHelper)
+            var eventPublisher = _scenarioContext.ScenarioContainer.Resolve<ITestThreadExecutionEventPublisher>();
+            eventPublisher.AddHandler<AttachmentAddedEvent>(evt =>
             {
-                _scenarioContext.ScenarioContainer.RegisterInstanceAs<IReqnrollOutputHelper>(
-                    new AttachmentCapturingOutputHelper(outputHelper));
-            }
+                var testId = ReqNRollTestContext.CurrentTestInfo?.Id;
+                if (testId is not null)
+                    StepCollector.AddAttachment(testId, evt.FilePath, name: null);
+            });
         }
         catch
         {
-            // IReqnrollOutputHelper may not be available in all test runner configurations
+            // Event publisher may not be available in all test runner configurations
         }
     }
 

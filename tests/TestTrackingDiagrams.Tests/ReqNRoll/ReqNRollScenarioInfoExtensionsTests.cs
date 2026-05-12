@@ -375,4 +375,68 @@ public class ReqNRollScenarioInfoExtensionsTests
             StepCollector.ClearSteps(scenarioId);
         }
     }
+
+    // ─── Step-level attachments via StepCollector ──────────
+
+    [Fact]
+    public void ToFeatures_maps_step_level_attachments_from_StepCollector()
+    {
+        var scenarioId = "attachment-step-test-" + Guid.NewGuid();
+
+        StepCollector.StartStep(scenarioId, "Given", "a request", null, null);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        StepCollector.StartStep(scenarioId, "When", "the spec is written to disk", null, null);
+        StepCollector.AddAttachment(scenarioId, "/tmp/openapi.json", null);
+        StepCollector.CompleteStep(scenarioId, true);
+
+        var info = MakeScenario(scenarioId: scenarioId, steps:
+        [
+            new ReqNRollStepInfo("Given", "a request", ScenarioExecutionStatus.OK),
+            new ReqNRollStepInfo("When", "the spec is written to disk", ScenarioExecutionStatus.OK)
+        ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var steps = features[0].Scenarios[0].Steps!;
+
+            Assert.Null(steps[0].Attachments);
+            Assert.NotNull(steps[1].Attachments);
+            Assert.Single(steps[1].Attachments!);
+            Assert.Equal("openapi.json", steps[1].Attachments![0].Name);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(scenarioId);
+        }
+    }
+
+    [Fact]
+    public void ToFeatures_maps_scenario_level_attachments_from_StepCollector()
+    {
+        var scenarioId = "attachment-scenario-test-" + Guid.NewGuid();
+
+        // Add attachment when no step is active → scenario-level
+        StepCollector.AddAttachment(scenarioId, "/tmp/report.pdf", null);
+
+        var info = MakeScenario(scenarioId: scenarioId, steps:
+        [
+            new ReqNRollStepInfo("Given", "a request", ScenarioExecutionStatus.OK)
+        ]);
+
+        try
+        {
+            var features = new[] { info }.ToFeatures();
+            var scenario = features[0].Scenarios[0];
+
+            Assert.NotNull(scenario.Attachments);
+            Assert.Single(scenario.Attachments!);
+            Assert.Equal("report.pdf", scenario.Attachments![0].Name);
+        }
+        finally
+        {
+            StepCollector.ClearSteps(scenarioId);
+        }
+    }
 }

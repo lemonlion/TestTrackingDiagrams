@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.66] - 2026-05-12
+
+### Fixed
+- **ReqNRoll attachments not captured in reports** — Attachments added via `IReqnrollOutputHelper.AddAttachment()` were silently lost because the `BeforeScenario` hook tried to wrap the output helper using BoDi's `RegisterInstanceAs`, which throws when the type has already been resolved (the preceding `Resolve` call marks it as resolved). The exception was swallowed by the catch block. Fixed by subscribing to ReqNRoll's `AttachmentAddedEvent` via `ITestThreadExecutionEventPublisher` instead, which reliably captures attachments using the correct ReqNRoll scenario ID and routes them to the appropriate step or scenario in `StepCollector`.
+
 ## [2.33.65] - 2026-05-11
 
 ### Added
