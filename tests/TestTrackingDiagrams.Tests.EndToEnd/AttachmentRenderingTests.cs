@@ -14,10 +14,11 @@ public class AttachmentRenderingTests : PlaywrightTestBase
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
 
-        var attachmentLink = Page.Locator("a.step-attachment").First;
-        await attachmentLink.WaitForAsync();
-        var text = await attachmentLink.InnerTextAsync();
-        Assert.Equal("screenshot.png", text);
+        // screenshot.png is an image attachment — renders as <img> with caption
+        var img = Page.Locator("img.attachment-image").First;
+        await img.WaitForAsync();
+        var alt = await img.GetAttributeAsync("alt");
+        Assert.Equal("screenshot.png", alt);
     }
 
     [Fact]
@@ -29,7 +30,7 @@ public class AttachmentRenderingTests : PlaywrightTestBase
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
         await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
 
-        var attachmentLink = Page.Locator("a.step-attachment").First;
+        var attachmentLink = Page.Locator("a.attachment-image-link").First;
         await attachmentLink.WaitForAsync();
         var href = await attachmentLink.GetAttributeAsync("href");
         Assert.Equal("files/screenshot.png", href);
@@ -86,5 +87,68 @@ public class AttachmentRenderingTests : PlaywrightTestBase
 
         var text = await attachmentLink.InnerTextAsync();
         Assert.Equal("OpenAPI Spec", text);
+    }
+
+    [Fact]
+    public async Task Image_attachment_renders_inline_img()
+    {
+        await Page.GotoAsync(GenerateReportWithAttachments("AttImg.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+
+        var img = Page.Locator("img.attachment-image").First;
+        await img.WaitForAsync();
+        var alt = await img.GetAttributeAsync("alt");
+        Assert.Equal("screenshot.png", alt);
+    }
+
+    [Fact]
+    public async Task Image_attachment_has_lightbox_link()
+    {
+        await Page.GotoAsync(GenerateReportWithAttachments("AttImgLink.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+
+        var link = Page.Locator("a.attachment-image-link").First;
+        await link.WaitForAsync();
+        var onclick = await link.GetAttributeAsync("onclick");
+        Assert.Contains("openLightbox", onclick!);
+    }
+
+    [Fact]
+    public async Task Non_image_attachment_renders_as_link_not_img()
+    {
+        await Page.GotoAsync(GenerateReportWithAttachments("AttNonImg.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+
+        // Find the scenario with non-image attachments (log.txt, trace.json)
+        var scenario = Page.Locator("details.scenario", new() { HasTextString = "Upload with multiple attachments" });
+        var imgs = scenario.Locator("img.attachment-image");
+        Assert.Equal(0, await imgs.CountAsync());
+
+        var links = scenario.Locator("a.step-attachment");
+        Assert.Equal(2, await links.CountAsync());
+    }
+
+    [Fact]
+    public async Task Image_attachment_shows_filename_caption()
+    {
+        await Page.GotoAsync(GenerateReportWithAttachments("AttImgCaption.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+
+        var caption = Page.Locator("span.attachment-image-name").First;
+        await caption.WaitForAsync();
+        var text = await caption.InnerTextAsync();
+        Assert.Equal("screenshot.png", text);
     }
 }

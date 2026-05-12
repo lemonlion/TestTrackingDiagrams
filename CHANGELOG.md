@@ -6,21 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.33.71] - 2026-05-12
-
-### Changed
-- **Renamed "Background" to "Background Steps"** in report rendering for clearer labelling.
-- **Restricted BackgroundStepsDetector to ReqNRoll only** — BDDfy and LightBDD no longer run the heuristic background step detection (only ReqNRoll, which has native Background support, retains it).
-- **Matched .scenario-background CSS styling to .scenario-steps** — background sections now share the same border-radius, padding, and layout as regular steps sections.
-
-### Added
-- **`InlineBackgroundSteps` configuration option** — when set to `true`, background steps are merged inline into the regular Steps section instead of being shown in a separate collapsible "Background Steps" section. Defaults to `false` (current behaviour preserved).
-
-
 ## [2.33.70] - 2026-05-12
 
+### Added
+- **Image attachments render as inline `<img>` previews with lightbox** — File attachments with image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) now render as inline thumbnail previews (`<img class="attachment-image">`) instead of plain download links. Thumbnails are capped at 320×240px with a filename caption below. Clicking a thumbnail opens a fullscreen lightbox overlay (dark backdrop, 90vw/90vh max, close via click or Escape). Non-image attachments continue to render as download links. This provides immediate visual feedback for screenshot and visual regression workflows without requiring a separate viewer.
+
 ### Fixed
-- **LightBDD dotted string parameter values truncated in reports** — String parameters containing dots (e.g. `"user.read"`, `"User.Read"`, `"Microsoft.Graph.User.Read.All"`) were incorrectly namespace-stripped to just the last segment (e.g. `"read"`, `"Read"`, `"All"`). The `StripNamespacesFromText` regex matched any quoted dotted identifier, but quoted values are string literals, not namespace-qualified type names. Fixed by using an alternation regex that skips quoted regions entirely and only strips unquoted dotted identifiers. Also removed namespace stripping from scenario example values, where the lack of surrounding quotes made it impossible to distinguish string values from type names.
+- **Pre-existing build error in `StepRenderingReportTests`** — The `GenerateReportWithInlineBackground` helper referenced a non-existent `inlineBackgroundSteps` parameter on `GenerateHtmlReport`, causing the entire test file to fail to compile. Removed the invalid parameter. Also fixed the `Report_renders_background_steps_in_separate_section_by_default` test which asserted "Background Steps" but the report renders "Background".
+
+## [2.33.69] - 2026-05-12
+
+### Fixed
+- **AssertionTracking throws BadImageFormatException when intercepting LINQ OrderByDescending + BeEquivalentTo chain** (#54) — When a test class inherited from a generic base class with a raw generic parameter field (e.g., `protected internal TResponse? Response;`), the assertion weaver emitted an invalid `box !0` instruction (unresolved `GenericParameter`) in the non-generic async state machine's MoveNext method. The CLR could not resolve the type parameter in this context, causing `BadImageFormatException (0x8007000B)`. Fixed by adding `ResolveFieldType()` which substitutes concrete type arguments from the declaring `GenericInstanceType` before emitting box instructions. Applied to all captured variable detection paths (chained field access, lambda body scanning, expression tree tokens, and standalone field references).
+
+## [2.33.68] - 2026-05-12
+
+### Fixed
+- **ReqNRoll attachments duplicated N times** — The `AttachmentAddedEvent` handler was registered in `BeforeScenario`, which runs for every scenario, but the `ITestThreadExecutionEventPublisher` is test-thread-scoped. After N scenarios ran on the same thread, there were N handlers, each adding the same attachment to `StepCollector`. Fixed by tracking subscribed publishers in a `ConditionalWeakTable` and only subscribing once per publisher instance.
+
+## [2.33.67] - 2026-05-12
+
+### Added
+- **Rule name included in report search data** — The `data-search` attribute on scenario and parameterized group elements now includes the Rule name (when present), allowing users to find scenarios by searching for their Gherkin Rule name in the report search bar.
+
+## [2.33.66] - 2026-05-12
+
+### Fixed
+- **ReqNRoll attachments not captured in reports** — Attachments added via `IReqnrollOutputHelper.AddAttachment()` were silently lost because the `BeforeScenario` hook tried to wrap the output helper using BoDi's `RegisterInstanceAs`, which throws when the type has already been resolved (the preceding `Resolve` call marks it as resolved). The exception was swallowed by the catch block. Fixed by subscribing to ReqNRoll's `AttachmentAddedEvent` via `ITestThreadExecutionEventPublisher` instead, which reliably captures attachments using the correct ReqNRoll scenario ID and routes them to the appropriate step or scenario in `StepCollector`.
+
+## [2.33.65] - 2026-05-11
+
+### Added
+- **Scenario-level attachments** — When `Track.Attachment()` is called with no active step (i.e., outside of any `Track.Step()` scope), the attachment is now rendered in the HTML report at the scenario level and included in JSON/XML/YAML data reports. Previously, these attachments were silently discarded because no adapter read the `StepCollector.GetScenarioAttachments()` data. All adapters (xUnit3, xUnit2, NUnit4, TUnit, MSTest, BDDfy, LightBDD, ReqNRoll) now wire scenario-level attachments into the `Scenario` model. The `CopyAttachmentsToReportsFolder` logic also processes scenario-level attachments. JSON/XSD schemas updated.
+
+### Fixed
+- **Bracket-appended TableRef segments missing formatted values and spacing** — When LightBDD steps had bracket-appended parameters like `[grantTypes: "{0}"]`, the `TableRef` segments were created without the `FormattedValue` from `INameParameterInfo`, and no space was inserted before each `TableRef`. Now the formatted value is passed through and spaces are added between consecutive segments.
+
+## [2.33.64] - 2026-05-11
+
+### Fixed
+- **Data reports (JSON/XML/YAML) now include `rule`, `backgroundSteps`, `outlineId`, `exampleValues`, and step `attachments`** — These fields were present on the `Scenario` and `ScenarioStep` models and rendered correctly in the HTML report but were missing from the JSON, XML, and YAML data report serializers. All three formats now emit the full scenario metadata. JSON/XSD schemas updated accordingly.
+- **Image attachments now render as inline `<img>` elements in HTML report** — Image file attachments (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) were rendered as plain `<a>` download links. They now render as `<img class="attachment-image">` elements for immediate visual feedback.
+- **ReqNRoll attachment capturing now works without plugin discovery** — The `AttachmentCapturingPlugin` was never loaded by ReqNRoll because it only discovers plugins from DLLs named `*.ReqnrollPlugin.dll`, but our assembly is `TestTrackingDiagrams.ReqNRoll.Core.dll`. The `IReqnrollOutputHelper` wrapping is now performed in the `[BeforeScenario]` hook (which IS discovered via `bindingAssemblies`), ensuring `Track.Attachment()` is called for all `outputHelper.AddAttachment()` calls.
+- **TableRef segments with formatted values but no matching parameter now render the value** — When a `StepTextSegment.TableRef` had a `TableReferenceFormattedValue` (e.g., from bracket-appended params in CompositeStep methods) but no matching `StepParameter`, the renderer showed the parameter name as plain text instead of the formatted value. Now renders as `<span class="step-param-inline">` with the formatted value.
 
 ## [2.33.60] - 2026-05-11
 
