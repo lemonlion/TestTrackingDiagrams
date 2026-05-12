@@ -123,6 +123,21 @@ public static class TestAssemblyBuilder
             catch { /* skip unresolvable */ }
         }
 
+        // AwesomeAssertions (fork of FluentAssertions, uses different namespace)
+        var aaAssembly = typeof(AwesomeAssertions.AssertionExtensions).Assembly;
+        refs.Add(aaAssembly.Location);
+
+        foreach (var referencedAssembly in aaAssembly.GetReferencedAssemblies())
+        {
+            try
+            {
+                var loaded = Assembly.Load(referencedAssembly);
+                if (!string.IsNullOrEmpty(loaded.Location))
+                    refs.Add(loaded.Location);
+            }
+            catch { /* skip unresolvable */ }
+        }
+
         // TestTrackingDiagrams (for Track type and attributes)
         var ttdAssembly = typeof(TestTrackingDiagrams.Tracking.Track).Assembly;
         refs.Add(ttdAssembly.Location);

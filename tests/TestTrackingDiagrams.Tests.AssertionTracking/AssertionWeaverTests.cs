@@ -2695,4 +2695,327 @@ public class AssertionWeaverTests
         var ex = Record.Exception(() => method.Invoke(instance, new object[] { "host", "localhost" }));
         ex.Should().BeNull($"lock-then-assertion with lambda should not throw in {optimization} mode");
     }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_LinqOrderByDescending_BeEquivalentTo_DoesNotThrowBadImageFormat(
+        OptimizationLevel optimization)
+    {
+        // Issue #54: OrderByDescending() on IEnumerable<T> followed by .Should().BeEquivalentTo()
+        // produces IOrderedEnumerable<T> which causes BadImageFormatException when the weaver
+        // wraps the assertion in try/catch. Uses FluentAssertions.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"LinqOrderByDescending_{optimization}",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record ListResponseData
+            {
+                public Guid? DeviceId { get; set; }
+                public DateTime? BoundDate { get; set; }
+                public DateTime? ExpiryDate { get; set; }
+                public string? Description { get; set; }
+            }
+
+            public class ApiResponse<T>
+            {
+                public T? Data { get; set; }
+            }
+
+            public class Tests
+            {
+                private ApiResponse<IEnumerable<ListResponseData>>? Response;
+
+                public Tests()
+                {
+                    Response = new ApiResponse<IEnumerable<ListResponseData>>
+                    {
+                        Data = new[]
+                        {
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
+                        }
+                    };
+                }
+
+                public async Task The_response_data_should_be_an_ordered_array()
+                {
+                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        // Load and execute — should NOT throw BadImageFormatException
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"LinqOrderBy_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with OrderByDescending + BeEquivalentTo " +
+            "should not throw BadImageFormatException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_AwesomeAssertions_LinqOrderByDescending_DoesNotThrowBadImageFormat(
+        OptimizationLevel optimization)
+    {
+        // Issue #54: Same pattern but with AwesomeAssertions (the library actually reported).
+        // AwesomeAssertions uses a different namespace and assembly than FluentAssertions.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AALinqOrderBy_{optimization}",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using AwesomeAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record ListResponseData
+            {
+                public Guid? DeviceId { get; set; }
+                public DateTime? BoundDate { get; set; }
+                public DateTime? ExpiryDate { get; set; }
+                public string? Description { get; set; }
+            }
+
+            public class ApiResponse<T>
+            {
+                public T? Data { get; set; }
+            }
+
+            public class Tests
+            {
+                private ApiResponse<IEnumerable<ListResponseData>>? Response;
+
+                public Tests()
+                {
+                    Response = new ApiResponse<IEnumerable<ListResponseData>>
+                    {
+                        Data = new[]
+                        {
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
+                        }
+                    };
+                }
+
+                public async Task The_response_data_should_be_an_ordered_array()
+                {
+                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"AALinqOrderBy_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with AwesomeAssertions OrderByDescending + BeEquivalentTo " +
+            "should not throw BadImageFormatException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_LinqChainOnProperty_BeEquivalentTo_DoesNotThrowBadImageFormat(
+        OptimizationLevel optimization)
+    {
+        // Issue #54 variant: LINQ chain on a property with null-forgiving, plus the same
+        // property is also passed as argument to BeEquivalentTo. Tests with base class
+        // property access (matching real project pattern where Response is inherited).
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"LinqChainProperty_{optimization}",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using AwesomeAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record ListResponseData
+            {
+                public Guid? DeviceId { get; set; }
+                public DateTime? BoundDate { get; set; }
+                public DateTime? ExpiryDate { get; set; }
+                public string? Description { get; set; }
+            }
+
+            public class ApiResponse<T>
+            {
+                public T? Data { get; set; }
+            }
+
+            public abstract class BaseSteps<TReq, TResp>
+            {
+                protected ApiResponse<TResp>? Response { get; set; }
+            }
+
+            public class ListSteps : BaseSteps<object, IEnumerable<ListResponseData>>
+            {
+                public ListSteps()
+                {
+                    Response = new ApiResponse<IEnumerable<ListResponseData>>
+                    {
+                        Data = new[]
+                        {
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
+                        }
+                    };
+                }
+
+                public async Task The_response_data_should_be_an_ordered_array()
+                {
+                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("ListSteps")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"LinqChainProp_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}: OrderByDescending + BeEquivalentTo on inherited Response " +
+            "should not throw BadImageFormatException");
+    }
+
+    [Theory]
+    [InlineData("Release")]
+    public void Weave_Sdk8_AwesomeAssertions_LinqOrderByDescending_DoesNotThrowBadImageFormat(
+        string configuration)
+    {
+        // Issue #54: Test with .NET 8 SDK compiler + AwesomeAssertions (matching the exact
+        // reported environment). Uses class inheritance with raw generic field Response
+        // (not a property!). The field type is a raw GenericParameter (!0) which caused
+        // the weaver to emit 'box !0' in the non-generic state machine → BadImageFormatException.
+        var assemblyPath = TestAssemblyBuilder.BuildWithSdk(
+            $"Sdk8AALinqOrderBy_{configuration}",
+            """
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using AwesomeAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public record ListResponseData
+            {
+                public Guid? DeviceId { get; set; }
+                public DateTime? BoundDate { get; set; }
+                public DateTime? ExpiryDate { get; set; }
+                public string? Description { get; set; }
+            }
+
+            public class ApiResponse<T>
+            {
+                public T? Data { get; set; }
+            }
+
+            // Key: Response is a raw FIELD typed as the generic parameter TResponse,
+            // not a property with backing field typed as ApiResponse<TResp>.
+            public abstract class BaseEndpoint<TResponse> where TResponse : class
+            {
+                protected internal TResponse? Response;
+            }
+
+            #pragma warning disable CS1998
+            public class ListSteps : BaseEndpoint<ApiResponse<IEnumerable<ListResponseData>>>
+            {
+                public ListSteps()
+                {
+                    Response = new ApiResponse<IEnumerable<ListResponseData>>
+                    {
+                        Data = new[]
+                        {
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
+                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
+                        }
+                    };
+                }
+
+                public async Task The_response_data_should_be_an_ordered_array()
+                {
+                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
+                }
+            }
+            """,
+            sdkVersion: "8.0.420",
+            tfm: "net8.0",
+            configuration: configuration);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        result.WeavedCount.Should().Be(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("ListSteps")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"Sdk8AALinqOrderBy_{configuration}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"SDK 8 {configuration}: AwesomeAssertions OrderByDescending + BeEquivalentTo " +
+            "should not throw BadImageFormatException");
+    }
 }

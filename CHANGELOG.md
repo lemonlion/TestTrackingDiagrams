@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.69] - 2026-05-12
+
+### Fixed
+- **AssertionTracking throws BadImageFormatException when intercepting LINQ OrderByDescending + BeEquivalentTo chain** (#54) — When a test class inherited from a generic base class with a raw generic parameter field (e.g., `protected internal TResponse? Response;`), the assertion weaver emitted an invalid `box !0` instruction (unresolved `GenericParameter`) in the non-generic async state machine's MoveNext method. The CLR could not resolve the type parameter in this context, causing `BadImageFormatException (0x8007000B)`. Fixed by adding `ResolveFieldType()` which substitutes concrete type arguments from the declaring `GenericInstanceType` before emitting box instructions. Applied to all captured variable detection paths (chained field access, lambda body scanning, expression tree tokens, and standalone field references).
+
 ## [2.33.68] - 2026-05-12
 
 ### Fixed
