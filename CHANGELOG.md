@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.71] - 2026-05-12
+
+### Fixed
+- **Background steps detector false positives for scenarios starting with And/When** — The heuristic that detects Gherkin Background sections by finding common step prefixes across scenarios now skips extraction when any scenario in the group starts with an "And" or "When" keyword. These keywords indicate the steps are not background "Given" steps, preventing incorrect background extraction.
+
 ## [2.33.70] - 2026-05-12
 
 ### Added

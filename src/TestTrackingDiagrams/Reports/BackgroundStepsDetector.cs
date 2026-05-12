@@ -25,6 +25,11 @@ public static class BackgroundStepsDetector
             if (members.Length < 2)
                 continue;
 
+            // If any scenario starts with "And" or "When", the shared prefix is not
+            // a Gherkin Background – skip extraction for this group.
+            if (members.Any(s => s.Steps![0].Keyword is "And" or "When"))
+                continue;
+
             var commonPrefixLength = FindCommonPrefixLength(members);
             if (commonPrefixLength == 0)
                 continue;

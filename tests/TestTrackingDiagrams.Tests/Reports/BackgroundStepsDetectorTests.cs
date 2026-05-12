@@ -249,4 +249,71 @@ public class BackgroundStepsDetectorTests
 
         Assert.Null(scenarios[0].BackgroundSteps);
     }
+
+    // ── Scenarios starting with And/When skip background detection ──
+
+    [Fact]
+    public void Scenarios_starting_with_And_do_not_extract_background()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("And", "something shared"), ("And", "do X"), ("Then", "Y happens")),
+            MakeScenario("s2", ("And", "something shared"), ("And", "do Z"), ("Then", "W happens"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(3, scenarios[0].Steps!.Length);
+    }
+
+    [Fact]
+    public void Scenarios_starting_with_When_do_not_extract_background()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("When", "I do shared action"), ("Then", "X happens")),
+            MakeScenario("s2", ("When", "I do shared action"), ("Then", "Y happens"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(2, scenarios[0].Steps!.Length);
+    }
+
+    [Fact]
+    public void One_scenario_starting_with_When_among_Given_starters_skips_background()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "shared setup"), ("When", "do X"), ("Then", "Y")),
+            MakeScenario("s2", ("Given", "shared setup"), ("When", "do Z"), ("Then", "W")),
+            MakeScenario("s3", ("When", "shared setup"), ("Then", "Q"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Null(scenarios[2].BackgroundSteps);
+    }
+
+    [Fact]
+    public void Scenario_starting_with_Given_still_extracts_background()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "shared"), ("When", "X"), ("Then", "Y")),
+            MakeScenario("s2", ("Given", "shared"), ("When", "Z"), ("Then", "W"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.NotNull(scenarios[0].BackgroundSteps);
+        Assert.Single(scenarios[0].BackgroundSteps!);
+        Assert.Equal("shared", scenarios[0].BackgroundSteps![0].Text);
+    }
 }
