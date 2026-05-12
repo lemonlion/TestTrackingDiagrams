@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.72] - 2026-05-12
+
+### Fixed
+- **Step-param-table columns incorrectly highlighted blue in parameterized scenarios** — When a `step-param-table` (DataTable step argument) had a column name matching an outline parameter name (e.g., both named "Name"), the `highlightColumns` JavaScript would apply `col-highlight` styling (blue background) to that column. Fixed by scoping column highlighting to `.step-param-combined-table` only, since individual DataTable step arguments are independent of the examples table parameters. Also moved the `col-highlight` CSS rule to target `.step-param-combined-table` instead of `.step-param-table`.
+
 ## [2.33.71] - 2026-05-12
 
 ### Fixed

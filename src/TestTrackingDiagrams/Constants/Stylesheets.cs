@@ -925,7 +925,6 @@ public class Stylesheets
                     border-radius: 3px;
                     font-family: monospace;
                     font-size: 0.9em;
-                    margin-left: 4px;
                 }
                 .param-success { background: #d4edda; }
                 .param-failure { background: #f8d7da; }
@@ -963,7 +962,7 @@ public class Stylesheets
                     font-weight: bold;
                     text-decoration: underline;
                 }
-                .step-param-table th.col-highlight, .step-param-table td.col-highlight {
+                .step-param-combined-table th.col-highlight, .step-param-combined-table td.col-highlight {
                     background-color: #e8f4fd;
                     border-color: #90caf9;
                 }

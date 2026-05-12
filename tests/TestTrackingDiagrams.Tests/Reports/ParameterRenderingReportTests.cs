@@ -976,4 +976,84 @@ public class ParameterRenderingReportTests
         Assert.DoesNotContain("<pre></pre>", content);
         Assert.DoesNotContain("<pre> </pre>", content);
     }
+
+    [Fact]
+    public void Parameterized_scenario_step_param_table_should_not_be_targeted_by_column_highlighting()
+    {
+        // When a step-param-table column name matches an outline parameter name
+        // (e.g., both have "Name"), the highlightColumns JS should NOT apply col-highlight
+        // to that column. The highlighting is only intended for the examples table columns,
+        // not for independent DataTable step arguments.
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Place order",
+                        OutlineId = "Place order",
+                        ExampleValues = new Dictionary<string, string> { ["Name"] = "Alice", ["Amount"] = "10" },
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "a user",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "table",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Name", false), new TabularColumn("Email", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("Alice", null, VerificationStatus.NotApplicable),
+                                                 new TabularCell("alice@test.com", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "placing an order" },
+                            new ScenarioStep { Keyword = "Then", Text = "order confirmed" }
+                        ]
+                    },
+                    new Scenario
+                    {
+                        Id = "s2", DisplayName = "Place order",
+                        OutlineId = "Place order",
+                        ExampleValues = new Dictionary<string, string> { ["Name"] = "Bob", ["Amount"] = "5" },
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "a user",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "table",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Name", false), new TabularColumn("Email", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("Bob", null, VerificationStatus.NotApplicable),
+                                                 new TabularCell("bob@test.com", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "placing an order" },
+                            new ScenarioStep { Keyword = "Then", Text = "order confirmed" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // The highlightColumns JS should NOT iterate over .step-param-table elements
+        Assert.DoesNotContain("'.step-param-table'", content);
+    }
 }

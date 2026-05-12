@@ -935,7 +935,7 @@ public static class ReportGenerator
                                             paramCols.push(th.textContent.trim());
                                         });
                                     }
-                                    activePanel.querySelectorAll('.step-param-table').forEach(function(spt) {
+                                    activePanel.querySelectorAll('.step-param-combined-table').forEach(function(spt) {
                                         var tbl = spt.querySelector('table');
                                         if (!tbl) return;
                                         var ths = tbl.querySelectorAll('thead th');
