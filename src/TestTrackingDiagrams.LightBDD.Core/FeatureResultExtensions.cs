@@ -70,10 +70,6 @@ internal static class FeatureResultExtensions
 
             // Try to look up captured raw parameter values (before stripping, values are used as keys)
             exampleRawValues = TryGetCapturedRawValues(nameParams, exampleValues);
-
-            // Strip namespaces from extracted parameter values
-            foreach (var key in exampleValues.Keys.ToArray())
-                exampleValues[key] = StripNamespacesFromText(exampleValues[key]);
         }
         else
         {
@@ -530,12 +526,18 @@ internal static class FeatureResultExtensions
         return null;
     }
 
+    // Matches either a quoted string (to skip it) or an unquoted dotted identifier (group 2 = last segment)
+    private static readonly Regex NamespaceStripPattern = new(
+        @"""[^""]*""|((?:[A-Za-z_]\w*\.)+)([A-Za-z_]\w*)",
+        RegexOptions.Compiled);
+
     private static string StripNamespacesFromText(string text)
     {
-        // Replace quoted fully-qualified type names like "Namespace.Sub.TypeName" with just "TypeName"
-        return System.Text.RegularExpressions.Regex.Replace(
-            text,
-            @"""([A-Za-z_]\w*\.)+([A-Za-z_]\w*)""",
-            @"""$2""");
+        // Strip namespace prefixes from unquoted fully-qualified type names
+        // (e.g. System.Net.HttpStatusCode → HttpStatusCode).
+        // Quoted dotted strings (e.g. "user.read", "User.Read") are string parameter values
+        // and must be preserved — the alternation matches quoted regions first and echoes them back.
+        return NamespaceStripPattern.Replace(text, m =>
+            m.Groups[2].Success ? m.Groups[2].Value : m.Value);
     }
 }

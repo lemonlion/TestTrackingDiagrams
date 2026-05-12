@@ -575,6 +575,100 @@ public class FeatureResultExtensionsTests
         }
     }
 
+    [Theory]
+    [InlineData("user.read")]
+    [InlineData("User.Read")]
+    [InlineData("api.user.read")]
+    [InlineData("Microsoft.Graph.User.Read.All")]
+    [InlineData("System.Net.HttpStatusCode")]
+    public void MapStep_preserves_quoted_dotted_string_values(string paramValue)
+    {
+        // Quoted dotted values are string literals — they must NEVER be namespace-stripped
+        var stepResult = new StubStepResult("Given",
+            $"Given the client has scopes of \"{paramValue}\"",
+            ExecutionStatus.Passed);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.Contains(paramValue, step.Text);
+    }
+
+    [Fact]
+    public void MapStep_strips_unquoted_namespace_qualified_names()
+    {
+        // Unquoted namespace-qualified type names should be stripped to the simple name
+        var stepResult = new StubStepResult("Then",
+            "the status is System.Net.HttpStatusCode",
+            ExecutionStatus.Passed);
+        var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var step = features[0].Scenarios[0].Steps![0];
+
+        Assert.Equal("the status is HttpStatusCode", step.Text);
+    }
+
+    [Fact]
+    public void MapScenario_preserves_namespace_qualified_example_values()
+    {
+        // Example values can't distinguish type names from dotted strings,
+        // so all dotted values are preserved (no namespace stripping)
+        var scenario = new StubExecutionResult("s1",
+            "The status is \"{0}\"",
+            [new StubNameParam("System.Net.HttpStatusCode")]);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        Assert.NotNull(s.ExampleValues);
+        Assert.Contains(s.ExampleValues!, kv => kv.Value == "System.Net.HttpStatusCode");
+    }
+
+    [Theory]
+    [InlineData("User.Read")]
+    [InlineData("user.read")]
+    [InlineData("api.user.read")]
+    [InlineData("Microsoft.Graph.User.Read.All")]
+    public void MapScenario_preserves_dotted_display_name_in_quotes(string paramValue)
+    {
+        // The scenario display name includes the parameter in quotes.
+        // Quoted dotted strings must be preserved.
+        var scenario = new StubExecutionResult("s1",
+            "The client has scopes \"{0}\"",
+            [new StubNameParam(paramValue)]);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        Assert.Contains(paramValue, s.DisplayName);
+    }
+
+    [Theory]
+    [InlineData("User.Read")]
+    [InlineData("user.read")]
+    [InlineData("api.user.read")]
+    [InlineData("Microsoft.Graph.User.Read.All")]
+    public void MapScenario_preserves_dotted_example_values(string paramValue)
+    {
+        // Example values extracted from FormattedValue must preserve dotted strings
+        var scenario = new StubExecutionResult("s1",
+            "The client has scopes \"{0}\"",
+            [new StubNameParam(paramValue)]);
+        var feature = new StubFeatureResult("F").WithScenario(scenario);
+
+        var features = new[] { feature }.ToFeatures();
+        var s = features[0].Scenarios[0];
+
+        Assert.NotNull(s.ExampleValues);
+        Assert.Contains(s.ExampleValues!, kv => kv.Value == paramValue);
+    }
+
     // ── Stub implementations ──
 
     private class StubFeatureResult : IFeatureResult
