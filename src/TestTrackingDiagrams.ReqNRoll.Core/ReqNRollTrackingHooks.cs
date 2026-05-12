@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Reqnroll;
 using Reqnroll.Events;
 using TestTrackingDiagrams.Tracking;
@@ -14,6 +15,12 @@ public class ReqNRollTrackingHooks
     private readonly ScenarioContext _scenarioContext;
     private readonly FeatureContext _featureContext;
     private Stopwatch? _stopwatch;
+
+    // Track which event publishers we've already subscribed to, so we only subscribe
+    // once per test-thread publisher. Without this, BeforeScenario would add a new
+    // handler on every scenario, causing attachments to be duplicated N times
+    // (where N is the number of scenarios that have run on that thread).
+    private static readonly ConditionalWeakTable<ITestThreadExecutionEventPublisher, object> SubscribedPublishers = new();
 
     public ReqNRollTrackingHooks(ScenarioContext scenarioContext, FeatureContext featureContext)
     {
@@ -34,15 +41,21 @@ public class ReqNRollTrackingHooks
         // We use the event system instead of wrapping IReqnrollOutputHelper because
         // BoDi's RegisterInstanceAs throws if the type has already been resolved,
         // and swallowing that exception silently caused attachments to never be captured.
+        // Only subscribe once per test-thread publisher to avoid duplicate attachments.
         try
         {
             var eventPublisher = _scenarioContext.ScenarioContainer.Resolve<ITestThreadExecutionEventPublisher>();
-            eventPublisher.AddHandler<AttachmentAddedEvent>(evt =>
+            var alreadySubscribed = true;
+            SubscribedPublishers.GetValue(eventPublisher, _ => { alreadySubscribed = false; return new object(); });
+            if (!alreadySubscribed)
             {
-                var testId = ReqNRollTestContext.CurrentTestInfo?.Id;
-                if (testId is not null)
-                    StepCollector.AddAttachment(testId, evt.FilePath, name: null);
-            });
+                eventPublisher.AddHandler<AttachmentAddedEvent>(evt =>
+                {
+                    var testId = ReqNRollTestContext.CurrentTestInfo?.Id;
+                    if (testId is not null)
+                        StepCollector.AddAttachment(testId, evt.FilePath, name: null);
+                });
+            }
         }
         catch
         {

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.68] - 2026-05-12
+
+### Fixed
+- **ReqNRoll attachments duplicated N times** — The `AttachmentAddedEvent` handler was registered in `BeforeScenario`, which runs for every scenario, but the `ITestThreadExecutionEventPublisher` is test-thread-scoped. After N scenarios ran on the same thread, there were N handlers, each adding the same attachment to `StepCollector`. Fixed by tracking subscribed publishers in a `ConditionalWeakTable` and only subscribing once per publisher instance.
+
 ## [2.33.67] - 2026-05-12
 
 ### Added
