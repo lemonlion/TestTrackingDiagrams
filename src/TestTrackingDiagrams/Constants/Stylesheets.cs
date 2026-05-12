@@ -603,14 +603,16 @@ public class Stylesheets
                     outline-offset: 2px;
                 }
 
-                .scenario-steps {
+                .scenario-steps,
+                .scenario-background {
                     margin: 0.5em 0 1em 0;
                     border-radius: 1em;
                     border: 1px solid;
                     border-color: rgb(224, 224, 224);
                 }
 
-                .scenario-steps > summary {
+                .scenario-steps > summary,
+                .scenario-background > summary {
                     cursor: pointer;
                     padding: 1em;
                     background-color: white;
@@ -618,13 +620,17 @@ public class Stylesheets
                 }
 
                 .scenario-steps > .step,
-                .scenario-steps > .step-collapsible {
+                .scenario-steps > .step-collapsible,
+                .scenario-background > .step,
+                .scenario-background > .step-collapsible {
                     margin-left: 1em;
                     margin-right: 1em;
                 }
 
                 .scenario-steps > .step:last-child,
-                .scenario-steps > .step-collapsible:last-child {
+                .scenario-steps > .step-collapsible:last-child,
+                .scenario-background > .step:last-child,
+                .scenario-background > .step-collapsible:last-child {
                     margin-bottom: 1em;
                 }
 

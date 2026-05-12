@@ -78,8 +78,6 @@ internal static class ScenarioInfoExtensions
                             };
                         }).ToArray());
 
-                BackgroundStepsDetector.DetectAndExtract(scenarios);
-
                 return new Feature
                 {
                     DisplayName = featureGroup.Key.Titleize(),

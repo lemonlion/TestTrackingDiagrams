@@ -188,6 +188,9 @@ public record ReportConfigurationOptions
     /// <summary>When <c>true</c>, enables diagnostic logging for troubleshooting report generation.</summary>
     public bool DiagnosticMode { get; set; }
 
+    /// <summary>When <c>true</c>, background steps are rendered inline with the scenario steps instead of in a separate collapsible section.</summary>
+    public bool InlineBackgroundSteps { get; set; }
+
     /// <summary>When <c>true</c>, parameterized tests are grouped into a single collapsible table. Default: <c>true</c>.</summary>
     public bool GroupParameterizedTests { get; set; } = true;
 

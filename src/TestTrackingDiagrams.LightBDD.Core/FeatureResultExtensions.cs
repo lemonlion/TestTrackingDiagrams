@@ -32,8 +32,6 @@ internal static class FeatureResultExtensions
                         .Select(MapScenario)
                         .ToArray();
 
-                    BackgroundStepsDetector.DetectAndExtract(scenarios);
-
                     return new Feature
                 {
                     DisplayName = f.Info.Name.ToString().Titleize(),

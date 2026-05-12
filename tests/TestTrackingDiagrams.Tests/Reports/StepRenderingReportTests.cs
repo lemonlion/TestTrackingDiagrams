@@ -23,6 +23,17 @@ public class StepRenderingReportTests
         return File.ReadAllText(path);
     }
 
+    private static string GenerateReportWithInlineBackground(Feature[] features, string fileName)
+    {
+        var path = ReportGenerator.GenerateHtmlReport(
+            [], features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, fileName, "Test", true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs,
+            inlineBackgroundSteps: true);
+        return File.ReadAllText(path);
+    }
+
     [Fact]
     public void Report_renders_steps_when_present()
     {
@@ -93,7 +104,7 @@ public class StepRenderingReportTests
         };
         var content = GenerateReport(MakeFeatures(scenario), "StepNoBorder.html");
         // The .scenario-steps CSS should not include a border-left
-        var cssStart = content.IndexOf(".scenario-steps {");
+        var cssStart = content.IndexOf(".scenario-steps,");
         Assert.True(cssStart >= 0, ".scenario-steps CSS class should exist");
         var cssEnd = content.IndexOf("}", cssStart);
         var cssBlock = content[cssStart..cssEnd];
@@ -587,7 +598,7 @@ public class StepRenderingReportTests
             Steps = [new ScenarioStep { Keyword = "Given", Text = "something" }]
         };
         var content = GenerateReport(MakeFeatures(scenario), "StepBorder.html");
-        var cssStart = content.IndexOf(".scenario-steps {");
+        var cssStart = content.IndexOf(".scenario-steps,");
         Assert.True(cssStart >= 0, ".scenario-steps CSS class should exist");
         var cssEnd = content.IndexOf("}", cssStart);
         var cssBlock = content[cssStart..cssEnd];
@@ -807,5 +818,65 @@ public class StepRenderingReportTests
         Assert.DoesNotContain("<img", content);
         Assert.Contains("step-attachment", content);
         Assert.Contains("output.txt", content);
+    }
+
+    [Fact]
+    public void Report_renders_background_steps_in_separate_section_by_default()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            BackgroundSteps = [new ScenarioStep { Keyword = "Given", Text = "the system is running" }],
+            Steps = [new ScenarioStep { Keyword = "When", Text = "something happens" }]
+        };
+        var content = GenerateReport(MakeFeatures(scenario), "BgSeparate.html");
+        Assert.Contains("<details class=\"scenario-background\">", content);
+        Assert.Contains("<summary class=\"h4\">Background Steps</summary>", content);
+    }
+
+    [Fact]
+    public void Report_inlines_background_steps_when_option_enabled()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            BackgroundSteps = [new ScenarioStep { Keyword = "Given", Text = "the system is running" }],
+            Steps = [new ScenarioStep { Keyword = "When", Text = "something happens" }]
+        };
+        var content = GenerateReportWithInlineBackground(MakeFeatures(scenario), "BgInline.html");
+        Assert.DoesNotContain("<details class=\"scenario-background\">", content);
+        Assert.Contains("the system is running", content);
+        Assert.Contains("something happens", content);
+    }
+
+    [Fact]
+    public void Report_inline_background_steps_are_rendered_before_regular_steps()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            BackgroundSteps = [new ScenarioStep { Keyword = "Given", Text = "bg step" }],
+            Steps = [new ScenarioStep { Keyword = "When", Text = "regular step" }]
+        };
+        var content = GenerateReportWithInlineBackground(MakeFeatures(scenario), "BgInlineOrder.html");
+        var stepsSection = content[content.IndexOf("<details class=\"scenario-steps\"")..];
+        var bgPos = stepsSection.IndexOf("bg step");
+        var stepPos = stepsSection.IndexOf("regular step");
+        Assert.True(bgPos < stepPos, "Background steps should appear before regular steps");
+    }
+
+    [Fact]
+    public void Report_inline_background_steps_renders_steps_section_with_only_background()
+    {
+        var scenario = new Scenario
+        {
+            Id = "s1", DisplayName = "Test",
+            BackgroundSteps = [new ScenarioStep { Keyword = "Given", Text = "bg only" }],
+            Steps = null
+        };
+        var content = GenerateReportWithInlineBackground(MakeFeatures(scenario), "BgInlineOnly.html");
+        Assert.Contains("<details class=\"scenario-steps\"", content);
+        Assert.Contains("bg only", content);
+        Assert.DoesNotContain("<details class=\"scenario-background\">", content);
     }
 }

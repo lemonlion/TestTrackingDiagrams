@@ -163,12 +163,12 @@ public static class ReportGenerator
 
         if (options.GenerateSpecificationsReport)
         {
-            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames));
+            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, options.HtmlSpecificationsCustomStyleSheet, $"{options.HtmlSpecificationsFileName}.html", options.SpecificationsTitle, false, generateBlankOnFailedTests: true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, showStepNumbers: options.SpecificationsShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, inlineBackgroundSteps: options.InlineBackgroundSteps));
         }
 
         if (options.GenerateTestRunReport)
         {
-            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, componentDiagramPlantUml: ShouldEmbedComponentDiagram(options) ? componentDiagramPlantUml : null));
+            actions.Add(() => GenerateHtmlReport(diagrams, features, startRunTime, endRunTime, null, $"{options.HtmlTestRunReportFileName}.html", GetTestRunReportTitle(options), true, lazyLoadImages: options.LazyLoadDiagramImages, diagramFormat: options.DiagramFormat, plantUmlRendering: options.PlantUmlRendering, inlineSvgRendering: options.InlineSvgRendering, internalFlowTracking: options.InternalFlowTracking, internalFlowDataScript: internalFlowDataScript, wholeTestSegments: wholeTestSegments, trackedLogs: trackedLogs, wholeTestVisualization: options.WholeTestFlowVisualization, ciMetadata: ciMetadata, showStepNumbers: options.TestRunReportShowStepNumbers, customCss: options.CustomCss, customFaviconBase64: options.CustomFaviconBase64, customLogoHtml: options.CustomLogoHtml, groupParameterizedTests: options.GroupParameterizedTests, maxParameterColumns: options.MaxParameterColumns, titleizeParameterNames: options.TitleizeParameterNames, componentDiagramPlantUml: ShouldEmbedComponentDiagram(options) ? componentDiagramPlantUml : null, inlineBackgroundSteps: options.InlineBackgroundSteps));
         }
 
         if (options.GenerateSpecificationsData)
@@ -270,7 +270,8 @@ public static class ReportGenerator
         bool groupParameterizedTests = true,
         int maxParameterColumns = 10,
         bool titleizeParameterNames = true,
-        string? componentDiagramPlantUml = null)
+        string? componentDiagramPlantUml = null,
+        bool inlineBackgroundSteps = false)
     {
         if (generateBlankOnFailedTests && features.Any(x => x.Scenarios.Any(y => y.Result == ExecutionResult.Failed)))
             return WriteFile(string.Empty, fileName);
@@ -1902,7 +1903,8 @@ public static class ReportGenerator
                         scenarioAnchorIds: scenarioAnchorIds,
                         featureDisplayName: feature.DisplayName,
                         featureDescription: feature.Description,
-                        featureLabels: feature.Labels);
+                        featureLabels: feature.Labels,
+                        inlineBackgroundSteps: inlineBackgroundSteps);
                     continue;
                 }
 
@@ -1990,10 +1992,10 @@ public static class ReportGenerator
                               """);
                 }
 
-                if (scenario.BackgroundSteps is { Length: > 0 })
+                if (!inlineBackgroundSteps && scenario.BackgroundSteps is { Length: > 0 })
                 {
                     body.Append("""<details class="scenario-background">""");
-                    body.Append("""<summary class="h4">Background</summary>""");
+                    body.Append("""<summary class="h4">Background Steps</summary>""");
                     for (var bi = 0; bi < scenario.BackgroundSteps.Length; bi++)
                     {
                         var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;
@@ -2002,19 +2004,22 @@ public static class ReportGenerator
                     body.Append("</details>");
                 }
 
-                if (scenario.Steps is { Length: > 0 })
+                if (scenario.Steps is { Length: > 0 } || (inlineBackgroundSteps && scenario.BackgroundSteps is { Length: > 0 }))
                 {
+                    var allSteps = inlineBackgroundSteps && scenario.BackgroundSteps is { Length: > 0 }
+                        ? scenario.BackgroundSteps.Concat(scenario.Steps ?? []).ToArray()
+                        : scenario.Steps!;
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
-                    var renderCombined = ShouldRenderCombinedTable(scenario.Steps);
-                    for (var si = 0; si < scenario.Steps.Length; si++)
+                    var renderCombined = ShouldRenderCombinedTable(allSteps);
+                    for (var si = 0; si < allSteps.Length; si++)
                     {
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, scenario.Steps[si], numberPrefix, skipTabularInline: renderCombined);
+                        RenderStep(body, allSteps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
 
                     if (renderCombined)
-                        RenderCombinedTabularParameters(body, scenario.Steps);
+                        RenderCombinedTabularParameters(body, allSteps);
                     body.Append("</details>");
                 }
 
@@ -2434,7 +2439,8 @@ public static class ReportGenerator
         Dictionary<string, string>? scenarioAnchorIds = null,
         string? featureDisplayName = null,
         string? featureDescription = null,
-        string[]? featureLabels = null)
+        string[]? featureLabels = null,
+        bool inlineBackgroundSteps = false)
     {
         var scenarios = group.Scenarios;
 
@@ -2714,10 +2720,10 @@ public static class ReportGenerator
                 var display = ri == 0 ? "" : " style=\"display:none\"";
                 body.Append($"<div class=\"param-detail-panel\" id=\"{prefix}-detail-{ri}\"{display}>");
 
-                if (s.BackgroundSteps is { Length: > 0 })
+                if (!inlineBackgroundSteps && s.BackgroundSteps is { Length: > 0 })
                 {
                     body.Append("""<details class="scenario-background">""");
-                    body.Append("""<summary class="h4">Background</summary>""");
+                    body.Append("""<summary class="h4">Background Steps</summary>""");
                     for (var bi = 0; bi < s.BackgroundSteps.Length; bi++)
                     {
                         var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;
@@ -2726,18 +2732,21 @@ public static class ReportGenerator
                     body.Append("</details>");
                 }
 
-                if (s.Steps is { Length: > 0 })
+                if (s.Steps is { Length: > 0 } || (inlineBackgroundSteps && s.BackgroundSteps is { Length: > 0 }))
                 {
+                    var allSteps = inlineBackgroundSteps && s.BackgroundSteps is { Length: > 0 }
+                        ? s.BackgroundSteps.Concat(s.Steps ?? []).ToArray()
+                        : s.Steps!;
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
-                    var renderCombined = ShouldRenderCombinedTable(s.Steps);
-                    for (var si = 0; si < s.Steps.Length; si++)
+                    var renderCombined = ShouldRenderCombinedTable(allSteps);
+                    for (var si = 0; si < allSteps.Length; si++)
                     {
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
+                        RenderStep(body, allSteps[si], numberPrefix, skipTabularInline: renderCombined);
                     }
                     if (renderCombined)
-                        RenderCombinedTabularParameters(body, s.Steps);
+                        RenderCombinedTabularParameters(body, allSteps);
                     body.Append("</details>");
                 }
 

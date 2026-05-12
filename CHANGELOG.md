@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.71] - 2026-05-12
+
+### Changed
+- **Renamed "Background" to "Background Steps"** in report rendering for clearer labelling.
+- **Restricted BackgroundStepsDetector to ReqNRoll only** — BDDfy and LightBDD no longer run the heuristic background step detection (only ReqNRoll, which has native Background support, retains it).
+- **Matched .scenario-background CSS styling to .scenario-steps** — background sections now share the same border-radius, padding, and layout as regular steps sections.
+
+### Added
+- **`InlineBackgroundSteps` configuration option** — when set to `true`, background steps are merged inline into the regular Steps section instead of being shown in a separate collapsible "Background Steps" section. Defaults to `false` (current behaviour preserved).
+
+
 ## [2.33.70] - 2026-05-12
 
 ### Fixed
