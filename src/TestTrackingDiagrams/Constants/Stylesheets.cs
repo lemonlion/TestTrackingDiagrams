@@ -753,7 +753,7 @@ public class Stylesheets
                     max-height: 90vh;
                     border-radius: 4px;
                     box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-                }
+                }rgb(100, 100, 100)
 
                 .step-docstring {
                     background: #f5f5f5;
@@ -1520,7 +1520,7 @@ public class Stylesheets
                         font-size: 0.6em;
                     }
 
-                    span.label {
+                    span.label {rgb(100, 100, 100)
                         font-size: 0.6em;
                     }
                 }
