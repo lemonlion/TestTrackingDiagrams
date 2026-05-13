@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.34.2] - 2026-05-13
+
+### Fixed
+- **PlantUML JSON formatting** — Backtick characters (`` ` ``) in JSON content (e.g. BigQuery table references like `` `project.dataset.table` ``) are now rendered as literal backticks in PlantUML notes instead of being unicode-escaped as `\u0060`.
+
 ## [2.34.1] - 2026-05-13
 
 ### Fixed

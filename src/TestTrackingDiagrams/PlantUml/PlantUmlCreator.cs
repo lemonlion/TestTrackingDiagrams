@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using TestTrackingDiagrams.Extensions;
 using TestTrackingDiagrams.Tracking;
@@ -596,7 +597,7 @@ public static partial class PlantUmlCreator
         return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + formattedContent.Trim()).TrimEnd();
     }
 
-    private static readonly JsonWriterOptions IndentedWriterOptions = new() { Indented = true };
+    private static readonly JsonWriterOptions IndentedWriterOptions = new() { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     private static string? TryFormatAsJson(string? content)
     {

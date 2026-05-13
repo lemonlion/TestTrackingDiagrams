@@ -2680,6 +2680,23 @@ public class PlantUmlCreatorTests
         Assert.DoesNotContain("\\u0022", plantUml.Replace("\\\\u0022", ""));
     }
 
+    [Fact]
+    public void Json_with_backtick_renders_literal_backtick_not_unicode_escape()
+    {
+        var json = """{"query":"SELECT * FROM `my_table`"}""";
+        var logs = new[]
+        {
+            MakeRequest(content: json),
+            MakeResponse(),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("`my_table`", plantUml);
+        Assert.DoesNotContain("\\u0060", plantUml);
+    }
+
     // ─── Dependency coloring ────────────────────────────────────
 
     private static RequestResponseLog MakeRequestWithCategory(
