@@ -225,6 +225,93 @@ public class TrackingKafkaConsumerTests
         Assert.Null(log.Content);
     }
 
+    // ─── Context Propagation ────────────────────────────────
+
+    [Fact]
+    public void Consume_establishes_TestIdentityScope_from_message_headers()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeConsumer<string, string>();
+
+        var headers = new Headers();
+        headers.Add("ttd-test-name", System.Text.Encoding.UTF8.GetBytes("Originating Test"));
+        headers.Add("ttd-test-id", System.Text.Encoding.UTF8.GetBytes("test-abc-123"));
+
+        inner.NextConsumeResult = new ConsumeResult<string, string>
+        {
+            Topic = "orders-topic",
+            Partition = new Partition(0),
+            Offset = new Offset(42),
+            Message = new Message<string, string> { Key = "k", Value = "v", Headers = headers }
+        };
+        var consumer = new TrackingKafkaConsumer<string, string>(inner, tracker, options);
+
+        TestIdentityScope.Reset();
+        consumer.Consume(TimeSpan.FromSeconds(1));
+
+        Assert.NotNull(TestIdentityScope.Current);
+        Assert.Equal("Originating Test", TestIdentityScope.Current.Value.Name);
+        Assert.Equal("test-abc-123", TestIdentityScope.Current.Value.Id);
+
+        TestIdentityScope.Reset();
+    }
+
+    [Fact]
+    public void Consume_does_not_establish_scope_when_PropagateTestIdentity_false()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = false;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeConsumer<string, string>();
+
+        var headers = new Headers();
+        headers.Add("ttd-test-name", System.Text.Encoding.UTF8.GetBytes("Originating Test"));
+        headers.Add("ttd-test-id", System.Text.Encoding.UTF8.GetBytes("test-abc-123"));
+
+        inner.NextConsumeResult = new ConsumeResult<string, string>
+        {
+            Topic = "orders-topic",
+            Partition = new Partition(0),
+            Offset = new Offset(42),
+            Message = new Message<string, string> { Key = "k", Value = "v", Headers = headers }
+        };
+        var consumer = new TrackingKafkaConsumer<string, string>(inner, tracker, options);
+
+        TestIdentityScope.Reset();
+        consumer.Consume(TimeSpan.FromSeconds(1));
+
+        // Should not have established scope from message headers
+        // (scope might still be set from CurrentTestInfoFetcher, which is fine)
+        // We verify the propagation-specific behavior by checking it doesn't use the message headers
+        // Since CurrentTestInfoFetcher is set, we just check it wasn't overwritten to the message values
+        Assert.NotEqual("test-abc-123", TestIdentityScope.Current?.Id ?? "");
+
+        TestIdentityScope.Reset();
+    }
+
+    [Fact]
+    public void Consume_does_not_fail_when_message_has_no_headers()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeConsumer<string, string>();
+        inner.NextConsumeResult = new ConsumeResult<string, string>
+        {
+            Topic = "orders-topic",
+            Partition = new Partition(0),
+            Offset = new Offset(42),
+            Message = new Message<string, string> { Key = "k", Value = "v", Headers = null }
+        };
+        var consumer = new TrackingKafkaConsumer<string, string>(inner, tracker, options);
+
+        var exception = Record.Exception(() => consumer.Consume(TimeSpan.FromSeconds(1)));
+
+        Assert.Null(exception);
+    }
+
     #region Test Double
 
     private class FakeConsumer<TKey, TValue> : IConsumer<TKey, TValue>

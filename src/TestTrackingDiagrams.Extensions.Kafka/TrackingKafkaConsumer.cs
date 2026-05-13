@@ -1,4 +1,7 @@
 using Confluent.Kafka;
+using System.Text;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
@@ -68,10 +71,29 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     {
         if (result is null || result.IsPartitionEOF) return;
 
+        EstablishTestIdentityFromHeaders(result.Message);
+
         var op = new KafkaOperationInfo(KafkaOperation.Consume, result.Topic,
             result.Partition.Value, result.Offset.Value);
 
         _tracker.LogConsume(op, BuildContent(result.Message));
+    }
+
+    private void EstablishTestIdentityFromHeaders(Message<TKey, TValue>? message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+        if (message?.Headers is null) return;
+
+        string? testName = null;
+        string? testId = null;
+
+        if (message.Headers.TryGetLastBytes(TestTrackingMessageHeaders.TestName, out var nameBytes))
+            testName = Encoding.UTF8.GetString(nameBytes);
+        if (message.Headers.TryGetLastBytes(TestTrackingMessageHeaders.TestId, out var idBytes))
+            testId = Encoding.UTF8.GetString(idBytes);
+
+        if (testName is not null && testId is not null)
+            TestIdentityScope.SetFromMessage(testName, testId);
     }
 
     private string? BuildContent(Message<TKey, TValue>? message)

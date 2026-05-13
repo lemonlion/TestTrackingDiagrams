@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
@@ -31,6 +32,7 @@ public class TrackingServiceBusSender : ServiceBusSender
 
     public override async Task SendMessageAsync(ServiceBusMessage message, CancellationToken cancellationToken = default)
     {
+        InjectTestIdentityProperties(message);
         var op = ServiceBusOperationClassifier.Classify("SendMessageAsync", EntityPath, null);
         var content = GetMessageContent(message);
         var (reqId, traceId) = _tracker.LogRequest(op, content);
@@ -50,6 +52,7 @@ public class TrackingServiceBusSender : ServiceBusSender
         IEnumerable<ServiceBusMessage> messages, CancellationToken cancellationToken = default)
     {
         var messageList = messages as IReadOnlyList<ServiceBusMessage> ?? messages.ToList();
+        foreach (var msg in messageList) InjectTestIdentityProperties(msg);
         var op = ServiceBusOperationClassifier.Classify("SendMessagesAsync", EntityPath, null) with
         {
             MessageCount = messageList.Count
@@ -77,6 +80,7 @@ public class TrackingServiceBusSender : ServiceBusSender
     public override async Task<long> ScheduleMessageAsync(
         ServiceBusMessage message, DateTimeOffset scheduledEnqueueTime, CancellationToken cancellationToken = default)
     {
+        InjectTestIdentityProperties(message);
         var op = ServiceBusOperationClassifier.Classify("ScheduleMessageAsync", EntityPath, null);
         var content = GetMessageContent(message);
         var (reqId, traceId) = _tracker.LogRequest(op, content);
@@ -141,5 +145,16 @@ public class TrackingServiceBusSender : ServiceBusSender
         {
             return null;
         }
+    }
+
+    private void InjectTestIdentityProperties(ServiceBusMessage message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        var testInfo = TestInfoResolver.Resolve(_options.HttpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
+
+        message.ApplicationProperties[TestTrackingMessageHeaders.TestName] = testInfo.Value.Name;
+        message.ApplicationProperties[TestTrackingMessageHeaders.TestId] = testInfo.Value.Id;
     }
 }

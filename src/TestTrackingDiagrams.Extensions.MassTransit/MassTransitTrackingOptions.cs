@@ -28,4 +28,12 @@ public record MassTransitTrackingOptions
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
     public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, the send/publish observers inject test identity into MassTransit message headers
+    /// and the consume observer extracts them, establishing a <see cref="TestTrackingDiagrams.Tracking.TestIdentityScope"/>
+    /// so that downstream tracking operations are attributed to the originating test.
+    /// Defaults to <c>true</c>.
+    /// </summary>
+    public bool PropagateTestIdentity { get; set; } = true;
 }

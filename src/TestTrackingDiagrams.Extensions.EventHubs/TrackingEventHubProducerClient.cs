@@ -1,5 +1,7 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
@@ -40,6 +42,7 @@ public class TrackingEventHubProducerClient : EventHubProducerClient
         CancellationToken cancellationToken = default)
     {
         var events = eventBatch.ToList();
+        InjectTestIdentityProperties(events);
         var op = EventHubsOperationClassifier.Classify(
             "SendAsync", _inner.EventHubName, null, events.Count);
         var content = _options.Verbosity != EventHubsTrackingVerbosity.Summarised
@@ -64,6 +67,7 @@ public class TrackingEventHubProducerClient : EventHubProducerClient
         CancellationToken cancellationToken = default)
     {
         var events = eventBatch.ToList();
+        InjectTestIdentityProperties(events);
         var partitionId = sendOptions?.PartitionId;
         var op = EventHubsOperationClassifier.Classify(
             "SendAsync", _inner.EventHubName, partitionId, events.Count);
@@ -132,5 +136,19 @@ public class TrackingEventHubProducerClient : EventHubProducerClient
         if (events.Count == 0) return null;
         if (events.Count == 1) return events[0].EventBody?.ToString();
         return $"[{string.Join(", ", events.Select(e => e.EventBody?.ToString() ?? "null"))}]";
+    }
+
+    private void InjectTestIdentityProperties(IList<EventData> events)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        var testInfo = TestInfoResolver.Resolve(_options.HttpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
+
+        foreach (var evt in events)
+        {
+            evt.Properties[TestTrackingMessageHeaders.TestName] = testInfo.Value.Name;
+            evt.Properties[TestTrackingMessageHeaders.TestId] = testInfo.Value.Id;
+        }
     }
 }

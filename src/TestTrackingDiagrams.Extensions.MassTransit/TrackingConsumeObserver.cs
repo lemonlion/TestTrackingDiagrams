@@ -1,13 +1,25 @@
 using MassTransit;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
 /// <summary>
 /// MassTransit observer that logs operations to the tracking system.
 /// </summary>
-public class TrackingConsumeObserver(MassTransitTracker tracker) : IConsumeObserver
+public class TrackingConsumeObserver(MassTransitTracker tracker, MassTransitTrackingOptions options) : IConsumeObserver
 {
-    public Task PreConsume<T>(ConsumeContext<T> context) where T : class => Task.CompletedTask;
+    public Task PreConsume<T>(ConsumeContext<T> context) where T : class
+    {
+        if (options.PropagateTestIdentity)
+        {
+            var testName = context.Headers.Get<string>(TestTrackingMessageHeaders.TestName);
+            var testId = context.Headers.Get<string>(TestTrackingMessageHeaders.TestId);
+            if (testName is not null && testId is not null)
+                TestIdentityScope.SetFromMessage(testName, testId);
+        }
+        return Task.CompletedTask;
+    }
 
     public Task PostConsume<T>(ConsumeContext<T> context) where T : class
     {

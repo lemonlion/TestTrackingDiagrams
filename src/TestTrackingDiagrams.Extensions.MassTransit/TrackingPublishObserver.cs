@@ -1,13 +1,27 @@
 using MassTransit;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.MassTransit;
 
 /// <summary>
 /// MassTransit observer that logs operations to the tracking system.
 /// </summary>
-public class TrackingPublishObserver(MassTransitTracker tracker) : IPublishObserver
+public class TrackingPublishObserver(MassTransitTracker tracker, MassTransitTrackingOptions options) : IPublishObserver
 {
-    public Task PrePublish<T>(PublishContext<T> context) where T : class => Task.CompletedTask;
+    public Task PrePublish<T>(PublishContext<T> context) where T : class
+    {
+        if (options.PropagateTestIdentity)
+        {
+            var testInfo = TestInfoResolver.Resolve(options.HttpContextAccessor, options.CurrentTestInfoFetcher);
+            if (testInfo is not null)
+            {
+                context.Headers.Set(TestTrackingMessageHeaders.TestName, testInfo.Value.Name);
+                context.Headers.Set(TestTrackingMessageHeaders.TestId, testInfo.Value.Id);
+            }
+        }
+        return Task.CompletedTask;
+    }
 
     public Task PostPublish<T>(PublishContext<T> context) where T : class
     {

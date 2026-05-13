@@ -1,5 +1,7 @@
 using Google.Cloud.PubSub.V1;
 using Microsoft.AspNetCore.Http;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
@@ -31,6 +33,8 @@ public class TrackingSubscriberClient : SubscriberClient
     {
         async Task<Reply> wrappedHandler(PubsubMessage msg, CancellationToken ct)
         {
+            EstablishTestIdentityFromAttributes(msg);
+
             var op = PubSubOperationClassifier.Classify(
                 "Receive", null, _inner.SubscriptionName?.ToString(), 1);
             var content = _options.Verbosity != PubSubTrackingVerbosity.Summarised
@@ -51,4 +55,16 @@ public class TrackingSubscriberClient : SubscriberClient
 
     public override Task StopAsync(CancellationToken cancellationToken) => _inner.StopAsync(cancellationToken);
     public override ValueTask DisposeAsync() => _inner.DisposeAsync();
+
+    private void EstablishTestIdentityFromAttributes(PubsubMessage message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        if (message.Attributes.TryGetValue(TestTrackingMessageHeaders.TestName, out var testName) &&
+            message.Attributes.TryGetValue(TestTrackingMessageHeaders.TestId, out var testId) &&
+            !string.IsNullOrEmpty(testName) && !string.IsNullOrEmpty(testId))
+        {
+            TestIdentityScope.SetFromMessage(testName, testId);
+        }
+    }
 }

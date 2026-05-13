@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EventHubs;
 
@@ -46,6 +48,7 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
         await foreach (var partitionEvent in _inner.ReadEventsAsync(cancellationToken))
         {
             eventCount++;
+            EstablishTestIdentityFromProperties(partitionEvent.Data);
             yield return partitionEvent;
         }
 
@@ -65,6 +68,7 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
         await foreach (var partitionEvent in _inner.ReadEventsAsync(readOptions, cancellationToken))
         {
             eventCount++;
+            EstablishTestIdentityFromProperties(partitionEvent.Data);
             yield return partitionEvent;
         }
 
@@ -83,6 +87,7 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
         await foreach (var partitionEvent in _inner.ReadEventsFromPartitionAsync(
             partitionId, startingPosition, cancellationToken))
         {
+            EstablishTestIdentityFromProperties(partitionEvent.Data);
             yield return partitionEvent;
         }
 
@@ -100,6 +105,7 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
         await foreach (var partitionEvent in _inner.ReadEventsFromPartitionAsync(
             partitionId, startingPosition, readOptions, cancellationToken))
         {
+            EstablishTestIdentityFromProperties(partitionEvent.Data);
             yield return partitionEvent;
         }
 
@@ -120,4 +126,17 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
 
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
         => await _inner.CloseAsync(cancellationToken);
+
+    private void EstablishTestIdentityFromProperties(EventData? eventData)
+    {
+        if (!_options.PropagateTestIdentity) return;
+        if (eventData?.Properties is null) return;
+
+        if (eventData.Properties.TryGetValue(TestTrackingMessageHeaders.TestName, out var nameObj) &&
+            eventData.Properties.TryGetValue(TestTrackingMessageHeaders.TestId, out var idObj) &&
+            nameObj is string testName && idObj is string testId)
+        {
+            TestIdentityScope.SetFromMessage(testName, testId);
+        }
+    }
 }

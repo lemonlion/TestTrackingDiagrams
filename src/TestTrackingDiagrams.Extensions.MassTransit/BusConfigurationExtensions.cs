@@ -14,11 +14,11 @@ public static class BusConfigurationExtensions
         var tracker = new MassTransitTracker(options, options.HttpContextAccessor);
 
         if (options.TrackSend)
-            configurator.ConnectSendObserver(new TrackingSendObserver(tracker));
+            configurator.ConnectSendObserver(new TrackingSendObserver(tracker, options));
         if (options.TrackPublish)
-            configurator.ConnectPublishObserver(new TrackingPublishObserver(tracker));
+            configurator.ConnectPublishObserver(new TrackingPublishObserver(tracker, options));
         if (options.TrackConsume)
-            configurator.ConnectConsumeObserver(new TrackingConsumeObserver(tracker));
+            configurator.ConnectConsumeObserver(new TrackingConsumeObserver(tracker, options));
 
         return tracker;
     }

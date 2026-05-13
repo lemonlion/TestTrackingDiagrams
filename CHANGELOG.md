@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.34.0] - 2026-05-13
+
+### Added
+- **Automatic test identity propagation through messaging extensions** — All messaging extensions (Kafka, ServiceBus, EventHubs, PubSub, MassTransit) now automatically propagate test identity (`ttd-test-name` and `ttd-test-id`) through message headers/properties/attributes. When a test produces a message, the current test identity is injected into the message metadata. When a consumer/subscriber receives the message, the test identity is extracted and established as the ambient `TestIdentityScope`, enabling tracking to work correctly in event-driven architectures where ASP.NET applications listen to events rather than serving HTTP requests. Controlled via `PropagateTestIdentity` option (default: `true`) on each extension's options class.
+- **`TestIdentityScope.SetFromMessage()`** — New method for establishing test identity from incoming message headers without creating a disposable scope. Identity persists on the async context until the next message is processed or explicitly cleared.
+- **`TestTrackingMessageHeaders` constants** — New constants class defining `ttd-test-name` and `ttd-test-id` header names for cross-extension consistency.
+
 ## [2.33.72] - 2026-05-13
 
 ### Fixed

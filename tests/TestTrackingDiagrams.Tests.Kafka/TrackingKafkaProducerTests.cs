@@ -214,6 +214,59 @@ public class TrackingKafkaProducerTests
         Assert.Empty(GetLogsFromThisTest());
     }
 
+    // ─── Context Propagation ────────────────────────────────
+
+    [Fact]
+    public async Task ProduceAsync_injects_test_identity_headers_when_PropagateTestIdentity_true()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+        var message = new Message<string, string> { Key = "key1", Value = "val1" };
+
+        await producer.ProduceAsync("topic", message);
+
+        Assert.NotNull(message.Headers);
+        var nameHeader = message.Headers.GetLastBytes("ttd-test-name");
+        var idHeader = message.Headers.GetLastBytes("ttd-test-id");
+        Assert.Equal("My Kafka Test", System.Text.Encoding.UTF8.GetString(nameHeader));
+        Assert.Equal(_testId, System.Text.Encoding.UTF8.GetString(idHeader));
+    }
+
+    [Fact]
+    public async Task ProduceAsync_does_not_inject_headers_when_PropagateTestIdentity_false()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = false;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+        var message = new Message<string, string> { Key = "key1", Value = "val1" };
+
+        await producer.ProduceAsync("topic", message);
+
+        Assert.Null(message.Headers);
+    }
+
+    [Fact]
+    public void Produce_sync_injects_test_identity_headers()
+    {
+        var options = MakeOptions();
+        options.PropagateTestIdentity = true;
+        var tracker = new KafkaTracker(options);
+        var inner = new FakeProducer<string, string>();
+        var producer = new TrackingKafkaProducer<string, string>(inner, tracker, options);
+        var message = new Message<string, string> { Key = "key1", Value = "val1" };
+
+        producer.Produce("topic", message);
+
+        Assert.NotNull(message.Headers);
+        var nameHeader = message.Headers.GetLastBytes("ttd-test-name");
+        Assert.Equal("My Kafka Test", System.Text.Encoding.UTF8.GetString(nameHeader));
+    }
+
     #region Test Double
 
     private class FakeProducer<TKey, TValue> : IProducer<TKey, TValue>

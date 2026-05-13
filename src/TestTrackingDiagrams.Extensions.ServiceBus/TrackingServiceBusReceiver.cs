@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using TestTrackingDiagrams.Constants;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.ServiceBus;
@@ -39,6 +40,7 @@ public class TrackingServiceBusReceiver : ServiceBusReceiver
         try
         {
             var result = await _inner.ReceiveMessageAsync(maxWaitTime, cancellationToken);
+            if (result is not null) EstablishTestIdentityFromProperties(result);
             var content = result is not null ? GetReceivedMessageContent(result) : null;
             _tracker.LogResponse(op, reqId, traceId, content);
             return result;
@@ -58,6 +60,7 @@ public class TrackingServiceBusReceiver : ServiceBusReceiver
         try
         {
             var result = await _inner.ReceiveMessagesAsync(maxMessages, maxWaitTime, cancellationToken);
+            if (result.Count > 0) EstablishTestIdentityFromProperties(result[0]);
             var content = _options.Verbosity != ServiceBusTrackingVerbosity.Summarised
                 ? $"[{result.Count} messages received]"
                 : null;
@@ -205,6 +208,18 @@ public class TrackingServiceBusReceiver : ServiceBusReceiver
 
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
         => await _inner.CloseAsync(cancellationToken);
+
+    private void EstablishTestIdentityFromProperties(ServiceBusReceivedMessage message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        if (message.ApplicationProperties.TryGetValue(TestTrackingMessageHeaders.TestName, out var nameObj) &&
+            message.ApplicationProperties.TryGetValue(TestTrackingMessageHeaders.TestId, out var idObj) &&
+            nameObj is string testName && idObj is string testId)
+        {
+            TestIdentityScope.SetFromMessage(testName, testId);
+        }
+    }
 
     private string? GetReceivedMessageContent(ServiceBusReceivedMessage message)
     {

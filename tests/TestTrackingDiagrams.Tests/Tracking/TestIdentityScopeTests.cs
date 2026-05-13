@@ -240,5 +240,34 @@ public class TestIdentityScopeTests
         }
     }
 
+    [Fact]
+    public void SetFromMessage_sets_current_identity()
+    {
+        TestIdentityScope.Reset();
+
+        TestIdentityScope.SetFromMessage("MessageTest", "msg-id-1");
+
+        Assert.NotNull(TestIdentityScope.Current);
+        Assert.Equal("MessageTest", TestIdentityScope.Current.Value.Name);
+        Assert.Equal("msg-id-1", TestIdentityScope.Current.Value.Id);
+
+        TestIdentityScope.Reset();
+    }
+
+    [Fact]
+    public void SetFromMessage_overwrites_previous_identity()
+    {
+        TestIdentityScope.Reset();
+
+        TestIdentityScope.SetFromMessage("First", "first-id");
+        TestIdentityScope.SetFromMessage("Second", "second-id");
+
+        Assert.NotNull(TestIdentityScope.Current);
+        Assert.Equal("Second", TestIdentityScope.Current.Value.Name);
+        Assert.Equal("second-id", TestIdentityScope.Current.Value.Id);
+
+        TestIdentityScope.Reset();
+    }
+
     #endregion
 }

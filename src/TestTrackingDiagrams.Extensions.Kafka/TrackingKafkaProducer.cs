@@ -1,4 +1,7 @@
 using Confluent.Kafka;
+using System.Text;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Kafka;
 
@@ -23,6 +26,7 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
+        InjectTestIdentityHeaders(message);
         var result = await _inner.ProduceAsync(topic, message, cancellationToken);
 
         var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, topic,
@@ -37,6 +41,7 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
+        InjectTestIdentityHeaders(message);
         var result = await _inner.ProduceAsync(topicPartition, message, cancellationToken);
 
         var op = new KafkaOperationInfo(KafkaOperation.ProduceAsync, topicPartition.Topic,
@@ -51,6 +56,7 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
+        InjectTestIdentityHeaders(message);
         var content = BuildContent(message);
 
         Action<DeliveryReport<TKey, TValue>>? wrappedHandler = report =>
@@ -69,6 +75,7 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
+        InjectTestIdentityHeaders(message);
         var content = BuildContent(message);
 
         Action<DeliveryReport<TKey, TValue>>? wrappedHandler = report =>
@@ -92,6 +99,18 @@ public class TrackingKafkaProducer<TKey, TValue> : IProducer<TKey, TValue>
         if (_options.LogMessageValue && message.Value is not null)
             parts.Add($"Value: {message.Value}");
         return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
+    private void InjectTestIdentityHeaders(Message<TKey, TValue> message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        var testInfo = TestInfoResolver.Resolve(null, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
+
+        message.Headers ??= new Headers();
+        message.Headers.Add(TestTrackingMessageHeaders.TestName, Encoding.UTF8.GetBytes(testInfo.Value.Name));
+        message.Headers.Add(TestTrackingMessageHeaders.TestId, Encoding.UTF8.GetBytes(testInfo.Value.Id));
     }
 
     // ─── IProducer<TKey, TValue> delegation ───────────────────

@@ -23,4 +23,12 @@ public record ServiceBusTrackingOptions
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
     public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, the sender injects test identity into message ApplicationProperties
+    /// and the receiver extracts them, establishing a <see cref="TestTrackingDiagrams.Tracking.TestIdentityScope"/>
+    /// so that downstream tracking operations are attributed to the originating test.
+    /// Defaults to <c>true</c>.
+    /// </summary>
+    public bool PropagateTestIdentity { get; set; } = true;
 }

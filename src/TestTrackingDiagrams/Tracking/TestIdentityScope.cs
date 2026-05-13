@@ -109,6 +109,19 @@ public static class TestIdentityScope
     }
 
     /// <summary>
+    /// Sets the ambient test identity from an incoming message header.
+    /// Unlike <see cref="Begin"/>, this does not return a disposable — the identity
+    /// remains set until overwritten by the next message or explicitly cleared.
+    /// Use this in message consumers where processing continues after <c>Consume()</c> returns.
+    /// </summary>
+    /// <param name="testName">The test display name extracted from message headers.</param>
+    /// <param name="testId">The test unique identifier extracted from message headers.</param>
+    public static void SetFromMessage(string testName, string testId)
+    {
+        CurrentIdentity.Value = (testName, testId);
+    }
+
+    /// <summary>
     /// Clears the ambient test identity for the current async context.
     /// </summary>
     public static void Reset() => CurrentIdentity.Value = null;

@@ -31,4 +31,12 @@ public record KafkaTrackingOptions
     public KafkaTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the producer injects test identity headers into Kafka message headers
+    /// and the consumer extracts them, establishing a <see cref="TestTrackingDiagrams.Tracking.TestIdentityScope"/>
+    /// so that downstream tracking operations are attributed to the originating test.
+    /// Defaults to <c>true</c>.
+    /// </summary>
+    public bool PropagateTestIdentity { get; set; } = true;
 }

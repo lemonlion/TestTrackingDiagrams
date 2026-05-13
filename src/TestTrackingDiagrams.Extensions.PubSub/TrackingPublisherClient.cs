@@ -1,6 +1,8 @@
 using Google.Cloud.PubSub.V1;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
+using TestTrackingDiagrams.Constants;
+using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.PubSub;
 
@@ -30,6 +32,7 @@ public class TrackingPublisherClient : PublisherClient
 
     public override async Task<string> PublishAsync(PubsubMessage message)
     {
+        InjectTestIdentityAttributes(message);
         var op = PubSubOperationClassifier.Classify(
             "PublishAsync", _inner.TopicName?.ToString(), null, 1);
         var content = _options.Verbosity != PubSubTrackingVerbosity.Summarised
@@ -56,6 +59,7 @@ public class TrackingPublisherClient : PublisherClient
     public async Task<IReadOnlyList<string>> PublishAsync(IEnumerable<PubsubMessage> messages)
     {
         var messageList = messages.ToList();
+        foreach (var msg in messageList) InjectTestIdentityAttributes(msg);
         var op = PubSubOperationClassifier.Classify(
             "PublishAsync", _inner.TopicName?.ToString(), null, messageList.Count);
         var content = _options.Verbosity == PubSubTrackingVerbosity.Raw
@@ -83,4 +87,15 @@ public class TrackingPublisherClient : PublisherClient
     public override Task ShutdownAsync(CancellationToken cancellationToken) => _inner.ShutdownAsync(cancellationToken);
     public override ValueTask DisposeAsync() => _inner.DisposeAsync();
     public override void ResumePublish(string orderingKey) => _inner.ResumePublish(orderingKey);
+
+    private void InjectTestIdentityAttributes(PubsubMessage message)
+    {
+        if (!_options.PropagateTestIdentity) return;
+
+        var testInfo = TestInfoResolver.Resolve(_options.HttpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
+
+        message.Attributes[TestTrackingMessageHeaders.TestName] = testInfo.Value.Name;
+        message.Attributes[TestTrackingMessageHeaders.TestId] = testInfo.Value.Id;
+    }
 }
