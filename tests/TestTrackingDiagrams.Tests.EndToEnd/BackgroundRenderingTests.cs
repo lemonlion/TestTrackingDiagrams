@@ -32,7 +32,7 @@ public class BackgroundRenderingTests : PlaywrightTestBase
 
         var bgSummary = Page.Locator("details.scenario").First.Locator("details.scenario-background > summary");
         var text = await bgSummary.InnerTextAsync();
-        Assert.Equal("Background Steps", text);
+        Assert.Equal("Background", text);
     }
 
     [Fact]

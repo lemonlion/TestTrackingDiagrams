@@ -112,8 +112,9 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
             await details.Locator("summary").First.ClickAsync();
     }
 
-    private ILocator GetParamRows() => Page.Locator("table.param-test-table > tbody > tr[data-row-idx]");
-    private ILocator GetParamHeaders() => GetParameterizedGroup().Locator("table.param-test-table").First.Locator("thead th");
+    private ILocator GetParamRows() => Page.Locator("table.param-test-table:not(.param-table-grouped) > tbody > tr[data-row-idx]");
+    private ILocator GetParamHeaders() => Page.Locator("table.param-test-table:not(.param-table-grouped)").First.Locator("thead th");
+    private ILocator GetGroupedParamRows() => Page.Locator("table.param-table-grouped > tbody > tr[data-row-idx]");
 
     #endregion
 
@@ -435,7 +436,7 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         var headers = GetParamHeaders();
         var headerTexts = new List<string>();
         for (var i = 0; i < await headers.CountAsync(); i++)
-            headerTexts.Add(await headers.Nth(i).InnerTextAsync());
+            headerTexts.Add(await headers.Nth(i).TextContentAsync() ?? "");
 
         // After ExampleValueGrouper, tables nest under "Recipe", scalars group under "Expected"
         Assert.Contains(headerTexts, h => h.Contains("Recipe Name", StringComparison.OrdinalIgnoreCase));
@@ -511,7 +512,7 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         await ExpandAll();
         await OpenParameterizedGroup("Different muffin recipes");
 
-        var firstRow = GetParamRows().First;
+        var firstRow = GetGroupedParamRows().First;
         var tableHtml = await firstRow.InnerHTMLAsync();
 
         // Ingredients column renders as a sub-table (R3)
@@ -534,7 +535,7 @@ public class FullPipelineParameterizedE2ETests : PlaywrightTestBase
         int targetIdx = -1;
         for (var i = 0; i < rowCount; i++)
         {
-            var text = await rows.Nth(i).InnerTextAsync();
+            var text = await rows.Nth(i).TextContentAsync() ?? "";
             if (text.Contains("Rustic Wholesome"))
             {
                 targetRow = rows.Nth(i);

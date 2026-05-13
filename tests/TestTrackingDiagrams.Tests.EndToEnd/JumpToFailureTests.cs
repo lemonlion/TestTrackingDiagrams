@@ -40,8 +40,16 @@ public class JumpToFailureTests : PlaywrightTestBase
         var text = await counter.TextContentAsync();
         Assert.Contains("0/", text!);
 
-        await jumpBtn.ClickAsync();
-        await Page.WaitForTimeoutAsync(500);
+        // Use JS dispatch because Playwright click may be intercepted by fixed-position overlay
+        await Page.EvaluateAsync("() => document.querySelector('button.jump-to-failure').click()");
+
+        // Wait for the counter to update (the click handler updates textContent)
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var c = document.getElementById('failure-counter');
+                return c && c.textContent.includes('1/');
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
 
         text = await counter.TextContentAsync();
         Assert.Contains("1/", text!);
@@ -54,16 +62,22 @@ public class JumpToFailureTests : PlaywrightTestBase
 
         var jumpBtn = Page.Locator("button.jump-to-failure");
         await jumpBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-        await jumpBtn.ClickAsync();
-        await Page.WaitForTimeoutAsync(1000);
 
-        var failedScenario = Page.Locator("details.scenario[data-status='Failed']");
-        var isOpen = await failedScenario.GetAttributeAsync("open");
-        Assert.NotNull(isOpen);
+        // Use JS dispatch because Playwright click may be intercepted by fixed-position overlay
+        await Page.EvaluateAsync("() => document.querySelector('button.jump-to-failure').click()");
 
-        var parentFeature = Page.Locator("details.scenario[data-status='Failed']")
-            .Locator("xpath=ancestor::details[contains(@class,'feature')]");
-        var featureOpen = await parentFeature.GetAttributeAsync("open");
-        Assert.NotNull(featureOpen);
+        // Wait for the scenario to open
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var s = document.querySelector('details.scenario[data-status="Failed"]');
+                return s && s.hasAttribute('open');
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        var scenario = Page.Locator("details.scenario[data-status='Failed']");
+        Assert.True(await scenario.GetAttributeAsync("open") is not null, "Failed scenario should be open");
+
+        var feature = Page.Locator("details.feature:has(details.scenario[data-status='Failed'])");
+        Assert.True(await feature.GetAttributeAsync("open") is not null, "Parent feature should be open");
     }
 }

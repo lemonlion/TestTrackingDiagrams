@@ -766,7 +766,6 @@ public static class ReportGenerator
                                    overlay.className = 'lightbox-overlay';
                                    var img = document.createElement('img');
                                    overlay.appendChild(img);
-                                   document.body.appendChild(overlay);
                                    overlay.addEventListener('click', function() { overlay.classList.remove('active'); });
                                    window.openLightbox = function(e, anchor) {
                                        e.preventDefault();
@@ -775,6 +774,7 @@ public static class ReportGenerator
                                        overlay.classList.add('active');
                                    };
                                    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') overlay.classList.remove('active'); });
+                                   document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(overlay); });
                                })();
                                """;
 
@@ -2520,6 +2520,84 @@ public static class ReportGenerator
         // Parameter table
         var hasFlatView = group.FlatParameterNames is { Length: > 0 };
         if (hasFlatView) body.Append("<div class=\"param-table-wrapper\">");
+
+        // Flat parameter table (visible by default) — shows original Gherkin Example columns as scalar values
+        if (hasFlatView)
+        {
+            var flatNames = group.FlatParameterNames!;
+            body.Append($"<table class=\"param-test-table param-table-flat\" data-prefix=\"{prefix}\"><thead>");
+            body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
+            body.Append($"<th colspan=\"{flatNames.Length}\" class=\"master-header\"><button class=\"flatten-toggle\" onclick=\"toggleFlattenParams(this,'{prefix}')\" title=\"Show grouped columns\">\u2212</button>Input Parameters</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
+            body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
+            body.Append("<tr>");
+            foreach (var name in flatNames)
+            {
+                var displayName = titleizeParameterNames ? name.Titleize() : name;
+                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(displayName)}</th>");
+            }
+            body.Append("</tr></thead><tbody>");
+
+            for (var ri = 0; ri < scenarios.Length; ri++)
+            {
+                var s = scenarios[ri];
+                var rowStatusClass = s.Result switch
+                {
+                    ExecutionResult.Passed => "row-passed",
+                    ExecutionResult.Failed => "row-failed",
+                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "row-skipped",
+                    ExecutionResult.Bypassed => "row-bypassed",
+                    _ => ""
+                };
+                var activeClass = ri == 0 ? " row-active" : "";
+                var badgeClass = s.Result switch
+                {
+                    ExecutionResult.Passed => "badge-pass",
+                    ExecutionResult.Failed => "badge-fail",
+                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "badge-skip",
+                    ExecutionResult.Bypassed => "badge-bypass",
+                    _ => ""
+                };
+                var badgeText = s.Result switch
+                {
+                    ExecutionResult.Passed => "Passed",
+                    ExecutionResult.Failed => "Failed",
+                    ExecutionResult.Skipped => "Skipped",
+                    ExecutionResult.Bypassed => "Bypassed",
+                    ExecutionResult.SkippedAfterFailure => "Skipped",
+                    _ => ""
+                };
+
+                var rowSearchParts = new List<string> { s.DisplayName };
+                if (featureDisplayName is not null) rowSearchParts.Add(featureDisplayName);
+                if (featureDescription is not null) rowSearchParts.Add(featureDescription);
+                if (featureLabels is { Length: > 0 }) rowSearchParts.AddRange(featureLabels);
+                if (s.Categories is { Length: > 0 }) rowSearchParts.AddRange(s.Categories);
+                if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
+                if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
+                CollectStepText(s.Steps, rowSearchParts);
+                if (scenarioDiagramSearchTerms.TryGetValue(s.Id, out var rowDiagramTermsFlat) && rowDiagramTermsFlat.Count > 0)
+                    rowSearchParts.AddRange(rowDiagramTermsFlat);
+                var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
+
+                body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
+                body.Append($"<td>{ri + 1}</td>");
+
+                foreach (var name in flatNames)
+                {
+                    var val = s.ExampleFlatValues?.GetValueOrDefault(name, "") ?? "";
+                    body.Append($"<td class=\"mono\">{FormatDisplayValue(val)}</td>");
+                }
+
+                var rowDuration = s.Duration.HasValue ? FormatDurationBadge(s.Duration.Value) : "";
+                body.Append($"<td><span class=\"status-badge {badgeClass}\">{badgeText}</span></td>");
+                body.Append($"<td class=\"mono\">{rowDuration}</td>");
+                body.Append("</tr>");
+            }
+            body.Append("</tbody></table>");
+        }
+
+        // Grouped parameter table (hidden when flat view exists)
         var groupedTableClass = hasFlatView ? " param-table-grouped" : "";
         var groupedStyle = hasFlatView ? " style=\"display:none\"" : "";
         body.Append($"<table class=\"param-test-table{groupedTableClass}\"{groupedStyle} data-prefix=\"{prefix}\"><thead>");
@@ -2644,83 +2722,7 @@ public static class ReportGenerator
             body.Append("</tr>");
         }
         body.Append("</tbody></table>");
-
-        // Flat parameter table (hidden by default) — shows original Gherkin Example columns as scalar values
-        if (hasFlatView)
-        {
-            var flatNames = group.FlatParameterNames!;
-            body.Append($"<table class=\"param-test-table param-table-flat\" data-prefix=\"{prefix}\"><thead>");
-            body.Append($"<tr><th rowspan=\"2\" style=\"width:2.5em\">#</th>");
-            body.Append($"<th colspan=\"{flatNames.Length}\" class=\"master-header\"><button class=\"flatten-toggle\" onclick=\"toggleFlattenParams(this,'{prefix}')\" title=\"Show grouped columns\">\u2212</button>Input Parameters</th>");
-            body.Append("<th rowspan=\"2\" style=\"width:5em\">Status</th>");
-            body.Append("<th rowspan=\"2\" style=\"width:5.5em\">Duration</th></tr>");
-            body.Append("<tr>");
-            foreach (var name in flatNames)
-            {
-                var displayName = titleizeParameterNames ? name.Titleize() : name;
-                body.Append($"<th class=\"sub-header\">{System.Net.WebUtility.HtmlEncode(displayName)}</th>");
-            }
-            body.Append("</tr></thead><tbody>");
-
-            for (var ri = 0; ri < scenarios.Length; ri++)
-            {
-                var s = scenarios[ri];
-                var rowStatusClass = s.Result switch
-                {
-                    ExecutionResult.Passed => "row-passed",
-                    ExecutionResult.Failed => "row-failed",
-                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "row-skipped",
-                    ExecutionResult.Bypassed => "row-bypassed",
-                    _ => ""
-                };
-                var activeClass = ri == 0 ? " row-active" : "";
-                var badgeClass = s.Result switch
-                {
-                    ExecutionResult.Passed => "badge-pass",
-                    ExecutionResult.Failed => "badge-fail",
-                    ExecutionResult.Skipped or ExecutionResult.SkippedAfterFailure => "badge-skip",
-                    ExecutionResult.Bypassed => "badge-bypass",
-                    _ => ""
-                };
-                var badgeText = s.Result switch
-                {
-                    ExecutionResult.Passed => "Passed",
-                    ExecutionResult.Failed => "Failed",
-                    ExecutionResult.Skipped => "Skipped",
-                    ExecutionResult.Bypassed => "Bypassed",
-                    ExecutionResult.SkippedAfterFailure => "Skipped",
-                    _ => ""
-                };
-
-                var rowSearchParts = new List<string> { s.DisplayName };
-                if (featureDisplayName is not null) rowSearchParts.Add(featureDisplayName);
-                if (featureDescription is not null) rowSearchParts.Add(featureDescription);
-                if (featureLabels is { Length: > 0 }) rowSearchParts.AddRange(featureLabels);
-                if (s.Categories is { Length: > 0 }) rowSearchParts.AddRange(s.Categories);
-                if (s.Labels is { Length: > 0 }) rowSearchParts.AddRange(s.Labels);
-                if (s.ErrorMessage is not null) rowSearchParts.Add(s.ErrorMessage);
-                CollectStepText(s.Steps, rowSearchParts);
-                if (scenarioDiagramSearchTerms.TryGetValue(s.Id, out var rowDiagramTerms2) && rowDiagramTerms2.Count > 0)
-                    rowSearchParts.AddRange(rowDiagramTerms2);
-                var rowSearchAttr = $" data-row-search=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", rowSearchParts).ToLowerInvariant())}\"";
-
-                body.Append($"<tr class=\"{rowStatusClass}{activeClass}\" data-row-idx=\"{ri}\"{rowSearchAttr} onclick=\"selectRow(this,'{prefix}')\">");
-                body.Append($"<td>{ri + 1}</td>");
-
-                foreach (var name in flatNames)
-                {
-                    var val = s.ExampleFlatValues?.GetValueOrDefault(name, "") ?? "";
-                    body.Append($"<td class=\"mono\">{FormatDisplayValue(val)}</td>");
-                }
-
-                var rowDuration = s.Duration.HasValue ? FormatDurationBadge(s.Duration.Value) : "";
-                body.Append($"<td><span class=\"status-badge {badgeClass}\">{badgeText}</span></td>");
-                body.Append($"<td class=\"mono\">{rowDuration}</td>");
-                body.Append("</tr>");
-            }
-            body.Append("</tbody></table>");
-            body.Append("</div>"); // close param-table-wrapper
-        }
+        if (hasFlatView) body.Append("</div>"); // close param-table-wrapper
 
         // Detail panels (steps, failure) — rendered below the parameter table
         var hasAnyDetail = scenarios.Any(s => s.Steps is { Length: > 0 } || s.Result == ExecutionResult.Failed);
@@ -3205,7 +3207,8 @@ public static class ReportGenerator
                 var ext = Path.GetExtension(attachment.Name).ToLowerInvariant();
                 if (ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp")
                 {
-                    body.Append($"<img class=\"attachment-image\" src=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\" alt=\"{System.Net.WebUtility.HtmlEncode(attachment.Name)}\" />");
+                    body.Append($"<a class=\"attachment-image-link\" href=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\" onclick=\"openLightbox(event, this)\"><img class=\"attachment-image\" src=\"{System.Net.WebUtility.HtmlEncode(attachment.RelativePath)}\" alt=\"{System.Net.WebUtility.HtmlEncode(attachment.Name)}\" /></a>");
+                    body.Append($"<span class=\"attachment-image-name\">{System.Net.WebUtility.HtmlEncode(attachment.Name)}</span>");
                 }
                 else
                 {

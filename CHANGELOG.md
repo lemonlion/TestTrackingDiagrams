@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.76] - 2026-05-13
+
+### Fixed
+- **Flat parameter table now renders first in DOM** — When both flat and grouped parameterized tables exist, the flat table (visible by default) is now emitted before the grouped table in the HTML. This ensures Playwright and CSS selectors targeting `.param-test-table:first` or `.flatten-toggle` correctly resolve to the visible flat table button showing the `−` (minus) character.
+- **Step-level image attachments now have lightbox link and caption** — Image attachments rendered inside step bodies (`.png`, `.jpg`, `.gif`, `.webp`) were previously bare `<img>` tags without the `<a class="attachment-image-link">` wrapper or `<span class="attachment-image-name">` caption. They now match the scenario-level rendering with full lightbox support and filename caption.
+
 ## [2.33.75] - 2026-05-13
 
 ### Fixed
