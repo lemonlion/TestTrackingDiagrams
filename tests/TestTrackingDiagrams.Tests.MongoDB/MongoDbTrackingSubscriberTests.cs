@@ -525,4 +525,90 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
         Assert.Null(log.Content);
     }
+
+    // ─── IEventSubscriber ────────────────────────────────────
+
+    [Fact]
+    public void ImplementsIEventSubscriber()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+
+        Assert.IsAssignableFrom<IEventSubscriber>(subscriber);
+    }
+
+    [Fact]
+    public void TryGetEventHandler_CommandStartedEvent_ReturnsHandler()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+
+        var result = subscriber.TryGetEventHandler<CommandStartedEvent>(out var handler);
+
+        Assert.True(result);
+        Assert.NotNull(handler);
+    }
+
+    [Fact]
+    public void TryGetEventHandler_CommandSucceededEvent_ReturnsHandler()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+
+        var result = subscriber.TryGetEventHandler<CommandSucceededEvent>(out var handler);
+
+        Assert.True(result);
+        Assert.NotNull(handler);
+    }
+
+    [Fact]
+    public void TryGetEventHandler_CommandFailedEvent_ReturnsHandler()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+
+        var result = subscriber.TryGetEventHandler<CommandFailedEvent>(out var handler);
+
+        Assert.True(result);
+        Assert.NotNull(handler);
+    }
+
+    [Fact]
+    public void TryGetEventHandler_UnknownEvent_ReturnsFalse()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+
+        var result = subscriber.TryGetEventHandler<ClusterOpenedEvent>(out var handler);
+
+        Assert.False(result);
+        Assert.Null(handler);
+    }
+
+    [Fact]
+    public void IEventSubscriber_RoutesCommandStartedEvent_ProducesLogs()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+        subscriber.TryGetEventHandler<CommandStartedEvent>(out var startHandler);
+        subscriber.TryGetEventHandler<CommandSucceededEvent>(out var successHandler);
+
+        startHandler!(MakeStartedEvent("insert"));
+        successHandler!(MakeSucceededEvent("insert"));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal(RequestResponseType.Request, logs[0].Type);
+        Assert.Equal(RequestResponseType.Response, logs[1].Type);
+    }
+
+    [Fact]
+    public void IEventSubscriber_RoutesCommandFailedEvent_ProducesErrorLog()
+    {
+        var subscriber = (IEventSubscriber)new MongoDbTrackingSubscriber(MakeOptions());
+        subscriber.TryGetEventHandler<CommandStartedEvent>(out var startHandler);
+        subscriber.TryGetEventHandler<CommandFailedEvent>(out var failHandler);
+
+        startHandler!(MakeStartedEvent("delete"));
+        failHandler!(MakeFailedEvent("delete"));
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal(RequestResponseType.Response, logs[1].Type);
+        Assert.Equal(HttpStatusCode.InternalServerError, logs[1].StatusCode?.Value);
+    }
 }

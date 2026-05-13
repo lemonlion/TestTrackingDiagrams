@@ -10,8 +10,10 @@ namespace TestTrackingDiagrams.Extensions.MongoDB;
 
 /// <summary>
 /// Implements the MongoDB event subscriber interface to track MongoDB operations for test visualization.
+/// Also implements <see cref="IEventSubscriber"/> for use with InMemoryEmulator.MongoDB's CommandEventSubscriptionBuilder
+/// or any other event source that accepts <see cref="IEventSubscriber"/>.
 /// </summary>
-public class MongoDbTrackingSubscriber : ITrackingComponent
+public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
 {
     private readonly MongoDbTrackingOptions _options;
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -39,6 +41,29 @@ public class MongoDbTrackingSubscriber : ITrackingComponent
         builder.Subscribe<CommandStartedEvent>(OnCommandStarted);
         builder.Subscribe<CommandSucceededEvent>(OnCommandSucceeded);
         builder.Subscribe<CommandFailedEvent>(OnCommandFailed);
+    }
+
+    /// <inheritdoc />
+    public bool TryGetEventHandler<T>(out Action<T> handler)
+    {
+        if (typeof(T) == typeof(CommandStartedEvent))
+        {
+            handler = (Action<T>)(object)(Action<CommandStartedEvent>)OnCommandStarted;
+            return true;
+        }
+        if (typeof(T) == typeof(CommandSucceededEvent))
+        {
+            handler = (Action<T>)(object)(Action<CommandSucceededEvent>)OnCommandSucceeded;
+            return true;
+        }
+        if (typeof(T) == typeof(CommandFailedEvent))
+        {
+            handler = (Action<T>)(object)(Action<CommandFailedEvent>)OnCommandFailed;
+            return true;
+        }
+
+        handler = null!;
+        return false;
     }
 
     public void OnCommandStarted(CommandStartedEvent e)

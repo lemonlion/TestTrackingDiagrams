@@ -6,26 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.33.76] - 2026-05-13
+## [2.33.70] - 2026-05-13
 
-### Fixed
-- **Flat parameter table now renders first in DOM** — When both flat and grouped parameterized tables exist, the flat table (visible by default) is now emitted before the grouped table in the HTML. This ensures Playwright and CSS selectors targeting `.param-test-table:first` or `.flatten-toggle` correctly resolve to the visible flat table button showing the `−` (minus) character.
-- **Step-level image attachments now have lightbox link and caption** — Image attachments rendered inside step bodies (`.png`, `.jpg`, `.gif`, `.webp`) were previously bare `<img>` tags without the `<a class="attachment-image-link">` wrapper or `<span class="attachment-image-name">` caption. They now match the scenario-level rendering with full lightbox support and filename caption.
-
-## [2.33.75] - 2026-05-13
-
-### Fixed
-- **LightBDD unquoted parameter values with dots are corrupted by namespace stripping** — When LightBDD step text contained unquoted dotted values (e.g. URLs like `http://idp.sitint-newdaycards.com`, OAuth scopes like `user.read`, or config keys like `config.setting.value`), the `StripNamespacesFromText` regex incorrectly stripped them as if they were namespace-qualified type names. Fixed by removing namespace stripping from the full rendered step text and scenario display name — stripping now only applies to literal template segments in `BuildTextSegments`, which never contain parameter values.
-
-## [2.33.74] - 2026-05-13
-
-### Fixed
-- **AssertionTracking IL weaver produces BadImageFormatException with inherited generic base class fields** (#55 follow-up) — When assertions accessed fields inherited from generic base classes (e.g., `Request` on `BasePutEndpoint<TRequest, TResponse>`), the weaver emitted invalid IL in two ways: (1) The field reference metadata token was not properly imported into the module, causing `MissingFieldException` at runtime when loading fields on generic instance types. Fixed by calling `Module.ImportReference()` on resolved field references. (2) When a lambda expression accessed a generic field on an intermediate object (e.g., `_steps.Request` inside `.Contain(x => ...)`), the weaver incorrectly tried to capture the field as if it were directly on the outer class, emitting `ldfld Request` on a type that doesn't have that field. Fixed by adding `IsFieldAccessibleOnType()` validation that skips fields not in the outer class's inheritance chain.
-
-## [2.33.73] - 2026-05-13
-
-### Fixed
-- **AssertionTracking IL weaver produces invalid IL causing CLR crash with 3+ level member access chains in assertion arguments** (#55) — When an assertion argument contained a 3+ level instance member access chain (e.g., `_postSteps.Request.MerchantName`) in an async method, the weaver's "standalone ldfld" detection incorrectly captured intermediate chain members (like `Request`) as independent variables. The value-loading code then emitted `ldarg.0 → ldfld <>4__this → ldfld Request`, which is invalid IL because `Request` is not a field on the outer class type — it's a field on the intermediate type (`BasePostEndpoint<T1,T2>`). This caused fatal CLR crashes (`Internal CLR error 0x80131506` / `AccessViolationException`) on some runtimes. Fixed by checking whether the preceding instruction is `ldfld`, `callvirt`, or `call` before treating a standalone `ldfld` as an independent captured variable — if preceded by any of these, it's a chain continuation and is skipped.
+### Added
+- **Extensions.MongoDB: Implement `IEventSubscriber` on `MongoDbTrackingSubscriber`** (#56) — `MongoDbTrackingSubscriber` now implements the MongoDB driver's `IEventSubscriber` interface, enabling direct use with `InMemoryEmulator.MongoDB` v1.1.0's `CommandEventSubscriptionBuilder.Subscribe(IEventSubscriber)` and any other event source that accepts `IEventSubscriber`. Usage: `options.ClusterConfigurator = builder => builder.Subscribe(new MongoDbTrackingSubscriber(opts));`. No new package dependencies required.
 
 ## [2.33.69] - 2026-05-12
 
