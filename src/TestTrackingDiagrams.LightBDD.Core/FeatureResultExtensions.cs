@@ -63,7 +63,7 @@ internal static class FeatureResultExtensions
         {
             // Use LightBDD's structured NameFormat to extract all parameters,
             // including those substituted inline into the scenario name
-            displayName = StripNamespacesFromText(nameInfo.ToString());
+            displayName = nameInfo.ToString();
             (outlineId, exampleValues) = ExtractScenarioParameters(nameInfo.NameFormat, nameParams);
 
             // Try to look up captured raw parameter values (before stripping, values are used as keys)
@@ -71,7 +71,7 @@ internal static class FeatureResultExtensions
         }
         else
         {
-            displayName = StripNamespacesFromText(nameInfo.ToString());
+            displayName = nameInfo.ToString();
             var parsed = ParameterParser.Parse(displayName);
             outlineId = parsed is { Count: > 0 } ? ParameterParser.ExtractBaseName(displayName) : null;
             exampleValues = parsed is { Count: > 0 } ? parsed : null;
@@ -228,8 +228,9 @@ internal static class FeatureResultExtensions
             text = text[keyword.Length..].TrimStart();
         }
 
-        // Strip fully-qualified type names (e.g. "Namespace.TypeName" → "TypeName")
-        text = StripNamespacesFromText(text);
+        // Note: StripNamespacesFromText is NOT applied to the full text here because
+        // parameter values (URLs, scopes, config keys) may contain dots and would be corrupted.
+        // Namespace stripping is applied only to template literal segments in BuildTextSegments.
 
         var comments = step.Comments?.ToArray();
         var nativeAttachments = step.FileAttachments?

@@ -596,12 +596,19 @@ public class FeatureResultExtensionsTests
         Assert.Contains(paramValue, step.Text);
     }
 
-    [Fact]
-    public void MapStep_strips_unquoted_namespace_qualified_names()
+    [Theory]
+    [InlineData("http://idp.sitint-newdaycards.com")]
+    [InlineData("https://api.example.com/v1/users")]
+    [InlineData("System.Net.HttpStatusCode")]
+    [InlineData("user.read")]
+    [InlineData("config.setting.value")]
+    public void MapStep_preserves_unquoted_dotted_values_in_text(string paramValue)
     {
-        // Unquoted namespace-qualified type names should be stripped to the simple name
+        // Unquoted parameter values (e.g. from LightBDD VALUE placeholders) must be preserved.
+        // Namespace stripping must NOT be applied to the full step text because it cannot
+        // distinguish namespace-qualified names from URLs, scopes, or config values.
         var stepResult = new StubStepResult("Then",
-            "the status is System.Net.HttpStatusCode",
+            "issuer should be " + paramValue,
             ExecutionStatus.Passed);
         var scenario = new StubExecutionResult("s1", "Test").WithStep(stepResult);
         var feature = new StubFeatureResult("F").WithScenario(scenario);
@@ -609,7 +616,7 @@ public class FeatureResultExtensionsTests
         var features = new[] { feature }.ToFeatures();
         var step = features[0].Scenarios[0].Steps![0];
 
-        Assert.Equal("the status is HttpStatusCode", step.Text);
+        Assert.Equal("issuer should be " + paramValue, step.Text);
     }
 
     [Fact]

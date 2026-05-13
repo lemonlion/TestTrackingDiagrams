@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.75] - 2026-05-13
+
+### Fixed
+- **LightBDD unquoted parameter values with dots are corrupted by namespace stripping** — When LightBDD step text contained unquoted dotted values (e.g. URLs like `http://idp.sitint-newdaycards.com`, OAuth scopes like `user.read`, or config keys like `config.setting.value`), the `StripNamespacesFromText` regex incorrectly stripped them as if they were namespace-qualified type names. Fixed by removing namespace stripping from the full rendered step text and scenario display name — stripping now only applies to literal template segments in `BuildTextSegments`, which never contain parameter values.
+
 ## [2.33.74] - 2026-05-13
 
 ### Fixed
