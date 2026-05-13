@@ -6,23 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.33.72] - 2026-05-12
+## [2.33.73] - 2026-05-13
 
 ### Fixed
-- **Step-param-table columns incorrectly highlighted blue in parameterized scenarios** — When a `step-param-table` (DataTable step argument) had a column name matching an outline parameter name (e.g., both named "Name"), the `highlightColumns` JavaScript would apply `col-highlight` styling (blue background) to that column. Fixed by scoping column highlighting to `.step-param-combined-table` only, since individual DataTable step arguments are independent of the examples table parameters. Also moved the `col-highlight` CSS rule to target `.step-param-combined-table` instead of `.step-param-table`.
-
-## [2.33.71] - 2026-05-12
-
-### Fixed
-- **Background steps detector false positives for scenarios starting with And/When** — The heuristic that detects Gherkin Background sections by finding common step prefixes across scenarios now skips extraction when any scenario in the group starts with an "And" or "When" keyword. These keywords indicate the steps are not background "Given" steps, preventing incorrect background extraction.
-
-## [2.33.70] - 2026-05-12
-
-### Added
-- **Image attachments render as inline `<img>` previews with lightbox** — File attachments with image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) now render as inline thumbnail previews (`<img class="attachment-image">`) instead of plain download links. Thumbnails are capped at 320×240px with a filename caption below. Clicking a thumbnail opens a fullscreen lightbox overlay (dark backdrop, 90vw/90vh max, close via click or Escape). Non-image attachments continue to render as download links. This provides immediate visual feedback for screenshot and visual regression workflows without requiring a separate viewer.
-
-### Fixed
-- **Pre-existing build error in `StepRenderingReportTests`** — The `GenerateReportWithInlineBackground` helper referenced a non-existent `inlineBackgroundSteps` parameter on `GenerateHtmlReport`, causing the entire test file to fail to compile. Removed the invalid parameter. Also fixed the `Report_renders_background_steps_in_separate_section_by_default` test which asserted "Background Steps" but the report renders "Background".
+- **AssertionTracking IL weaver produces invalid IL causing CLR crash with 3+ level member access chains in assertion arguments** (#55) — When an assertion argument contained a 3+ level instance member access chain (e.g., `_postSteps.Request.MerchantName`) in an async method, the weaver's "standalone ldfld" detection incorrectly captured intermediate chain members (like `Request`) as independent variables. The value-loading code then emitted `ldarg.0 → ldfld <>4__this → ldfld Request`, which is invalid IL because `Request` is not a field on the outer class type — it's a field on the intermediate type (`BasePostEndpoint<T1,T2>`). This caused fatal CLR crashes (`Internal CLR error 0x80131506` / `AccessViolationException`) on some runtimes. Fixed by checking whether the preceding instruction is `ldfld`, `callvirt`, or `call` before treating a standalone `ldfld` as an independent captured variable — if preceded by any of these, it's a chain continuation and is skipped.
 
 ## [2.33.69] - 2026-05-12
 

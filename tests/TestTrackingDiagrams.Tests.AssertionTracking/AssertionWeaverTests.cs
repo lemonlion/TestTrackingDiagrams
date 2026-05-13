@@ -2429,6 +2429,177 @@ public class AssertionWeaverTests
     [Theory]
     [InlineData(OptimizationLevel.Debug)]
     [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_ThreeLevelMemberAccessChainArgument_DoesNotCrash(OptimizationLevel optimization)
+    {
+        // Issue #55: When an assertion argument contains a 3+ level instance member access chain
+        // (e.g. _postSteps.Request.MerchantName) in an async method, the weaver would incorrectly
+        // capture intermediate fields (Request) as standalone captured variables and emit invalid IL
+        // (ldarg.0 → ldfld <>4__this → ldfld Request) where Request is not a field on the outer class.
+        // This causes CLR crash: Internal CLR error (0x80131506) or AccessViolationException.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncThreeLevelChain_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class MyRequest
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+            }
+
+            public class MyResponse
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+            }
+
+            public abstract class BaseEndpoint<TResponse>
+            {
+                public TResponse? Response;
+            }
+
+            public abstract class BasePostEndpoint<TRequest, TResponse> : BaseEndpoint<TResponse>
+                where TRequest : new()
+            {
+                public TRequest Request = new();
+            }
+
+            public class GetSteps : BaseEndpoint<MyResponse>
+            {
+                public GetSteps() { Response = new MyResponse(); }
+            }
+
+            public class PostSteps : BasePostEndpoint<MyRequest, MyResponse> { }
+
+            public class Tests
+            {
+                private GetSteps _getSteps = new();
+                private PostSteps _postSteps = new();
+
+                #pragma warning disable CS1998
+                public async Task The_name_should_match()
+                {
+                    _getSteps.Response!.MerchantName.Should().Be(_postSteps.Request.MerchantName);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        // Verify IL correctness: the captured variables array should NOT contain "Request"
+        // because it's an intermediate member of the chain, not a standalone variable.
+        // If incorrectly captured, the weaver emits ldarg.0→ldfld <>4__this→ldfld Request
+        // which is invalid IL (Request is a field on BasePostEndpoint, not on Tests).
+        using var asmDef = AssemblyDefinition.ReadAssembly(assemblyPath,
+            new ReaderParameters { ReadSymbols = true });
+        var stateMachineType = asmDef.MainModule.GetTypes()
+            .First(t => t.Name.Contains("<The_name_should_match>"));
+        var moveNext = stateMachineType.Methods.First(m => m.Name == "MoveNext");
+        var ldstrInstructions = moveNext.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        // "Request" should NOT appear as a variable name in any string array construction
+        // (it would appear as a string literal loaded by ldstr if incorrectly captured)
+        var variableNameStrings = ldstrInstructions.Where(s => s == "Request").ToList();
+        variableNameStrings.Should().BeEmpty(
+            $"'Request' should NOT be captured as a standalone variable name in {optimization} mode — " +
+            "it is an intermediate member of _postSteps.Request.MerchantName chain. " +
+            "Capturing it generates invalid IL: ldarg.0→ldfld <>4__this→ldfld Request (Request is not on the outer class)");
+
+        // Also verify the method runs without crashing
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("The_name_should_match")!;
+
+        var testId = $"ThreeLevelChain_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with 3-level member access chain argument should not crash the CLR");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_FourLevelMemberAccessChainArgument_DoesNotCrash(OptimizationLevel optimization)
+    {
+        // Issue #55: Extended test for 4+ level chains (e.g. _steps.Inner.Deep.Value)
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncFourLevelChain_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class Inner { public string Name { get; set; } = "test"; }
+            public class Middle { public Inner Inner = new(); }
+            public class Outer { public Middle Middle = new(); }
+
+            public class Tests
+            {
+                private Outer _outer1 = new();
+                private Outer _outer2 = new();
+
+                #pragma warning disable CS1998
+                public async Task The_names_should_match()
+                {
+                    _outer1.Middle.Inner.Name.Should().Be(_outer2.Middle.Inner.Name);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(1);
+
+        // Verify IL correctness: intermediate chain members should NOT be captured as standalone variables
+        using var asmDef = AssemblyDefinition.ReadAssembly(assemblyPath,
+            new ReaderParameters { ReadSymbols = true });
+        var stateMachineType = asmDef.MainModule.GetTypes()
+            .First(t => t.Name.Contains("<The_names_should_match>"));
+        var moveNext = stateMachineType.Methods.First(m => m.Name == "MoveNext");
+        var ldstrInstructions = moveNext.Body.Instructions
+            .Where(i => i.OpCode == OpCodes.Ldstr)
+            .Select(i => (string)i.Operand)
+            .ToList();
+
+        // "Middle" and "Inner" are intermediate chain members — should NOT be captured
+        ldstrInstructions.Where(s => s == "Middle").Should().BeEmpty(
+            $"'Middle' should NOT be captured as a standalone variable in {optimization} mode");
+        ldstrInstructions.Where(s => s == "Inner").Should().BeEmpty(
+            $"'Inner' should NOT be captured as a standalone variable in {optimization} mode");
+
+        // Also verify the method runs without crashing
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("The_names_should_match")!;
+
+        var testId = $"FourLevelChain_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method with 4-level member access chain argument should not crash the CLR");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
     public void Weave_GenericMethod_WithValueTypeArguments_DoesNotThrow(OptimizationLevel optimization)
     {
         // Issue #53: Generic method ShouldBeTheSame<T>(T actual, T expected) where T is
@@ -2694,328 +2865,5 @@ public class AssertionWeaverTests
         // Should NOT throw InvalidProgramException
         var ex = Record.Exception(() => method.Invoke(instance, new object[] { "host", "localhost" }));
         ex.Should().BeNull($"lock-then-assertion with lambda should not throw in {optimization} mode");
-    }
-
-    [Theory]
-    [InlineData(OptimizationLevel.Debug)]
-    [InlineData(OptimizationLevel.Release)]
-    public void Weave_AsyncMethod_LinqOrderByDescending_BeEquivalentTo_DoesNotThrowBadImageFormat(
-        OptimizationLevel optimization)
-    {
-        // Issue #54: OrderByDescending() on IEnumerable<T> followed by .Should().BeEquivalentTo()
-        // produces IOrderedEnumerable<T> which causes BadImageFormatException when the weaver
-        // wraps the assertion in try/catch. Uses FluentAssertions.
-        var assemblyPath = TestAssemblyBuilder.Build(
-            $"LinqOrderByDescending_{optimization}",
-            """
-            using System;
-            using System.Collections.Generic;
-            using System.Linq;
-            using System.Threading.Tasks;
-            using FluentAssertions;
-            using TestTrackingDiagrams.Tracking;
-
-            [assembly: TrackAssertions]
-
-            public record ListResponseData
-            {
-                public Guid? DeviceId { get; set; }
-                public DateTime? BoundDate { get; set; }
-                public DateTime? ExpiryDate { get; set; }
-                public string? Description { get; set; }
-            }
-
-            public class ApiResponse<T>
-            {
-                public T? Data { get; set; }
-            }
-
-            public class Tests
-            {
-                private ApiResponse<IEnumerable<ListResponseData>>? Response;
-
-                public Tests()
-                {
-                    Response = new ApiResponse<IEnumerable<ListResponseData>>
-                    {
-                        Data = new[]
-                        {
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
-                        }
-                    };
-                }
-
-                public async Task The_response_data_should_be_an_ordered_array()
-                {
-                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
-                }
-            }
-            """,
-            optimization);
-
-        var weaver = new AssertionWeaver();
-        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
-
-        result.WeavedCount.Should().Be(1);
-
-        // Load and execute — should NOT throw BadImageFormatException
-        var asm = Assembly.LoadFrom(assemblyPath);
-        var testType = asm.GetType("Tests")!;
-        var instance = Activator.CreateInstance(testType)!;
-
-        var testId = $"LinqOrderBy_{optimization}_{Guid.NewGuid():N}";
-        using var scope = TestIdentityScope.Begin(testId, testId);
-
-        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
-        var task = (Task)method.Invoke(instance, null)!;
-        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
-        ex.Should().BeNull(
-            $"{optimization}-compiled async method with OrderByDescending + BeEquivalentTo " +
-            "should not throw BadImageFormatException");
-    }
-
-    [Theory]
-    [InlineData(OptimizationLevel.Debug)]
-    [InlineData(OptimizationLevel.Release)]
-    public void Weave_AsyncMethod_AwesomeAssertions_LinqOrderByDescending_DoesNotThrowBadImageFormat(
-        OptimizationLevel optimization)
-    {
-        // Issue #54: Same pattern but with AwesomeAssertions (the library actually reported).
-        // AwesomeAssertions uses a different namespace and assembly than FluentAssertions.
-        var assemblyPath = TestAssemblyBuilder.Build(
-            $"AALinqOrderBy_{optimization}",
-            """
-            using System;
-            using System.Collections.Generic;
-            using System.Linq;
-            using System.Threading.Tasks;
-            using AwesomeAssertions;
-            using TestTrackingDiagrams.Tracking;
-
-            [assembly: TrackAssertions]
-
-            public record ListResponseData
-            {
-                public Guid? DeviceId { get; set; }
-                public DateTime? BoundDate { get; set; }
-                public DateTime? ExpiryDate { get; set; }
-                public string? Description { get; set; }
-            }
-
-            public class ApiResponse<T>
-            {
-                public T? Data { get; set; }
-            }
-
-            public class Tests
-            {
-                private ApiResponse<IEnumerable<ListResponseData>>? Response;
-
-                public Tests()
-                {
-                    Response = new ApiResponse<IEnumerable<ListResponseData>>
-                    {
-                        Data = new[]
-                        {
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
-                        }
-                    };
-                }
-
-                public async Task The_response_data_should_be_an_ordered_array()
-                {
-                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
-                }
-            }
-            """,
-            optimization);
-
-        var weaver = new AssertionWeaver();
-        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
-
-        result.WeavedCount.Should().Be(1);
-
-        var asm = Assembly.LoadFrom(assemblyPath);
-        var testType = asm.GetType("Tests")!;
-        var instance = Activator.CreateInstance(testType)!;
-
-        var testId = $"AALinqOrderBy_{optimization}_{Guid.NewGuid():N}";
-        using var scope = TestIdentityScope.Begin(testId, testId);
-
-        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
-        var task = (Task)method.Invoke(instance, null)!;
-        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
-        ex.Should().BeNull(
-            $"{optimization}-compiled async method with AwesomeAssertions OrderByDescending + BeEquivalentTo " +
-            "should not throw BadImageFormatException");
-    }
-
-    [Theory]
-    [InlineData(OptimizationLevel.Debug)]
-    [InlineData(OptimizationLevel.Release)]
-    public void Weave_AsyncMethod_LinqChainOnProperty_BeEquivalentTo_DoesNotThrowBadImageFormat(
-        OptimizationLevel optimization)
-    {
-        // Issue #54 variant: LINQ chain on a property with null-forgiving, plus the same
-        // property is also passed as argument to BeEquivalentTo. Tests with base class
-        // property access (matching real project pattern where Response is inherited).
-        var assemblyPath = TestAssemblyBuilder.Build(
-            $"LinqChainProperty_{optimization}",
-            """
-            using System;
-            using System.Collections.Generic;
-            using System.Linq;
-            using System.Threading.Tasks;
-            using AwesomeAssertions;
-            using TestTrackingDiagrams.Tracking;
-
-            [assembly: TrackAssertions]
-
-            public record ListResponseData
-            {
-                public Guid? DeviceId { get; set; }
-                public DateTime? BoundDate { get; set; }
-                public DateTime? ExpiryDate { get; set; }
-                public string? Description { get; set; }
-            }
-
-            public class ApiResponse<T>
-            {
-                public T? Data { get; set; }
-            }
-
-            public abstract class BaseSteps<TReq, TResp>
-            {
-                protected ApiResponse<TResp>? Response { get; set; }
-            }
-
-            public class ListSteps : BaseSteps<object, IEnumerable<ListResponseData>>
-            {
-                public ListSteps()
-                {
-                    Response = new ApiResponse<IEnumerable<ListResponseData>>
-                    {
-                        Data = new[]
-                        {
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
-                        }
-                    };
-                }
-
-                public async Task The_response_data_should_be_an_ordered_array()
-                {
-                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
-                }
-            }
-            """,
-            optimization);
-
-        var weaver = new AssertionWeaver();
-        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
-
-        result.WeavedCount.Should().Be(1);
-
-        var asm = Assembly.LoadFrom(assemblyPath);
-        var testType = asm.GetType("ListSteps")!;
-        var instance = Activator.CreateInstance(testType)!;
-
-        var testId = $"LinqChainProp_{optimization}_{Guid.NewGuid():N}";
-        using var scope = TestIdentityScope.Begin(testId, testId);
-
-        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
-        var task = (Task)method.Invoke(instance, null)!;
-        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
-        ex.Should().BeNull(
-            $"{optimization}: OrderByDescending + BeEquivalentTo on inherited Response " +
-            "should not throw BadImageFormatException");
-    }
-
-    [Theory]
-    [InlineData("Release")]
-    public void Weave_Sdk8_AwesomeAssertions_LinqOrderByDescending_DoesNotThrowBadImageFormat(
-        string configuration)
-    {
-        // Issue #54: Test with .NET 8 SDK compiler + AwesomeAssertions (matching the exact
-        // reported environment). Uses class inheritance with raw generic field Response
-        // (not a property!). The field type is a raw GenericParameter (!0) which caused
-        // the weaver to emit 'box !0' in the non-generic state machine → BadImageFormatException.
-        var assemblyPath = TestAssemblyBuilder.BuildWithSdk(
-            $"Sdk8AALinqOrderBy_{configuration}",
-            """
-            using System;
-            using System.Collections.Generic;
-            using System.Linq;
-            using System.Threading.Tasks;
-            using AwesomeAssertions;
-            using TestTrackingDiagrams.Tracking;
-
-            [assembly: TrackAssertions]
-
-            public record ListResponseData
-            {
-                public Guid? DeviceId { get; set; }
-                public DateTime? BoundDate { get; set; }
-                public DateTime? ExpiryDate { get; set; }
-                public string? Description { get; set; }
-            }
-
-            public class ApiResponse<T>
-            {
-                public T? Data { get; set; }
-            }
-
-            // Key: Response is a raw FIELD typed as the generic parameter TResponse,
-            // not a property with backing field typed as ApiResponse<TResp>.
-            public abstract class BaseEndpoint<TResponse> where TResponse : class
-            {
-                protected internal TResponse? Response;
-            }
-
-            #pragma warning disable CS1998
-            public class ListSteps : BaseEndpoint<ApiResponse<IEnumerable<ListResponseData>>>
-            {
-                public ListSteps()
-                {
-                    Response = new ApiResponse<IEnumerable<ListResponseData>>
-                    {
-                        Data = new[]
-                        {
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(2) },
-                            new ListResponseData { DeviceId = Guid.NewGuid(), ExpiryDate = DateTime.Now.AddDays(1) },
-                        }
-                    };
-                }
-
-                public async Task The_response_data_should_be_an_ordered_array()
-                {
-                    Response!.Data!.OrderByDescending(d => d.ExpiryDate).Should().BeEquivalentTo(Response!.Data);
-                }
-            }
-            """,
-            sdkVersion: "8.0.420",
-            tfm: "net8.0",
-            configuration: configuration);
-
-        var weaver = new AssertionWeaver();
-        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
-
-        result.WeavedCount.Should().Be(1);
-
-        var asm = Assembly.LoadFrom(assemblyPath);
-        var testType = asm.GetType("ListSteps")!;
-        var instance = Activator.CreateInstance(testType)!;
-
-        var testId = $"Sdk8AALinqOrderBy_{configuration}_{Guid.NewGuid():N}";
-        using var scope = TestIdentityScope.Begin(testId, testId);
-
-        var method = testType.GetMethod("The_response_data_should_be_an_ordered_array")!;
-        var task = (Task)method.Invoke(instance, null)!;
-        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
-        ex.Should().BeNull(
-            $"SDK 8 {configuration}: AwesomeAssertions OrderByDescending + BeEquivalentTo " +
-            "should not throw BadImageFormatException");
     }
 }

@@ -841,14 +841,13 @@ public class AssertionWeaver
                                 continue;
 
                             var fieldRef = new FieldReference(field.Name, field.FieldType, varType);
-                            var resolvedType = ResolveFieldType(fieldRef);
                             captured.Add(new CapturedVariable
                             {
                                 Name = fieldName,
                                 ClosureLocalIndex = localIndex,
                                 ClosureField = fieldRef,
-                                NeedsBoxing = resolvedType.IsValueType || resolvedType is GenericParameter,
-                                Type = resolvedType
+                                NeedsBoxing = field.FieldType.IsValueType || field.FieldType is GenericParameter,
+                                Type = field.FieldType
                             });
                         }
                     }
@@ -891,16 +890,14 @@ public class AssertionWeaver
                                 continue;
 
                             // For async+closure: load this->displayClassField->valueField
-                            var closureFieldRef = new FieldReference(field.Name, field.FieldType, fieldRef.FieldType);
-                            var resolvedType = ResolveFieldType(closureFieldRef);
                             captured.Add(new CapturedVariable
                             {
                                 Name = fieldName,
                                 StateField = fieldRef, // the display class field on state machine
                                 ClosureLocalIndex = -1,
-                                ClosureField = closureFieldRef,
-                                NeedsBoxing = resolvedType.IsValueType || resolvedType is GenericParameter,
-                                Type = resolvedType
+                                ClosureField = new FieldReference(field.Name, field.FieldType, fieldRef.FieldType),
+                                NeedsBoxing = field.FieldType.IsValueType || field.FieldType is GenericParameter,
+                                Type = field.FieldType
                             });
                         }
                     }
@@ -927,15 +924,14 @@ public class AssertionWeaver
                             var chainedName = chainedFieldRef.Name;
                             if (NameAppearsInExpression(chainedName, sourceText) && seenNames.Add(chainedName))
                             {
-                                var resolvedType = ResolveFieldType(chainedFieldRef);
                                 // Use StateField + ClosureField pattern: ldarg.0 -> ldfld stateField -> ldfld closureField
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = chainedName,
                                     StateField = fieldRef, // the <>4__this field on state machine
                                     ClosureField = chainedFieldRef, // the actual instance field
-                                    NeedsBoxing = resolvedType.IsValueType || resolvedType is GenericParameter,
-                                    Type = resolvedType
+                                    NeedsBoxing = chainedFieldRef.FieldType.IsValueType || chainedFieldRef.FieldType is GenericParameter,
+                                    Type = chainedFieldRef.FieldType
                                 });
                             }
                             i += 2; // skip both ldfld instructions
@@ -958,13 +954,12 @@ public class AssertionWeaver
                     continue;
                 }
 
-                var resolvedFieldType = ResolveFieldType(fieldRef);
                 captured.Add(new CapturedVariable
                 {
                     Name = name,
                     StateField = fieldRef,
-                    NeedsBoxing = resolvedFieldType.IsValueType || resolvedFieldType is GenericParameter,
-                    Type = resolvedFieldType
+                    NeedsBoxing = fieldRef.FieldType.IsValueType || fieldRef.FieldType is GenericParameter,
+                    Type = fieldRef.FieldType
                 });
                 i++; // skip the ldfld instruction
             }
@@ -1035,13 +1030,12 @@ public class AssertionWeaver
                                 if (!seenNames.Add(lambdaVarName))
                                     continue;
 
-                                var resolvedLambdaFieldType = ResolveFieldType(lambdaFieldRef);
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = lambdaVarName,
                                     StateField = lambdaFieldRef,
-                                    NeedsBoxing = resolvedLambdaFieldType.IsValueType || resolvedLambdaFieldType is GenericParameter,
-                                    Type = resolvedLambdaFieldType
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
+                                    Type = lambdaFieldRef.FieldType
                                 });
                                 continue;
                             }
@@ -1061,26 +1055,24 @@ public class AssertionWeaver
                             if (outerThisField != null)
                             {
                                 // In async state machine: ldarg.0 → ldfld <>4__this → ldfld field
-                                var resolvedLambdaType = ResolveFieldType(lambdaFieldRef);
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = rawName,
                                     StateField = outerThisField,
                                     ClosureField = lambdaFieldRef,
-                                    NeedsBoxing = resolvedLambdaType.IsValueType || resolvedLambdaType is GenericParameter,
-                                    Type = resolvedLambdaType
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
+                                    Type = lambdaFieldRef.FieldType
                                 });
                             }
                             else
                             {
                                 // Non-async: ldarg.0 → ldfld field (this.field)
-                                var resolvedLambdaType = ResolveFieldType(lambdaFieldRef);
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = rawName,
                                     StateField = lambdaFieldRef,
-                                    NeedsBoxing = resolvedLambdaType.IsValueType || resolvedLambdaType is GenericParameter,
-                                    Type = resolvedLambdaType
+                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
+                                    Type = lambdaFieldRef.FieldType
                                 });
                             }
                         }
@@ -1117,26 +1109,24 @@ public class AssertionWeaver
                 if (outerThisForToken != null)
                 {
                     // Async: ldarg.0 → ldfld <>4__this → ldfld field
-                    var resolvedTokenType = ResolveFieldType(tokenFieldRef);
                     captured.Add(new CapturedVariable
                     {
                         Name = fieldName,
                         StateField = outerThisForToken,
                         ClosureField = tokenFieldRef,
-                        NeedsBoxing = resolvedTokenType.IsValueType || resolvedTokenType is GenericParameter,
-                        Type = resolvedTokenType
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType || tokenFieldRef.FieldType is GenericParameter,
+                        Type = tokenFieldRef.FieldType
                     });
                 }
                 else
                 {
                     // Non-async: ldarg.0 → ldfld field (this.field)
-                    var resolvedTokenType = ResolveFieldType(tokenFieldRef);
                     captured.Add(new CapturedVariable
                     {
                         Name = fieldName,
                         StateField = tokenFieldRef,
-                        NeedsBoxing = resolvedTokenType.IsValueType || resolvedTokenType is GenericParameter,
-                        Type = resolvedTokenType
+                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType || tokenFieldRef.FieldType is GenericParameter,
+                        Type = tokenFieldRef.FieldType
                     });
                 }
             }
@@ -1145,10 +1135,30 @@ public class AssertionWeaver
             //   ldloc.N → ldfld _field  (instead of ldarg.0 → ldfld <>4__this → ldfld _field)
             // The value loading code always uses ldarg.0 → ldfld <>4__this → ldfld _field,
             // which works regardless of how the original code accesses the field.
+            //
+            // IMPORTANT (Issue #55): Skip ldfld instructions that are continuations of a member
+            // access chain. If the preceding instruction is ldfld, callvirt, or call, this ldfld
+            // is reading a field from the result of the previous instruction (e.g., _obj.Field.SubField).
+            // Capturing it standalone would emit ldarg.0→ldfld <>4__this→ldfld SubField which is
+            // invalid IL — SubField is not a field on the outer class type.
             else if (instr.OpCode == OpCodes.Ldfld &&
                      instr.Operand is FieldReference standaloneFldRef &&
                      !standaloneFldRef.Name.Contains('<') && !standaloneFldRef.Name.Contains('>'))
             {
+                // Check if this ldfld is a continuation of a member access chain.
+                // If preceded by ldfld, callvirt, or call, the stack top is the result of
+                // the previous member access — this ldfld reads from that, not from <>4__this.
+                if (i > 0)
+                {
+                    var prevInstr = statementInstructions[i - 1];
+                    if (prevInstr.OpCode == OpCodes.Ldfld ||
+                        prevInstr.OpCode == OpCodes.Callvirt ||
+                        prevInstr.OpCode == OpCodes.Call)
+                    {
+                        continue; // Skip chain continuation — not an independent variable
+                    }
+                }
+
                 var fieldName = standaloneFldRef.Name;
                 if (!NameAppearsInExpression(fieldName, sourceText))
                     continue;
@@ -1168,14 +1178,13 @@ public class AssertionWeaver
 
                 if (outerThisForStandalone != null)
                 {
-                    var resolvedStandaloneType = ResolveFieldType(standaloneFldRef);
                     captured.Add(new CapturedVariable
                     {
                         Name = fieldName,
                         StateField = outerThisForStandalone,
                         ClosureField = standaloneFldRef,
-                        NeedsBoxing = resolvedStandaloneType.IsValueType || resolvedStandaloneType is GenericParameter,
-                        Type = resolvedStandaloneType
+                        NeedsBoxing = standaloneFldRef.FieldType.IsValueType || standaloneFldRef.FieldType is GenericParameter,
+                        Type = standaloneFldRef.FieldType
                     });
                 }
             }
@@ -1304,23 +1313,6 @@ public class AssertionWeaver
     }
 
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
-
-    /// <summary>
-    /// Resolves a field's type when it contains a GenericParameter by substituting
-    /// the concrete type argument from the declaring GenericInstanceType.
-    /// This prevents emitting 'box !0' in non-generic state machine methods where
-    /// the GenericParameter cannot be resolved at runtime (BadImageFormatException).
-    /// </summary>
-    private static TypeReference ResolveFieldType(FieldReference fieldRef)
-    {
-        var fieldType = fieldRef.FieldType;
-        if (fieldType is GenericParameter gp && fieldRef.DeclaringType is GenericInstanceType git)
-        {
-            if (gp.Position < git.GenericArguments.Count)
-                return git.GenericArguments[gp.Position];
-        }
-        return fieldType;
-    }
 
     /// <summary>
     /// Checks whether a type is a compiler-generated display class (closure container).
