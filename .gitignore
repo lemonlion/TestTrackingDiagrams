@@ -354,13 +354,22 @@ MigrationBackup/
 
 # Development artifacts
 docs/
-generate-poc.ps1
-prototype-parameterized-grouping.html
 local-feed/
 *.DotSettings.user
+*.nupkg
 
-# Orphaned pre-restructure directory (active copy is under examples/)
-/Example.Api/
+# Build/test output
 test-output.txt
 build-output.txt
 rerun-output.txt
+test-results.log
+
+# POC/scratch files
+generate-poc.ps1
+poc-*.html
+
+# AI agent config (internal workflow)
+AGENTS.md
+
+# Orphaned pre-restructure directory (active copy is under examples/)
+/Example.Api/
