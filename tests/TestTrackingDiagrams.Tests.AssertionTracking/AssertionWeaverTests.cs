@@ -2600,6 +2600,258 @@ public class AssertionWeaverTests
     [Theory]
     [InlineData(OptimizationLevel.Debug)]
     [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_InheritedGenericFieldAsArgument_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #55 follow-up: When a class inherits from a generic base class that defines
+        // fields (e.g. BasePostEndpoint<TRequest, TResponse> defines `public TRequest Request = new()`),
+        // and the assertion argument accesses that inherited field (e.g. Request.Amount),
+        // the weaver captured the field with its unresolved generic parameter type (!0).
+        // This caused `box !0` to be emitted in the non-generic state machine, producing
+        // BadImageFormatException at runtime. The fix resolves generic parameters through
+        // the <>4__this field's concrete type.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncGenericBaseField_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class PutTransactionRequest
+            {
+                public decimal Amount { get; set; } = 100.50m;
+                public string MerchantName { get; set; } = "TestMerchant";
+                public string Pan { get; set; } = "4111111111111111";
+            }
+
+            public class PutTransactionResponse
+            {
+                public decimal Amount { get; set; } = 100.50m;
+                public string MerchantName { get; set; } = "TestMerchant";
+                public string Pan { get; set; } = "4111111111111111";
+            }
+
+            public abstract class BaseEndpoint<TResponse>
+            {
+                public TResponse? Response;
+            }
+
+            public abstract class BasePutEndpoint<TRequest, TResponse> : BaseEndpoint<TResponse>
+                where TRequest : new()
+            {
+                public TRequest Request = new();
+            }
+
+            public class PutTransactionSteps : BasePutEndpoint<PutTransactionRequest, PutTransactionResponse>
+            {
+                public PutTransactionSteps()
+                {
+                    Response = new PutTransactionResponse();
+                }
+
+                #pragma warning disable CS1998
+                public async Task The_response_fields_should_match_the_request()
+                {
+                    Response!.Amount.Should().Be(Request.Amount);
+                    Response.MerchantName.Should().Be(Request.MerchantName);
+                    Response.Pan.Should().Be(Request.Pan);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThanOrEqualTo(3);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("PutTransactionSteps")!;
+        var instance = Activator.CreateInstance(testType)!;
+        var method = testType.GetMethod("The_response_fields_should_match_the_request")!;
+
+        var testId = $"GenericBaseField_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var task = (Task)method.Invoke(instance, null)!;
+        // Must NOT throw BadImageFormatException from invalid box !0 in non-generic state machine
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}-compiled async method accessing inherited generic base class fields should not throw BadImageFormatException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_InheritedGenericFieldTwoLevelChainAsArgument_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #55: The 3-level chain pattern (_field.GenericField.Property) from an external
+        // field that's generic. E.g. _postSteps.Request.MerchantName where Request is TRequest.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncGenericFieldChain_{optimization}",
+            """
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class MyRequest
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+                public string Channel { get; set; } = "WEB";
+            }
+
+            public class MyResponse
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+                public string ChannelType { get; set; } = "WEB";
+            }
+
+            public abstract class BaseEndpoint<TResponse>
+            {
+                public TResponse? Response;
+            }
+
+            public abstract class BasePostEndpoint<TRequest, TResponse> : BaseEndpoint<TResponse>
+                where TRequest : new()
+            {
+                public TRequest Request = new();
+            }
+
+            public class GetSteps : BaseEndpoint<MyResponse>
+            {
+                public GetSteps() { Response = new MyResponse(); }
+            }
+
+            public class PostSteps : BasePostEndpoint<MyRequest, MyResponse> { }
+
+            public class Tests
+            {
+                private GetSteps _getSteps = new();
+                private PostSteps _postSteps = new();
+
+                #pragma warning disable CS1998
+                public async Task The_merchant_name_should_match()
+                {
+                    _getSteps.Response!.MerchantName.Should().Be(_postSteps.Request.MerchantName);
+                }
+
+                public async Task The_channel_should_match()
+                {
+                    _getSteps.Response!.ChannelType.Should().Be(_postSteps.Request.Channel);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().Be(2);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("Tests")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"GenericFieldChain_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method1 = testType.GetMethod("The_merchant_name_should_match")!;
+        var task1 = (Task)method1.Invoke(instance, null)!;
+        var ex1 = Record.Exception(() => task1.GetAwaiter().GetResult());
+        ex1.Should().BeNull(
+            $"{optimization}: 3-level chain through generic base field should not throw");
+
+        var method2 = testType.GetMethod("The_channel_should_match")!;
+        var task2 = (Task)method2.Invoke(instance, null)!;
+        var ex2 = Record.Exception(() => task2.GetAwaiter().GetResult());
+        ex2.Should().BeNull(
+            $"{optimization}: 3-level chain through generic base field (Channel) should not throw");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
+    public void Weave_AsyncMethod_GenericFieldAccessedViaLambdaOnDifferentObject_DoesNotThrow(OptimizationLevel optimization)
+    {
+        // Issue #55 follow-up: When a lambda expression accesses a generic field on an object
+        // that is a field of the test fixture (e.g., _steps.Request inside a .Contain(x => ...)),
+        // the weaver must NOT try to capture Request as if it were directly on the outer class.
+        // Request is on _steps (which inherits from a generic base), not on the test fixture.
+        var assemblyPath = TestAssemblyBuilder.Build(
+            $"AsyncGenericFieldLambda_{optimization}",
+            """
+            using System.Collections.Generic;
+            using System.Linq;
+            using System.Threading.Tasks;
+            using FluentAssertions;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackAssertions]
+
+            public class EventData
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+            }
+
+            public class TransactedMerchant
+            {
+                public string MerchantName { get; set; } = "TestMerchant";
+                public string DisplayName { get; set; } = "TestMerchant";
+            }
+
+            public abstract class BasePostEndpoint<TRequest, TResponse>
+                where TRequest : new()
+            {
+                public TRequest Request = new();
+                public TResponse? Response;
+            }
+
+            public class PostSteps : BasePostEndpoint<List<EventData>, string>
+            {
+                public PostSteps() { Request = new List<EventData> { new EventData() }; }
+            }
+
+            public class GetSteps
+            {
+                public List<TransactedMerchant>? Response = new() { new TransactedMerchant() };
+            }
+
+            public class TestFixture
+            {
+                private readonly PostSteps _postSteps = new();
+                private readonly GetSteps _getSteps = new();
+
+                #pragma warning disable CS1998
+                public async Task The_response_should_include_matching_merchant()
+                {
+                    _getSteps.Response!.Should().Contain(x => x.MerchantName == _postSteps.Request.First().MerchantName);
+                }
+            }
+            """,
+            optimization);
+
+        var weaver = new AssertionWeaver();
+        var result = weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+        result.WeavedCount.Should().BeGreaterThanOrEqualTo(1);
+
+        var asm = Assembly.LoadFrom(assemblyPath);
+        var testType = asm.GetType("TestFixture")!;
+        var instance = Activator.CreateInstance(testType)!;
+
+        var testId = $"GenericFieldLambda_{optimization}_{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var method = testType.GetMethod("The_response_should_include_matching_merchant")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        var ex = Record.Exception(() => task.GetAwaiter().GetResult());
+        ex.Should().BeNull(
+            $"{optimization}: lambda accessing generic field on intermediate object should not throw BadImageFormatException");
+    }
+
+    [Theory]
+    [InlineData(OptimizationLevel.Debug)]
+    [InlineData(OptimizationLevel.Release)]
     public void Weave_GenericMethod_WithValueTypeArguments_DoesNotThrow(OptimizationLevel optimization)
     {
         // Issue #53: Generic method ShouldBeTheSame<T>(T actual, T expected) where T is

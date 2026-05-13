@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.74] - 2026-05-13
+
+### Fixed
+- **AssertionTracking IL weaver produces BadImageFormatException with inherited generic base class fields** (#55 follow-up) — When assertions accessed fields inherited from generic base classes (e.g., `Request` on `BasePutEndpoint<TRequest, TResponse>`), the weaver emitted invalid IL in two ways: (1) The field reference metadata token was not properly imported into the module, causing `MissingFieldException` at runtime when loading fields on generic instance types. Fixed by calling `Module.ImportReference()` on resolved field references. (2) When a lambda expression accessed a generic field on an intermediate object (e.g., `_steps.Request` inside `.Contain(x => ...)`), the weaver incorrectly tried to capture the field as if it were directly on the outer class, emitting `ldfld Request` on a type that doesn't have that field. Fixed by adding `IsFieldAccessibleOnType()` validation that skips fields not in the outer class's inheritance chain.
+
 ## [2.33.73] - 2026-05-13
 
 ### Fixed

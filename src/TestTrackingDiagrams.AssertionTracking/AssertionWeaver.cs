@@ -924,14 +924,26 @@ public class AssertionWeaver
                             var chainedName = chainedFieldRef.Name;
                             if (NameAppearsInExpression(chainedName, sourceText) && seenNames.Add(chainedName))
                             {
+                                // Resolve generic parameter types through the outer class type.
+                                // When the field is inherited from a generic base (e.g., TRequest Request on
+                                // BasePostEndpoint<TRequest,TResponse>), FieldType is !0. We resolve it to
+                                // the concrete type to avoid emitting `box !0` in non-generic state machines.
+                                var outerClassType = fieldRef.FieldType;
+                                var resolvedFieldType = ResolveGenericFieldType(chainedFieldRef, outerClassType);
+                                var resolvedFieldRef = ResolveFieldReference(chainedFieldRef, outerClassType);
+
+                                // Import the field reference to ensure proper metadata token
+                                // generation when the field is on a generic base class.
+                                var importedFieldRef = method.Module.ImportReference(resolvedFieldRef);
+
                                 // Use StateField + ClosureField pattern: ldarg.0 -> ldfld stateField -> ldfld closureField
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = chainedName,
                                     StateField = fieldRef, // the <>4__this field on state machine
-                                    ClosureField = chainedFieldRef, // the actual instance field
-                                    NeedsBoxing = chainedFieldRef.FieldType.IsValueType || chainedFieldRef.FieldType is GenericParameter,
-                                    Type = chainedFieldRef.FieldType
+                                    ClosureField = importedFieldRef, // the actual instance field (imported)
+                                    NeedsBoxing = resolvedFieldType.IsValueType || resolvedFieldType is GenericParameter,
+                                    Type = resolvedFieldType
                                 });
                             }
                             i += 2; // skip both ldfld instructions
@@ -1055,13 +1067,22 @@ public class AssertionWeaver
                             if (outerThisField != null)
                             {
                                 // In async state machine: ldarg.0 → ldfld <>4__this → ldfld field
+                                // Only capture if the field is actually accessible on the outer class
+                                // (e.g., skip _steps.Request where Request is on a different type)
+                                if (!IsFieldAccessibleOnType(lambdaFieldRef, outerThisField.FieldType))
+                                    continue;
+
+                                // Resolve generic parameter types through the outer class type (Issue #55).
+                                var outerType = outerThisField.FieldType;
+                                var resolvedLambdaFieldType = ResolveGenericFieldType(lambdaFieldRef, outerType);
+                                var resolvedLambdaFieldRef = ResolveFieldReference(lambdaFieldRef, outerType);
                                 captured.Add(new CapturedVariable
                                 {
                                     Name = rawName,
                                     StateField = outerThisField,
-                                    ClosureField = lambdaFieldRef,
-                                    NeedsBoxing = lambdaFieldRef.FieldType.IsValueType || lambdaFieldRef.FieldType is GenericParameter,
-                                    Type = lambdaFieldRef.FieldType
+                                    ClosureField = resolvedLambdaFieldRef,
+                                    NeedsBoxing = resolvedLambdaFieldType.IsValueType || resolvedLambdaFieldType is GenericParameter,
+                                    Type = resolvedLambdaFieldType
                                 });
                             }
                             else
@@ -1109,13 +1130,21 @@ public class AssertionWeaver
                 if (outerThisForToken != null)
                 {
                     // Async: ldarg.0 → ldfld <>4__this → ldfld field
+                    // Only capture if the field is actually accessible on the outer class
+                    if (!IsFieldAccessibleOnType(tokenFieldRef, outerThisForToken.FieldType))
+                        continue;
+
+                    // Resolve generic parameter types through the outer class type (Issue #55).
+                    var outerTypeForToken = outerThisForToken.FieldType;
+                    var resolvedTokenFieldType = ResolveGenericFieldType(tokenFieldRef, outerTypeForToken);
+                    var resolvedTokenFieldRef = ResolveFieldReference(tokenFieldRef, outerTypeForToken);
                     captured.Add(new CapturedVariable
                     {
                         Name = fieldName,
                         StateField = outerThisForToken,
-                        ClosureField = tokenFieldRef,
-                        NeedsBoxing = tokenFieldRef.FieldType.IsValueType || tokenFieldRef.FieldType is GenericParameter,
-                        Type = tokenFieldRef.FieldType
+                        ClosureField = resolvedTokenFieldRef,
+                        NeedsBoxing = resolvedTokenFieldType.IsValueType || resolvedTokenFieldType is GenericParameter,
+                        Type = resolvedTokenFieldType
                     });
                 }
                 else
@@ -1178,13 +1207,18 @@ public class AssertionWeaver
 
                 if (outerThisForStandalone != null)
                 {
+                    // Resolve generic parameter types through the outer class type (Issue #55).
+                    var outerClassType = outerThisForStandalone.FieldType;
+                    var resolvedFieldType = ResolveGenericFieldType(standaloneFldRef, outerClassType);
+                    var resolvedFieldRef = ResolveFieldReference(standaloneFldRef, outerClassType);
+
                     captured.Add(new CapturedVariable
                     {
                         Name = fieldName,
                         StateField = outerThisForStandalone,
-                        ClosureField = standaloneFldRef,
-                        NeedsBoxing = standaloneFldRef.FieldType.IsValueType || standaloneFldRef.FieldType is GenericParameter,
-                        Type = standaloneFldRef.FieldType
+                        ClosureField = resolvedFieldRef,
+                        NeedsBoxing = resolvedFieldType.IsValueType || resolvedFieldType is GenericParameter,
+                        Type = resolvedFieldType
                     });
                 }
             }
@@ -1313,6 +1347,196 @@ public class AssertionWeaver
     }
 
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    /// <summary>
+    /// Resolves the field type when it contains a generic parameter (!0, !1, etc.).
+    /// When a field like <c>Request</c> is defined on <c>BasePostEndpoint&lt;TRequest, TResponse&gt;</c>,
+    /// its FieldType is the generic parameter <c>!0</c>. In a non-generic state machine, emitting
+    /// <c>box !0</c> produces invalid IL. This method resolves <c>!0</c> to the concrete type
+    /// by walking the outer class type's base type hierarchy to find the GenericInstanceType
+    /// that provides the generic arguments.
+    /// </summary>
+    private static TypeReference ResolveGenericFieldType(FieldReference fieldRef, TypeReference outerClassType)
+    {
+        var fieldType = fieldRef.FieldType;
+        if (fieldType is not GenericParameter gp)
+            return fieldType;
+
+        // The field is defined on a generic type (e.g., BasePostEndpoint<TRequest, TResponse>).
+        // We need to find the closed GenericInstanceType in the outer class's hierarchy that
+        // provides the concrete type argument for this generic parameter position.
+        var fieldDeclaringTypeDef = fieldRef.DeclaringType;
+        var declaringTypeName = fieldDeclaringTypeDef is GenericInstanceType git2
+            ? git2.ElementType.FullName
+            : fieldDeclaringTypeDef.Resolve()?.FullName ?? fieldDeclaringTypeDef.FullName;
+
+        // Walk the base type hierarchy of outerClassType to find the matching GenericInstanceType
+        var currentType = outerClassType;
+        while (currentType != null)
+        {
+            if (currentType is GenericInstanceType git &&
+                (git.ElementType.FullName == declaringTypeName ||
+                 git.ElementType.Resolve()?.FullName == declaringTypeName))
+            {
+                // Found the GenericInstanceType that matches the field's declaring type
+                if (gp.Position < git.GenericArguments.Count)
+                    return git.GenericArguments[gp.Position];
+            }
+
+            // Move to the base type
+            try
+            {
+                var resolved = currentType is GenericInstanceType git3
+                    ? git3.ElementType.Resolve()
+                    : currentType.Resolve();
+                if (resolved == null) break;
+                var baseType = resolved.BaseType;
+                if (baseType == null) break;
+
+                // If the base type is generic, substitute generic args from current type
+                if (baseType is GenericInstanceType baseGit && currentType is GenericInstanceType currentGit)
+                {
+                    // Resolve each generic argument in the base type reference
+                    var resolvedArgs = new TypeReference[baseGit.GenericArguments.Count];
+                    for (var i = 0; i < baseGit.GenericArguments.Count; i++)
+                    {
+                        var arg = baseGit.GenericArguments[i];
+                        if (arg is GenericParameter baseGp && baseGp.Position < currentGit.GenericArguments.Count)
+                            resolvedArgs[i] = currentGit.GenericArguments[baseGp.Position];
+                        else
+                            resolvedArgs[i] = arg;
+                    }
+                    var newBaseGit = new GenericInstanceType(baseGit.ElementType);
+                    foreach (var arg in resolvedArgs)
+                        newBaseGit.GenericArguments.Add(arg);
+                    currentType = newBaseGit;
+                }
+                else
+                {
+                    currentType = baseType;
+                }
+            }
+            catch
+            {
+                break;
+            }
+        }
+
+        // Couldn't resolve — return the original (will still be GenericParameter)
+        return fieldType;
+    }
+
+    /// <summary>
+    /// Checks whether a field is directly accessible on the given type (or its base types).
+    /// This prevents the weaver from emitting <c>ldfld SomeField</c> on a type that doesn't
+    /// actually have that field in its inheritance chain — which would produce BadImageFormatException.
+    /// </summary>
+    private static bool IsFieldAccessibleOnType(FieldReference fieldRef, TypeReference type)
+    {
+        var fieldDeclaringType = fieldRef.DeclaringType;
+        var declaringTypeName = fieldDeclaringType is GenericInstanceType git
+            ? git.ElementType.FullName
+            : fieldDeclaringType.Resolve()?.FullName ?? fieldDeclaringType.FullName;
+
+        var currentType = type;
+        while (currentType != null)
+        {
+            var currentName = currentType is GenericInstanceType currentGit
+                ? currentGit.ElementType.FullName
+                : currentType.FullName;
+
+            if (currentName == declaringTypeName)
+                return true;
+
+            try
+            {
+                var resolved = currentType is GenericInstanceType g
+                    ? g.ElementType.Resolve()
+                    : currentType.Resolve();
+                if (resolved == null) break;
+                currentType = resolved.BaseType;
+            }
+            catch
+            {
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves a field reference for use in weaver-emitted <c>ldfld</c> instructions.
+    /// When the field is accessed on a concrete generic instance (e.g., accessing <c>Request</c>
+    /// on <c>PutTransactionSteps</c> which inherits from <c>BasePutEndpoint&lt;PutTransactionRequest, ...&gt;</c>),
+    /// the original field reference from the compiled IL already works correctly for <c>ldfld</c>
+    /// because the CLR resolves the concrete type at the call site. However, if the declaring type
+    /// is the open generic definition (not a GenericInstanceType), we need to reconstruct the
+    /// reference on the appropriate closed generic type from the hierarchy.
+    /// </summary>
+    private static FieldReference ResolveFieldReference(FieldReference fieldRef, TypeReference outerClassType)
+    {
+        if (fieldRef.FieldType is not GenericParameter)
+            return fieldRef; // No resolution needed — field type is already concrete
+
+        // If the declaring type is already a GenericInstanceType, the field reference
+        // is already on the closed generic type — the CLR can resolve it fine.
+        if (fieldRef.DeclaringType is GenericInstanceType)
+            return fieldRef;
+
+        // The declaring type is the open generic definition. We need to find the closed
+        // GenericInstanceType in the outer class hierarchy and create a field reference on it.
+        var declaringTypeName = fieldRef.DeclaringType.Resolve()?.FullName ?? fieldRef.DeclaringType.FullName;
+
+        var currentType = outerClassType;
+        while (currentType != null)
+        {
+            if (currentType is GenericInstanceType git &&
+                (git.ElementType.FullName == declaringTypeName ||
+                 git.ElementType.Resolve()?.FullName == declaringTypeName))
+            {
+                var resolvedType = ResolveGenericFieldType(fieldRef, outerClassType);
+                return new FieldReference(fieldRef.Name, resolvedType, git);
+            }
+
+            try
+            {
+                var resolved = currentType is GenericInstanceType git3
+                    ? git3.ElementType.Resolve()
+                    : currentType.Resolve();
+                if (resolved == null) break;
+                var baseType = resolved.BaseType;
+                if (baseType == null) break;
+
+                if (baseType is GenericInstanceType baseGit && currentType is GenericInstanceType currentGit)
+                {
+                    var resolvedArgs = new TypeReference[baseGit.GenericArguments.Count];
+                    for (var i = 0; i < baseGit.GenericArguments.Count; i++)
+                    {
+                        var arg = baseGit.GenericArguments[i];
+                        if (arg is GenericParameter baseGp && baseGp.Position < currentGit.GenericArguments.Count)
+                            resolvedArgs[i] = currentGit.GenericArguments[baseGp.Position];
+                        else
+                            resolvedArgs[i] = arg;
+                    }
+                    var newBaseGit = new GenericInstanceType(baseGit.ElementType);
+                    foreach (var arg in resolvedArgs)
+                        newBaseGit.GenericArguments.Add(arg);
+                    currentType = newBaseGit;
+                }
+                else
+                {
+                    currentType = baseType;
+                }
+            }
+            catch
+            {
+                break;
+            }
+        }
+
+        return fieldRef; // Couldn't resolve — return original
+    }
 
     /// <summary>
     /// Checks whether a type is a compiler-generated display class (closure container).
