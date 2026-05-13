@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.72] - 2026-05-13
+
+### Fixed
+- **PlantUml: Strip null-valued JSON properties from diagram notes** — HTTP-captured response bodies (e.g. from BigQuery, CosmosDB, DynamoDB SDKs) often contain dozens of null-valued properties that add visual noise to sequence diagram notes. The JSON pretty-printer now recursively removes null properties before rendering, producing significantly cleaner and more readable diagrams.
+
 ## [2.33.71] - 2026-05-13
 
 ### Fixed

@@ -596,7 +596,7 @@ public static partial class PlantUmlCreator
         return ((headersOnTop + Environment.NewLine + Environment.NewLine).TrimStart() + formattedContent.Trim()).TrimEnd();
     }
 
-    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+    private static readonly JsonWriterOptions IndentedWriterOptions = new() { Indented = true };
 
     private static string? TryFormatAsJson(string? content)
     {
@@ -606,9 +606,41 @@ public static partial class PlantUmlCreator
         try
         {
             using var doc = JsonDocument.Parse(content);
-            return JsonSerializer.Serialize(doc.RootElement, IndentedJsonOptions);
+            using var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream, IndentedWriterOptions))
+            {
+                WriteElementWithoutNulls(writer, doc.RootElement);
+            }
+            return Encoding.UTF8.GetString(stream.ToArray());
         }
         catch (JsonException) { return null; }
+    }
+
+    private static void WriteElementWithoutNulls(Utf8JsonWriter writer, JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                writer.WriteStartObject();
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (property.Value.ValueKind == JsonValueKind.Null)
+                        continue;
+                    writer.WritePropertyName(property.Name);
+                    WriteElementWithoutNulls(writer, property.Value);
+                }
+                writer.WriteEndObject();
+                break;
+            case JsonValueKind.Array:
+                writer.WriteStartArray();
+                foreach (var item in element.EnumerateArray())
+                    WriteElementWithoutNulls(writer, item);
+                writer.WriteEndArray();
+                break;
+            default:
+                element.WriteTo(writer);
+                break;
+        }
     }
 
     private static string FormatFormUrlEncodedContent(string? content)

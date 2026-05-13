@@ -560,6 +560,45 @@ public class PlantUmlCreatorTests
         Assert.Contains("\"result\": \"success\"", plantUml);
     }
 
+    [Fact]
+    public void Json_null_properties_are_stripped_from_formatted_output()
+    {
+        var json = """{"name":"Alice","age":null,"address":null,"city":"London"}""";
+        var logs = new[] { MakeRequest(content: json) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("\"name\": \"Alice\"", plantUml);
+        Assert.Contains("\"city\": \"London\"", plantUml);
+        Assert.DoesNotContain("\"age\"", plantUml);
+        Assert.DoesNotContain("\"address\"", plantUml);
+    }
+
+    [Fact]
+    public void Json_nested_null_properties_are_stripped_from_formatted_output()
+    {
+        var json = """{"config":{"query":"SELECT 1","timeout":null,"options":null},"status":"done","error":null}""";
+        var logs = new[] { MakeRequest(content: json) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("\"query\": \"SELECT 1\"", plantUml);
+        Assert.Contains("\"status\": \"done\"", plantUml);
+        Assert.DoesNotContain("\"timeout\"", plantUml);
+        Assert.DoesNotContain("\"options\"", plantUml);
+        Assert.DoesNotContain("\"error\"", plantUml);
+    }
+
+    [Fact]
+    public void Json_array_with_null_properties_in_elements_are_stripped()
+    {
+        var json = """[{"name":"flour","type":null},{"name":"sugar","type":null}]""";
+        var logs = new[] { MakeRequest(content: json) };
+        var plantUml = GetPlantUml(logs);
+
+        Assert.Contains("\"name\": \"flour\"", plantUml);
+        Assert.Contains("\"name\": \"sugar\"", plantUml);
+        Assert.DoesNotContain("\"type\"", plantUml);
+    }
+
     // ─── Non-JSON content formatting ────────────────────────────
 
     [Fact]
