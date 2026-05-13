@@ -397,4 +397,68 @@ public class BigQueryTrackingMessageHandlerTests : IDisposable
         var components = TrackingComponentRegistry.GetRegisteredComponents();
         Assert.Contains(components, c => ReferenceEquals(c, handler));
     }
+
+    // ─── Gzip decompression ────────────────────────────────────
+
+    [Fact]
+    public async Task Decompresses_gzip_request_body_before_logging()
+    {
+        var json = """{"rows":[{"json":{"id":"1","name":"gzipped"}}]}""";
+        var compressed = GzipCompress(json);
+
+        var content = new ByteArrayContent(compressed);
+        content.Headers.ContentEncoding.Add("gzip");
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{BaseUrl}/datasets/mydataset/tables/mytable/insertAll")
+        {
+            Content = content
+        };
+
+        using var invoker = CreateInvoker(MakeOptions());
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        var requestLog = logs.First(l => l.Type == RequestResponseType.Request);
+
+        Assert.Contains("gzipped", requestLog.Content!);
+    }
+
+    [Fact]
+    public async Task Decompresses_gzip_response_body_before_logging()
+    {
+        var json = """{"kind":"bigquery#tableDataInsertAllResponse","insertErrors":null}""";
+        var compressed = GzipCompress(json);
+
+        var responseContent = new ByteArrayContent(compressed);
+        responseContent.Headers.ContentEncoding.Add("gzip");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = responseContent };
+        var innerHandler = new StubInnerHandler(response);
+        var handler = new BigQueryTrackingMessageHandler(MakeOptions(), innerHandler);
+        using var invoker = new HttpMessageInvoker(handler);
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{BaseUrl}/datasets/mydataset/tables/mytable/insertAll")
+        {
+            Content = new StringContent("""{"rows":[]}""")
+        };
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        var responseLog = logs.First(l => l.Type == RequestResponseType.Response);
+
+        Assert.Contains("insertErrors", responseLog.Content!);
+    }
+
+    private static byte[] GzipCompress(string text)
+    {
+        using var output = new System.IO.MemoryStream();
+        using (var gzip = new System.IO.Compression.GZipStream(output, System.IO.Compression.CompressionLevel.Optimal))
+        using (var writer = new System.IO.StreamWriter(gzip))
+            writer.Write(text);
+        return output.ToArray();
+    }
 }

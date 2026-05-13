@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.33.71] - 2026-05-13
+
+### Fixed
+- **Extensions.BigQuery: Decompress gzip-compressed request/response bodies** — The BigQuery .NET client sends gzip-compressed HTTP bodies for large payloads. Previously, `ReadAsStringAsync()` produced garbled binary text in PlantUML diagram notes. The handler now detects `Content-Encoding: gzip` (and `deflate`) headers and decompresses before logging, producing readable JSON in the diagram notes.
+- **PlantUml: Binary content fallback detection** — Added `IsBinaryContent` detection in `FormatNoteContent` as a safety net for any extension that encounters non-text content. Binary content is replaced with a `[binary content]` placeholder instead of rendering garbled characters in diagram notes.
+
 ## [2.33.70] - 2026-05-13
 
 ### Added

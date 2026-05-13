@@ -2563,6 +2563,54 @@ public class PlantUmlCreatorTests
         Assert.DoesNotContain("/png/", imageTag);
     }
 
+    // ─── Binary content detection ───────────────────────────────
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("{\"key\": \"value\"}", false)]
+    [InlineData("plain text content", false)]
+    [InlineData("line1\nline2\nline3", false)]
+    [InlineData("tabs\tand\tnewlines\n", false)]
+    public void IsBinaryContent_returns_false_for_text_content(string? input, bool expected)
+    {
+        Assert.Equal(expected, PlantUmlCreator.IsBinaryContent(input));
+    }
+
+    [Fact]
+    public void IsBinaryContent_returns_true_for_binary_content()
+    {
+        // Simulate garbled gzip content read as string (lots of control chars)
+        var binary = "\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008" +
+                     "\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015" +
+                     "some text mixed in but mostly binary" +
+                     "\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f";
+        Assert.True(PlantUmlCreator.IsBinaryContent(binary));
+    }
+
+    [Fact]
+    public void Binary_request_body_shows_placeholder_in_plantuml_note()
+    {
+        // Simulate binary/compressed content that would come from gzip
+        var binaryContent = new string('\u0001', 100);
+        var logs = new[]
+        {
+            MakeRequest(content: binaryContent),
+            MakeResponse(),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs).ToList();
+        var plantUml = results.Single().PlantUmls.First().PlainText;
+
+        Assert.Contains("[binary content]", plantUml);
+        // Verify the note section contains the placeholder, not raw binary
+        var noteStart = plantUml.IndexOf("note left");
+        Assert.True(noteStart >= 0, "Expected 'note left' in PlantUML output");
+        var noteEnd = plantUml.IndexOf("end note", noteStart);
+        var noteBody = plantUml.Substring(noteStart, noteEnd - noteStart);
+        Assert.Contains("<i>[binary content]</i>", noteBody);
+    }
+
     // ─── Backslash escaping in notes ────────────────────────────
 
     [Theory]

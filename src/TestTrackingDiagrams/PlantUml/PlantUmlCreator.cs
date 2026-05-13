@@ -529,6 +529,20 @@ public static partial class PlantUmlCreator
         return AliasCache.GetOrAdd(name, n => SanitizeAliasRegex().Replace(n.Camelize(), "_"));
     }
 
+    internal static bool IsBinaryContent(string? content)
+    {
+        if (content is null || content.Length == 0) return false;
+        var checkLength = Math.Min(content.Length, 512);
+        var controlCount = 0;
+        for (var i = 0; i < checkLength; i++)
+        {
+            var c = content[i];
+            if (c != '\t' && c != '\n' && c != '\r' && c < ' ')
+                controlCount++;
+        }
+        return controlCount > checkLength * 0.1;
+    }
+
     private static string FormatNoteContent(
         IEnumerable<(string Key, string? Value)> headers,
         string? content,
@@ -540,6 +554,10 @@ public static partial class PlantUmlCreator
         FocusDeEmphasis focusDeEmphasis = FocusDeEmphasis.LightGray,
         GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
     {
+        // Detect binary/compressed content and replace with placeholder
+        if (IsBinaryContent(content))
+            content = "<i>[binary content]</i>";
+
         // For requests, try GraphQL formatting first (unless FocusFields are in use, which need JSON)
         string? parsedContent = null;
         var suppressHeaders = false;

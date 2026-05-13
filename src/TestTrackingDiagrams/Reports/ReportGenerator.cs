@@ -2247,7 +2247,6 @@ public static class ReportGenerator
             return WriteFile(string.Empty, fileName);
 
         var yml = new StringBuilder();
-        yml.Append("TtdVersion: " + TtdVersion + "\n");
         yml.Append("Title: " + title + "\n");
         yml.Append("Features:\n");
 
@@ -3868,7 +3867,6 @@ public static class ReportGenerator
     private static string GenerateSpecificationsYaml(Feature[] features, string title)
     {
         var yml = new StringBuilder();
-        yml.Append("TtdVersion: " + TtdVersion + "\n");
         yml.Append("Title: " + title + "\n");
         yml.Append("Features:\n");
 
@@ -3930,7 +3928,6 @@ public static class ReportGenerator
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         var data = new
         {
-            TtdVersion = TtdVersion,
             Title = title,
             Features = features.OrderBy(f => f.DisplayName).Select(f => new
             {
@@ -3963,7 +3960,6 @@ public static class ReportGenerator
     {
         var doc = new XDocument(
             new XElement("Specifications",
-                new XElement("TtdVersion", TtdVersion),
                 new XElement("Title", title),
                 new XElement("Features",
                     features.OrderBy(f => f.DisplayName).Select(f =>
