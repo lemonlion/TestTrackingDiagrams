@@ -13,21 +13,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **`TestIdentityScope.SetFromMessage()`** — New method for establishing test identity from incoming message headers without creating a disposable scope. Identity persists on the async context until the next message is processed or explicitly cleared.
 - **`TestTrackingMessageHeaders` constants** — New constants class defining `ttd-test-name` and `ttd-test-id` header names for cross-extension consistency.
 
-## [2.33.72] - 2026-05-13
+## [2.33.79] - 2026-05-13
 
 ### Fixed
 - **PlantUml: Strip null-valued JSON properties from diagram notes** — HTTP-captured response bodies (e.g. from BigQuery, CosmosDB, DynamoDB SDKs) often contain dozens of null-valued properties that add visual noise to sequence diagram notes. The JSON pretty-printer now recursively removes null properties before rendering, producing significantly cleaner and more readable diagrams.
 
-## [2.33.71] - 2026-05-13
+## [2.33.78] - 2026-05-13
 
 ### Fixed
 - **Extensions.BigQuery: Decompress gzip-compressed request/response bodies** — The BigQuery .NET client sends gzip-compressed HTTP bodies for large payloads. Previously, `ReadAsStringAsync()` produced garbled binary text in PlantUML diagram notes. The handler now detects `Content-Encoding: gzip` (and `deflate`) headers and decompresses before logging, producing readable JSON in the diagram notes.
 - **PlantUml: Binary content fallback detection** — Added `IsBinaryContent` detection in `FormatNoteContent` as a safety net for any extension that encounters non-text content. Binary content is replaced with a `[binary content]` placeholder instead of rendering garbled characters in diagram notes.
 
-## [2.33.70] - 2026-05-13
+## [2.33.77] - 2026-05-13
 
 ### Added
 - **Extensions.MongoDB: Implement `IEventSubscriber` on `MongoDbTrackingSubscriber`** (#56) — `MongoDbTrackingSubscriber` now implements the MongoDB driver's `IEventSubscriber` interface, enabling direct use with `InMemoryEmulator.MongoDB` v1.1.0's `CommandEventSubscriptionBuilder.Subscribe(IEventSubscriber)` and any other event source that accepts `IEventSubscriber`. Usage: `options.ClusterConfigurator = builder => builder.Subscribe(new MongoDbTrackingSubscriber(opts));`. No new package dependencies required.
+
+## [2.33.76] - 2026-05-13
+
+### Fixed
+- **Flat parameter table DOM ordering** — Flat parameter table now renders before grouped table in DOM so it is the first visible table (fixes flatten toggle button visibility).
+- **Step-level image attachments render with lightbox and caption** — Step-level image attachments now have the same lightbox link wrapper and filename caption as scenario-level rendering.
+
+## [2.33.75] - 2026-05-13
+
+### Fixed
+- **Namespace stripping corrupting unquoted dotted parameter values in LightBDD step text** — URLs (`http://idp.example.com`), OAuth scopes (`user.read`), and config keys were being truncated by `StripNamespacesFromText` which cannot distinguish them from namespace-qualified type names. Stripping now only applies to template literal segments in `BuildTextSegments` which never contain parameter values.
+
+## [2.33.74] - 2026-05-13
+
+### Fixed
+- **AssertionTracking: BadImageFormatException with inherited generic base class fields** (#55) — Import field references via `Module.ImportReference()` to ensure proper metadata token generation for fields on generic instance types. Added `IsFieldAccessibleOnType()` check in lambda body and ldtoken detection paths to skip fields not in the outer class's inheritance chain.
+
+## [2.33.73] - 2026-05-13
+
+### Fixed
+- **AssertionTracking: IL weaver crashing CLR with 3+ level member access chains** (#55) — The standalone `ldfld` detection in `DetectCapturedVariables()` incorrectly captured intermediate chain members (e.g. `Request` in `_postSteps.Request.MerchantName`) as independent variables. Fixed by checking whether the preceding instruction is `ldfld`, `callvirt`, or `call` — if so, the `ldfld` is a chain continuation and is skipped.
+
+## [2.33.72] - 2026-05-12
+
+### Added
+- **Image attachments render as inline `<img>` previews with lightbox** — Image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) now render as thumbnails (320×240px max) with click-to-expand fullscreen lightbox overlay. Non-image attachments continue as download links.
+
+### Fixed
+- **Skip background step detection when scenarios start with And/When** — The `BackgroundStepsDetector` now skips extraction for a rule group when any scenario's first step has keyword "And" or "When", preventing false positives where action/continuation steps were incorrectly identified as background steps.
+- **Step-param-table columns getting blue col-highlight** — The `highlightColumns` JS was applying `col-highlight` to `.step-param-table` columns when their name matched an outline parameter name, causing DataTable step arguments to show an unexpected blue first column. Fixed by scoping the highlighting to `.step-param-combined-table` only.
+
+### Changed
+- **Rule border styling** — Changed `.rule` `border-left` colour to `rgb(100, 100, 100)`.
+
+## [2.33.71] - 2026-05-12
+
+### Changed
+- **Background Steps renamed and restricted to ReqNRoll** — Background step detection now only applies to ReqNRoll scenarios. Added `InlineBackgroundSteps` option to control whether background steps are shown inline or extracted into a separate section.
+
+## [2.33.70] - 2026-05-12
+
+### Fixed
+- **LightBDD dotted string parameter values truncated in reports** — Parameter values containing dots (e.g. URLs, config keys) were being incorrectly processed by namespace stripping logic, causing truncation in the rendered report.
 
 ## [2.33.69] - 2026-05-12
 
