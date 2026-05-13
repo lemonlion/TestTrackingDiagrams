@@ -18,7 +18,7 @@ public static class XUnit3ArgumentExtractor
     {
         try
         {
-            object[]? args = null;
+            object?[]? args = null;
 
             if (test is XunitTest xunitTest)
                 args = xunitTest.TestMethodArguments;

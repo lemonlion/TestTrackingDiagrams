@@ -13,7 +13,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GenerateDependencyFile>true</GenerateDependencyFile>
-    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+    <NoWarn>$(NoWarn);NU5100;NU5128;NU5129</NoWarn>
 
     <!-- Do not multi-target; MSBuild tasks must be netstandard2.0 -->
     <MultiTargetFrameworks />

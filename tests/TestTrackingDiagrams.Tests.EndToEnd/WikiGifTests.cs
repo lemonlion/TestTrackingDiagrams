@@ -239,7 +239,7 @@ public class WikiGifTests : PlaywrightTestBase
         await Task.Delay(300);
     }
 
-    private async Task WaitForDiagramSvg(int timeoutMs = 30000)
+    private new async Task WaitForDiagramSvg(int timeoutMs = 30000)
     {
         await Page.EvaluateAsync(
             "() => { if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body); }");

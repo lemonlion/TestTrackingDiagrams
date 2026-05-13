@@ -4,7 +4,7 @@ namespace TestTrackingDiagrams.Tests.EndToEnd;
 
 /// <summary>
 /// Shared Playwright browser instance for all test classes via xUnit assembly fixture.
-/// Each test class gets its own <see cref="BrowserContext"/> via <see cref="NewContextAsync"/>,
+/// Each test class gets its own <see cref="IBrowserContext"/> via <see cref="NewContextAsync"/>,
 /// so tests are fully isolated and can run in parallel.
 /// </summary>
 public sealed class PlaywrightFixture : IAsyncLifetime

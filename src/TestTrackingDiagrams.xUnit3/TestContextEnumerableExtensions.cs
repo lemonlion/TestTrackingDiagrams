@@ -63,10 +63,13 @@ internal static class TestContextEnumerableExtensions
 
             // TestMethodArguments are cleared by xUnit3 after test execution.
             // Read from the static store populated by DiagrammedComponentTest constructor.
-            object[]? args = null;
+            object?[]? args = null;
             var testId = context.Test?.UniqueID;
             if (testId is not null)
-                DiagrammedComponentTest.CapturedTestMethodArguments.TryRemove(testId, out args);
+            {
+                DiagrammedComponentTest.CapturedTestMethodArguments.TryRemove(testId, out var captured);
+                args = captured;
+            }
 
             // Fallback to direct access (works if called during test execution)
             args ??= testCase.TestMethodArguments;

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.34.1] - 2026-05-13
+
+### Fixed
+- **CS1570/CS1573** — Fixed XML doc warnings in `Track.cs` (stray `</summary>` tag) and `RequestResponseLogger.cs` (missing `<param>` for `dependencyCategory`).
+- **NU1608** — Resolved xunit version constraint conflict in LightBDD.xUnit2 by pinning `xunit` 2.9.3 to override transitive 2.4.2 from LightBDD.XUnit2 3.12.0.
+- **NU5129** — Suppressed false-positive buildTransitive pack warning from .NET SDK 10.0.300 in StepTracking and AssertionTracking weaver packages.
+- **CS8619** — Fixed nullability mismatch (`object?[]` vs `object[]`) in xUnit3 argument extraction for `TestMethodArguments`.
+- **CS0108** — Added `new` modifier to `WikiGifTests.WaitForDiagramSvg` which intentionally hides the base class method.
+- **CS1574** — Fixed unresolvable `BrowserContext` cref in PlaywrightFixture (changed to `IBrowserContext`).
+- **xUnit1051** — Suppressed CancellationToken analyzer warning in E2E test project (Task.Delay in Playwright tests).
+- **xUnit1031** — Suppressed blocking task warning in AssertionWeaverTests (intentional sync invocation of dynamically-loaded IL via reflection).
+- **NU1902** — Suppressed SharpCompress vulnerability warning (no patched version exists; vulnerability is in `WriteToDirectory` which MongoDB doesn't expose).
+
 ## [2.34.0] - 2026-05-13
 
 ### Added

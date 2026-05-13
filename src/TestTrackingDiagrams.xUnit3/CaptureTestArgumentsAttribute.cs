@@ -15,11 +15,11 @@ internal sealed class CaptureTestArgumentsAttribute : BeforeAfterTestAttribute
         // For delay-enumerated theories ([MemberData]), args are on the Test (XunitTest).
         object[]? args = null;
         if (test is XunitTest xunitTest)
-            args = xunitTest.TestMethodArguments;
+            args = xunitTest.TestMethodArguments!;
 
         // Fall back to TestCase for [InlineData] theories.
         if (args is null or { Length: 0 } && test.TestCase is XunitTestCase testCase)
-            args = testCase.TestMethodArguments;
+            args = testCase.TestMethodArguments!;
 
         if (args is { Length: > 0 })
             DiagrammedComponentTest.CapturedTestMethodArguments[test.UniqueID] = args.ToArray();

@@ -83,6 +83,7 @@ public static class RequestResponseLogger
     /// <param name="responseContent">Content to display as the response body.</param>
     /// <param name="statusCode">HTTP status code for diagram colouring, or null for non-HTTP operations.</param>
     /// <param name="phase">The test phase (default: <see cref="TestPhase.Unknown"/>).</param>
+    /// <param name="dependencyCategory">Optional dependency category for diagram grouping.</param>
     public static void LogPair(
         OneOf<HttpMethod, string> method,
         Uri uri,
