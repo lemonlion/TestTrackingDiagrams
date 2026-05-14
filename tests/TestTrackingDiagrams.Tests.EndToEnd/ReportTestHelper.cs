@@ -1640,4 +1640,106 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    private const string WideDatabaseParticipantPlantUmlSource = """
+        @startuml
+        !pragma teoz true
+        <style>
+         .eventNote {
+             BackgroundColor #cfecf7
+             FontSize 11
+             RoundCorner 10
+         }
+        </style>
+        <style>
+         .assertionNote {
+             FontSize 11
+             RoundCorner 5
+         }
+        </style>
+        skinparam wrapWidth 800
+        autonumber 1
+        
+        actor "Caller" as caller
+        entity "Breakfast Provider" as breakfastProvider
+        database "Spanner" as spanner
+        
+        
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Given a valid customer preference request
+        
+        
+        hnote across <<stepDelimiter>> #black:<color:white>Step: When the customer preferences are saved
+        
+        caller -[#438DD5]> breakfastProvider: [[#iflow-67a2a680-5cb1-4b1e-a145-e5046cd095af PUT: /customer-preferences/d37d5aba2a244807b7fe008d01f6ba0f]]
+        note left
+        <color:gray>[traceparent=00-22c760ca8f8c3943bc8a2430baf4bb99-1ce90250d46976e6-00]
+        
+        {
+          "customerId": "d37d5aba2a244807b7fe008d01f6ba0f",
+          "customerName": "Customer-5cb476e1634b4b6e885875b3ee037a3e",
+          "preferredMilkType": "Oat",
+          "likesExtraToppings": true,
+          "favouriteItem": "Blueberry Pancakes"
+        }
+        end note
+        breakfastProvider -[#E74C3C]> spanner: [[#iflow-81f4874d-c8e9-4174-9f48-9f50155ac238 InsertOrUpdate: /breakfast-db/CustomerPreferences]]
+        note<<eventNote>> left
+        UPSERT CustomerPreferences
+        end note
+        spanner -[#E74C3C]-> breakfastProvider: 
+        breakfastProvider -[#438DD5]-> caller: OK
+        note right
+        {
+          "customerId": "d37d5aba2a244807b7fe008d01f6ba0f",
+          "customerName": "Customer-5cb476e1634b4b6e885875b3ee037a3e",
+          "preferredMilkType": "Oat",
+          "likesExtraToppings": true,
+          "favouriteItem": "Blueberry Pancakes",
+          "updatedAt": "2026-05-14T14:38:15.9062722Z"
+        }
+        end note
+        
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Then the preference response should contain the saved preferences
+        
+        
+        hnote across <<assertionNote>> #d4edda
+        ✓ Put steps response message status code should be OK
+        end note
+        
+        
+        hnote across <<assertionNote>> #d4edda
+        ✓ Response content is valid json should be true
+        end note
+        
+        
+        hnote across <<assertionNote>> #d4edda
+        ✓ Put steps response preferred milk type should be "Oat"
+        end note
+        
+        
+        hnote across <<assertionNote>> #d4edda
+        ✓ Put steps response favourite item should be "Blueberry Pancakes"
+        end note
+        
+        @enduml
+        """;
+
+    public static string GenerateReportWithWideDatabaseParticipant(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", WideDatabaseParticipantPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

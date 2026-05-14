@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.5] - 2026-05-14
+
+### Fixed
+- **Database toggle no longer clips diagram left edge** — The `stripDatabaseCalls()` function was rewritten from regex-based to line-by-line parsing. Previously, toggling databases off left orphaned positional notes (e.g. `note<<eventNote>> left`) that rendered at negative x coordinates in the SVG viewBox, causing the left side of the diagram to disappear off-screen. The new implementation tracks removed database arrows and removes any subsequent positional note blocks that would otherwise be orphaned.
+
 ## [2.35.4] - 2026-05-14
 
 ### Changed

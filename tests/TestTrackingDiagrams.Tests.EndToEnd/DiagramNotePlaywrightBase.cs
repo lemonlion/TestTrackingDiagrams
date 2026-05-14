@@ -40,6 +40,9 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
     protected string GenerateDatabaseParticipantReport(string fileName) =>
         ReportTestHelper.GenerateReportWithDatabaseParticipant(TempDir, OutputDir, fileName);
 
+    protected string GenerateWideDatabaseParticipantReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithWideDatabaseParticipant(TempDir, OutputDir, fileName);
+
     protected async Task ExpandAndRenderLongNoteDiagram(string fileName)
     {
         await Page.GotoAsync(GenerateLongNoteReport(fileName));

@@ -2774,13 +2774,11 @@ public static class DiagramContextMenu
                         var grp = noteGroups[svgIdx];
                         var bbox = getNoteBBox(grp);
                         var step = owner._noteSteps[globalIdx] || 0;
-                        // Use original source content to determine if note is long
-                        var origContentLines = ownerNoteBlocks[globalIdx] ? ownerNoteBlocks[globalIdx].contentLines : noteBlocks[srcIdx].contentLines;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
-                        if (!isLongNote(origContentLines, container._truncateLines) && step === 1) step = 2;
+                        if (!isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
                             function() {
-                                var long = isLongNote(origContentLines, container._truncateLines);
+                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
                                 var curStep = owner._noteSteps[globalIdx] || 0;
                                 setNoteState(owner, globalIdx, (long && curStep === 0) ? 1 : 2);
                             },
@@ -2788,14 +2786,14 @@ public static class DiagramContextMenu
                             function() { setNoteState(owner, globalIdx, 1); },
                             function() {
                                 var curStep = owner._noteSteps[globalIdx] || 0;
-                                var long = isLongNote(origContentLines, container._truncateLines);
+                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
                                 else nextStep = long ? 1 : 2;
                                 setNoteState(owner, globalIdx, nextStep);
                             },
-                            origContentLines, grp, container);
+                            noteBlocks[srcIdx].contentLines, grp, container);
                     })(ni, sourceIndexMap ? sourceIndexMap[ni] : ni);
                 }
             }
@@ -3066,28 +3064,97 @@ public static class DiagramContextMenu
                     dbAliases.push(m[1].replace(/\s.*$/, ''));
                 }
                 if (dbAliases.length === 0) return source;
-                // Remove database declaration lines
-                var result = source.replace(/^database\s+"[^"]*"\s+as\s+\S+[^\n]*\n?/gm, '');
-                // Remove lines referencing database aliases
-                for (var i = 0; i < dbAliases.length; i++) {
-                    var alias = dbAliases[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    // Arrows where alias is the source: "alias -...> target: label"
-                    var srcRe = new RegExp('^' + alias + '\\s+-[^\\n]*\\n?', 'gm');
-                    result = result.replace(srcRe, '');
-                    // Arrows where alias is the target: "source -...> alias: label"
-                    var tgtRe = new RegExp('^\\S+\\s+-[^\\n]*>\\s*' + alias + '[^\\n]*\\n?', 'gm');
-                    result = result.replace(tgtRe, '');
-                    // Remove note blocks that reference the alias
-                    var noteRe = new RegExp('^note\\s+(?:left|right|over)\\s+(?:of\\s+)?' + alias + '[^\\n]*\\n[\\s\\S]*?end note\\n?', 'gm');
-                    result = result.replace(noteRe, '');
-                    // Remove single-line notes attached to the alias
-                    var noteInlineRe = new RegExp('^note\\s+(?:left|right|over)\\s+(?:of\\s+)?' + alias + '\\s*:[^\\n]*\\n?', 'gm');
-                    result = result.replace(noteInlineRe, '');
-                    // Remove activate/deactivate for the alias
-                    var activateRe = new RegExp('^(?:activate|deactivate)\\s+' + alias + '\\s*\\n?', 'gm');
-                    result = result.replace(activateRe, '');
+
+                // Build set of escaped aliases for regex matching
+                var escaped = dbAliases.map(function(a) { return a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+
+                function isDbArrow(line) {
+                    for (var i = 0; i < escaped.length; i++) {
+                        // Arrow where alias is the source
+                        if (new RegExp('^' + escaped[i] + '\\s+-').test(line)) return true;
+                        // Arrow where alias is the target
+                        if (new RegExp('^\\S+\\s+-[^\\n]*>\\s*' + escaped[i] + '(\\s|:|$)').test(line)) return true;
+                    }
+                    return false;
                 }
-                return result;
+
+                function isDbDecl(line) {
+                    return /^database\s+"[^"]*"\s+as\s+\S+/.test(line);
+                }
+
+                function isDbExplicitNote(line) {
+                    for (var i = 0; i < escaped.length; i++) {
+                        if (new RegExp('^note\\s+(?:left|right|over)\\s+(?:of\\s+)?' + escaped[i] + '(\\s|:|$)').test(line)) return true;
+                    }
+                    return false;
+                }
+
+                // Note start: "note left", "note right", "note<<stereotype>> left", etc.
+                // but NOT "note left of alias" (handled separately above)
+                function isPositionalNoteStart(line) {
+                    return /^note\s*(?:<<[^>]*>>)?\s+(?:left|right)\s*$/.test(line);
+                }
+
+                var lines = source.split('\n');
+                var result = [];
+                var i = 0;
+                var lastRemovedArrow = false;
+                while (i < lines.length) {
+                    var line = lines[i];
+                    var trimmed = line.trim();
+
+                    if (isDbDecl(trimmed)) {
+                        // Skip database declaration
+                        i++;
+                        continue;
+                    }
+
+                    if (isDbArrow(trimmed)) {
+                        // Skip database arrow and mark for trailing note removal
+                        lastRemovedArrow = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (isDbExplicitNote(trimmed)) {
+                        // Skip note block explicitly referencing database alias
+                        if (trimmed.indexOf(':') !== -1) {
+                            // Single-line note: "note left of alias: text"
+                            i++;
+                        } else {
+                            // Multi-line note: skip until "end note"
+                            i++;
+                            while (i < lines.length && lines[i].trim() !== 'end note') i++;
+                            if (i < lines.length) i++; // skip "end note"
+                        }
+                        continue;
+                    }
+
+                    // Remove positional notes that follow a removed database arrow
+                    if (lastRemovedArrow && isPositionalNoteStart(trimmed)) {
+                        // Multi-line positional note following a removed arrow
+                        i++;
+                        while (i < lines.length && lines[i].trim() !== 'end note') i++;
+                        if (i < lines.length) i++; // skip "end note"
+                        continue;
+                    }
+
+                    // Activate/deactivate for database alias
+                    var isActivate = false;
+                    for (var ai = 0; ai < escaped.length; ai++) {
+                        if (new RegExp('^(?:activate|deactivate)\\s+' + escaped[ai] + '\\s*$').test(trimmed)) {
+                            isActivate = true;
+                            break;
+                        }
+                    }
+                    if (isActivate) { i++; continue; }
+
+                    // Non-blank, non-removed line resets the trailing-note flag
+                    if (trimmed !== '') lastRemovedArrow = false;
+                    result.push(line);
+                    i++;
+                }
+                return result.join('\n');
             }
 
             function applyDatabasesFilter(source, showing) {
