@@ -2774,11 +2774,13 @@ public static class DiagramContextMenu
                         var grp = noteGroups[svgIdx];
                         var bbox = getNoteBBox(grp);
                         var step = owner._noteSteps[globalIdx] || 0;
+                        // Use original source content to determine if note is long
+                        var origContentLines = ownerNoteBlocks[globalIdx] ? ownerNoteBlocks[globalIdx].contentLines : noteBlocks[srcIdx].contentLines;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
-                        if (!isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines) && step === 1) step = 2;
+                        if (!isLongNote(origContentLines, container._truncateLines) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
                             function() {
-                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
+                                var long = isLongNote(origContentLines, container._truncateLines);
                                 var curStep = owner._noteSteps[globalIdx] || 0;
                                 setNoteState(owner, globalIdx, (long && curStep === 0) ? 1 : 2);
                             },
@@ -2786,14 +2788,14 @@ public static class DiagramContextMenu
                             function() { setNoteState(owner, globalIdx, 1); },
                             function() {
                                 var curStep = owner._noteSteps[globalIdx] || 0;
-                                var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
+                                var long = isLongNote(origContentLines, container._truncateLines);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
                                 else nextStep = long ? 1 : 2;
                                 setNoteState(owner, globalIdx, nextStep);
                             },
-                            noteBlocks[srcIdx].contentLines, grp, container);
+                            origContentLines, grp, container);
                     })(ni, sourceIndexMap ? sourceIndexMap[ni] : ni);
                 }
             }

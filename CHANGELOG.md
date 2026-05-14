@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.2] - 2026-05-14
+
+### Fixed
+- **Note double-click from collapsed state incorrectly jumped to expanded** — When a long note was collapsed, `makeNotesCollapsible` re-parsed the modified PlantUML source (which only contains the 1-line preview), so `isLongNote()` returned false and the 3-state cycle skipped the truncated step. Fixed by using the original unmodified source (`ownerNoteBlocks`) for `isLongNote` determinations in all closures.
+
 ## [2.35.1] - 2026-05-14
 
 ### Fixed
