@@ -54,6 +54,19 @@ public static class StatusFilter
 
         var shouldOpen = totalVisible <= 10;
 
+        var allRules = document.QuerySelectorAll(".rule");
+        foreach (var rule in allRules)
+        {
+            var ruleScenarios = rule.QuerySelectorAll(".scenario");
+            var hasVisibleInRule = ruleScenarios.Any(s =>
+                !s.ClassList.Contains(StatusHiddenClass) &&
+                !s.ClassList.Contains("dep-hidden") &&
+                !s.ClassList.Contains("search-hidden"));
+
+            if (!hasVisibleInRule)
+                rule.ClassList.Add(StatusHiddenClass);
+        }
+
         foreach (var feature in allFeatures)
         {
             var featureScenarios = feature.QuerySelectorAll(".scenario");

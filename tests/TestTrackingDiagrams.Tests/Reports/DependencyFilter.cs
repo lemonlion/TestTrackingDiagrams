@@ -62,6 +62,19 @@ public static class DependencyFilter
 
         var shouldOpen = totalVisible <= 10;
 
+        // Hide rules with no visible scenarios
+        var allRules = document.QuerySelectorAll(".rule");
+        foreach (var rule in allRules)
+        {
+            var ruleScenarios = rule.QuerySelectorAll(".scenario");
+            var hasVisibleInRule = ruleScenarios.Any(s =>
+                !s.ClassList.Contains(DepHiddenClass) &&
+                !s.ClassList.Contains("search-hidden"));
+
+            if (!hasVisibleInRule)
+                rule.ClassList.Add(DepHiddenClass);
+        }
+
         // Hide features with no visible scenarios, open features with matches
         foreach (var feature in allFeatures)
         {

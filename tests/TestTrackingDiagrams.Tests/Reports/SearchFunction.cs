@@ -139,6 +139,16 @@ public static class SearchFunction
         }
         // Multiple matches: leave retracted (default state, no 'open' attribute)
 
+        // Hide rules that have no visible scenarios
+        var allRules = document.QuerySelectorAll(".rule");
+        foreach (var rule in allRules)
+        {
+            var ruleScenarios = rule.QuerySelectorAll(".scenario");
+            var hasVisibleInRule = ruleScenarios.Any(s => !s.ClassList.Contains(SearchHiddenClass));
+            if (!hasVisibleInRule)
+                rule.ClassList.Add(SearchHiddenClass);
+        }
+
         // Hide features that have no visible scenarios, open features with matches
         foreach (var feature in allFeatures)
         {

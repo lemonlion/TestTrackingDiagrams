@@ -6,15 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.35.2] - 2026-05-14
-
-### Fixed
-- **Note double-click from collapsed state incorrectly jumped to expanded** — When a long note was collapsed, `makeNotesCollapsible` re-parsed the modified PlantUML source (which only contains the 1-line preview), so `isLongNote()` returned false and the 3-state cycle skipped the truncated step. Fixed by using the original unmodified source (`ownerNoteBlocks`) for `isLongNote` determinations in all closures.
-
 ## [2.35.1] - 2026-05-14
 
 ### Fixed
-- **LightBDD.xUnit2 NuGet package not published** — The `xunit` meta-package reference caused the .NET SDK to auto-detect the project as a test project (`IsTestProject=true`), which set `IsPackable=false`. Added explicit `<IsPackable>true</IsPackable>` and `<IsTestProject>false</IsTestProject>` to the project file to ensure the package is always generated during release builds.
+- **Empty rule containers shown when search/filter hides all child scenarios** — The `applyVisibility()` function now hides `.rule` elements when all their child scenarios are filtered out, identical to how features are hidden. Rules are evaluated before features so that a feature correctly hides when all its rules are empty. Fixes [#57](https://github.com/lemonlion/TestTrackingDiagrams/issues/57).
 
 ## [2.35.0] - 2026-05-14
 

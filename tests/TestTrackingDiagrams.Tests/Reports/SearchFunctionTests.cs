@@ -67,12 +67,63 @@ public class SearchFunctionTests
 
     private record FeatureSpec(string Name, ScenarioSpec[] Scenarios, bool InitiallyOpen = false);
 
+    private record FeatureWithRulesSpec(string Name, RuleSpec[] Rules, ScenarioSpec[]? UnruledScenarios = null);
+
+    private record RuleSpec(string Name, ScenarioSpec[] Scenarios);
+
     private record ScenarioSpec(
         string Title,
         string? Description = null,
         string? GherkinSteps = null,
         string? PlantUml = null,
         bool IsHappyPath = false);
+
+    private static IDocument BuildReportDomWithRules(params FeatureWithRulesSpec[] features)
+    {
+        var html = "<html><body>";
+        html += "<div class=\"filters\">";
+        html += "<div class=\"happy-path-filters\"><span class=\"happy-path-filters-label\">Happy Paths:</span><button class=\"happy-path-toggle\">Happy Paths Only</button></div>";
+        html += "<div><input id=\"searchbar\" placeholder=\"Search\" /></div>";
+        html += "</div>";
+
+        foreach (var feature in features)
+        {
+            html += $"<details class=\"feature\">";
+            html += $"<summary class=\"h2\">{feature.Name}</summary>";
+
+            if (feature.UnruledScenarios != null)
+            {
+                foreach (var scenario in feature.UnruledScenarios)
+                {
+                    html += $"<details class=\"scenario\">";
+                    html += $"<summary class=\"h3\">{scenario.Title}</summary>";
+                    html += "</details>";
+                }
+            }
+
+            foreach (var rule in feature.Rules)
+            {
+                html += $"<details class=\"rule\" open>";
+                html += $"<summary class=\"h2-5\">{rule.Name}</summary>";
+
+                foreach (var scenario in rule.Scenarios)
+                {
+                    html += $"<details class=\"scenario\">";
+                    html += $"<summary class=\"h3\">{scenario.Title}</summary>";
+                    html += "</details>";
+                }
+
+                html += "</details>"; // rule
+            }
+
+            html += "</details>"; // feature
+        }
+
+        html += "</body></html>";
+
+        var context = BrowsingContext.New(Configuration.Default);
+        return context.OpenAsync(req => req.Content(html)).Result;
+    }
 
     /// <summary>Determines if an element is "visible" — not hidden by display:none, .hide class, or search-hidden class.</summary>
     private static bool IsVisible(IElement element)
@@ -572,6 +623,92 @@ public class SearchFunctionTests
         Assert.False(IsVisible(scenarios[1])); // Vanilla Cake
         Assert.True(IsVisible(scenarios[2]));  // Chocolate Brownies
         Assert.False(IsVisible(scenarios[3])); // Strawberry Tart
+    }
+
+    #endregion
+
+    #region Rule Visibility
+
+    [Fact]
+    public void Search_RuleHidden_WhenAllChildScenariosFilteredOut()
+    {
+        var doc = BuildReportDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Account creation", [new ScenarioSpec("Create account"), new ScenarioSpec("Verify email")]),
+                new RuleSpec("Order processing", [new ScenarioSpec("Place chocolate order")])
+            ]));
+
+        SearchFunction.ApplySearch(doc, "chocolate");
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.False(IsVisible(rules[0]), "Account creation rule should be hidden (no matching scenarios)");
+        Assert.True(IsVisible(rules[1]), "Order processing rule should be visible (has matching scenario)");
+    }
+
+    [Fact]
+    public void Search_RuleVisible_WhenSomeChildScenariosMatch()
+    {
+        var doc = BuildReportDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Order processing", [
+                    new ScenarioSpec("Place chocolate order"),
+                    new ScenarioSpec("Place vanilla order")
+                ])
+            ]));
+
+        SearchFunction.ApplySearch(doc, "chocolate");
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.True(IsVisible(rules[0]), "Rule should be visible when at least one scenario matches");
+    }
+
+    [Fact]
+    public void Search_FeatureHidden_WhenAllRulesHaveNoMatches()
+    {
+        var doc = BuildReportDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Account creation", [new ScenarioSpec("Create account")]),
+                new RuleSpec("Order processing", [new ScenarioSpec("Place order")])
+            ]));
+
+        SearchFunction.ApplySearch(doc, "chocolate");
+
+        var features = doc.QuerySelectorAll(".feature");
+        Assert.False(IsVisible(features[0]), "Feature should be hidden when no scenarios in any rule match");
+    }
+
+    [Fact]
+    public void Search_MixedRulesAndUnruledScenarios_RuleHiddenButFeatureVisible()
+    {
+        var doc = BuildReportDomWithRules(
+            new FeatureWithRulesSpec("Orders",
+                [new RuleSpec("Account creation", [new ScenarioSpec("Create account")])],
+                UnruledScenarios: [new ScenarioSpec("Place chocolate order")]));
+
+        SearchFunction.ApplySearch(doc, "chocolate");
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.False(IsVisible(rules[0]), "Rule should be hidden (no matching scenarios)");
+
+        var features = doc.QuerySelectorAll(".feature");
+        Assert.True(IsVisible(features[0]), "Feature should remain visible (has matching unruled scenario)");
+    }
+
+    [Fact]
+    public void Search_ClearSearch_RulesRestored()
+    {
+        var doc = BuildReportDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Account creation", [new ScenarioSpec("Create account")]),
+                new RuleSpec("Order processing", [new ScenarioSpec("Place chocolate order")])
+            ]));
+
+        SearchFunction.ApplySearch(doc, "chocolate");
+        SearchFunction.ApplySearch(doc, "");
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.True(IsVisible(rules[0]), "Rule should be visible after clearing search");
+        Assert.True(IsVisible(rules[1]), "Rule should be visible after clearing search");
     }
 
     #endregion

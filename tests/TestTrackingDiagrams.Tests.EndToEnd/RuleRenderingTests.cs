@@ -141,4 +141,78 @@ public class RuleRenderingTests : PlaywrightTestBase
         // The second rule should still be open
         Assert.NotNull(await rules.Nth(1).GetAttributeAsync("open"));
     }
+
+    [Fact]
+    public async Task Search_hides_rule_when_all_child_scenarios_filtered_out()
+    {
+        await Page.GotoAsync(GenerateReportWithRules("RuleSearchHide.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Search for "express" which only matches 1 scenario in "Valid Order Creation" rule
+        await FillSearchBar("express");
+
+        // Wait for the filter to settle — rule[0] visible, rule[1] hidden
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var rules = document.querySelectorAll('.rule');
+                if (rules.length < 2) return false;
+                return getComputedStyle(rules[0]).display !== 'none' &&
+                       getComputedStyle(rules[1]).display === 'none';
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        // Verify the hidden rule is truly invisible in the viewport
+        await Expect(Page.Locator("details.rule").Nth(1)).ToBeHiddenAsync();
+    }
+
+    [Fact]
+    public async Task Search_shows_rule_when_cleared()
+    {
+        await Page.GotoAsync(GenerateReportWithRules("RuleSearchRestore.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await FillSearchBar("express");
+
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var rules = document.querySelectorAll('.rule');
+                return rules.length >= 2 &&
+                    getComputedStyle(rules[1]).display === 'none';
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        // Clear search
+        await FillSearchBar("");
+
+        // Wait for rules to be restored — none should be display:none
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var rules = document.querySelectorAll('.rule');
+                return Array.from(rules).every(r => getComputedStyle(r).display !== 'none');
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+    }
+
+    [Fact]
+    public async Task Status_filter_hides_rule_when_all_child_scenarios_filtered()
+    {
+        await Page.GotoAsync(GenerateReportWithRules("RuleStatusFilter.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Click the "Failed" status toggle to only show failed scenarios
+        await Page.Locator(".status-toggle[data-status='Failed']").ClickAsync();
+
+        // Wait for filter to settle
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var rules = document.querySelectorAll('.rule');
+                if (rules.length < 2) return false;
+                return getComputedStyle(rules[0]).display === 'none' &&
+                       getComputedStyle(rules[1]).display !== 'none';
+            }
+        """, null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        // Verify the hidden rule is truly invisible
+        await Expect(Page.Locator("details.rule").First).ToBeHiddenAsync();
+    }
 }

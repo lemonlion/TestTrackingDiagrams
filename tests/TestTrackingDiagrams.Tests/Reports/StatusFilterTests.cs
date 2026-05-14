@@ -42,6 +42,8 @@ public class StatusFilterTests
     }
 
     private record FeatureSpec(string Name, ScenarioSpec[] Scenarios);
+    private record FeatureWithRulesSpec(string Name, RuleSpec[] Rules);
+    private record RuleSpec(string Name, ScenarioSpec[] Scenarios);
     private record ScenarioSpec(string Title, string Status = "Passed", bool IsHappyPath = false);
 
     private static bool IsVisible(IElement el) =>
@@ -261,6 +263,96 @@ public class StatusFilterTests
         var features = doc.QuerySelectorAll(".feature");
         Assert.True(features[0].HasAttribute("open"), "Feature should open when ≤10 visible scenarios");
         Assert.True(features[1].HasAttribute("open"), "Feature should open when ≤10 visible scenarios");
+    }
+
+    #endregion
+
+    #region Rule Visibility
+
+    private static IDocument BuildDomWithRules(params FeatureWithRulesSpec[] features)
+    {
+        var html = "<html><body>";
+        html += "<div class=\"filters\">";
+        html += "<div class=\"status-filters\">";
+        html += "<button class=\"status-toggle\" data-status=\"Passed\">Passed</button>";
+        html += "<button class=\"status-toggle\" data-status=\"Failed\">Failed</button>";
+        html += "</div></div>";
+
+        foreach (var feature in features)
+        {
+            html += $"<details class=\"feature\">";
+            html += $"<summary class=\"h2\">{feature.Name}</summary>";
+
+            foreach (var rule in feature.Rules)
+            {
+                html += $"<details class=\"rule\" open>";
+                html += $"<summary class=\"h2-5\">{rule.Name}</summary>";
+
+                foreach (var scenario in rule.Scenarios)
+                {
+                    var classes = "scenario";
+                    html += $"<details class=\"{classes}\" data-status=\"{scenario.Status}\">";
+                    html += $"<summary class=\"h3\">{scenario.Title}</summary>";
+                    html += "</details>";
+                }
+
+                html += "</details>";
+            }
+
+            html += "</details>";
+        }
+
+        html += "</body></html>";
+        var context = BrowsingContext.New(Configuration.Default);
+        return context.OpenAsync(req => req.Content(html)).Result;
+    }
+
+    [Fact]
+    public void StatusFilter_RuleHidden_WhenAllChildScenariosFiltered()
+    {
+        var doc = BuildDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Account creation", [new ScenarioSpec("Create account", "Passed")]),
+                new RuleSpec("Error handling", [new ScenarioSpec("Handle failure", "Failed")])
+            ]));
+
+        StatusFilter.Apply(doc, ["Passed"]);
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.True(IsVisible(rules[0]), "Rule with Passed scenario should be visible");
+        Assert.False(IsVisible(rules[1]), "Rule with only Failed scenario should be hidden");
+    }
+
+    [Fact]
+    public void StatusFilter_RuleVisible_WhenSomeChildScenariosMatch()
+    {
+        var doc = BuildDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Order processing", [
+                    new ScenarioSpec("Place order", "Passed"),
+                    new ScenarioSpec("Handle failure", "Failed")
+                ])
+            ]));
+
+        StatusFilter.Apply(doc, ["Passed"]);
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.True(IsVisible(rules[0]), "Rule should be visible when at least one child matches");
+    }
+
+    [Fact]
+    public void StatusFilter_ClearedFilter_RulesRestored()
+    {
+        var doc = BuildDomWithRules(
+            new FeatureWithRulesSpec("Orders", [
+                new RuleSpec("Error handling", [new ScenarioSpec("Handle failure", "Failed")])
+            ]));
+
+        StatusFilter.Apply(doc, ["Passed"]);
+        StatusFilter.Apply(doc, []);
+
+        var rules = doc.QuerySelectorAll(".rule");
+        Assert.True(IsVisible(rules[0]), "Rule should be visible after clearing filter");
     }
 
     #endregion
