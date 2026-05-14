@@ -1385,6 +1385,9 @@ public static class ReportGenerator
         var hasStepDelimiters = isPlantUmlBrowser && (
             (trackedLogs is not null && trackedLogs.Any(l => l.PlantUml is not null && l.PlantUml.Contains("<<stepDelimiter>>"))) ||
             diagrams.Any(d => d.CodeBehind.Contains("<<stepDelimiter>>")));
+        var hasDatabaseParticipants = isPlantUmlBrowser && (
+            (trackedLogs is not null && trackedLogs.Any(l => l.PlantUml is not null && l.PlantUml.Contains("\ndatabase \""))) ||
+            diagrams.Any(d => d.CodeBehind.Contains("\ndatabase \"")));
         var plantUmlBrowserScript = isPlantUmlBrowser ? DiagramContextMenu.GetPlantUmlBrowserRenderScript() : "";
         var collapsibleNotesScript = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesScript() : "";
         var collapsibleNotesStyles = isPlantUmlBrowser ? DiagramContextMenu.GetCollapsibleNotesStyles() : "";
@@ -1721,6 +1724,8 @@ public static class ReportGenerator
                 body.Append("""<button class="details-radio-btn toggle-btn" data-toggle="assertions" data-shown="false" onclick="window._toggleAssertions(this)">Assertions Hidden</button>""");
             if (hasStepDelimiters)
                 body.Append("""<button class="details-radio-btn toggle-btn details-active" data-toggle="steps" data-shown="true" onclick="window._toggleSteps(this)">Steps Shown</button>""");
+            if (hasDatabaseParticipants)
+                body.Append("""<button class="details-radio-btn toggle-btn details-active" data-toggle="databases" data-shown="true" onclick="window._toggleDatabases(this)">Databases Shown</button>""");
         }
         body.Append("</div>");
         body.Append("</div>");
@@ -1918,6 +1923,7 @@ public static class ReportGenerator
                         titleizeParameterNames,
                         hasAssertionNotes: hasAssertionNotes,
                         hasStepDelimiters: hasStepDelimiters,
+                        hasDatabaseParticipants: hasDatabaseParticipants,
                         scenarioAnchorIds: scenarioAnchorIds,
                         featureDisplayName: feature.DisplayName,
                         featureDescription: feature.Description,
@@ -2102,6 +2108,8 @@ public static class ReportGenerator
                             body.Append("<button class=\"details-radio-btn toggle-btn\" data-toggle=\"assertions\" data-shown=\"false\" onclick=\"window._toggleScenarioAssertions(this)\">Assertions Hidden</button>");
                         if (hasStepDelimiters)
                             body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"steps\" data-shown=\"true\" onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>");
+                        if (hasDatabaseParticipants)
+                            body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"databases\" data-shown=\"true\" onclick=\"window._toggleScenarioDatabases(this)\">Databases Shown</button>");
                         body.Append("</div>");
                     }
                     else if (hasSequenceDiagrams)
@@ -2115,6 +2123,8 @@ public static class ReportGenerator
                                 body.Append("<button class=\"details-radio-btn toggle-btn\" data-toggle=\"assertions\" data-shown=\"false\" onclick=\"window._toggleScenarioAssertions(this)\">Assertions Hidden</button>");
                             if (hasStepDelimiters)
                                 body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"steps\" data-shown=\"true\" onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>");
+                            if (hasDatabaseParticipants)
+                                body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"databases\" data-shown=\"true\" onclick=\"window._toggleScenarioDatabases(this)\">Databases Shown</button>");
                             body.Append("</div>");
                         }
                     }
@@ -2449,6 +2459,7 @@ public static class ReportGenerator
         bool titleizeParameterNames = true,
         bool hasAssertionNotes = false,
         bool hasStepDelimiters = false,
+        bool hasDatabaseParticipants = false,
         Dictionary<string, string>? scenarioAnchorIds = null,
         string? featureDisplayName = null,
         string? featureDescription = null,
@@ -2856,6 +2867,8 @@ public static class ReportGenerator
                     body.Append("<button class=\"details-radio-btn toggle-btn\" data-toggle=\"assertions\" data-shown=\"false\" onclick=\"window._toggleScenarioAssertions(this)\">Assertions Hidden</button>");
                 if (hasStepDelimiters)
                     body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"steps\" data-shown=\"true\" onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>");
+                if (hasDatabaseParticipants)
+                    body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"databases\" data-shown=\"true\" onclick=\"window._toggleScenarioDatabases(this)\">Databases Shown</button>");
                 body.Append("</div>");
             }
             else if (showSeqToggle)
@@ -2869,6 +2882,8 @@ public static class ReportGenerator
                         body.Append("<button class=\"details-radio-btn toggle-btn\" data-toggle=\"assertions\" data-shown=\"false\" onclick=\"window._toggleScenarioAssertions(this)\">Assertions Hidden</button>");
                     if (hasStepDelimiters)
                         body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"steps\" data-shown=\"true\" onclick=\"window._toggleScenarioSteps(this)\">Steps Shown</button>");
+                    if (hasDatabaseParticipants)
+                        body.Append("<button class=\"details-radio-btn toggle-btn details-active\" data-toggle=\"databases\" data-shown=\"true\" onclick=\"window._toggleScenarioDatabases(this)\">Databases Shown</button>");
                     body.Append("</div>");
                 }
             }

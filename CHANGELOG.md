@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.34.4] - 2026-05-14
+
+### Added
+- **Report: Database visibility toggle** — When any diagram contains a `database` participant (CosmosDB, EF Core, MongoDB, DynamoDB, Redis, Spanner, BigQuery, etc.), a "Databases Shown" / "Databases Hidden" toggle button appears in the report toolbar. Clicking it hides all database participants and their associated request/response arrows, simplifying diagrams to show only service-to-service communication. Works at both report level and per-scenario level. Shown by default.
+
 ## [2.34.3] - 2026-05-14
 
 ### Added

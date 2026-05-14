@@ -2547,7 +2547,7 @@ public static class DiagramContextMenu
                 var origSource = container._noteOriginalSource;
                 if (!origSource) { container._noteSteps[noteIdx] = oldStep; return; }
                 var noteBlocks = parseNoteBlocks(origSource);
-                var newSource = applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible);
+                var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(origSource, container._noteSteps, noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
 
                 container.setAttribute('data-plantuml', newSource);
 
@@ -2630,6 +2630,7 @@ public static class DiagramContextMenu
             window._detailsDefault = 'truncated';
             window._assertionsVisible = false;
             window._stepsVisible = true;
+            window._databasesVisible = true;
 
             function stripAssertionNotes(source) {
                 return source.replace(/\n?hnote across <<assertionNote>>[^\n]*\n[\s\S]*?end note\n?/g, '');
@@ -2645,6 +2646,43 @@ public static class DiagramContextMenu
 
             function applyStepsFilter(source, showing) {
                 return showing ? source : stripStepDelimiters(source);
+            }
+
+            function stripDatabaseCalls(source) {
+                // Find all database participant aliases
+                var dbAliases = [];
+                var dbDeclRe = /^database\s+"[^"]*"\s+as\s+(\S+)/gm;
+                var m;
+                while ((m = dbDeclRe.exec(source)) !== null) {
+                    dbAliases.push(m[1].replace(/\s.*$/, ''));
+                }
+                if (dbAliases.length === 0) return source;
+                // Remove database declaration lines
+                var result = source.replace(/^database\s+"[^"]*"\s+as\s+\S+[^\n]*\n?/gm, '');
+                // Remove lines referencing database aliases
+                for (var i = 0; i < dbAliases.length; i++) {
+                    var alias = dbAliases[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    // Arrows where alias is the source: "alias -...> target: label"
+                    var srcRe = new RegExp('^' + alias + '\\s+-[^\\n]*\\n?', 'gm');
+                    result = result.replace(srcRe, '');
+                    // Arrows where alias is the target: "source -...> alias: label"
+                    var tgtRe = new RegExp('^\\S+\\s+-[^\\n]*>\\s*' + alias + '[^\\n]*\\n?', 'gm');
+                    result = result.replace(tgtRe, '');
+                    // Remove note blocks that reference the alias
+                    var noteRe = new RegExp('^note\\s+(?:left|right|over)\\s+(?:of\\s+)?' + alias + '[^\\n]*\\n[\\s\\S]*?end note\\n?', 'gm');
+                    result = result.replace(noteRe, '');
+                    // Remove single-line notes attached to the alias
+                    var noteInlineRe = new RegExp('^note\\s+(?:left|right|over)\\s+(?:of\\s+)?' + alias + '\\s*:[^\\n]*\\n?', 'gm');
+                    result = result.replace(noteInlineRe, '');
+                    // Remove activate/deactivate for the alias
+                    var activateRe = new RegExp('^(?:activate|deactivate)\\s+' + alias + '\\s*\\n?', 'gm');
+                    result = result.replace(activateRe, '');
+                }
+                return result;
+            }
+
+            function applyDatabasesFilter(source, showing) {
+                return showing ? source : stripDatabaseCalls(source);
             }
 
             // Parse assertion source locations from PlantUML comments
@@ -2743,8 +2781,10 @@ public static class DiagramContextMenu
                 // Strip assertion notes before note-block parsing when hidden
                 el._assertionsVisible = window._assertionsVisible;
                 el._stepsVisible = window._stepsVisible;
+                el._databasesVisible = window._databasesVisible;
                 var renderSource = !el._assertionsVisible ? stripAssertionNotes(source) : source;
                 renderSource = !el._stepsVisible ? stripStepDelimiters(renderSource) : renderSource;
+                renderSource = !el._databasesVisible ? stripDatabaseCalls(renderSource) : renderSource;
                 var noteBlocks = parseNoteBlocks(renderSource);
                 if (noteBlocks.length === 0 && renderSource === source) return source;
                 el._noteOriginalSource = source;
@@ -2780,7 +2820,7 @@ public static class DiagramContextMenu
                     }
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible);
+                    var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
                     container.setAttribute('data-plantuml', newSource);
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
@@ -3009,6 +3049,7 @@ public static class DiagramContextMenu
                     var origSource = container._noteOriginalSource;
                     var renderSource = applyAssertionFilter(origSource, showing);
                     renderSource = applyStepsFilter(renderSource, !!container._stepsVisible);
+                    renderSource = applyDatabasesFilter(renderSource, !!container._databasesVisible);
                     var noteBlocks = parseNoteBlocks(renderSource);
                     if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     if (!container._noteSteps) container._noteSteps = {};
@@ -3049,6 +3090,7 @@ public static class DiagramContextMenu
                     var origSource = container._noteOriginalSource;
                     var renderSource = applyAssertionFilter(origSource, !!container._assertionsVisible);
                     renderSource = applyStepsFilter(renderSource, showing);
+                    renderSource = applyDatabasesFilter(renderSource, !!container._databasesVisible);
                     var noteBlocks = parseNoteBlocks(renderSource);
                     if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     if (!container._noteSteps) container._noteSteps = {};
@@ -3077,6 +3119,47 @@ public static class DiagramContextMenu
                 syncToggleBtn(scenario, 'steps', shown);
                 var containers = scenario.querySelectorAll('[data-plantuml]');
                 processRenderQueue(buildStepsQueue(containers, shown));
+            };
+
+            function buildDatabasesQueue(containers, showing) {
+                var queue = [];
+                containers.forEach(function(container) {
+                    if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
+                    var wasVisible = container._databasesVisible !== false;
+                    if (wasVisible === showing) return;
+                    container._databasesVisible = showing;
+                    var origSource = container._noteOriginalSource;
+                    var renderSource = applyAssertionFilter(origSource, !!container._assertionsVisible);
+                    renderSource = applyStepsFilter(renderSource, !!container._stepsVisible);
+                    renderSource = applyDatabasesFilter(renderSource, showing);
+                    var noteBlocks = parseNoteBlocks(renderSource);
+                    if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
+                    if (!container._noteSteps) container._noteSteps = {};
+                    queue.push({ container: container, noteBlocks: noteBlocks });
+                });
+                return queue;
+            }
+
+            // Report-level: toggle database participants for all scenarios
+            window._toggleDatabases = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                window._databasesVisible = shown;
+                syncToggleBtn(document.querySelector('.toolbar-right'), 'databases', shown);
+                document.querySelectorAll('details.scenario').forEach(function(sc) {
+                    syncToggleBtn(sc, 'databases', shown);
+                });
+                var containers = document.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildDatabasesQueue(containers, shown));
+            };
+
+            // Scenario-level: toggle database participants for one scenario
+            window._toggleScenarioDatabases = function(btn) {
+                var shown = btn.getAttribute('data-shown') !== 'true';
+                var scenario = btn.closest('details.scenario');
+                if (!scenario) return;
+                syncToggleBtn(scenario, 'databases', shown);
+                var containers = scenario.querySelectorAll('[data-plantuml]');
+                processRenderQueue(buildDatabasesQueue(containers, shown));
             };
         })();
         </script>

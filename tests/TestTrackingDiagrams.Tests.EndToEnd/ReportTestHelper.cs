@@ -1176,13 +1176,13 @@ public static class ReportTestHelper
         participant "OrderService" as svc
         participant "Database" as db
 
-        hnote across <<stepDelimiter>> #black:<color:white>Given the system is running
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Given the system is running
         caller -> svc : POST /api/orders
         note left
         Content-Type: application/json
         {"item":"Widget","qty":2}
         end note
-        hnote across <<stepDelimiter>> #black:<color:white>When I create an order
+        hnote across <<stepDelimiter>> #black:<color:white>Step: When I create an order
         svc -> db : INSERT INTO Orders
         note left
         INSERT INTO Orders (Item, Qty)
@@ -1589,6 +1589,45 @@ public static class ReportTestHelper
         var diagrams = new[]
         {
             new DiagramAsCode("cp1", "", PlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    private const string DatabaseParticipantPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        database "CosmosDB" as cosmosdb #E74C3C
+
+        caller -> svc : POST /api/orders
+        note left
+        Content-Type: application/json
+        {"item":"Widget","qty":2}
+        end note
+        svc -[#E74C3C]> cosmosdb: CreateItemAsync
+        note left
+        {"id":"abc","item":"Widget","qty":2}
+        end note
+        cosmosdb -[#E74C3C]-> svc: 201 Created
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    public static string GenerateReportWithDatabaseParticipant(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", DatabaseParticipantPlantUmlSource)
         };
 
         var path = ReportGenerator.GenerateHtmlReport(
