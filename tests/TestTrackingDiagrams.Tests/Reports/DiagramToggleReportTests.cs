@@ -286,7 +286,7 @@ public class DiagramToggleReportTests : IDisposable
     ];
 
     [Fact]
-    public void Report_shows_span_count_warning_when_10x_median()
+    public void Report_shows_span_count_warning_when_10x_median_and_over_100()
     {
         var features = MakeTwoScenarioFeatures();
         var diagrams = new[]
@@ -295,9 +295,9 @@ public class DiagramToggleReportTests : IDisposable
             new DefaultDiagramsFetcher.DiagramAsCode("t2", "", "@startuml\nA->B: call\n@enduml")
         };
 
-        // t1 has 5 spans (median), t2 has 50 spans (10x median)
-        var segments = MakeWholeTestSegmentsWithSpanCount("t1", 5);
-        foreach (var kv in MakeWholeTestSegmentsWithSpanCount("t2", 50))
+        // t1 has 10 spans (median), t2 has 150 spans (15x median, >100)
+        var segments = MakeWholeTestSegmentsWithSpanCount("t1", 10);
+        foreach (var kv in MakeWholeTestSegmentsWithSpanCount("t2", 150))
             segments[kv.Key] = kv.Value;
 
         var path = ReportGenerator.GenerateHtmlReport(
@@ -312,8 +312,37 @@ public class DiagramToggleReportTests : IDisposable
         var content = File.ReadAllText(path);
 
         Assert.Contains("span-count-warning", content);
-        Assert.Contains("50 spans", content);
+        Assert.Contains("150 spans", content);
         Assert.Contains("might indicate a problem", content);
+    }
+
+    [Fact]
+    public void Report_no_span_warning_when_10x_median_but_under_100()
+    {
+        var features = MakeTwoScenarioFeatures();
+        var diagrams = new[]
+        {
+            new DefaultDiagramsFetcher.DiagramAsCode("t1", "", "@startuml\nA->B: call\n@enduml"),
+            new DefaultDiagramsFetcher.DiagramAsCode("t2", "", "@startuml\nA->B: call\n@enduml")
+        };
+
+        // t1 has 5 spans (median), t2 has 50 spans (10x median, but <=100)
+        var segments = MakeWholeTestSegmentsWithSpanCount("t1", 5);
+        foreach (var kv in MakeWholeTestSegmentsWithSpanCount("t2", 50))
+            segments[kv.Key] = kv.Value;
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, "ToggleSpanWarningUnder100.html", "Test", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs,
+            internalFlowTracking: true,
+            wholeTestSegments: segments,
+            wholeTestVisualization: WholeTestFlowVisualization.Both);
+        var content = File.ReadAllText(path);
+
+        Assert.DoesNotContain("<span class=\"span-count-warning\"", content);
     }
 
     [Fact]

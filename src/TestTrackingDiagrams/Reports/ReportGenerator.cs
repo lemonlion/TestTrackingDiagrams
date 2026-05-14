@@ -303,16 +303,6 @@ public static class ReportGenerator
                                               var hidden = d.hp || d.dep || d.st || d.sr || d.dur || d.cat;
                                               d.el.style.display = hidden ? 'none' : '';
                                           }
-                                          var rules = document.getElementsByClassName('rule');
-                                          for (var i = 0; i < rules.length; i++) {
-                                              var r = rules[i];
-                                              var sc = r.getElementsByClassName('scenario');
-                                              var hasVisible = false;
-                                              for (var j = 0; j < sc.length; j++) {
-                                                  if (sc[j].style.display !== 'none') { hasVisible = true; break; }
-                                              }
-                                              r.style.display = hasVisible ? '' : 'none';
-                                          }
                                           for (var i = 0; i < c.features.length; i++) {
                                               var f = c.features[i];
                                               var sc = f.getElementsByClassName('scenario');
@@ -2090,9 +2080,9 @@ public static class ReportGenerator
                 var hasSequenceDiagrams = diagramsForTest.Length > 0;
                 var hasWholeTestFlow = wholeTestContent is not null;
 
-                // Span count warning for outliers (>= 10x median)
+                // Span count warning for outliers (>= 10x median AND > 100 spans)
                 var spanWarning = "";
-                if (hasWholeTestFlow && medianSpanCount > 0 && wholeTestContent!.Value.SpanCount >= medianSpanCount * 10)
+                if (hasWholeTestFlow && medianSpanCount > 0 && wholeTestContent!.Value.SpanCount >= medianSpanCount * 10 && wholeTestContent.Value.SpanCount > 100)
                 {
                     var count = wholeTestContent.Value.SpanCount;
                     spanWarning = $"<span class=\"span-count-warning\">(Warning: {count:N0} spans. This might indicate a problem/recursive loop in your test.)</span>";

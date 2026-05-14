@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.4] - 2026-05-14
+
+### Changed
+- **Span count warning requires over 100 spans** — The "This might indicate a problem/recursive loop in your test" warning now only appears when a scenario has both >= 10x the median span count AND more than 100 spans. Previously any >= 10x outlier triggered the warning, which produced false positives for small test suites.
+
 ## [2.35.3] - 2026-05-14
 
 ### Fixed
