@@ -32,36 +32,48 @@ public static class TestAssemblyBuilder
             internal sealed class GivenStepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
 
             [AttributeUsage(AttributeTargets.Method)]
             internal sealed class WhenStepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
 
             [AttributeUsage(AttributeTargets.Method)]
             internal sealed class ThenStepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
 
             [AttributeUsage(AttributeTargets.Method)]
             internal sealed class ButStepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
 
             [AttributeUsage(AttributeTargets.Method)]
             internal sealed class ButWhenStepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
 
             [AttributeUsage(AttributeTargets.Method)]
             internal sealed class StepAttribute : Attribute
             {
                 public string Description { get; set; }
+                public string SkipIf { get; set; }
+                public string SkipReason { get; set; }
             }
         }
         """;

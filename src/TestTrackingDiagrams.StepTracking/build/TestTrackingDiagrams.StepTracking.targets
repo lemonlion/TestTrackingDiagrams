@@ -35,6 +35,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class GivenStepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 
@@ -50,6 +52,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class WhenStepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 
@@ -65,6 +69,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class ThenStepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 
@@ -80,6 +86,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class ButStepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 
@@ -95,6 +103,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class ButWhenStepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 
@@ -110,6 +120,8 @@ namespace TestTrackingDiagrams.Tracking
     internal sealed class StepAttribute : Attribute
     {
         public string Description { get%3B set%3B }
+        public string SkipIf { get%3B set%3B }
+        public string SkipReason { get%3B set%3B }
     }
 }" />
 

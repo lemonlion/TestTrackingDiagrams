@@ -528,4 +528,270 @@ public class StepWeaverIntegrationTests
         Assert.Null(ex);
     }
 
+    [Fact]
+    public void SkipIf_True_Property_Bypasses_Step()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfTrue",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public bool GatewayUnavailable => true;
+
+                [WhenStep(SkipIf = nameof(GatewayUnavailable), SkipReason = "Gateway down")]
+                public void Payment_Is_Submitted() { throw new System.Exception("Should not execute"); }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-true-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Payment_Is_Submitted")!;
+        method.Invoke(instance, null); // Should NOT throw
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Gateway down", steps[0].BypassReason);
+        Assert.Equal("When", steps[0].Keyword);
+        Assert.Equal("Payment is submitted", steps[0].Text);
+    }
+
+    [Fact]
+    public void SkipIf_False_Property_Executes_Step_Normally()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfFalse",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public bool GatewayUnavailable => false;
+
+                [WhenStep(SkipIf = nameof(GatewayUnavailable), SkipReason = "Gateway down")]
+                public void Payment_Is_Submitted() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-false-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Payment_Is_Submitted")!;
+        method.Invoke(instance, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Passed, steps[0].Status);
+        Assert.Null(steps[0].BypassReason);
+    }
+
+    [Fact]
+    public void SkipIf_Static_Property_Works()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfStatic",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public static bool FeatureDisabled => true;
+
+                [GivenStep(SkipIf = nameof(FeatureDisabled), SkipReason = "Feature flag off")]
+                public void Feature_Is_Enabled() { throw new System.Exception("Should not execute"); }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-static-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Feature_Is_Enabled")!;
+        method.Invoke(instance, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Feature flag off", steps[0].BypassReason);
+    }
+
+    [Fact]
+    public void SkipIf_Field_Works()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfField",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public bool _skipPayment = true;
+
+                [WhenStep(SkipIf = nameof(_skipPayment))]
+                public void Payment_Is_Made() { throw new System.Exception("Should not execute"); }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-field-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Payment_Is_Made")!;
+        method.Invoke(instance, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Null(steps[0].BypassReason); // No reason specified
+    }
+
+    [Fact]
+    public async Task SkipIf_Async_Method_Returns_CompletedTask()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfAsync",
+            """
+            using System.Threading.Tasks;
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                public bool ExternalServiceDown => true;
+
+                [WhenStep(SkipIf = nameof(ExternalServiceDown), SkipReason = "Service unavailable")]
+                public async Task Call_External_Service()
+                {
+                    await Task.Delay(1);
+                    throw new System.Exception("Should not execute");
+                }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-async-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Call_External_Service")!;
+        var task = (Task)method.Invoke(instance, null)!;
+        await task; // Should complete immediately
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Service unavailable", steps[0].BypassReason);
+    }
+
+    [Fact]
+    public void SkipIf_NonExistent_Member_Executes_Normally()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfMissing",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class Steps
+            {
+                [WhenStep(SkipIf = "NonExistentProperty")]
+                public void Do_Something() { }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-missing-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Do_Something")!;
+        method.Invoke(instance, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Passed, steps[0].Status); // Executes normally
+    }
+
+    [Fact]
+    public void SkipIf_Base_Class_Property_Works()
+    {
+        var assemblyPath = TestAssemblyBuilder.Build(
+            "SkipIfBase",
+            """
+            using TestTrackingDiagrams.Tracking;
+
+            [assembly: TrackSteps]
+
+            public class BaseSteps
+            {
+                public bool ServiceUnavailable { get; set; } = true;
+            }
+
+            public class Steps : BaseSteps
+            {
+                [WhenStep(SkipIf = nameof(ServiceUnavailable), SkipReason = "Inherited skip")]
+                public void Call_Service() { throw new System.Exception("Should not execute"); }
+            }
+            """);
+
+        var weaver = new StepWeaver();
+        weaver.Weave(assemblyPath, Path.ChangeExtension(assemblyPath, ".pdb"));
+
+        var testId = $"skipif-base-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("Steps")!;
+        var instance = Activator.CreateInstance(type)!;
+        var method = type.GetMethod("Call_Service")!;
+        method.Invoke(instance, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(Reports.ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Inherited skip", steps[0].BypassReason);
+    }
 }

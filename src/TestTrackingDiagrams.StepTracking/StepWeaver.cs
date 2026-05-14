@@ -113,8 +113,9 @@ public class StepWeaver
 
                 var keyword = GetKeyword(stepAttr);
                 var stepText = GetStepText(stepAttr, method);
+                var skipIf = GetSkipIfInfo(stepAttr, method, type);
 
-                WrapMethodWithStepTracking(method, keyword, stepText, stepMethods.Value, getMessageMethod, exceptionType);
+                WrapMethodWithStepTracking(method, keyword, stepText, stepMethods.Value, getMessageMethod, exceptionType, skipIf);
                 result.WeavedCount++;
             }
         }
@@ -147,13 +148,14 @@ public class StepWeaver
         string stepText,
         (MethodReference StartStep, MethodReference CompleteStepPassed, MethodReference CompleteStepFailed) stepMethods,
         MethodReference getMessageMethod,
-        TypeReference exceptionType)
+        TypeReference exceptionType,
+        SkipIfInfo? skipIf)
     {
         // Detect async methods (returning Task or Task<T>)
         var asyncKind = GetAsyncKind(method);
         if (asyncKind != AsyncKind.None)
         {
-            WrapAsyncMethodWithStepTracking(method, keyword, stepText, stepMethods, asyncKind);
+            WrapAsyncMethodWithStepTracking(method, keyword, stepText, stepMethods, asyncKind, skipIf);
             return;
         }
 
@@ -248,6 +250,39 @@ public class StepWeaver
 
         preamble.Add(il.Create(OpCodes.Call, stepMethods.StartStep));
 
+        // === Emit SkipIf bypass check (after StartStep, before try block) ===
+        if (skipIf != null)
+        {
+            var bypassStepRef = GetBypassStepReference(method.Module);
+
+            // Load the bool property/field
+            if (skipIf.IsField)
+            {
+                if (!skipIf.IsStatic)
+                    preamble.Add(il.Create(OpCodes.Ldarg_0)); // this
+                preamble.Add(il.Create(skipIf.IsStatic ? OpCodes.Ldsfld : OpCodes.Ldfld,
+                    method.Module.ImportReference(skipIf.FieldRef!)));
+            }
+            else
+            {
+                if (!skipIf.IsStatic)
+                    preamble.Add(il.Create(OpCodes.Ldarg_0)); // this
+                preamble.Add(il.Create(skipIf.IsStatic ? OpCodes.Call : OpCodes.Callvirt,
+                    method.Module.ImportReference(skipIf.PropertyGetterRef!)));
+            }
+
+            // brfalse → normalPath (originalFirst) — skip bypass if false
+            preamble.Add(il.Create(OpCodes.Brfalse, originalFirst));
+
+            // Bypass path: call BypassStep(reason), then ret (void sync method)
+            if (skipIf.Reason != null)
+                preamble.Add(il.Create(OpCodes.Ldstr, skipIf.Reason));
+            else
+                preamble.Add(il.Create(OpCodes.Ldnull));
+            preamble.Add(il.Create(OpCodes.Call, bypassStepRef));
+            preamble.Add(il.Create(OpCodes.Ret));
+        }
+
         // Insert preamble before original first instruction
         foreach (var instr in preamble)
         {
@@ -339,7 +374,8 @@ public class StepWeaver
         string? keyword,
         string stepText,
         (MethodReference StartStep, MethodReference CompleteStepPassed, MethodReference CompleteStepFailed) stepMethods,
-        AsyncKind asyncKind)
+        AsyncKind asyncKind,
+        SkipIfInfo? skipIf)
     {
         var body = method.Body;
         var il = body.GetILProcessor();
@@ -420,6 +456,60 @@ public class StepWeaver
         }
 
         preamble.Add(il.Create(OpCodes.Call, stepMethods.StartStep));
+
+        // === Emit SkipIf bypass check for async method ===
+        if (skipIf != null)
+        {
+            var bypassStepRef = GetBypassStepReference(method.Module);
+
+            // Load the bool property/field
+            if (skipIf.IsField)
+            {
+                if (!skipIf.IsStatic)
+                    preamble.Add(il.Create(OpCodes.Ldarg_0)); // this
+                preamble.Add(il.Create(skipIf.IsStatic ? OpCodes.Ldsfld : OpCodes.Ldfld,
+                    method.Module.ImportReference(skipIf.FieldRef!)));
+            }
+            else
+            {
+                if (!skipIf.IsStatic)
+                    preamble.Add(il.Create(OpCodes.Ldarg_0)); // this
+                preamble.Add(il.Create(skipIf.IsStatic ? OpCodes.Call : OpCodes.Callvirt,
+                    method.Module.ImportReference(skipIf.PropertyGetterRef!)));
+            }
+
+            // brfalse → normalPath (originalFirst)
+            preamble.Add(il.Create(OpCodes.Brfalse, originalFirst));
+
+            // Bypass path: call BypassStep(reason), return Task.CompletedTask / Task.FromResult<T>(default)
+            if (skipIf.Reason != null)
+                preamble.Add(il.Create(OpCodes.Ldstr, skipIf.Reason));
+            else
+                preamble.Add(il.Create(OpCodes.Ldnull));
+            preamble.Add(il.Create(OpCodes.Call, bypassStepRef));
+
+            // Return appropriate Task
+            if (asyncKind == AsyncKind.Task)
+            {
+                var completedTaskProp = module.ImportReference(
+                    typeof(System.Threading.Tasks.Task).GetProperty("CompletedTask")!.GetGetMethod()!);
+                preamble.Add(il.Create(OpCodes.Call, completedTaskProp));
+            }
+            else
+            {
+                // Task.FromResult<T>(default(T))
+                var git = (GenericInstanceType)method.ReturnType;
+                var innerType = git.GenericArguments[0];
+                var fromResultOpen = typeof(System.Threading.Tasks.Task)
+                    .GetMethod("FromResult")!;
+                var fromResultRef = module.ImportReference(fromResultOpen);
+                var fromResultGeneric = new GenericInstanceMethod(fromResultRef);
+                fromResultGeneric.GenericArguments.Add(innerType);
+                preamble.Add(EmitDefault(il, innerType));
+                preamble.Add(il.Create(OpCodes.Call, fromResultGeneric));
+            }
+            preamble.Add(il.Create(OpCodes.Ret));
+        }
 
         // Insert preamble before original first instruction
         foreach (var instr in preamble)
@@ -668,5 +758,144 @@ public class StepWeaver
         }
 
         return resolver;
+    }
+
+    // === SkipIf support ===
+
+    private class SkipIfInfo
+    {
+        public bool IsField { get; set; }
+        public bool IsStatic { get; set; }
+        public FieldReference? FieldRef { get; set; }
+        public MethodReference? PropertyGetterRef { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    private SkipIfInfo? GetSkipIfInfo(CustomAttribute attr, MethodDefinition method, TypeDefinition declaringType)
+    {
+        if (!attr.HasProperties)
+            return null;
+
+        var skipIfProp = attr.Properties.FirstOrDefault(p => p.Name == "SkipIf");
+        if (skipIfProp.Name == null || skipIfProp.Argument.Value is not string memberName || string.IsNullOrEmpty(memberName))
+            return null;
+
+        var skipReasonProp = attr.Properties.FirstOrDefault(p => p.Name == "SkipReason");
+        var reason = skipReasonProp.Name != null ? skipReasonProp.Argument.Value as string : null;
+
+        // Resolve the member on the declaring type (walk base types)
+        var currentType = declaringType;
+        while (currentType != null)
+        {
+            // Check properties first
+            var property = currentType.Properties.FirstOrDefault(p => p.Name == memberName);
+            if (property != null && property.GetMethod != null)
+            {
+                // Verify it returns bool
+                if (property.PropertyType.FullName == "System.Boolean")
+                {
+                    return new SkipIfInfo
+                    {
+                        IsField = false,
+                        IsStatic = property.GetMethod.IsStatic,
+                        PropertyGetterRef = property.GetMethod,
+                        Reason = reason
+                    };
+                }
+                else
+                {
+                    _log?.LogWarning(
+                        $"SkipIf member '{memberName}' on type '{declaringType.FullName}' is not a bool property (found {property.PropertyType.FullName}). Step will execute normally.");
+                    return null;
+                }
+            }
+
+            // Check fields
+            var field = currentType.Fields.FirstOrDefault(f => f.Name == memberName);
+            if (field != null)
+            {
+                if (field.FieldType.FullName == "System.Boolean")
+                {
+                    return new SkipIfInfo
+                    {
+                        IsField = true,
+                        IsStatic = field.IsStatic,
+                        FieldRef = field,
+                        Reason = reason
+                    };
+                }
+                else
+                {
+                    _log?.LogWarning(
+                        $"SkipIf member '{memberName}' on type '{declaringType.FullName}' is not a bool field (found {field.FieldType.FullName}). Step will execute normally.");
+                    return null;
+                }
+            }
+
+            // Walk base type
+            var baseTypeRef = currentType.BaseType;
+            if (baseTypeRef == null)
+                break;
+
+            try
+            {
+                currentType = baseTypeRef.Resolve();
+            }
+            catch
+            {
+                // Can't resolve base type (external assembly) — give up
+                break;
+            }
+        }
+
+        _log?.LogWarning(
+            $"SkipIf member '{memberName}' not found on type '{declaringType.FullName}' or its base types. Step will execute normally.");
+        return null;
+    }
+
+    private static MethodReference GetBypassStepReference(ModuleDefinition module)
+    {
+        var ttdAssemblyRef = module.AssemblyReferences
+            .FirstOrDefault(r => r.Name == "TestTrackingDiagrams");
+        if (ttdAssemblyRef == null)
+        {
+            ttdAssemblyRef = new AssemblyNameReference("TestTrackingDiagrams", new Version(0, 0, 0, 0));
+            module.AssemblyReferences.Add(ttdAssemblyRef);
+        }
+
+        var stepCollectorTypeRef = new TypeReference(
+            "TestTrackingDiagrams.Tracking", "StepCollector",
+            module, ttdAssemblyRef);
+
+        // BypassStep(string? reason = null) — the self-resolving overload
+        var bypassStep = new MethodReference("BypassStep", module.TypeSystem.Void, stepCollectorTypeRef)
+        {
+            HasThis = false
+        };
+        bypassStep.Parameters.Add(new ParameterDefinition(module.TypeSystem.String));
+        return bypassStep;
+    }
+
+    private static Instruction EmitDefault(ILProcessor il, TypeReference type)
+    {
+        // For reference types, just push null
+        if (!type.IsValueType)
+            return il.Create(OpCodes.Ldnull);
+
+        // For value types, use ldc.i4.0 for common primitive types
+        if (type.FullName == "System.Int32" || type.FullName == "System.Boolean" ||
+            type.FullName == "System.Byte" || type.FullName == "System.Int16")
+            return il.Create(OpCodes.Ldc_I4_0);
+        if (type.FullName == "System.Int64")
+            return il.Create(OpCodes.Ldc_I8, 0L);
+        if (type.FullName == "System.Single")
+            return il.Create(OpCodes.Ldc_R4, 0.0f);
+        if (type.FullName == "System.Double")
+            return il.Create(OpCodes.Ldc_R8, 0.0);
+
+        // For other value types (structs), load null and box — but that's wrong.
+        // In practice step methods returning Task<ValueType> are extremely rare.
+        // Fallback: use ldc.i4.0 which is safe for most small value types.
+        return il.Create(OpCodes.Ldc_I4_0);
     }
 }

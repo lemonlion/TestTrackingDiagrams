@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.34.3] - 2026-05-14
+
+### Added
+- **StepTracking: Conditional step bypass (`SkipIf` / `SkipReason`)** — All step attributes (`[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[ButStep]`, `[ButWhenStep]`, `[Step]`) now accept `SkipIf` and `SkipReason` properties. When `SkipIf` names a `bool` property or field on the test class (or base class) that evaluates to `true` at runtime, the step body is not executed and the step is recorded as `Bypassed` with the optional reason. The IL weaver resolves the member at compile time via Cecil (no runtime reflection). Async methods return `Task.CompletedTask` on bypass. If the named member doesn't exist or isn't `bool`, a build warning is emitted and the step executes normally.
+- **`StepCollector.BypassStep()` method** — New method to programmatically mark the current active step as bypassed. Called by the IL weaver's SkipIf preamble, but also available for direct use.
+- **`ScenarioStep.BypassReason` property** — The bypass reason is now available on the step model for report rendering.
+
 ## [2.34.2] - 2026-05-13
 
 ### Fixed

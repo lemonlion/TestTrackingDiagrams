@@ -459,7 +459,7 @@ public class StepCollectorTests
             .ToArray();
 
         Assert.Single(logs);
-        Assert.Contains("Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 
@@ -480,7 +480,7 @@ public class StepCollectorTests
 
         // Only the top-level step should emit a delimiter, not the sub-step
         Assert.Single(logs);
-        Assert.Contains("Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 
@@ -526,8 +526,8 @@ public class StepCollectorTests
             .ToArray();
 
         Assert.Equal(2, logs.Length);
-        Assert.Contains("Given A user exists", logs[0].PlantUml!);
-        Assert.Contains("And A product exists", logs[1].PlantUml!);
+        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Step: And A product exists", logs[1].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 
@@ -656,5 +656,124 @@ public class StepCollectorTests
             StepCollector.Options = original;
             StepCollector.ClearSteps(testId);
         }
+    }
+
+    [Fact]
+    public void BypassStep_records_step_as_bypassed()
+    {
+        var testId = $"bypass-{Guid.NewGuid():N}";
+        StepCollector.StartStep(testId, "When", "Payment is submitted", null, null);
+        StepCollector.BypassStep(testId, "Gateway down");
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Gateway down", steps[0].BypassReason);
+        Assert.Equal("When", steps[0].Keyword);
+        Assert.Equal("Payment is submitted", steps[0].Text);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void BypassStep_with_null_reason_records_bypassed_without_reason()
+    {
+        var testId = $"bypass-no-reason-{Guid.NewGuid():N}";
+        StepCollector.StartStep(testId, "Given", "External service ready", null, null);
+        StepCollector.BypassStep(testId, null);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Null(steps[0].BypassReason);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void BypassStep_does_not_affect_subsequent_steps()
+    {
+        var testId = $"bypass-subsequent-{Guid.NewGuid():N}";
+        StepCollector.StartStep(testId, "Given", "A precondition", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+        StepCollector.StartStep(testId, "When", "Bypassed action", null, null);
+        StepCollector.BypassStep(testId, "Not applicable");
+        StepCollector.StartStep(testId, "Then", "Result is checked", null, null);
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Equal(3, steps.Length);
+        Assert.Equal(ExecutionResult.Passed, steps[0].Status);
+        Assert.Equal(ExecutionResult.Bypassed, steps[1].Status);
+        Assert.Equal("Not applicable", steps[1].BypassReason);
+        Assert.Equal(ExecutionResult.Passed, steps[2].Status);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void BypassStep_with_null_testId_is_noop()
+    {
+        // Should not throw
+        StepCollector.BypassStep(null, "reason");
+    }
+
+    [Fact]
+    public void BypassStep_with_no_active_step_is_noop()
+    {
+        // Should not throw
+        StepCollector.BypassStep("no-active-steps-bypass", "reason");
+    }
+
+    [Fact]
+    public void BypassStep_nested_records_as_substep()
+    {
+        var testId = $"bypass-nested-{Guid.NewGuid():N}";
+        StepCollector.StartStep(testId, "Given", "Outer step", null, null);
+        StepCollector.StartStep(testId, "Given", "Inner step", null, null);
+        StepCollector.BypassStep(testId, "Skipped inner");
+        StepCollector.CompleteStep(testId, passed: true);
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(ExecutionResult.Passed, steps[0].Status);
+        Assert.NotNull(steps[0].SubSteps);
+        Assert.Single(steps[0].SubSteps!);
+        Assert.Equal(ExecutionResult.Bypassed, steps[0].SubSteps![0].Status);
+        Assert.Equal("Skipped inner", steps[0].SubSteps![0].BypassReason);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void BypassStep_self_resolving_uses_TestIdentityScope()
+    {
+        var testId = $"bypass-self-{Guid.NewGuid():N}";
+        using var scope = TestIdentityScope.Begin(testId, testId);
+
+        StepCollector.StartStep("When", "An action", null, null);
+        StepCollector.BypassStep("Feature disabled");
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.Single(steps);
+        Assert.Equal(ExecutionResult.Bypassed, steps[0].Status);
+        Assert.Equal("Feature disabled", steps[0].BypassReason);
+
+        StepCollector.ClearSteps(testId);
+    }
+
+    [Fact]
+    public void BypassStep_has_duration()
+    {
+        var testId = $"bypass-duration-{Guid.NewGuid():N}";
+        StepCollector.StartStep(testId, "Given", "Something", null, null);
+        Thread.Sleep(1);
+        StepCollector.BypassStep(testId, "reason");
+
+        var steps = StepCollector.GetSteps(testId);
+        Assert.NotNull(steps[0].Duration);
+        Assert.True(steps[0].Duration!.Value.Ticks > 0);
+
+        StepCollector.ClearSteps(testId);
     }
 }

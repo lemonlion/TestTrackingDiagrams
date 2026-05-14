@@ -75,7 +75,7 @@ public static class StepCollector
                 ? $"{step.EffectiveKeyword} {text}"
                 : text;
             DefaultTrackingDiagramOverride.InsertPlantUml(testId,
-                $"hnote across <<stepDelimiter>> #black:<color:white>{label}");
+                $"hnote across <<stepDelimiter>> #black:<color:white>Step: {label}");
         }
 
         // Phase transitions: set ambient test phase based on keyword
@@ -127,6 +127,51 @@ public static class StepCollector
             {
                 // Top-level step
                 state.CompletedSteps.Add(completed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Bypasses the current active step, resolving the test ID from the ambient context.
+    /// The step body is not executed; it is recorded as Bypassed with an optional reason.
+    /// Called by the IL weaver when SkipIf evaluates to true.
+    /// </summary>
+    public static void BypassStep(string? reason = null)
+    {
+        BypassStep(ResolveTestId(), reason);
+    }
+
+    /// <summary>
+    /// Bypasses the current active step for the given test.
+    /// The step is popped from the stack and recorded as Bypassed.
+    /// </summary>
+    public static void BypassStep(string? testId, string? reason = null)
+    {
+        if (testId is null)
+            return;
+
+        if (!States.TryGetValue(testId, out var state))
+            return;
+
+        lock (state)
+        {
+            if (state.StepStack.Count == 0)
+                return;
+
+            var bypassed = state.StepStack.Pop();
+            bypassed.EndTime = Stopwatch.GetTimestamp();
+            bypassed.Bypassed = true;
+            bypassed.BypassReason = reason;
+
+            if (state.StepStack.Count > 0)
+            {
+                // Nested: add as sub-step of parent
+                state.StepStack.Peek().SubSteps.Add(bypassed);
+            }
+            else
+            {
+                // Top-level step
+                state.CompletedSteps.Add(bypassed);
             }
         }
     }
@@ -357,11 +402,16 @@ public static class StepCollector
             ? TimeSpan.FromTicks((long)((step.EndTime - step.StartTime) * ((double)TimeSpan.TicksPerSecond / Stopwatch.Frequency)))
             : (TimeSpan?)null;
 
+        var status = step.Bypassed
+            ? ExecutionResult.Bypassed
+            : step.Passed ? ExecutionResult.Passed : ExecutionResult.Failed;
+
         return new ScenarioStep
         {
             Keyword = step.EffectiveKeyword,
             Text = step.Text,
-            Status = step.Passed ? ExecutionResult.Passed : ExecutionResult.Failed,
+            Status = status,
+            BypassReason = step.BypassReason,
             Duration = duration,
             Parameters = step.Parameters,
             SubSteps = step.SubSteps.Count > 0
@@ -426,6 +476,8 @@ public static class StepCollector
         public long StartTime { get; set; }
         public long EndTime { get; set; }
         public bool Passed { get; set; }
+        public bool Bypassed { get; set; }
+        public string? BypassReason { get; set; }
         public string? ErrorMessage { get; set; }
         public StepParameter[]? Parameters { get; set; }
         public List<CollectedStep> SubSteps { get; } = new();
