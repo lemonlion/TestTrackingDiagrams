@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-## [2.35.1] - 2026-05-14
+## [2.35.3] - 2026-05-14
 
 ### Fixed
 - **Empty rule containers shown when search/filter hides all child scenarios** — The `applyVisibility()` function now hides `.rule` elements when all their child scenarios are filtered out, identical to how features are hidden. Rules are evaluated before features so that a feature correctly hides when all its rules are empty. Fixes [#57](https://github.com/lemonlion/TestTrackingDiagrams/issues/57).
