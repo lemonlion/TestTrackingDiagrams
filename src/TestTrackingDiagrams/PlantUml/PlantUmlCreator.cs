@@ -55,7 +55,8 @@ public static partial class PlantUmlCreator
         bool sequenceDiagramParticipantColors = false,
         Dictionary<string, string>? dependencyColors = null,
         Dictionary<string, string>? serviceTypeOverrides = null,
-        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
+        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata,
+        bool clientSideSplitting = false)
     {
         excludedHeaders ??= DefaultExcludedHeaders;
 
@@ -92,7 +93,8 @@ public static partial class PlantUmlCreator
                 sequenceDiagramParticipantColors,
                 dependencyColors,
                 serviceTypeOverrides,
-                graphQlBodyFormat);
+                graphQlBodyFormat,
+                clientSideSplitting);
             var imageTags = results.Select(x => x.GetPlantUmlImageTag(plantUmlServerRendererUrl, lazyLoadImages)).ToArray();
             return new PlantUmlForTest(testTraces.Key, testName, results.Select(result => (result.PlantUml, result.PlantUmlEncoded)), testTraces.ToList(), imageTags);
         });
@@ -124,9 +126,10 @@ public static partial class PlantUmlCreator
         bool sequenceDiagramParticipantColors = false,
         Dictionary<string, string>? dependencyColors = null,
         Dictionary<string, string>? serviceTypeOverrides = null,
-        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata)
+        GraphQlBodyFormat graphQlBodyFormat = GraphQlBodyFormat.FormattedWithMetadata,
+        bool clientSideSplitting = false)
     {
-        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, maxEncodedDiagramLength,
+        var builder = new DiagramBuilder(tracesForTest, plantUmlTheme, clientSideSplitting ? int.MaxValue : maxEncodedDiagramLength,
             sequenceDiagramArrowColors, sequenceDiagramParticipantColors, dependencyColors, serviceTypeOverrides);
         var lastTrace = tracesForTest[^1];
 
@@ -247,14 +250,14 @@ public static partial class PlantUmlCreator
                     if (responsePostFormattingProcessor is not null)
                         noteContent = responsePostFormattingProcessor(noteContent);
 
-                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName, internalFlowTracking, truncateNotesAfterLines);
+                    AppendResponseNoteContent(builder, noteContent, trace, serviceShortName, callerShortName, internalFlowTracking, truncateNotesAfterLines, clientSideSplitting);
                     break;
                 }
             }
 
             builder.IncrementStep();
 
-            if ((builder.EncodedDiagramExceedsMaxLength || builder.EstimatedHeightExceedsMax) && trace != lastTrace)
+            if (!clientSideSplitting && (builder.EncodedDiagramExceedsMaxLength || builder.EstimatedHeightExceedsMax) && trace != lastTrace)
                 builder.FinishAndStartNewDiagram();
         }
 
@@ -283,13 +286,14 @@ public static partial class PlantUmlCreator
         string serviceShortName,
         string callerShortName,
         bool internalFlowTracking = false,
-        int truncateNotesAfterLines = 0)
+        int truncateNotesAfterLines = 0,
+        bool clientSideSplitting = false)
     {
         var prefix = "..Continued From Previous Diagram.." + Environment.NewLine;
         var suffix = Environment.NewLine + "..Continued On Next Diagram..";
         var maxResponseLength = MaxResponseNoteChunkLength + suffix.Length + prefix.Length;
 
-        if (noteContent.Length > maxResponseLength)
+        if (!clientSideSplitting && noteContent.Length > maxResponseLength)
         {
             var chunks = noteContent.ChunksUpTo(MaxResponseNoteChunkLength).ToArray();
             for (var i = 0; i < chunks.Length; i++)

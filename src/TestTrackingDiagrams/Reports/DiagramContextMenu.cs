@@ -125,7 +125,8 @@ public static class DiagramContextMenu
 
     public static string GetInlineSvgStyles() => """
         .plantuml-inline-svg svg,
-        .plantuml-browser svg {
+        .plantuml-browser svg,
+        .puml-fragment svg {
             max-width: 100%;
             height: auto;
         }
@@ -133,6 +134,9 @@ public static class DiagramContextMenu
         .plantuml-browser {
             overflow-x: auto;
             padding-left: 1em;
+        }
+        .puml-fragment {
+            margin-bottom: 0.5em;
         }
         @keyframes pulse-loading { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
         .plantuml-browser:not([data-rendered]) {
@@ -398,6 +402,12 @@ public static class DiagramContextMenu
                 // can avoid calling plantuml.render() concurrently — TeaVM uses global state.
                 window._plantumlRendering = false;
                 var _pumlData = null;
+                var _maxDiagramHeight = 12000;
+                var _maxNoteChars = 15000;
+                var _estimatedArrowHeight = 45;
+                var _estimatedNoteLineHeight = 18;
+                window._splitDiagramSource = splitDiagramSource;
+                window._chunkLargeNotes = chunkLargeNotes;
                 function getPumlZ(el) {
                     if (!_pumlData) {
                         var s = document.getElementById('puml-data');
@@ -416,6 +426,315 @@ public static class DiagramContextMenu
                     }
                     return map;
                 }
+
+                // --- Client-side diagram splitting ---
+
+                // Parse PlantUML source into prefix (header/participants), body lines, and find trace boundaries
+                function parseDiagramStructure(source) {
+                    var lines = source.split('\n');
+                    var prefixEnd = -1;
+                    var bodyStart = -1;
+                    var endumlIdx = lines.length - 1;
+
+                    // Find end of prefix: after last participant/actor/entity/database/queue/collections/boundary declaration
+                    // and after autonumber, skinparam, !pragma, style blocks
+                    var inStyle = false;
+                    var _styleOpen = '<' + 'style>';
+                    var _styleClose = '</' + 'style>';
+                    for (var i = 0; i < lines.length; i++) {
+                        var trimmed = lines[i].trim();
+                        if (trimmed === '@enduml') { endumlIdx = i; break; }
+                        if (trimmed === _styleOpen) { inStyle = true; continue; }
+                        if (trimmed === _styleClose) { inStyle = false; prefixEnd = i; continue; }
+                        if (inStyle) continue;
+                        if (trimmed === '' || trimmed.startsWith('@startuml') || trimmed.startsWith('!pragma') ||
+                            trimmed.startsWith('skinparam') || trimmed.startsWith('autonumber') ||
+                            trimmed.startsWith('participant ') || trimmed.startsWith('actor ') ||
+                            trimmed.startsWith('entity ') || trimmed.startsWith('database ') ||
+                            trimmed.startsWith('queue ') || trimmed.startsWith('collections ') ||
+                            trimmed.startsWith('boundary ') || trimmed.startsWith('control ') ||
+                            trimmed.startsWith('!theme ')) {
+                            prefixEnd = i;
+                        } else {
+                            bodyStart = i;
+                            break;
+                        }
+                    }
+
+                    if (bodyStart < 0) bodyStart = prefixEnd + 1;
+                    var prefix = lines.slice(0, bodyStart).join('\n');
+                    var body = lines.slice(bodyStart, endumlIdx).join('\n');
+                    return { prefix: prefix, body: body, lines: lines, bodyStart: bodyStart, endumlIdx: endumlIdx };
+                }
+
+                // Parse body into trace units (a request arrow + notes + response arrow + notes)
+                function parseTraceUnits(bodyText) {
+                    var lines = bodyText.split('\n');
+                    var units = [];
+                    var currentUnit = [];
+                    var inNote = false;
+
+                    for (var i = 0; i < lines.length; i++) {
+                        var trimmed = lines[i].trim();
+
+                        if (trimmed.startsWith('note') && (trimmed.indexOf(' left') >= 0 || trimmed.indexOf(' right') >= 0) && !trimmed.startsWith('note over')) {
+                            inNote = true;
+                            currentUnit.push(lines[i]);
+                        } else if (trimmed === 'end note') {
+                            inNote = false;
+                            currentUnit.push(lines[i]);
+                        } else if (inNote) {
+                            currentUnit.push(lines[i]);
+                        } else if (trimmed.indexOf('->') >= 0 || trimmed.indexOf('-->') >= 0) {
+                            // Arrow line — this starts a new trace unit if we have response from previous
+                            // Heuristic: arrows with -> (request) or --> (return) alternate
+                            // Start new unit on request arrows (contains -> but not -->)
+                            var isReturn = trimmed.indexOf('-->') >= 0;
+                            if (!isReturn && currentUnit.length > 0) {
+                                units.push(currentUnit);
+                                currentUnit = [];
+                            }
+                            currentUnit.push(lines[i]);
+                        } else if (trimmed.startsWith('partition ') || trimmed === 'end') {
+                            // Partition open/close — attach to current unit
+                            currentUnit.push(lines[i]);
+                        } else {
+                            currentUnit.push(lines[i]);
+                        }
+                    }
+                    if (currentUnit.length > 0) units.push(currentUnit);
+                    return units;
+                }
+
+                // Estimate height of a trace unit
+                function estimateUnitHeight(unitLines) {
+                    var height = 0;
+                    var inNote = false;
+                    for (var i = 0; i < unitLines.length; i++) {
+                        var trimmed = unitLines[i].trim();
+                        if (trimmed.indexOf('->') >= 0 || trimmed.indexOf('-->') >= 0) {
+                            height += _estimatedArrowHeight;
+                        } else if (trimmed.startsWith('note') && (trimmed.indexOf(' left') >= 0 || trimmed.indexOf(' right') >= 0)) {
+                            inNote = true;
+                            height += _estimatedArrowHeight; // note header
+                        } else if (trimmed === 'end note') {
+                            inNote = false;
+                        } else if (inNote) {
+                            height += _estimatedNoteLineHeight;
+                        }
+                    }
+                    return height;
+                }
+
+                // Split diagram source into fragments based on estimated height
+                function splitDiagramSource(source, maxHeight) {
+                    if (!maxHeight) maxHeight = _maxDiagramHeight;
+                    var structure = parseDiagramStructure(source);
+                    if (!structure.body.trim()) return [source];
+
+                    var units = parseTraceUnits(structure.body);
+                    if (units.length === 0) return [source];
+
+                    var fragments = [];
+                    var currentLines = [];
+                    var currentHeight = 0;
+                    var stepCount = 0;
+                    var openPartition = null;
+
+                    // Extract the autonumber start from prefix
+                    var autoMatch = structure.prefix.match(/autonumber\s+(\d+)/);
+                    var baseStep = autoMatch ? parseInt(autoMatch[1], 10) : 1;
+
+                    for (var u = 0; u < units.length; u++) {
+                        var unitHeight = estimateUnitHeight(units[u]);
+
+                        // If adding this unit exceeds max and we have content, split here
+                        if (currentHeight > 0 && currentHeight + unitHeight > maxHeight) {
+                            // Close open partition if any
+                            if (openPartition) currentLines.push('end');
+                            fragments.push({ lines: currentLines, startStep: baseStep + stepCount - countArrows(currentLines) });
+                            currentLines = [];
+                            currentHeight = 0;
+                            // Re-open partition in new fragment
+                            if (openPartition) currentLines.push(openPartition);
+                        }
+
+                        // Track partition state
+                        for (var li = 0; li < units[u].length; li++) {
+                            var t = units[u][li].trim();
+                            if (t.startsWith('partition ')) openPartition = units[u][li];
+                            else if (t === 'end' && openPartition) openPartition = null;
+                        }
+
+                        for (var li = 0; li < units[u].length; li++) {
+                            currentLines.push(units[u][li]);
+                        }
+                        currentHeight += unitHeight;
+                        stepCount += countArrowsInUnit(units[u]);
+                    }
+
+                    // Final fragment
+                    if (currentLines.length > 0) {
+                        if (openPartition) currentLines.push('end');
+                        fragments.push({ lines: currentLines, startStep: baseStep + stepCount - countArrowsInLines(currentLines) });
+                    }
+
+                    if (fragments.length <= 1) return [source];
+
+                    // Build complete PlantUML sources for each fragment
+                    var result = [];
+                    var cumulativeSteps = baseStep;
+                    for (var f = 0; f < fragments.length; f++) {
+                        var fragPrefix = structure.prefix.replace(/autonumber\s+\d+/, 'autonumber ' + cumulativeSteps);
+                        result.push(fragPrefix + '\n' + fragments[f].lines.join('\n') + '\n@enduml');
+                        cumulativeSteps += countArrowsInLines(fragments[f].lines);
+                    }
+                    return result;
+                }
+
+                function countArrows(lines) {
+                    var c = 0;
+                    for (var i = 0; i < lines.length; i++) {
+                        var t = lines[i].trim();
+                        if ((t.indexOf('->') >= 0 || t.indexOf('-->') >= 0) && !t.startsWith('note') && !t.startsWith('end note')) c++;
+                    }
+                    return c;
+                }
+                function countArrowsInUnit(unitLines) {
+                    var c = 0;
+                    for (var i = 0; i < unitLines.length; i++) {
+                        var t = unitLines[i].trim();
+                        if ((t.indexOf('->') >= 0 || t.indexOf('-->') >= 0) && !t.startsWith('note')) c++;
+                    }
+                    return c;
+                }
+                function countArrowsInLines(lines) {
+                    return countArrows(lines);
+                }
+
+                // Chunk large notes in PlantUML source — returns modified source with forced split markers
+                function chunkLargeNotes(source, maxChars) {
+                    if (!maxChars) maxChars = _maxNoteChars;
+                    var lines = source.split('\n');
+                    var result = [];
+                    var inNote = false;
+                    var noteLines = [];
+                    var noteHeader = '';
+
+                    for (var i = 0; i < lines.length; i++) {
+                        var trimmed = lines[i].trim();
+                        if (!inNote && (trimmed.startsWith('note') && (trimmed.indexOf(' left') >= 0 || trimmed.indexOf(' right') >= 0) && !trimmed.startsWith('note over'))) {
+                            inNote = true;
+                            noteHeader = lines[i];
+                            noteLines = [];
+                        } else if (inNote && trimmed === 'end note') {
+                            inNote = false;
+                            var noteContent = noteLines.join('\n');
+                            if (noteContent.length > maxChars) {
+                                // Chunk the note content
+                                var chunks = chunkString(noteContent, maxChars);
+                                for (var ci = 0; ci < chunks.length; ci++) {
+                                    var chunk = chunks[ci];
+                                    if (ci > 0) chunk = '..Continued From Previous Diagram..\n' + chunk;
+                                    if (ci < chunks.length - 1) chunk = chunk + '\n..Continued On Next Diagram..';
+                                    result.push(noteHeader);
+                                    var chunkLines = chunk.split('\n');
+                                    for (var cl = 0; cl < chunkLines.length; cl++) result.push(chunkLines[cl]);
+                                    result.push('end note');
+                                    if (ci < chunks.length - 1) {
+                                        result.push('== __SPLIT_BOUNDARY__ ==');
+                                    }
+                                }
+                            } else {
+                                result.push(noteHeader);
+                                for (var nl = 0; nl < noteLines.length; nl++) result.push(noteLines[nl]);
+                                result.push('end note');
+                            }
+                        } else if (inNote) {
+                            noteLines.push(lines[i]);
+                        } else {
+                            result.push(lines[i]);
+                        }
+                    }
+                    return result.join('\n');
+                }
+
+                function chunkString(str, maxLen) {
+                    var chunks = [];
+                    var lines = str.split('\n');
+                    var current = '';
+                    for (var i = 0; i < lines.length; i++) {
+                        var candidate = current ? current + '\n' + lines[i] : lines[i];
+                        if (candidate.length > maxLen && current.length > 0) {
+                            chunks.push(current);
+                            current = lines[i];
+                        } else {
+                            current = candidate;
+                        }
+                    }
+                    if (current) chunks.push(current);
+                    return chunks.length > 0 ? chunks : [str];
+                }
+
+                // Enhanced split that handles forced split boundaries from chunkLargeNotes
+                function splitWithChunkedNotes(source, maxHeight) {
+                    // First chunk any oversized notes
+                    var chunked = chunkLargeNotes(source, _maxNoteChars);
+                    // Check for forced split boundaries
+                    if (chunked.indexOf('__SPLIT_BOUNDARY__') >= 0) {
+                        var parts = chunked.split(/\n== __SPLIT_BOUNDARY__ ==\n/);
+                        var allFragments = [];
+                        for (var p = 0; p < parts.length; p++) {
+                            // Each part gets wrapped as complete PlantUML and further split by height
+                            var partSource = parts[p].trim();
+                            // Ensure it has @startuml/@enduml
+                            if (partSource.indexOf('@startuml') < 0) {
+                                var structure = parseDiagramStructure(source);
+                                // Count steps from previous fragments
+                                var prevSteps = 1;
+                                for (var pf = 0; pf < allFragments.length; pf++) {
+                                    prevSteps += countArrows(allFragments[pf].split('\n'));
+                                }
+                                partSource = structure.prefix.replace(/autonumber\s+\d+/, 'autonumber ' + prevSteps) + '\n' + partSource + '\n@enduml';
+                            }
+                            var heightFrags = splitDiagramSource(partSource, maxHeight);
+                            for (var hf = 0; hf < heightFrags.length; hf++) {
+                                allFragments.push(heightFrags[hf]);
+                            }
+                        }
+                        return allFragments;
+                    }
+                    // No forced boundaries — just split by height
+                    return splitDiagramSource(chunked, maxHeight);
+                }
+                window._splitWithChunkedNotes = splitWithChunkedNotes;
+
+                // Render fragments into a container, creating child divs as needed
+                function renderFragments(el, source) {
+                    var fragments = splitWithChunkedNotes(source);
+                    el._fragments = fragments;
+                    el._fullSource = source;
+
+                    if (fragments.length <= 1) {
+                        // Single fragment — render directly into container (existing behavior)
+                        renderQueue.push({ el: el, source: fragments[0] || source, isFragment: false });
+                    } else {
+                        // Multiple fragments — create child divs
+                        el.innerHTML = '';
+                        el.dataset.rendered = '1';
+                        for (var f = 0; f < fragments.length; f++) {
+                            var fragDiv = document.createElement('div');
+                            fragDiv.className = 'puml-fragment';
+                            fragDiv.id = el.id + '-frag-' + f;
+                            fragDiv.dataset.fragment = f;
+                            fragDiv.setAttribute('data-plantuml', fragments[f]);
+                            el.appendChild(fragDiv);
+                            renderQueue.push({ el: fragDiv, source: fragments[f], isFragment: true, parentEl: el });
+                        }
+                    }
+                    processQueue();
+                }
+
                 function processQueue() {
                     if (rendering || window._plantumlRendering || renderQueue.length === 0) return;
                     rendering = true;
@@ -425,10 +744,12 @@ public static class DiagramContextMenu
                     var mo = new MutationObserver(function() {
                         mo.disconnect();
                         item.el.dataset.rendered = '1';
-                        bindIflowLinks(item.el, item.source);
-                        if (window._makeNotesCollapsible) window._makeNotesCollapsible(item.el);
-                        if (window._addAssertionTooltips) window._addAssertionTooltips(item.el);
-                        requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
+                        var hookTarget = item.isFragment ? item.el : item.el;
+                        var iflowSource = item.parentEl ? item.parentEl._fullSource || item.source : item.source;
+                        bindIflowLinks(hookTarget, iflowSource);
+                        if (window._makeNotesCollapsible) window._makeNotesCollapsible(hookTarget);
+                        if (window._addAssertionTooltips) window._addAssertionTooltips(hookTarget);
+                        requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(hookTarget); });
                         rendering = false;
                         window._plantumlRendering = false;
                         processQueue();
@@ -443,6 +764,26 @@ public static class DiagramContextMenu
                         window._plantumlRendering = false;
                         var msg = (e && e.message) ? e.message : String(e);
                         if (msg.indexOf('too large') >= 0) {
+                            // Try re-splitting with a smaller max height
+                            if (!item._retried && !item.isFragment) {
+                                item._retried = true;
+                                var smallerFrags = splitWithChunkedNotes(item.source, _maxDiagramHeight / 2);
+                                if (smallerFrags.length > 1) {
+                                    item.el.innerHTML = '';
+                                    item.el.dataset.rendered = '1';
+                                    for (var rf = 0; rf < smallerFrags.length; rf++) {
+                                        var rDiv = document.createElement('div');
+                                        rDiv.className = 'puml-fragment';
+                                        rDiv.id = item.el.id + '-frag-' + rf;
+                                        rDiv.dataset.fragment = rf;
+                                        rDiv.setAttribute('data-plantuml', smallerFrags[rf]);
+                                        item.el.appendChild(rDiv);
+                                        renderQueue.unshift({ el: rDiv, source: smallerFrags[rf], isFragment: true, parentEl: item.el, _retried: true });
+                                    }
+                                    processQueue();
+                                    return;
+                                }
+                            }
                             item.el.innerHTML = '<div style="color:#c00;padding:1em;border:1px solid #c00;border-radius:6px;margin:0.5em 0;">'
                                 + '<strong>Diagram too large for client-side rendering.</strong><br>'
                                 + 'Use <code>PlantUmlRendering.Server</code> or <code>PlantUmlRendering.Local</code> for large diagrams.'
@@ -543,6 +884,25 @@ public static class DiagramContextMenu
                         bound++;
                     });
                 }
+                function enqueueElement(el) {
+                    var source = el.getAttribute('data-plantuml');
+                    if (source) {
+                        if (window._preProcessSource) source = window._preProcessSource(el, source);
+                        el.setAttribute('data-plantuml', source);
+                        renderFragments(el, source);
+                    } else {
+                        var pumlZ = getPumlZ(el);
+                        if (pumlZ) {
+                            decompressGzipBase64(pumlZ).then(function(decoded) {
+                                el.setAttribute('data-plantuml', decoded);
+                                var src = decoded;
+                                if (window._preProcessSource) src = window._preProcessSource(el, decoded);
+                                el.setAttribute('data-plantuml', src);
+                                renderFragments(el, src);
+                            }).catch(function() { el.textContent = 'Decompression error'; });
+                        }
+                    }
+                }
                 var observer = new IntersectionObserver(function(entries) {
                     entries.forEach(function(entry) {
                         if (!entry.isIntersecting) return;
@@ -550,25 +910,7 @@ public static class DiagramContextMenu
                         if (el.dataset.queued) return;
                         el.dataset.queued = '1';
                         observer.unobserve(el);
-                        var source = el.getAttribute('data-plantuml');
-                        if (source) {
-                            if (window._preProcessSource) source = window._preProcessSource(el, source);
-                            el.setAttribute('data-plantuml', source);
-                            renderQueue.push({ el: el, source: source });
-                            processQueue();
-                        } else {
-                            var pumlZ = getPumlZ(el);
-                            if (pumlZ) {
-                                decompressGzipBase64(pumlZ).then(function(decoded) {
-                                    el.setAttribute('data-plantuml', decoded);
-                                    var src = decoded;
-                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                    el.setAttribute('data-plantuml', src);
-                                    renderQueue.push({ el: el, source: src });
-                                    processQueue();
-                                }).catch(function() { el.textContent = 'Decompression error'; });
-                            }
-                        }
+                        enqueueElement(el);
                     });
                 }, { rootMargin: '200px' });
                 function decompressGzipBase64(base64) {
@@ -585,25 +927,7 @@ public static class DiagramContextMenu
                         if (el.dataset.queued) return;
                         el.dataset.queued = '1';
                         observer.unobserve(el);
-                        var source = el.getAttribute('data-plantuml');
-                        if (source) {
-                            if (window._preProcessSource) source = window._preProcessSource(el, source);
-                            el.setAttribute('data-plantuml', source);
-                            renderQueue.push({ el: el, source: source });
-                            processQueue();
-                        } else {
-                            var pumlZ = getPumlZ(el);
-                            if (pumlZ) {
-                                decompressGzipBase64(pumlZ).then(function(decoded) {
-                                    el.setAttribute('data-plantuml', decoded);
-                                    var src = decoded;
-                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                    el.setAttribute('data-plantuml', src);
-                                    renderQueue.push({ el: el, source: src });
-                                    processQueue();
-                                }).catch(function() { el.textContent = 'Decompression error'; });
-                            }
-                        }
+                        enqueueElement(el);
                     });
                 };
                 document.querySelectorAll('.plantuml-browser').forEach(function(el) {
@@ -616,26 +940,8 @@ public static class DiagramContextMenu
                         if (el.dataset.queued) return;
                         el.dataset.queued = '1';
                         observer.unobserve(el);
-                        var source = el.getAttribute('data-plantuml');
-                        if (source) {
-                            if (window._preProcessSource) source = window._preProcessSource(el, source);
-                            el.setAttribute('data-plantuml', source);
-                            renderQueue.push({ el: el, source: source });
-                        } else {
-                            var pumlZ = getPumlZ(el);
-                            if (pumlZ) {
-                                decompressGzipBase64(pumlZ).then(function(decoded) {
-                                    el.setAttribute('data-plantuml', decoded);
-                                    var src = decoded;
-                                    if (window._preProcessSource) src = window._preProcessSource(el, decoded);
-                                    el.setAttribute('data-plantuml', src);
-                                    renderQueue.push({ el: el, source: src });
-                                    processQueue();
-                                }).catch(function() { el.textContent = 'Decompression error'; });
-                            }
-                        }
+                        enqueueElement(el);
                     });
-                    processQueue();
                     // Also render first scenario's flame charts
                     if (window._renderFlameCharts) window._renderFlameCharts(firstScenario);
                 }
@@ -2336,13 +2642,39 @@ public static class DiagramContextMenu
                 svg.querySelectorAll('.note-toggle-icon').forEach(function(el) { el.remove(); });
                 svg.querySelectorAll('.note-hover-rect').forEach(function(el) { el.remove(); });
 
-                var source = container._noteOriginalSource || container.getAttribute('data-plantuml');
+                // Resolve the owner container (the .plantuml-browser parent for fragments)
+                var owner = container.classList.contains('puml-fragment') ? container.parentElement : container;
+                var fragSource = container.getAttribute('data-plantuml');
+                var ownerSource = owner._noteOriginalSource || owner.getAttribute('data-plantuml');
+                // For fragments, use the fragment's own source for SVG note detection
+                var source = fragSource || ownerSource;
                 if (!source) return;
-                if (!container._noteOriginalSource) container._noteOriginalSource = source;
+                if (!owner._noteOriginalSource) owner._noteOriginalSource = ownerSource || source;
 
-                var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
-                if (noteBlocks.length === 0) return;
-                if (!container._noteSteps) container._noteSteps = {};
+                // Parse notes from the fragment's source (for SVG matching)
+                var fragNoteBlocks = parseNoteBlocks(source);
+                // Parse notes from the owner's full source (for global indexing)
+                var ownerNoteBlocks = parseNoteBlocks(owner._noteOriginalSource);
+                if (fragNoteBlocks.length === 0) return;
+                if (!owner._noteSteps) owner._noteSteps = {};
+
+                // For fragments, compute the global note index offset based on which
+                // notes from the full source appear before this fragment
+                var noteIndexOffset = 0;
+                if (container.classList.contains('puml-fragment')) {
+                    var fragIdx = parseInt(container.dataset.fragment || '0', 10);
+                    // Sum up notes in all preceding fragments
+                    var siblingFrags = owner.querySelectorAll('.puml-fragment');
+                    for (var fi = 0; fi < fragIdx && fi < siblingFrags.length; fi++) {
+                        var sibSource = siblingFrags[fi].getAttribute('data-plantuml');
+                        if (sibSource) noteIndexOffset += parseNoteBlocks(sibSource).length;
+                    }
+                }
+
+                // Use fragment's note blocks for SVG matching, owner for state
+                var noteBlocks = fragNoteBlocks;
+                // Propagate truncateLines from owner
+                if (!container._truncateLines) container._truncateLines = owner._truncateLines || window._truncateLines;
 
                 var noteGroups = findNoteGroups(svg);
 
@@ -2409,13 +2741,13 @@ public static class DiagramContextMenu
                 if (noteGroups.length < noteBlocks.length) {
                     sourceIndexMap = [];
                     for (var si = 0; si < noteBlocks.length; si++) {
-                        var sStep = container._noteSteps[si] || 0;
+                        var sStep = owner._noteSteps[si + noteIndexOffset] || 0;
                         var sState = noteStepState(sStep);
                         var noteEmpty = false;
                         if (sState === 'collapsed') {
                             var prev = getNotePreview(noteBlocks[si].contentLines);
                             if (!prev) noteEmpty = true;
-                        } else if (container._headersHidden) {
+                        } else if (owner._headersHidden) {
                             var hasVisible = false;
                             var afterGrayLine = false;
                             for (var li = 0; li < noteBlocks[si].contentLines.length; li++) {
@@ -2438,27 +2770,28 @@ public static class DiagramContextMenu
 
                 for (var ni = 0; ni < loopCount; ni++) {
                     (function(svgIdx, srcIdx) {
+                        var globalIdx = srcIdx + noteIndexOffset;
                         var grp = noteGroups[svgIdx];
                         var bbox = getNoteBBox(grp);
-                        var step = container._noteSteps[srcIdx] || 0;
+                        var step = owner._noteSteps[globalIdx] || 0;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
                         if (!isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
                             function() {
                                 var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
-                                var curStep = container._noteSteps[srcIdx] || 0;
-                                setNoteState(container, srcIdx, (long && curStep === 0) ? 1 : 2);
+                                var curStep = owner._noteSteps[globalIdx] || 0;
+                                setNoteState(owner, globalIdx, (long && curStep === 0) ? 1 : 2);
                             },
-                            function() { setNoteState(container, srcIdx, 0); },
-                            function() { setNoteState(container, srcIdx, 1); },
+                            function() { setNoteState(owner, globalIdx, 0); },
+                            function() { setNoteState(owner, globalIdx, 1); },
                             function() {
-                                var curStep = container._noteSteps[srcIdx] || 0;
+                                var curStep = owner._noteSteps[globalIdx] || 0;
                                 var long = isLongNote(noteBlocks[srcIdx].contentLines, container._truncateLines);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
                                 else nextStep = long ? 1 : 2;
-                                setNoteState(container, srcIdx, nextStep);
+                                setNoteState(owner, globalIdx, nextStep);
                             },
                             noteBlocks[srcIdx].contentLines, grp, container);
                     })(ni, sourceIndexMap ? sourceIndexMap[ni] : ni);
@@ -2551,6 +2884,80 @@ public static class DiagramContextMenu
 
                 container.setAttribute('data-plantuml', newSource);
 
+                // Re-split and render as fragments if needed
+                if (window._splitWithChunkedNotes) {
+                    var fragments = window._splitWithChunkedNotes(newSource);
+                    if (fragments.length > 1 || container.querySelector('.puml-fragment')) {
+                        // Multiple fragments or was previously fragmented — re-render all fragments
+                        container._fragments = fragments;
+                        container.innerHTML = '';
+                        container.dataset.rendered = '1';
+                        container._noteRendering = true;
+                        window._plantumlRendering = true;
+                        var fragQueue = [];
+                        for (var fi = 0; fi < fragments.length; fi++) {
+                            var fragDiv = document.createElement('div');
+                            fragDiv.className = 'puml-fragment';
+                            fragDiv.id = container.id + '-frag-' + fi;
+                            fragDiv.dataset.fragment = fi;
+                            fragDiv.setAttribute('data-plantuml', fragments[fi]);
+                            container.appendChild(fragDiv);
+                            fragQueue.push({ el: fragDiv, source: fragments[fi], isFragment: true, parentEl: container });
+                        }
+                        // Process fragment render queue sequentially
+                        var fragIdx = 0;
+                        function renderNextFrag() {
+                            if (fragIdx >= fragQueue.length) {
+                                container._noteRendering = false;
+                                window._plantumlRendering = false;
+                                return;
+                            }
+                            var item = fragQueue[fragIdx++];
+                            // Check SVG cache first
+                            if (_svgCache[item.source]) {
+                                item.el.innerHTML = _svgCache[item.source];
+                                item.el.dataset.rendered = '1';
+                                if (window._iflowBindLinks) window._iflowBindLinks(item.el, origSource);
+                                if (window._makeNotesCollapsible) makeNotesCollapsible(item.el);
+                                if (window._addAssertionTooltips) addAssertionTooltips(item.el);
+                                requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
+                                renderNextFrag();
+                                return;
+                            }
+                            var fDone = false;
+                            function afterFragRender() {
+                                if (fDone) return;
+                                fDone = true;
+                                _svgCache[item.source] = item.el.innerHTML;
+                                item.el.dataset.rendered = '1';
+                                if (window._iflowBindLinks) window._iflowBindLinks(item.el, origSource);
+                                makeNotesCollapsible(item.el);
+                                addAssertionTooltips(item.el);
+                                requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
+                                window._plantumlRendering = false;
+                                renderNextFrag();
+                            }
+                            window._plantumlRendering = true;
+                            var fmo = new MutationObserver(function() {
+                                if (!item.el.querySelector('svg')) return;
+                                fmo.disconnect();
+                                afterFragRender();
+                            });
+                            fmo.observe(item.el, { childList: true, subtree: true });
+                            try {
+                                window.plantuml.render(item.source.split('\n'), item.el.id);
+                            } catch(e) {
+                                fmo.disconnect();
+                                window._plantumlRendering = false;
+                                renderNextFrag();
+                            }
+                        }
+                        renderNextFrag();
+                        return;
+                    }
+                }
+
+                // Single diagram (no splitting needed) — existing behavior
                 // Check SVG cache — skip plantuml.js re-render if we have a cached result
                 if (_svgCache[newSource]) {
                     container.innerHTML = _svgCache[newSource];
@@ -2822,6 +3229,65 @@ public static class DiagramContextMenu
                     var container = item.container;
                     var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
                     container.setAttribute('data-plantuml', newSource);
+
+                    // Re-split into fragments if needed
+                    if (window._splitWithChunkedNotes) {
+                        var fragments = window._splitWithChunkedNotes(newSource);
+                        if (fragments.length > 1 || container.querySelector('.puml-fragment')) {
+                            container._fragments = fragments;
+                            container.innerHTML = '';
+                            container.dataset.rendered = '1';
+                            var fragList = [];
+                            for (var fi = 0; fi < fragments.length; fi++) {
+                                var fragDiv = document.createElement('div');
+                                fragDiv.className = 'puml-fragment';
+                                fragDiv.id = container.id + '-frag-' + fi;
+                                fragDiv.dataset.fragment = fi;
+                                fragDiv.setAttribute('data-plantuml', fragments[fi]);
+                                container.appendChild(fragDiv);
+                                fragList.push({ el: fragDiv, source: fragments[fi] });
+                            }
+                            var fragI = 0;
+                            function renderNextFragment() {
+                                if (fragI >= fragList.length) { processNext(); return; }
+                                var fItem = fragList[fragI++];
+                                if (_svgCache[fItem.source]) {
+                                    fItem.el.innerHTML = _svgCache[fItem.source];
+                                    fItem.el.dataset.rendered = '1';
+                                    if (window._iflowBindLinks) window._iflowBindLinks(fItem.el, container._noteOriginalSource);
+                                    makeNotesCollapsible(fItem.el);
+                                    addAssertionTooltips(fItem.el);
+                                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(fItem.el); });
+                                    renderNextFragment();
+                                    return;
+                                }
+                                window._plantumlRendering = true;
+                                var fDone = false;
+                                function afterFrag() {
+                                    if (fDone) return;
+                                    fDone = true;
+                                    _svgCache[fItem.source] = fItem.el.innerHTML;
+                                    fItem.el.dataset.rendered = '1';
+                                    window._plantumlRendering = false;
+                                    if (window._iflowBindLinks) window._iflowBindLinks(fItem.el, container._noteOriginalSource);
+                                    makeNotesCollapsible(fItem.el);
+                                    addAssertionTooltips(fItem.el);
+                                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(fItem.el); });
+                                    renderNextFragment();
+                                }
+                                var fmo = new MutationObserver(function() {
+                                    if (!fItem.el.querySelector('svg')) return;
+                                    fmo.disconnect(); afterFrag();
+                                });
+                                fmo.observe(fItem.el, { childList: true, subtree: true });
+                                try { window.plantuml.render(fItem.source.split('\n'), fItem.el.id); } catch(e) { fmo.disconnect(); window._plantumlRendering = false; renderNextFragment(); }
+                            }
+                            renderNextFragment();
+                            return;
+                        }
+                    }
+
+                    // Single diagram — existing behavior
                     // Check SVG cache first
                     if (_svgCache[newSource]) {
                         container.innerHTML = _svgCache[newSource];
@@ -2869,6 +3335,7 @@ public static class DiagramContextMenu
             function buildDetailsQueue(containers, targetState, force) {
                 var queue = [];
                 containers.forEach(function(container) {
+                    if (container.classList.contains('puml-fragment')) return;
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
@@ -2899,6 +3366,7 @@ public static class DiagramContextMenu
             function buildHeadersQueue(containers, hiding) {
                 var queue = [];
                 containers.forEach(function(container) {
+                    if (container.classList.contains('puml-fragment')) return;
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var noteBlocks = parseNoteBlocks(container._noteOriginalSource);
                     if (noteBlocks.length === 0) return;
@@ -3042,6 +3510,7 @@ public static class DiagramContextMenu
             function buildAssertionsQueue(containers, showing) {
                 var queue = [];
                 containers.forEach(function(container) {
+                    if (container.classList.contains('puml-fragment')) return;
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var wasVisible = !!container._assertionsVisible;
                     if (wasVisible === showing) return;
@@ -3083,6 +3552,7 @@ public static class DiagramContextMenu
             function buildStepsQueue(containers, showing) {
                 var queue = [];
                 containers.forEach(function(container) {
+                    if (container.classList.contains('puml-fragment')) return;
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var wasVisible = !!container._stepsVisible;
                     if (wasVisible === showing) return;
@@ -3124,6 +3594,7 @@ public static class DiagramContextMenu
             function buildDatabasesQueue(containers, showing) {
                 var queue = [];
                 containers.forEach(function(container) {
+                    if (container.classList.contains('puml-fragment')) return;
                     if (!container._noteOriginalSource) container._noteOriginalSource = container.getAttribute('data-plantuml');
                     var wasVisible = container._databasesVisible !== false;
                     if (wasVisible === showing) return;

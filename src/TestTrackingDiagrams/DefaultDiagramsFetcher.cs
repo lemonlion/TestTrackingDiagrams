@@ -84,10 +84,11 @@ public static class DefaultDiagramsFetcher
     private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages)
     {
         return GetPlantUmlPerTestId(options, lazyLoadImages,
-            maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000);
+            maxEncodedDiagramLength: options.PlantUmlRendering is PlantUmlRendering.BrowserJs or PlantUmlRendering.NodeJs or PlantUmlRendering.Local ? 8000 : 2000,
+            clientSideSplitting: options.PlantUmlRendering is PlantUmlRendering.BrowserJs);
     }
 
-    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages, int maxEncodedDiagramLength, int truncateNotesAfterLines = 0, bool excludeAllHeaders = false)
+    private static PlantUmlCreator.PlantUmlForTest[] GetPlantUmlPerTestId(DiagramsFetcherOptions options, bool lazyLoadImages, int maxEncodedDiagramLength, int truncateNotesAfterLines = 0, bool excludeAllHeaders = false, bool clientSideSplitting = false)
     {
         return PlantUmlCreator.GetPlantUmlImageTagsPerTestId(
             RequestResponseLogger.RequestAndResponseLogs.Where(x => !(x?.TrackingIgnore ?? true)),
@@ -113,7 +114,8 @@ public static class DefaultDiagramsFetcher
             sequenceDiagramParticipantColors: options.SequenceDiagramParticipantColors,
             dependencyColors: options.DependencyColors,
             serviceTypeOverrides: options.ServiceTypeOverrides,
-            graphQlBodyFormat: options.GraphQlBodyFormat).ToArray();
+            graphQlBodyFormat: options.GraphQlBodyFormat,
+            clientSideSplitting: clientSideSplitting).ToArray();
     }
 
     public static (DiagramAsCode[] TruncatedDiagrams, DiagramAsCode[] FullDiagrams) GetCiSummaryDiagrams(DiagramsFetcherOptions options, int truncateNotesAfterLines = 10)

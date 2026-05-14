@@ -3344,4 +3344,83 @@ public class PlantUmlCreatorTests
         Assert.Contains("note<<eventNote>> left", plantUml);
         Assert.DoesNotContain("note<<eventNote>> right", plantUml);
     }
+
+    // ─── Client-side splitting ────────────────────────────────────────
+
+    [Fact]
+    public void ClientSideSplitting_produces_single_diagram_for_tall_content()
+    {
+        // Same scenario as Many_medium_sized_notes_split_on_estimated_height
+        // but with clientSideSplitting=true — should NOT split server-side
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 15; i++)
+        {
+            var body = string.Join("\n", Enumerable.Range(0, 25).Select(n => $"\"field_{n}\": \"value_{n}\""));
+            logs.Add(MakeRequest(content: $"{{{body}}}"));
+            logs.Add(MakeResponse(content: $"{{{body}}}"));
+        }
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000, clientSideSplitting: true).ToList();
+        var diagramCount = results.Single().PlantUmls.Count();
+
+        Assert.Equal(1, diagramCount);
+    }
+
+    [Fact]
+    public void ClientSideSplitting_does_not_chunk_large_response_bodies()
+    {
+        // Create a response with >15000 chars — should NOT be chunked when clientSideSplitting=true
+        var largeBody = string.Join("\n", Enumerable.Range(0, 500).Select(n => $"\"field_{n}\": \"{new string('x', 30)}\""));
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: largeBody),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000, clientSideSplitting: true).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        // Should be exactly 1 diagram (no chunking split)
+        Assert.Single(diagrams);
+        // Should NOT contain continuation markers
+        Assert.DoesNotContain("..Continued On Next Diagram..", diagrams[0].PlainText);
+        Assert.DoesNotContain("..Continued From Previous Diagram..", diagrams[0].PlainText);
+    }
+
+    [Fact]
+    public void ClientSideSplitting_still_produces_valid_plantuml()
+    {
+        var logs = new List<RequestResponseLog>();
+        for (var i = 0; i < 15; i++)
+        {
+            var body = string.Join("\n", Enumerable.Range(0, 25).Select(n => $"\"f_{n}\": \"v_{n}\""));
+            logs.Add(MakeRequest(content: $"{{{body}}}"));
+            logs.Add(MakeResponse(content: $"{{{body}}}"));
+        }
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000, clientSideSplitting: true).ToList();
+        var diagram = results.Single().PlantUmls.Single();
+
+        Assert.Contains("@startuml", diagram.PlainText);
+        Assert.Contains("@enduml", diagram.PlainText);
+        Assert.Contains("autonumber", diagram.PlainText);
+    }
+
+    [Fact]
+    public void Without_clientSideSplitting_large_response_bodies_are_chunked()
+    {
+        // Verify that the normal path still chunks (regression guard)
+        var largeBody = string.Join("\n", Enumerable.Range(0, 500).Select(n => $"\"field_{n}\": \"{new string('x', 30)}\""));
+        var logs = new[]
+        {
+            MakeRequest(),
+            MakeResponse(content: largeBody),
+        };
+
+        var results = PlantUmlCreator.GetPlantUmlImageTagsPerTestId(logs, maxEncodedDiagramLength: 8000, clientSideSplitting: false).ToList();
+        var diagrams = results.Single().PlantUmls.ToList();
+
+        Assert.True(diagrams.Count >= 2, $"Expected chunking to produce multiple diagrams but got {diagrams.Count}");
+        Assert.Contains("..Continued On Next Diagram..", diagrams[0].PlainText);
+    }
 }

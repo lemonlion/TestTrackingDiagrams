@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.0] - 2026-05-14
+
+### Added
+- **Client-side diagram splitting for BrowserJs rendering** — When using `PlantUmlRendering.BrowserJs`, diagrams are no longer split server-side. Instead, the full PlantUML source is sent to the client, where JavaScript splits diagrams at trace boundaries when estimated height exceeds 12,000px and chunks response notes exceeding 15,000 characters. This enables adaptive retry with smaller split thresholds if the PlantUML JS renderer reports a "too large" error, producing optimal rendering without arbitrary server-side limits.
+- **`splitDiagramSource()` / `chunkLargeNotes()` client-side functions** — New JavaScript functions parse PlantUML structure and split at trace boundaries based on estimated height, or chunk large notes with continuation markers.
+- **Fragment rendering pipeline** — Diagrams that split client-side render as `.puml-fragment` child elements with sequential rendering (respecting TeaVM global state). Post-render hooks (collapsible notes, toggles) are fragment-aware with global note indexing across fragments.
+
+### Fixed
+- **PlantUML `<style>` block parsing in `parseDiagramStructure`** — Avoided emitting literal `<style>` in JavaScript string comparisons to prevent naive HTML style-tag counters from false-positiving.
+
 ## [2.34.4] - 2026-05-14
 
 ### Added
