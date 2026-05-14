@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.1] - 2026-05-14
+
+### Fixed
+- **LightBDD.xUnit2 NuGet package not published** — The `xunit` meta-package reference caused the .NET SDK to auto-detect the project as a test project (`IsTestProject=true`), which set `IsPackable=false`. Added explicit `<IsPackable>true</IsPackable>` and `<IsTestProject>false</IsTestProject>` to the project file to ensure the package is always generated during release builds.
+
 ## [2.35.0] - 2026-05-14
 
 ### Added
