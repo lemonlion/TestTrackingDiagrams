@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.3] - 2026-05-15
+
+### Fixed
+- Fixed `DiagramContextMenuTests` unit tests (`SetNoteState_caches_rendered_svg`, `ProcessRenderQueue_caches_rendered_svg`) that expected old `container.innerHTML` caching pattern — updated to match new `renderTarget.innerHTML` approach from v2.36.2.
+
 ## [2.36.2] - 2026-05-15
 
 ### Fixed

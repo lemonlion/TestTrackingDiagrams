@@ -579,7 +579,7 @@ public class DiagramContextMenuTests
     public void SetNoteState_caches_rendered_svg()
     {
         var funcBody = GetFunction("setNoteState");
-        Assert.Contains("_svgCache[newSource] = container.innerHTML", funcBody);
+        Assert.Contains("_svgCache[newSource] = newSvg", funcBody);
     }
 
     // ─── processRenderQueue — performance ───────────────────
@@ -595,7 +595,7 @@ public class DiagramContextMenuTests
     public void ProcessRenderQueue_caches_rendered_svg()
     {
         var funcBody = GetFunction("processRenderQueue");
-        Assert.Contains("_svgCache[newSource] = container.innerHTML", funcBody);
+        Assert.Contains("_svgCache[newSource] = newSvg", funcBody);
     }
 
     // ─── buildDetailsQueue — force parameter ────────────────
