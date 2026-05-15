@@ -4,6 +4,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.CosmosDB;
 
+[Collection("TestCorrelationStore")]
 public class CosmosTrackingMessageHandlerTests : IDisposable
 {
     // ─── Test infrastructure ────────────────────────────────────

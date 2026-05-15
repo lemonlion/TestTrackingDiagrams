@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.1] - 2026-05-15
+
+### Fixed
+- Fixed test parallelism interference in CosmosDB and core correlation tests by adding `[Collection("TestCorrelationStore")]` to all classes that use shared `TestCorrelationStore` state.
+
 ## [2.36.0] - 2026-05-15
 
 ### Added

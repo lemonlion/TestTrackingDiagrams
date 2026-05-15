@@ -2,6 +2,7 @@ using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Tests.Tracking;
 
+[Collection("TestCorrelationStore")]
 public class CorrelationKeysTests
 {
     [Fact]
