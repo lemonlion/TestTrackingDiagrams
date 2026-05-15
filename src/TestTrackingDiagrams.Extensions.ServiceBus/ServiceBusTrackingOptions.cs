@@ -31,4 +31,12 @@ public record ServiceBusTrackingOptions
     /// Defaults to <c>true</c>.
     /// </summary>
     public bool PropagateTestIdentity { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the receiver stores a correlation entry in <see cref="TestTrackingDiagrams.Tracking.TestCorrelationStore"/>
+    /// after extracting test identity from message properties. This enables parallel-safe attribution
+    /// for decoupled processing patterns where the processing thread loses access to the message properties.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutoCorrelateOnConsume { get; set; } = true;
 }

@@ -41,4 +41,18 @@ public record CosmosTrackingMessageHandlerOptions
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
     public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, tracked write operations (Create, Upsert, Replace) auto-populate
+    /// <see cref="TestTrackingDiagrams.Tracking.TestCorrelationStore"/> for parallel-safe
+    /// background thread correlation (e.g. Change Feed Processor attribution).
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutoCorrelateWrites { get; set; } = true;
+
+    /// <summary>
+    /// Optional custom key extractor for Change Feed correlation.
+    /// When <c>null</c>, the default key format is used: <c>cosmos:{ServiceName}:{documentId}</c>.
+    /// </summary>
+    public Func<string, string, string>? ChangeFeedKeyExtractor { get; set; }
 }

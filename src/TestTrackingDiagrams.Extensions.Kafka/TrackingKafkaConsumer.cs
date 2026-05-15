@@ -72,6 +72,7 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         if (result is null || result.IsPartitionEOF) return;
 
         EstablishTestIdentityFromHeaders(result.Message);
+        AutoCorrelateOnConsume(result);
 
         var op = new KafkaOperationInfo(KafkaOperation.Consume, result.Topic,
             result.Partition.Value, result.Offset.Value);
@@ -94,6 +95,23 @@ public class TrackingKafkaConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 
         if (testName is not null && testId is not null)
             TestIdentityScope.SetFromMessage(testName, testId);
+    }
+
+    private void AutoCorrelateOnConsume(ConsumeResult<TKey, TValue> result)
+    {
+        if (!_options.AutoCorrelateOnConsume) return;
+
+        var identity = TestIdentityScope.Current;
+        if (identity is null) return;
+
+        var messageKey = result.Message?.Key?.ToString();
+        if (messageKey is null) return;
+
+        var correlationKey = _options.ConsumeKeyExtractor is not null
+            ? _options.ConsumeKeyExtractor(_options.ServiceName, messageKey)
+            : CorrelationKeys.Kafka(_options.ServiceName, messageKey);
+
+        TestCorrelationStore.Correlate(correlationKey, identity.Value.Name, identity.Value.Id);
     }
 
     private string? BuildContent(Message<TKey, TValue>? message)

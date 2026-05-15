@@ -218,7 +218,17 @@ public class TrackingServiceBusReceiver : ServiceBusReceiver
             nameObj is string testName && idObj is string testId)
         {
             TestIdentityScope.SetFromMessage(testName, testId);
+            AutoCorrelateOnConsume(message.MessageId, testName, testId);
         }
+    }
+
+    private void AutoCorrelateOnConsume(string? messageId, string testName, string testId)
+    {
+        if (!_options.AutoCorrelateOnConsume) return;
+        if (messageId is null) return;
+
+        var key = CorrelationKeys.ServiceBus(_options.ServiceName, messageId);
+        TestCorrelationStore.Correlate(key, testName, testId);
     }
 
     private string? GetReceivedMessageContent(ServiceBusReceivedMessage message)

@@ -411,4 +411,141 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
             var components = TrackingComponentRegistry.GetRegisteredComponents();
             Assert.Contains(components, c => ReferenceEquals(c, handler));
         }
+
+    // ─── Auto-Correlation ─────────────────────────────────────
+
+    [Fact]
+    public async Task Create_AutoCorrelates_DocumentId_From_Response()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("""{"id":"order-1","total":42.50}""")
+        };
+        using var invoker = CreateInvoker(MakeOptions(serviceName: "Orders"));
+
+        await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-1"));
+        Assert.NotNull(result);
+        Assert.Equal("My Test", result.Value.Name);
+        Assert.Equal(_testId, result.Value.Id);
+        TestCorrelationStore.Clear();
+    }
+
+    [Fact]
+    public async Task Upsert_AutoCorrelates_DocumentId_From_Response()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"id":"order-2","total":99.99}""")
+        };
+        using var invoker = CreateInvoker(MakeOptions(serviceName: "Orders"));
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            "https://account.documents.azure.com/dbs/mydb/colls/orders/docs")
+        {
+            Content = new StringContent("""{"id":"order-2","total":99.99}""")
+        };
+        request.Headers.Add("x-ms-documentdb-is-upsert", "true");
+
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-2"));
+        Assert.NotNull(result);
+        Assert.Equal("My Test", result.Value.Name);
+        TestCorrelationStore.Clear();
+    }
+
+    [Fact]
+    public async Task Replace_AutoCorrelates_DocumentId_From_Url()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"id":"order-3","total":10.00}""")
+        };
+        using var invoker = CreateInvoker(MakeOptions(serviceName: "Orders"));
+
+        var request = new HttpRequestMessage(HttpMethod.Put,
+            "https://account.documents.azure.com/dbs/mydb/colls/orders/docs/order-3")
+        {
+            Content = new StringContent("""{"id":"order-3","total":10.00}""")
+        };
+
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-3"));
+        Assert.NotNull(result);
+        Assert.Equal("My Test", result.Value.Name);
+        TestCorrelationStore.Clear();
+    }
+
+    [Fact]
+    public async Task Read_Does_Not_AutoCorrelate()
+    {
+        TestCorrelationStore.Clear();
+        using var invoker = CreateInvoker(MakeOptions(serviceName: "Orders"));
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-1"));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AutoCorrelateWrites_False_Disables_Correlation()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("""{"id":"order-1","total":42.50}""")
+        };
+        var options = MakeOptions(serviceName: "Orders");
+        options.AutoCorrelateWrites = false;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-1"));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Failed_Response_Does_Not_AutoCorrelate()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.Conflict)
+        {
+            Content = new StringContent("""{"id":"order-1","Errors":[]}""")
+        };
+        using var invoker = CreateInvoker(MakeOptions(serviceName: "Orders"));
+
+        await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve(CorrelationKeys.Cosmos("Orders", "order-1"));
+        Assert.Null(result);
+        TestCorrelationStore.Clear();
+    }
+
+    [Fact]
+    public async Task Custom_ChangeFeedKeyExtractor_UsedForCorrelation()
+    {
+        TestCorrelationStore.Clear();
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("""{"id":"order-1","total":42.50}""")
+        };
+        var options = MakeOptions(serviceName: "Orders");
+        options.ChangeFeedKeyExtractor = (svc, docId) => $"custom:{svc}:{docId}";
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+        var result = TestCorrelationStore.Resolve("custom:Orders:order-1");
+        Assert.NotNull(result);
+        Assert.Equal("My Test", result.Value.Name);
+        TestCorrelationStore.Clear();
+    }
     }

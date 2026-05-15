@@ -138,6 +138,8 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
     {
         if (!_pending.TryRemove(e.RequestId, out var pending)) return;
 
+        AutoCorrelateIfWrite(pending);
+
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
         var content = effectiveVerbosity switch
@@ -234,4 +236,18 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
         string Label,
         Guid TraceId,
         Guid RequestResponseId);
+
+    private void AutoCorrelateIfWrite(PendingOperation pending)
+    {
+        if (!_options.AutoCorrelateWrites) return;
+        if (pending.OpInfo.DocumentId is null) return;
+
+        var isWrite = pending.OpInfo.Operation is MongoDbOperation.Insert
+            or MongoDbOperation.Update
+            or MongoDbOperation.FindAndModify;
+        if (!isWrite) return;
+
+        var key = CorrelationKeys.Mongo(_options.ServiceName, pending.OpInfo.DocumentId);
+        TestCorrelationStore.Correlate(key, pending.TestInfo.Name, pending.TestInfo.Id);
+    }
 }

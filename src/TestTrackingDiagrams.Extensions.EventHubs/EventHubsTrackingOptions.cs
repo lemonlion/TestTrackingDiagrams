@@ -31,4 +31,12 @@ public record EventHubsTrackingOptions
     /// Defaults to <c>true</c>.
     /// </summary>
     public bool PropagateTestIdentity { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the consumer stores a correlation entry in <see cref="TestTrackingDiagrams.Tracking.TestCorrelationStore"/>
+    /// after extracting test identity from event properties. This enables parallel-safe attribution
+    /// for decoupled processing patterns where the processing thread loses access to the event properties.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutoCorrelateOnConsume { get; set; } = true;
 }

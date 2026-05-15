@@ -65,6 +65,16 @@ public class TrackingSubscriberClient : SubscriberClient
             !string.IsNullOrEmpty(testName) && !string.IsNullOrEmpty(testId))
         {
             TestIdentityScope.SetFromMessage(testName, testId);
+            AutoCorrelateOnConsume(message.MessageId, testName, testId);
         }
+    }
+
+    private void AutoCorrelateOnConsume(string? messageId, string testName, string testId)
+    {
+        if (!_options.AutoCorrelateOnConsume) return;
+        if (string.IsNullOrEmpty(messageId)) return;
+
+        var key = CorrelationKeys.PubSub(_options.ServiceName, messageId);
+        TestCorrelationStore.Correlate(key, testName, testId);
     }
 }

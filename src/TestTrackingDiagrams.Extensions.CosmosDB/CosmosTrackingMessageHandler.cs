@@ -122,7 +122,42 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
                 GetFilteredHeaders(response, v),
                 v == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)));
 
+        AutoCorrelateIfWrite(cosmosOp, testInfo.Value, response, responseContent);
+
         return response;
+    }
+
+    private void AutoCorrelateIfWrite(CosmosOperationInfo cosmosOp, (string Name, string Id) testInfo, HttpResponseMessage response, string? responseContent)
+    {
+        if (!_options.AutoCorrelateWrites) return;
+        if (!response.IsSuccessStatusCode) return;
+
+        var isWrite = cosmosOp.Operation is CosmosOperation.Create
+            or CosmosOperation.Upsert
+            or CosmosOperation.Replace;
+        if (!isWrite) return;
+
+        var documentId = cosmosOp.DocumentId ?? ExtractIdFromResponseContent(responseContent);
+        if (documentId is null) return;
+
+        var key = _options.ChangeFeedKeyExtractor is not null
+            ? _options.ChangeFeedKeyExtractor(_options.ServiceName, documentId)
+            : CorrelationKeys.Cosmos(_options.ServiceName, documentId);
+
+        TestCorrelationStore.Correlate(key, testInfo.Name, testInfo.Id);
+    }
+
+    private static string? ExtractIdFromResponseContent(string? content)
+    {
+        if (string.IsNullOrEmpty(content)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(content);
+            if (doc.RootElement.TryGetProperty("id", out var idElement))
+                return idElement.GetString();
+        }
+        catch { }
+        return null;
     }
 
     private async Task<string?> GetRequestContent(HttpRequestMessage request, CosmosOperationInfo op, CosmosTrackingVerbosity verbosity, CancellationToken ct)

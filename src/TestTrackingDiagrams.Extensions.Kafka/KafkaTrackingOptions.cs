@@ -39,4 +39,19 @@ public record KafkaTrackingOptions
     /// Defaults to <c>true</c>.
     /// </summary>
     public bool PropagateTestIdentity { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the consumer stores a correlation entry in <see cref="TestTrackingDiagrams.Tracking.TestCorrelationStore"/>
+    /// after extracting test identity from message headers. This enables parallel-safe attribution
+    /// for decoupled processing patterns where the processing thread loses access to the message headers.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutoCorrelateOnConsume { get; set; } = true;
+
+    /// <summary>
+    /// Extracts a correlation key from a consumed message key.
+    /// When <c>null</c>, the default format is used: <c>kafka:{ServiceName}:{messageKey}</c>.
+    /// Only invoked when <see cref="AutoCorrelateOnConsume"/> is <c>true</c>.
+    /// </summary>
+    public Func<string, string, string>? ConsumeKeyExtractor { get; set; }
 }

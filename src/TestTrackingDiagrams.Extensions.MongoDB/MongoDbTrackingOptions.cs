@@ -50,4 +50,12 @@ public record MongoDbTrackingOptions
     /// Whether to include filter BSON text in the logged content for Detailed verbosity.
     /// </summary>
     public bool LogFilterText { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, tracked write operations (Insert, Update, FindAndModify) auto-populate
+    /// <see cref="TestTrackingDiagrams.Tracking.TestCorrelationStore"/> for parallel-safe
+    /// background thread correlation (e.g. Change Stream attribution).
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutoCorrelateWrites { get; set; } = true;
 }

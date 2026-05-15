@@ -137,6 +137,16 @@ public class TrackingEventHubConsumerClient : EventHubConsumerClient
             nameObj is string testName && idObj is string testId)
         {
             TestIdentityScope.SetFromMessage(testName, testId);
+            AutoCorrelateOnConsume(eventData, testName, testId);
         }
+    }
+
+    private void AutoCorrelateOnConsume(EventData eventData, string testName, string testId)
+    {
+        if (!_options.AutoCorrelateOnConsume) return;
+
+        var eventId = eventData.MessageId ?? eventData.SequenceNumber.ToString();
+        var key = CorrelationKeys.EventHubs(_options.ServiceName, eventId);
+        TestCorrelationStore.Correlate(key, testName, testId);
     }
 }

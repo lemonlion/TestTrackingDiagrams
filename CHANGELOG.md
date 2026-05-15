@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.0] - 2026-05-15
+
+### Added
+- **Parallel-safe background correlation** — New `TestCorrelationStore` system enables parallel-safe test attribution for background processing threads (Change Feed, Change Streams, Hangfire, hosted services) that cannot inherit `AsyncLocal` values. Replaces serial-only `GlobalFallback` for most use cases.
+- **`TestCorrelationStore`** — Thread-safe static store that correlates work-item keys (document IDs, message keys) to test identities with configurable TTL and lazy eviction.
+- **`CorrelatedProcessingScope`** — Helper that combines store lookup with `TestIdentityScope.Begin()` for one-call scope establishment.
+- **`CorrelationKeys`** — Standardized key format helpers for all supported systems (Cosmos, Mongo, Kafka, ServiceBus, EventHubs, PubSub, SQS, SNS, StorageQueue, Custom).
+- **`ProcessingCorrelation`** — Generic wrappers (`Wrap<T>`, `WrapSync<T>`, `WrapBatch<T>`) for custom background processors.
+- **`ChangeFeedCorrelation`** (CosmosDB extension) — Wraps Change Feed Processor delegates to auto-resolve test identity from correlated document IDs.
+- **`ChangeStreamCorrelation`** (MongoDB extension) — Wraps Change Stream processing delegates for test identity resolution.
+- **`AutoCorrelateWrites`** option on CosmosDB and MongoDB extensions (default: `true`) — Auto-populates `TestCorrelationStore` on tracked write operations.
+- **`AutoCorrelateOnConsume`** option on Kafka, ServiceBus, EventHubs, and PubSub extensions (default: `true`) — Auto-stores correlation on message consume for decoupled processing patterns.
+- **`ChangeFeedKeyExtractor`** option on CosmosDB extension — Custom key extraction for composite partition key scenarios.
+- **`ConsumeKeyExtractor`** option on Kafka extension — Custom correlation key extraction for consumed messages.
+- **`TestCorrelationStore.OnResolveMiss`** — Diagnostic callback for debugging unresolved correlation lookups.
+- **`TestCorrelationStore.Seed()`** — Pre-populate correlations for data that exists before the test runs.
+
 ## [2.35.8] - 2026-05-15
 
 ### Fixed
