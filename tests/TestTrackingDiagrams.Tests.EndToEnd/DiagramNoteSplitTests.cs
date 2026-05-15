@@ -311,4 +311,61 @@ public class DiagramNoteSplitTests : DiagramNotePlaywrightBase
             }
         """, null, new() { Timeout = 5000, PollingInterval = 200 });
     }
+
+    [Fact]
+    public async Task Split_diagram_note_click_does_not_cause_layout_shift()
+    {
+        await Page.GotoAsync(GenerateFragmentedDiagramReport("SplitNoLayoutShift.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        // Wait for fragments to render (height-based splitting triggers client-side fragmentation)
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var frags = document.querySelectorAll('.puml-fragment svg');
+                if (frags.length < 2) return false;
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering
+                    && document.querySelectorAll('.note-hover-rect').length > 0;
+            }
+        """, null, new() { Timeout = 60000, PollingInterval = 200 });
+
+        // Install height monitor using MutationObserver — fires synchronously on DOM mutation
+        await Page.EvaluateAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                window._heightBefore = container.offsetHeight;
+                window._minObservedHeight = container.offsetHeight;
+                var observer = new MutationObserver(() => {
+                    var h = container.offsetHeight;
+                    if (h < window._minObservedHeight) window._minObservedHeight = h;
+                });
+                observer.observe(container, { childList: true, subtree: true });
+                window._heightObserver = observer;
+            }
+        """);
+
+        // Double-click a note on the second fragment to trigger re-render of all fragments
+        await Page.Locator(".note-hover-rect").Last.EvaluateAsync(
+            "el => el.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}))");
+
+        // Wait for re-render to complete
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering;
+            }
+        """, null, new() { Timeout = 30000, PollingInterval = 200 });
+
+        // Stop observer and check results
+        await Page.EvaluateAsync("() => window._heightObserver.disconnect()");
+
+        var minHeight = await Page.EvaluateAsync<double>("() => window._minObservedHeight");
+        var heightBefore = await Page.EvaluateAsync<double>("() => window._heightBefore");
+
+        // The container height should never drop significantly during re-render
+        Assert.True(minHeight >= heightBefore * 0.5,
+            $"Layout shift detected: container height dropped to {minHeight}px during render (was {heightBefore}px before click)");
+    }
 }

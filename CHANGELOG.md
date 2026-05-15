@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.8] - 2026-05-15
+
+### Fixed
+- **Diagram disappears momentarily when clicking note hover buttons** — On large diagrams that are split into multiple fragments, clicking a note expand/collapse button would cause the entire container to collapse to ~40px (from thousands of pixels) while re-rendering, causing a jarring page jump. The container now preserves its height via `minHeight` during re-render and clears it once the new SVG content is ready.
+- **Pre-existing build error in DatabaseToggleTests** — Added missing `GenerateReportWithWideDatabaseParticipant` helper and `WideDatabaseParticipantPlantUmlSource` test data that `DatabaseToggleTests` referenced but did not exist.
+
 ## [2.35.7] - 2026-05-15
 
 ### Fixed

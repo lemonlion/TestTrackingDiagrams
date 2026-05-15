@@ -1742,4 +1742,62 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// Generates a report with a single diagram that exceeds the height threshold (12000px estimated)
+    /// by having many arrow pairs, triggering client-side fragment splitting via splitDiagramSource.
+    /// </summary>
+    public static string GenerateReportWithFragmentedDiagram(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+
+        // Generate many request-response pairs to exceed _maxDiagramHeight (12000px)
+        // Each arrow ≈ 45px, so 300 arrows = 13500px > 12000px threshold
+        var arrows = string.Join("\n", Enumerable.Range(1, 150).Select(i => $"""
+            caller -> svc : GET /api/item/{i}
+            svc --> caller : OK
+            """));
+
+        var source = $$"""
+            @startuml
+            !pragma teoz true
+            skinparam wrapWidth 800
+            autonumber 1
+            actor "Caller" as caller
+            entity "Service" as svc
+            caller -> svc : POST /api/data
+            note left
+            <color:gray>[traceparent=00-abc-123-00]
+
+            {
+              "action": "create",
+              "item": "widget"
+            }
+            end note
+            svc --> caller : OK
+            note right
+            {
+              "status": "success",
+              "id": "test-123"
+            }
+            end note
+            {{arrows}}
+            @enduml
+            """;
+
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", source)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

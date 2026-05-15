@@ -2892,6 +2892,8 @@ public static class DiagramContextMenu
                     if (fragments.length > 1 || container.querySelector('.puml-fragment')) {
                         // Multiple fragments or was previously fragmented — re-render all fragments
                         container._fragments = fragments;
+                        // Preserve container height to prevent layout shift during re-render
+                        container.style.minHeight = container.offsetHeight + 'px';
                         container.innerHTML = '';
                         container.dataset.rendered = '1';
                         container._noteRendering = true;
@@ -2912,6 +2914,7 @@ public static class DiagramContextMenu
                             if (fragIdx >= fragQueue.length) {
                                 container._noteRendering = false;
                                 window._plantumlRendering = false;
+                                container.style.minHeight = '';
                                 return;
                             }
                             var item = fragQueue[fragIdx++];
@@ -2972,6 +2975,8 @@ public static class DiagramContextMenu
 
                 container._noteRendering = true;
                 window._plantumlRendering = true;
+                // Preserve container height to prevent layout shift during re-render
+                container.style.minHeight = container.offsetHeight + 'px';
 
                 var done = false;
                 function afterRender() {
@@ -2980,6 +2985,7 @@ public static class DiagramContextMenu
                     _svgCache[newSource] = container.innerHTML;
                     container._noteRendering = false;
                     window._plantumlRendering = false;
+                    container.style.minHeight = '';
                     if (window._iflowBindLinks) window._iflowBindLinks(container, origSource);
                     makeNotesCollapsible(container);
                     addAssertionTooltips(container);
@@ -2999,6 +3005,7 @@ public static class DiagramContextMenu
                     mo.disconnect();
                     container._noteRendering = false;
                     window._plantumlRendering = false;
+                    container.style.minHeight = '';
                     // Render failed — restore previous step and sync buttons
                     container._noteSteps[noteIdx] = oldStep;
                     makeNotesCollapsible(container);
@@ -3020,6 +3027,7 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         container._noteRendering = false;
                         window._plantumlRendering = false;
+                        container.style.minHeight = '';
                         // Render timed out — restore previous step and sync buttons
                         container._noteSteps[noteIdx] = oldStep;
                         makeNotesCollapsible(container);
@@ -3306,6 +3314,8 @@ public static class DiagramContextMenu
                         var fragments = window._splitWithChunkedNotes(newSource);
                         if (fragments.length > 1 || container.querySelector('.puml-fragment')) {
                             container._fragments = fragments;
+                            // Preserve container height to prevent layout shift during re-render
+                            container.style.minHeight = container.offsetHeight + 'px';
                             container.innerHTML = '';
                             container.dataset.rendered = '1';
                             var fragList = [];
@@ -3320,7 +3330,7 @@ public static class DiagramContextMenu
                             }
                             var fragI = 0;
                             function renderNextFragment() {
-                                if (fragI >= fragList.length) { processNext(); return; }
+                                if (fragI >= fragList.length) { container.style.minHeight = ''; processNext(); return; }
                                 var fItem = fragList[fragI++];
                                 if (_svgCache[fItem.source]) {
                                     fItem.el.innerHTML = _svgCache[fItem.source];
@@ -3371,6 +3381,8 @@ public static class DiagramContextMenu
                     }
                     container._noteRendering = true;
                     window._plantumlRendering = true;
+                    // Preserve container height to prevent layout shift during re-render
+                    container.style.minHeight = container.offsetHeight + 'px';
                     var done = false;
                     function afterRender() {
                         if (done) return;
@@ -3378,6 +3390,7 @@ public static class DiagramContextMenu
                         _svgCache[newSource] = container.innerHTML;
                         container._noteRendering = false;
                         window._plantumlRendering = false;
+                        container.style.minHeight = '';
                         if (window._iflowBindLinks) window._iflowBindLinks(container, container._noteOriginalSource);
                         makeNotesCollapsible(container);
                         addAssertionTooltips(container);
@@ -3390,14 +3403,14 @@ public static class DiagramContextMenu
                         afterRender();
                     });
                     mo.observe(container, { childList: true, subtree: true });
-                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; processNext(); }
+                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
                     var pollCount = 0;
                     var poll = setInterval(function() {
                         pollCount++;
                         if (done) { clearInterval(poll); return; }
                         var svg = container.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; processNext(); }
+                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
                     }, 250);
                 }
                 processNext();
