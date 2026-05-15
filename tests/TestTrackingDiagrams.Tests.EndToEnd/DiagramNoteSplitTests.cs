@@ -368,4 +368,68 @@ public class DiagramNoteSplitTests : DiagramNotePlaywrightBase
         Assert.True(minHeight >= heightBefore * 0.5,
             $"Layout shift detected: container height dropped to {minHeight}px during render (was {heightBefore}px before click)");
     }
+
+    [Fact]
+    public async Task Split_diagram_note_click_keeps_svg_visible_during_rerender()
+    {
+        await Page.GotoAsync(GenerateFragmentedDiagramReport("SplitSvgVisibleDuringRerender.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        // Wait for fragments to render
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var frags = document.querySelectorAll('.puml-fragment svg');
+                if (frags.length < 2) return false;
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering
+                    && document.querySelectorAll('.note-hover-rect').length > 0;
+            }
+        """, null, new() { Timeout = 60000, PollingInterval = 200 });
+
+        // Install SVG visibility monitor — checks that visible SVGs never drop to zero
+        await Page.EvaluateAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                window._svgEverDisappeared = false;
+                window._svgCheckCount = 0;
+                var observer = new MutationObserver(() => {
+                    window._svgCheckCount++;
+                    // Count visible SVGs (not inside display:none elements)
+                    var visibleSvgs = Array.from(container.querySelectorAll('svg')).filter(svg => {
+                        var el = svg.closest('.puml-fragment-new, [style*="display: none"], [style*="display:none"]');
+                        return !el;
+                    });
+                    if (visibleSvgs.length === 0) {
+                        window._svgEverDisappeared = true;
+                    }
+                });
+                observer.observe(container, { childList: true, subtree: true });
+                window._svgVisibilityObserver = observer;
+            }
+        """);
+
+        // Double-click a note to trigger re-render
+        await Page.Locator(".note-hover-rect").Last.EvaluateAsync(
+            "el => el.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}))");
+
+        // Wait for re-render to complete
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering;
+            }
+        """, null, new() { Timeout = 30000, PollingInterval = 200 });
+
+        // Stop observer and check results
+        await Page.EvaluateAsync("() => window._svgVisibilityObserver.disconnect()");
+
+        var disappeared = await Page.EvaluateAsync<bool>("() => window._svgEverDisappeared");
+        var checkCount = await Page.EvaluateAsync<int>("() => window._svgCheckCount");
+
+        Assert.True(checkCount > 0, "MutationObserver should have fired at least once during re-render");
+        Assert.False(disappeared,
+            "SVG content disappeared during re-render — old diagram should remain visible until new one is ready");
+    }
 }

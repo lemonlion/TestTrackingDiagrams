@@ -2894,17 +2894,19 @@ public static class DiagramContextMenu
                         container._fragments = fragments;
                         // Preserve container height to prevent layout shift during re-render
                         container.style.minHeight = container.offsetHeight + 'px';
-                        container.innerHTML = '';
+                        // Keep old children visible until new fragments are rendered
+                        var oldChildren = Array.from(container.children);
                         container.dataset.rendered = '1';
                         container._noteRendering = true;
                         window._plantumlRendering = true;
                         var fragQueue = [];
                         for (var fi = 0; fi < fragments.length; fi++) {
                             var fragDiv = document.createElement('div');
-                            fragDiv.className = 'puml-fragment';
-                            fragDiv.id = container.id + '-frag-' + fi;
+                            fragDiv.className = 'puml-fragment puml-fragment-new';
+                            fragDiv.id = container.id + '-frag-n-' + fi;
                             fragDiv.dataset.fragment = fi;
                             fragDiv.setAttribute('data-plantuml', fragments[fi]);
+                            fragDiv.style.display = 'none';
                             container.appendChild(fragDiv);
                             fragQueue.push({ el: fragDiv, source: fragments[fi], isFragment: true, parentEl: container });
                         }
@@ -2912,6 +2914,16 @@ public static class DiagramContextMenu
                         var fragIdx = 0;
                         function renderNextFrag() {
                             if (fragIdx >= fragQueue.length) {
+                                // All new fragments rendered — swap: remove old, show new
+                                for (var oi = 0; oi < oldChildren.length; oi++) {
+                                    if (oldChildren[oi].parentNode === container) container.removeChild(oldChildren[oi]);
+                                }
+                                var newFrags = container.querySelectorAll('.puml-fragment-new');
+                                for (var ni = 0; ni < newFrags.length; ni++) {
+                                    newFrags[ni].style.display = '';
+                                    newFrags[ni].classList.remove('puml-fragment-new');
+                                    newFrags[ni].id = container.id + '-frag-' + ni;
+                                }
                                 container._noteRendering = false;
                                 window._plantumlRendering = false;
                                 container.style.minHeight = '';
@@ -2978,11 +2990,20 @@ public static class DiagramContextMenu
                 // Preserve container height to prevent layout shift during re-render
                 container.style.minHeight = container.offsetHeight + 'px';
 
+                // Render into a temporary child div to keep old SVG visible until new one is ready
+                var renderTarget = document.createElement('div');
+                renderTarget.id = container.id + '-render-tmp';
+                renderTarget.style.display = 'none';
+                container.appendChild(renderTarget);
+
                 var done = false;
                 function afterRender() {
                     if (done) return;
                     done = true;
-                    _svgCache[newSource] = container.innerHTML;
+                    // Swap: remove old content, show new SVG
+                    var newSvg = renderTarget.innerHTML;
+                    container.innerHTML = newSvg;
+                    _svgCache[newSource] = newSvg;
                     container._noteRendering = false;
                     window._plantumlRendering = false;
                     container.style.minHeight = '';
@@ -2993,16 +3014,17 @@ public static class DiagramContextMenu
                 }
 
                 var mo = new MutationObserver(function(mutations) {
-                    if (!container.querySelector('svg')) return;
+                    if (!renderTarget.querySelector('svg')) return;
                     mo.disconnect();
                     afterRender();
                 });
-                mo.observe(container, { childList: true, subtree: true });
+                mo.observe(renderTarget, { childList: true, subtree: true });
 
                 try {
-                    window.plantuml.render(newSource.split('\n'), container.id);
+                    window.plantuml.render(newSource.split('\n'), renderTarget.id);
                 } catch(e) {
                     mo.disconnect();
+                    if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget);
                     container._noteRendering = false;
                     window._plantumlRendering = false;
                     container.style.minHeight = '';
@@ -3016,7 +3038,7 @@ public static class DiagramContextMenu
                 var poll = setInterval(function() {
                     pollCount++;
                     if (done) { clearInterval(poll); return; }
-                    var svg = container.querySelector('svg');
+                    var svg = renderTarget.querySelector('svg');
                     if (svg && !svg.querySelector('.note-toggle-icon')) {
                         clearInterval(poll);
                         mo.disconnect();
@@ -3025,6 +3047,7 @@ public static class DiagramContextMenu
                     if (pollCount > 20) {
                         clearInterval(poll);
                         mo.disconnect();
+                        if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget);
                         container._noteRendering = false;
                         window._plantumlRendering = false;
                         container.style.minHeight = '';
@@ -3316,21 +3339,37 @@ public static class DiagramContextMenu
                             container._fragments = fragments;
                             // Preserve container height to prevent layout shift during re-render
                             container.style.minHeight = container.offsetHeight + 'px';
-                            container.innerHTML = '';
+                            // Keep old children visible until new fragments are rendered
+                            var oldChildren = Array.from(container.children);
                             container.dataset.rendered = '1';
                             var fragList = [];
                             for (var fi = 0; fi < fragments.length; fi++) {
                                 var fragDiv = document.createElement('div');
-                                fragDiv.className = 'puml-fragment';
-                                fragDiv.id = container.id + '-frag-' + fi;
+                                fragDiv.className = 'puml-fragment puml-fragment-new';
+                                fragDiv.id = container.id + '-frag-n-' + fi;
                                 fragDiv.dataset.fragment = fi;
                                 fragDiv.setAttribute('data-plantuml', fragments[fi]);
+                                fragDiv.style.display = 'none';
                                 container.appendChild(fragDiv);
                                 fragList.push({ el: fragDiv, source: fragments[fi] });
                             }
                             var fragI = 0;
                             function renderNextFragment() {
-                                if (fragI >= fragList.length) { container.style.minHeight = ''; processNext(); return; }
+                                if (fragI >= fragList.length) {
+                                    // All new fragments rendered — swap: remove old, show new
+                                    for (var oi = 0; oi < oldChildren.length; oi++) {
+                                        if (oldChildren[oi].parentNode === container) container.removeChild(oldChildren[oi]);
+                                    }
+                                    var newFrags = container.querySelectorAll('.puml-fragment-new');
+                                    for (var ni = 0; ni < newFrags.length; ni++) {
+                                        newFrags[ni].style.display = '';
+                                        newFrags[ni].classList.remove('puml-fragment-new');
+                                        newFrags[ni].id = container.id + '-frag-' + ni;
+                                    }
+                                    container.style.minHeight = '';
+                                    processNext();
+                                    return;
+                                }
                                 var fItem = fragList[fragI++];
                                 if (_svgCache[fItem.source]) {
                                     fItem.el.innerHTML = _svgCache[fItem.source];
@@ -3383,11 +3422,18 @@ public static class DiagramContextMenu
                     window._plantumlRendering = true;
                     // Preserve container height to prevent layout shift during re-render
                     container.style.minHeight = container.offsetHeight + 'px';
+                    // Render into temporary child to keep old SVG visible until new one is ready
+                    var renderTarget = document.createElement('div');
+                    renderTarget.id = container.id + '-render-tmp';
+                    renderTarget.style.display = 'none';
+                    container.appendChild(renderTarget);
                     var done = false;
                     function afterRender() {
                         if (done) return;
                         done = true;
-                        _svgCache[newSource] = container.innerHTML;
+                        var newSvg = renderTarget.innerHTML;
+                        container.innerHTML = newSvg;
+                        _svgCache[newSource] = newSvg;
                         container._noteRendering = false;
                         window._plantumlRendering = false;
                         container.style.minHeight = '';
@@ -3398,19 +3444,19 @@ public static class DiagramContextMenu
                         processNext();
                     }
                     var mo = new MutationObserver(function() {
-                        if (!container.querySelector('svg')) return;
+                        if (!renderTarget.querySelector('svg')) return;
                         mo.disconnect();
                         afterRender();
                     });
-                    mo.observe(container, { childList: true, subtree: true });
-                    try { window.plantuml.render(newSource.split('\n'), container.id); } catch(e) { mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
+                    mo.observe(renderTarget, { childList: true, subtree: true });
+                    try { window.plantuml.render(newSource.split('\n'), renderTarget.id); } catch(e) { mo.disconnect(); if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
                     var pollCount = 0;
                     var poll = setInterval(function() {
                         pollCount++;
                         if (done) { clearInterval(poll); return; }
-                        var svg = container.querySelector('svg');
+                        var svg = renderTarget.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
+                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
                     }, 250);
                 }
                 processNext();

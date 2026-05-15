@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.2] - 2026-05-15
+
+### Fixed
+- Fixed diagram content disappearing during re-render when note state changes on split/fragmented diagrams. Old SVG content now remains visible until new fragments are fully rendered, eliminating the blank flash.
+
 ## [2.36.1] - 2026-05-15
 
 ### Fixed
