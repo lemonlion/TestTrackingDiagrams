@@ -449,7 +449,6 @@ public class StepCollectorTests
     public void StartStep_emits_step_delimiter_for_top_level_step()
     {
         var testId = $"delim-{Guid.NewGuid():N}";
-        RequestResponseLogger.Clear();
 
         StepCollector.StartStep(testId, "Given", "A user exists", null, null);
         StepCollector.CompleteStep(testId, passed: true);
@@ -467,7 +466,6 @@ public class StepCollectorTests
     public void StartStep_does_not_emit_delimiter_for_sub_steps()
     {
         var testId = $"delim-sub-{Guid.NewGuid():N}";
-        RequestResponseLogger.Clear();
 
         StepCollector.StartStep(testId, "Given", "A user exists", null, null);
         StepCollector.StartStep(testId, "Given", "A nested precondition", null, null);
@@ -489,7 +487,6 @@ public class StepCollectorTests
     {
         var testId = $"delim-off-{Guid.NewGuid():N}";
         var original = StepCollector.Options;
-        RequestResponseLogger.Clear();
 
         try
         {
@@ -514,7 +511,6 @@ public class StepCollectorTests
     public void StartStep_delimiter_uses_effective_keyword_for_And()
     {
         var testId = $"delim-and-{Guid.NewGuid():N}";
-        RequestResponseLogger.Clear();
 
         StepCollector.StartStep(testId, "Given", "A user exists", null, null);
         StepCollector.CompleteStep(testId, passed: true);

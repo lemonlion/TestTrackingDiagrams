@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.7] - 2026-05-15
+
+### Fixed
+- **Race condition in parallel test execution** — Removed `RequestResponseLogger.Clear()` calls from `StepCollectorTests` that could wipe shared static state while `DefaultDiagramsFetcherTests` was running in parallel, causing intermittent "Sequence contains no matching element" failures on `Svg_format_produces_svg_url`.
+
 ## [2.35.6] - 2026-05-15
 
 ### Fixed
