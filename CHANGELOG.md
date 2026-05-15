@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.35.6] - 2026-05-15
+
+### Fixed
+- **Note dblclick from collapsed goes to truncated for long notes** — When a long note was collapsed, double-clicking it would incorrectly expand fully instead of going to the truncated state. The `isLongNote` check now uses the original note content lines (from the owner's original source) rather than the current rendered content, which only contains a short preview when collapsed.
+
 ## [2.35.5] - 2026-05-14
 
 ### Fixed
