@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.4] - 2026-05-15
+
+### Fixed
+- **Hover buttons not appearing on split/fragmented diagrams** — When a diagram splits into multiple fragments, `makeNotesCollapsible()` (which adds hover rects and toggle icons via SVG `getBBox()`) was called while fragment divs still had `display:none`, causing all dimensions to be zero. Hover rects and toggle icons were rendered but invisible. Post-render hooks are now deferred until after the swap when fragments become visible, ensuring `getBBox()` returns correct dimensions.
+
 ## [2.36.3] - 2026-05-15
 
 ### Fixed

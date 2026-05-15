@@ -2924,6 +2924,13 @@ public static class DiagramContextMenu
                                     newFrags[ni].classList.remove('puml-fragment-new');
                                     newFrags[ni].id = container.id + '-frag-' + ni;
                                 }
+                                // Apply post-render hooks after fragments are visible (getBBox needs visible elements)
+                                for (var pi = 0; pi < fragQueue.length; pi++) {
+                                    if (window._iflowBindLinks) window._iflowBindLinks(fragQueue[pi].el, origSource);
+                                    makeNotesCollapsible(fragQueue[pi].el);
+                                    addAssertionTooltips(fragQueue[pi].el);
+                                    (function(el) { requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(el); }); })(fragQueue[pi].el);
+                                }
                                 container._noteRendering = false;
                                 window._plantumlRendering = false;
                                 container.style.minHeight = '';
@@ -2934,10 +2941,6 @@ public static class DiagramContextMenu
                             if (_svgCache[item.source]) {
                                 item.el.innerHTML = _svgCache[item.source];
                                 item.el.dataset.rendered = '1';
-                                if (window._iflowBindLinks) window._iflowBindLinks(item.el, origSource);
-                                if (window._makeNotesCollapsible) makeNotesCollapsible(item.el);
-                                if (window._addAssertionTooltips) addAssertionTooltips(item.el);
-                                requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
                                 renderNextFrag();
                                 return;
                             }
@@ -2947,10 +2950,6 @@ public static class DiagramContextMenu
                                 fDone = true;
                                 _svgCache[item.source] = item.el.innerHTML;
                                 item.el.dataset.rendered = '1';
-                                if (window._iflowBindLinks) window._iflowBindLinks(item.el, origSource);
-                                makeNotesCollapsible(item.el);
-                                addAssertionTooltips(item.el);
-                                requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(item.el); });
                                 window._plantumlRendering = false;
                                 renderNextFrag();
                             }
@@ -3366,6 +3365,13 @@ public static class DiagramContextMenu
                                         newFrags[ni].classList.remove('puml-fragment-new');
                                         newFrags[ni].id = container.id + '-frag-' + ni;
                                     }
+                                    // Apply post-render hooks after fragments are visible (getBBox needs visible elements)
+                                    for (var pi = 0; pi < fragList.length; pi++) {
+                                        if (window._iflowBindLinks) window._iflowBindLinks(fragList[pi].el, container._noteOriginalSource);
+                                        makeNotesCollapsible(fragList[pi].el);
+                                        addAssertionTooltips(fragList[pi].el);
+                                        (function(el) { requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(el); }); })(fragList[pi].el);
+                                    }
                                     container.style.minHeight = '';
                                     processNext();
                                     return;
@@ -3374,10 +3380,6 @@ public static class DiagramContextMenu
                                 if (_svgCache[fItem.source]) {
                                     fItem.el.innerHTML = _svgCache[fItem.source];
                                     fItem.el.dataset.rendered = '1';
-                                    if (window._iflowBindLinks) window._iflowBindLinks(fItem.el, container._noteOriginalSource);
-                                    makeNotesCollapsible(fItem.el);
-                                    addAssertionTooltips(fItem.el);
-                                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(fItem.el); });
                                     renderNextFragment();
                                     return;
                                 }
@@ -3389,10 +3391,6 @@ public static class DiagramContextMenu
                                     _svgCache[fItem.source] = fItem.el.innerHTML;
                                     fItem.el.dataset.rendered = '1';
                                     window._plantumlRendering = false;
-                                    if (window._iflowBindLinks) window._iflowBindLinks(fItem.el, container._noteOriginalSource);
-                                    makeNotesCollapsible(fItem.el);
-                                    addAssertionTooltips(fItem.el);
-                                    requestAnimationFrame(function() { if (window._addZoomButton) window._addZoomButton(fItem.el); });
                                     renderNextFragment();
                                 }
                                 var fmo = new MutationObserver(function() {

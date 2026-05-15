@@ -432,4 +432,53 @@ public class DiagramNoteSplitTests : DiagramNotePlaywrightBase
         Assert.False(disappeared,
             "SVG content disappeared during re-render — old diagram should remain visible until new one is ready");
     }
+
+    [Fact]
+    public async Task Split_diagram_hover_buttons_present_after_note_toggle_rerender()
+    {
+        await Page.GotoAsync(GenerateFragmentedDiagramReport("SplitHoverAfterRerender.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        // Wait for fragments to render with hover rects
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var frags = document.querySelectorAll('.puml-fragment svg');
+                if (frags.length < 2) return false;
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering
+                    && document.querySelectorAll('.note-hover-rect').length > 0;
+            }
+        """, null, new() { Timeout = 60000, PollingInterval = 200 });
+
+        // Double-click a note to trigger re-render (cycles note state)
+        await Page.Locator(".note-hover-rect").First.EvaluateAsync(
+            "el => el.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}))");
+
+        // Wait for re-render to complete
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                return container && !container._noteRendering && !window._plantumlRendering;
+            }
+        """, null, new() { Timeout = 30000, PollingInterval = 200 });
+
+        // Verify hover rects exist in the new fragments (getBBox must have worked on visible elements)
+        var hoverRectCount = await Page.Locator(".note-hover-rect").CountAsync();
+        Assert.True(hoverRectCount >= 2,
+            $"Expected hover rects in re-rendered fragments, found {hoverRectCount}. " +
+            "This indicates makeNotesCollapsible ran while fragments were display:none");
+
+        // Verify hover rects have non-zero dimensions (proves getBBox worked)
+        var allNonZero = await Page.EvaluateAsync<bool>("""
+            () => Array.from(document.querySelectorAll('.note-hover-rect')).every(r => {
+                var w = parseFloat(r.getAttribute('width') || '0');
+                var h = parseFloat(r.getAttribute('height') || '0');
+                return w > 0 && h > 0;
+            })
+        """);
+        Assert.True(allNonZero,
+            "Some hover rects have zero dimensions — makeNotesCollapsible likely ran on hidden elements");
+    }
 }
