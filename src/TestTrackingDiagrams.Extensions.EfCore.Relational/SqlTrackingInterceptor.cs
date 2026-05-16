@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Data.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using TestTrackingDiagrams.Sql;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.EfCore.Relational;
@@ -157,6 +158,12 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 
     public override DbDataReader ReaderExecuted(DbCommand command, CommandExecutedEventData eventData, DbDataReader result)
     {
+        if (_options.LogResponseContent)
+        {
+            var wrapped = WrapReaderIfTracked(command, result);
+            if (wrapped is not null)
+                return base.ReaderExecuted(command, eventData, wrapped);
+        }
         LogCommandExecuted(command);
         return base.ReaderExecuted(command, eventData, result);
     }
@@ -181,7 +188,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 
     public override object? ScalarExecuted(DbCommand command, CommandExecutedEventData eventData, object? result)
     {
-        LogCommandExecuted(command);
+        LogCommandExecutedWithContent(command, FormatScalar(result));
         return base.ScalarExecuted(command, eventData, result);
     }
 
@@ -193,6 +200,12 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 
     public override ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command, CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
     {
+        if (_options.LogResponseContent)
+        {
+            var wrapped = WrapReaderIfTracked(command, result);
+            if (wrapped is not null)
+                return base.ReaderExecutedAsync(command, eventData, wrapped, cancellationToken);
+        }
         LogCommandExecuted(command);
         return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
     }
@@ -217,7 +230,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
 
     public override ValueTask<object?> ScalarExecutedAsync(DbCommand command, CommandExecutedEventData eventData, object? result, CancellationToken cancellationToken = default)
     {
-        LogCommandExecuted(command);
+        LogCommandExecutedWithContent(command, FormatScalar(result));
         return base.ScalarExecutedAsync(command, eventData, result, cancellationToken);
     }
 
@@ -275,5 +288,154 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
         return new PhaseVariant(method, uri, content, [], skip);
+    }
+
+    private static PhaseVariant BuildResponseVariantWithContent(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, string? responseContent)
+    {
+        var skip = verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other;
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, verbosity);
+        OneOf<HttpMethod, string> method = verbosity == SqlTrackingVerbosity.Raw
+            ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
+            : label!;
+        var uri = BuildUri(command, sqlOp, verbosity);
+        var content = verbosity == SqlTrackingVerbosity.Summarised ? null : responseContent;
+
+        return new PhaseVariant(method, uri, content, [], skip);
+    }
+
+    // ─── Response content helpers ───────────────────────────────
+
+    public void LogCommandExecutedWithContent(DbCommand command, string? content)
+    {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
+
+        if (effectiveVerbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
+            return;
+
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return;
+
+        if (!_pendingIds.TryRemove(command, out var ids))
+            ids = (Guid.NewGuid(), Guid.NewGuid());
+
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, effectiveVerbosity);
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SqlTrackingVerbosity.Raw
+            ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
+            : label!;
+
+        var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosity.Summarised ? null : content;
+
+        var log = new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            method,
+            responseContent,
+            requestUri,
+            [],
+            _options.ServiceName,
+            _options.CallerName,
+            RequestResponseType.Response,
+            ids.TraceId,
+            ids.RequestResponseId,
+            false,
+            (OneOf<System.Net.HttpStatusCode, string>)"OK",
+            DependencyCategory: DependencyCategories.SQL
+        )
+        {
+            Phase = TestPhaseContext.Current
+        };
+
+        log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => BuildResponseVariantWithContent(command, sqlOp, v, content));
+
+        RequestResponseLogger.Log(log);
+    }
+
+    private TrackingDbDataReader? WrapReaderIfTracked(DbCommand command, DbDataReader result)
+    {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return null;
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
+
+        if (effectiveVerbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
+            return null;
+
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return null;
+
+        if (!_pendingIds.TryRemove(command, out var ids))
+            ids = (Guid.NewGuid(), Guid.NewGuid());
+
+        // Capture IDs in the closure — LogCommandExecutedWithContent would fail to
+        // find them in _pendingIds since we already removed them above.
+        var capturedIds = ids;
+        return new TrackingDbDataReader(
+            result, _options.ResponseDetail, _options.MaxResponseRows, _options.MaxValueDisplayLength,
+            content => LogCommandExecutedWithContentDirect(command, capturedIds.TraceId, capturedIds.RequestResponseId, content));
+    }
+
+    private string? FormatScalar(object? result)
+    {
+        if (!_options.LogResponseContent) return null;
+        if (result is null or DBNull) return "null";
+        var str = result.ToString() ?? "";
+        return str.Length > _options.MaxValueDisplayLength
+            ? $"{str[.._options.MaxValueDisplayLength]}... ({str.Length} chars)"
+            : str;
+    }
+
+    private void LogCommandExecutedWithContentDirect(DbCommand command, Guid traceId, Guid requestResponseId, string? content)
+    {
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+        var sqlOp = SqlOperationClassifier.Classify(command.CommandText, command.CommandType);
+
+        if (effectiveVerbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other)
+            return;
+
+        var testInfo = GetTestInfo();
+        if (testInfo is null)
+            return;
+
+        var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, effectiveVerbosity);
+        OneOf<HttpMethod, string> method = effectiveVerbosity == SqlTrackingVerbosity.Raw
+            ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
+            : label!;
+
+        var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosity.Summarised ? null : content;
+
+        var log = new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            method,
+            responseContent,
+            requestUri,
+            [],
+            _options.ServiceName,
+            _options.CallerName,
+            RequestResponseType.Response,
+            traceId,
+            requestResponseId,
+            false,
+            (OneOf<System.Net.HttpStatusCode, string>)"OK",
+            DependencyCategory: DependencyCategories.SQL
+        )
+        {
+            Phase = TestPhaseContext.Current
+        };
+
+        log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v => BuildResponseVariantWithContent(command, sqlOp, v, content));
+
+        RequestResponseLogger.Log(log);
     }
 }

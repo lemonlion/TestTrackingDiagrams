@@ -26,7 +26,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="TestTrackingDiagrams.NUnit4" Version="2.29.17-beta" />
-    <PackageReference Include="TestTrackingDiagrams.AssertionTracking" Version="2.29.17-beta" />
   </ItemGroup>
 
   <!-- TODO: Add a ProjectReference to your API project here -->

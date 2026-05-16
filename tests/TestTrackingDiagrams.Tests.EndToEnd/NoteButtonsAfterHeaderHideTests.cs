@@ -17,23 +17,45 @@ public class NoteButtonsAfterHeaderHideTests : DiagramNotePlaywrightBase
     private async Task ToggleHeadersHidden()
     {
         var scenario = Page.Locator("details.scenario");
+
+        // Capture the current SVG markup so we can detect when re-render completes
+        var svgBefore = await Page.Locator("[data-diagram-type='plantuml'] svg").First
+            .EvaluateAsync<string>("el => el.outerHTML");
+
         await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
 
-        await Page.WaitForFunctionAsync("""
-            () => document.querySelectorAll('.note-hover-rect').length > 0 &&
-                  document.querySelectorAll('.note-toggle-icon').length > 0
-        """, null, new() { Timeout = 15000, PollingInterval = 200 });
+        // Wait for the PlantUML re-render to complete: SVG must change AND note elements exist
+        await Page.WaitForFunctionAsync(
+            @"(prev) => {
+                if (window._plantumlRendering) return false;
+                var svg = document.querySelector('[data-diagram-type=""plantuml""] svg');
+                return svg && svg.outerHTML !== prev &&
+                    document.querySelectorAll('.note-hover-rect').length > 0 &&
+                    document.querySelectorAll('.note-toggle-icon').length > 0;
+            }",
+            svgBefore,
+            new() { Timeout = 60000, PollingInterval = 200 });
     }
 
     private async Task ToggleHeadersShown()
     {
         var scenario = Page.Locator("details.scenario");
+
+        var svgBefore = await Page.Locator("[data-diagram-type='plantuml'] svg").First
+            .EvaluateAsync<string>("el => el.outerHTML");
+
         await scenario.Locator(".toggle-btn[data-toggle='headers'][data-shown='false']").ClickAsync();
 
-        await Page.WaitForFunctionAsync("""
-            () => document.querySelectorAll('.note-hover-rect').length > 0 &&
-                  document.querySelectorAll('.note-toggle-icon').length > 0
-        """, null, new() { Timeout = 15000, PollingInterval = 200 });
+        await Page.WaitForFunctionAsync(
+            @"(prev) => {
+                if (window._plantumlRendering) return false;
+                var svg = document.querySelector('[data-diagram-type=""plantuml""] svg');
+                return svg && svg.outerHTML !== prev &&
+                    document.querySelectorAll('.note-hover-rect').length > 0 &&
+                    document.querySelectorAll('.note-toggle-icon').length > 0;
+            }",
+            svgBefore,
+            new() { Timeout = 60000, PollingInterval = 200 });
     }
 
     private async Task NavigateAndSetup(string fileName)

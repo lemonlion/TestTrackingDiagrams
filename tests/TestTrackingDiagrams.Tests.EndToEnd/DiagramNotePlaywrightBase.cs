@@ -142,7 +142,7 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
         """);
 
         await Page.WaitForFunctionAsync(
-            $"() => document.querySelectorAll('[data-diagram-type=\"plantuml\"] svg').length >= {minCount}",
+            $"() => document.querySelectorAll('[data-diagram-type=\"plantuml\"] svg').length >= {minCount} && !window._plantumlRendering",
             null, new() { Timeout = timeoutMs, PollingInterval = 200 });
     }
 

@@ -48,7 +48,8 @@ public class TrackingDbCommandTests : IDisposable
     public void ExecuteReader_logs_request_and_response()
     {
         using var cmd = CreateCommand("SELECT * FROM Users");
-        cmd.ExecuteReader();
+        using var reader = cmd.ExecuteReader();
+        reader.Close();
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -60,7 +61,8 @@ public class TrackingDbCommandTests : IDisposable
     public async Task ExecuteReaderAsync_logs_request_and_response()
     {
         using var cmd = CreateCommand("SELECT * FROM Users");
-        await cmd.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        reader.Close();
 
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
@@ -116,7 +118,8 @@ public class TrackingDbCommandTests : IDisposable
     public void Request_and_response_share_trace_and_request_response_ids()
     {
         using var cmd = CreateCommand("SELECT * FROM Users");
-        cmd.ExecuteReader();
+        using var reader = cmd.ExecuteReader();
+        reader.Close();
 
         var logs = GetLogsForTest();
         Assert.Equal(logs[0].TraceId, logs[1].TraceId);
@@ -247,7 +250,8 @@ public class TrackingDbCommandTests : IDisposable
     {
         _options.Verbosity = DapperTrackingVerbosity.Summarised;
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
-        cmd.ExecuteReader();
+        using var reader = cmd.ExecuteReader();
+        reader.Close();
 
         var response = GetLogsForTest()[1];
         Assert.Null(response.Content);

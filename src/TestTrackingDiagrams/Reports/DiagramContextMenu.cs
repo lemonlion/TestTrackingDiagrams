@@ -741,8 +741,10 @@ public static class DiagramContextMenu
                     window._plantumlRendering = true;
                     var item = renderQueue.shift();
                     var lines = item.source.split('\n');
-                    var mo = new MutationObserver(function() {
-                        mo.disconnect();
+                    var queueDone = false;
+                    function onQueueItemDone() {
+                        if (queueDone) return;
+                        queueDone = true;
                         item.el.dataset.rendered = '1';
                         var hookTarget = item.isFragment ? item.el : item.el;
                         var iflowSource = item.parentEl ? item.parentEl._fullSource || item.source : item.source;
@@ -753,8 +755,19 @@ public static class DiagramContextMenu
                         rendering = false;
                         window._plantumlRendering = false;
                         processQueue();
+                    }
+                    var mo = new MutationObserver(function() {
+                        mo.disconnect();
+                        onQueueItemDone();
                     });
                     mo.observe(item.el, { childList: true, subtree: true });
+                    // Timeout: if TeaVM render doesn't produce output within 15s, force-reset and continue
+                    var qPollCount = 0;
+                    var qPoll = setInterval(function() {
+                        qPollCount++;
+                        if (queueDone) { clearInterval(qPoll); return; }
+                        if (qPollCount > 60) { clearInterval(qPoll); mo.disconnect(); queueDone = true; rendering = false; window._plantumlRendering = false; processQueue(); }
+                    }, 250);
                     try {
                         window.plantuml.render(lines, item.el.id);
                     } catch(e) {
@@ -3043,15 +3056,7 @@ public static class DiagramContextMenu
                         mo.disconnect();
                         afterRender();
                     }
-                    if (pollCount > 20) {
-                        clearInterval(poll);
-                        mo.disconnect();
-                        if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget);
-                        container._noteRendering = false;
-                        window._plantumlRendering = false;
-                        container.style.minHeight = '';
-                        // Render timed out — restore previous step and sync buttons
-                        container._noteSteps[noteIdx] = oldStep;
+                    if (pollCount > 120) {
                         makeNotesCollapsible(container);
                         addAssertionTooltips(container);
                     }
@@ -3319,13 +3324,21 @@ public static class DiagramContextMenu
 
             // Shared serialized render queue — TeaVM engine uses shared global state
             function processRenderQueue(queue, onAllDone) {
+                var renderWaitCount = 0;
                 function processNext() {
-                    if (queue.length === 0) { if (onAllDone) onAllDone(); return; }
+                    if (queue.length === 0) { window._renderCompleteCount = (window._renderCompleteCount || 0) + 1; if (onAllDone) onAllDone(); return; }
                     // Wait for any in-flight initial render to complete before proceeding
                     if (window._plantumlRendering) {
-                        setTimeout(processNext, 50);
-                        return;
+                        renderWaitCount++;
+                        if (renderWaitCount > 300) {
+                            // Stuck render — force-reset after 15s and proceed
+                            window._plantumlRendering = false;
+                        } else {
+                            setTimeout(processNext, 50);
+                            return;
+                        }
                     }
+                    renderWaitCount = 0;
                     var item = queue.shift();
                     var container = item.container;
                     var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
@@ -3454,7 +3467,7 @@ public static class DiagramContextMenu
                         if (done) { clearInterval(poll); return; }
                         var svg = renderTarget.querySelector('svg');
                         if (svg && !svg.querySelector('.note-toggle-icon')) { clearInterval(poll); mo.disconnect(); afterRender(); }
-                        if (pollCount > 20) { clearInterval(poll); mo.disconnect(); if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
+                        if (pollCount > 120) { clearInterval(poll); mo.disconnect(); if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget); container._noteRendering = false; window._plantumlRendering = false; container.style.minHeight = ''; processNext(); }
                     }, 250);
                 }
                 processNext();

@@ -146,7 +146,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
         {
             MongoDbTrackingVerbosity.Summarised => null,
             MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
-            _ => ExtractResponseMetadata(e.Reply) // Detailed: show rows affected if present
+            _ => ExtractDetailedResponse(e.Reply) // Detailed: metadata + optional document preview
         };
 
         RequestResponseLogger.Log(new RequestResponseLog(
@@ -166,7 +166,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
                 {
                     MongoDbTrackingVerbosity.Summarised => null,
                     MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
-                    _ => ExtractResponseMetadata(e.Reply)
+                    _ => ExtractDetailedResponse(e.Reply)
                 };
                 return new PhaseVariant(
                     MongoDbOperationClassifier.GetDiagramLabel(pending.OpInfo, v),
@@ -212,6 +212,43 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
             parts.Add($"nUpserted={nUpserted.AsInt32}");
 
         return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
+    private string? ExtractDetailedResponse(BsonDocument? reply)
+    {
+        var metadata = ExtractResponseMetadata(reply);
+
+        if (!_options.LogResponseContent || reply is null)
+            return metadata;
+
+        // Extract documents from cursor.firstBatch (find, aggregate, listCollections, etc.)
+        if (reply.TryGetValue("cursor", out var cursor) && cursor.IsBsonDocument)
+        {
+            var cursorDoc = cursor.AsBsonDocument;
+            if (cursorDoc.TryGetValue("firstBatch", out var firstBatch) && firstBatch.IsBsonArray)
+            {
+                var docs = firstBatch.AsBsonArray;
+                if (docs.Count > 0)
+                {
+                    var preview = docs.Take(_options.MaxResponseDocuments)
+                        .Select(d => d.ToString())
+                        .ToList();
+
+                    var docText = $"{docs.Count} document(s)\n[{string.Join(",\n", preview)}]";
+                    if (docs.Count > _options.MaxResponseDocuments)
+                        docText += $"\n... ({docs.Count - _options.MaxResponseDocuments} more)";
+
+                    return metadata is not null ? $"{metadata}\n{docText}" : docText;
+                }
+                else
+                {
+                    var emptyText = "0 documents";
+                    return metadata is not null ? $"{metadata}\n{emptyText}" : emptyText;
+                }
+            }
+        }
+
+        return metadata;
     }
 
     private Uri BuildUri(MongoDbOperationInfo opInfo, MongoDbTrackingVerbosity verbosity)

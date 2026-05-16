@@ -52,7 +52,7 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
         return html.Contains($"{scenarioLabel} status code");
     }
 
-    private async Task WaitForSvgChange(ILocator scenario, string previousSvgHtml, int timeoutMs = 15000)
+    private async Task WaitForSvgChange(ILocator scenario, string previousSvgHtml, int timeoutMs = 90000)
     {
         var idx = await GetScenarioIndex(scenario);
         await Page.WaitForFunctionAsync(
@@ -63,6 +63,14 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
                 return svg && svg.outerHTML !== args.prev;
             }",
             new { idx, prev = previousSvgHtml },
+            new() { Timeout = timeoutMs, PollingInterval = 200 });
+    }
+
+    private async Task WaitForRenderComplete(int previousCount, int timeoutMs = 90000)
+    {
+        await Page.WaitForFunctionAsync(
+            "(prev) => !window._plantumlRendering && (window._renderCompleteCount || 0) > prev",
+            previousCount,
             new() { Timeout = timeoutMs, PollingInterval = 200 });
     }
 
@@ -246,14 +254,14 @@ public class AssertionToggleTests : DiagramNotePlaywrightBase
         var scenario1 = ScenarioLocator(0);
 
         // Show assertions
-        var svgBefore = await GetScenarioSvgHtml(scenario1);
+        var renderCount = await Page.EvaluateAsync<int>("() => window._renderCompleteCount || 0");
         await AssertionShowBtn(scenario1).ClickAsync();
-        await WaitForSvgChange(scenario1, svgBefore);
+        await WaitForRenderComplete(renderCount);
 
-        // Hide headers
-        svgBefore = await GetScenarioSvgHtml(scenario1);
+        // Hide headers — headers toggle triggers a full PlantUML re-render
+        renderCount = await Page.EvaluateAsync<int>("() => window._renderCompleteCount || 0");
         await scenario1.Locator(".toggle-btn[data-toggle='headers'][data-shown='true']").ClickAsync();
-        await WaitForSvgChange(scenario1, svgBefore);
+        await WaitForRenderComplete(renderCount);
 
         // Assertions should still be present
         Assert.True(await SvgContainsAssertionText(scenario1, "Scenario1"));

@@ -26,4 +26,26 @@ public record DapperTrackingOptions
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
     public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// Whether to include response content in diagrams. Default: true.
+    /// When false, response arrows are empty (previous behaviour).
+    /// </summary>
+    public bool LogResponseContent { get; set; } = true;
+
+    /// <summary>
+    /// Maximum number of rows to include in response content. Default: 5.
+    /// </summary>
+    public int MaxResponseRows { get; set; } = 5;
+
+    /// <summary>
+    /// Maximum display length for individual cell values. Default: 500.
+    /// </summary>
+    public int MaxValueDisplayLength { get; set; } = 500;
+
+    /// <summary>
+    /// Level of detail for response content in diagram arrows.
+    /// Default: RowCountAndColumns.
+    /// </summary>
+    public Sql.SqlResponseDetail ResponseDetail { get; set; } = Sql.SqlResponseDetail.RowCountAndColumns;
 }

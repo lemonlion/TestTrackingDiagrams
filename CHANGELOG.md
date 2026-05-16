@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.37.1] - 2026-05-17
+
+### Changed
+- **Templates: removed assertion tracking (beta)** — The `[assembly: TrackAssertions]` attribute and `TestTrackingDiagrams.AssertionTracking` package reference have been removed from all dotnet templates. IL weaving can interfere with some build configurations, so assertion tracking is now an opt-in beta feature. See the templates README for instructions on enabling it manually.
+
+## [2.37.0] - 2026-05-17
+
+### Added
+- **Database response payload capture across all SQL extensions** — Response arrows in PlantUML sequence diagrams now show actual data (row counts, column names, row previews, scalar values) instead of being empty. Extends the response payload capability introduced in v2.36.5 for Spanner to all database extensions.
+  - New shared `SqlResponseDetail` enum (`RowCountOnly`, `RowCountAndColumns`, `FullRows`) and `TrackingDbDataReader` wrapper that captures row data as the reader is consumed.
+  - New `SqlTrackingOptionsBase` properties: `LogResponseContent` (default: `true`), `MaxResponseRows` (default: `5`), `MaxValueDisplayLength` (default: `500`), `ResponseDetail` (default: `RowCountAndColumns`).
+  - **Oracle** (`TrackingOracleCommand`): `ExecuteReader`/`ExecuteScalar` now capture and log response content.
+  - **Dapper** (`TrackingDbCommand`): `ExecuteReader`/`ExecuteScalar` now capture response content. New properties on `DapperTrackingOptions`: `LogResponseContent`, `MaxResponseRows`, `MaxValueDisplayLength`, `ResponseDetail`.
+  - **EF Core** (`SqlTrackingInterceptor`): `ReaderExecuted` wraps readers with `TrackingDbDataReader`; `ScalarExecuted` logs scalar values. New properties on `SqlTrackingInterceptorOptions`.
+  - **SqlClient wrapping alternative**: New `TrackingSqlConnection`, `TrackingSqlCommand`, `TrackingSqlTransaction` classes and `SqlConnection.WithTestTracking()` extension method for connection-wrapping approach (alongside existing DiagnosticSource tracking).
+  - **Npgsql wrapping alternative**: New `TrackingNpgsqlConnection`, `TrackingNpgsqlCommand`, `TrackingNpgsqlTransaction` classes and `NpgsqlConnection.WithTestTracking()` extension method.
+  - **MySqlConnector wrapping alternative**: New `TrackingMySqlConnection`, `TrackingMySqlCommand`, `TrackingMySqlTransaction` classes and `MySqlConnection.WithTestTracking()` extension method.
+  - **MongoDB**: `OnCommandSucceeded` now extracts `cursor.firstBatch` documents at Detailed verbosity, showing document previews. New `MongoDbTrackingOptions` properties: `LogResponseContent` (default: `true`), `MaxResponseDocuments` (default: `5`).
+  - **Elasticsearch**: Response body is now included at Detailed verbosity (previously only at Raw). New `ElasticsearchTrackingOptions` property: `LogResponseContent` (default: `true`).
+  - Set `LogResponseContent = false` on any extension to restore previous empty-arrow behaviour.
+
+### Fixed
+- **PlantUML render stuck state recovery** — Added timeout (15s) to the initial `processQueue` MutationObserver render path, which previously had no timeout and could leave `_plantumlRendering` stuck `true` indefinitely. Added 15s stuck-render recovery to `processRenderQueue`'s wait-for-idle loop. Added `_renderCompleteCount` global to allow tests to detect render queue completion without relying on SVG content comparison.
+- **Report search/filter now hides empty `.rule` elements** — The `applyVisibility` JavaScript function previously only handled feature and scenario visibility. Rules containing no visible scenarios are now also hidden during search and filter operations.
+- **DeferredLogFlushHandler flaky test** — Fixed test interference where leftover pending entries from other tests caused `Does_not_flush_when_no_pending_entries` to fail. The test now clears `PendingRequestResponseLogs` before running.
+- **PlantUML render timeouts increased** — The `processRenderQueue` render poll timeout increased from 5s (`pollCount > 20`) to 30s (`pollCount > 120`) to accommodate slow renders under parallel test load.
+- **NoteButtonsAfterHeaderHide race condition** — `ToggleHeadersHidden`/`ToggleHeadersShown` helpers now capture SVG outerHTML before clicking and wait for both `!_plantumlRendering` and SVG change with note element existence, preventing interaction with stale elements during re-render. Timeouts increased from 15s to 60s.
+- **RenderAllDiagramsAndWait stability** — Now waits for `!window._plantumlRendering` in addition to SVG count, ensuring all initial renders complete before tests interact with the page.
+
 ## [2.36.5] - 2026-05-16
 
 ### Added

@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using TestTrackingDiagrams.Sql;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams;
@@ -79,7 +80,12 @@ public class TrackingDbCommand : DbCommand
     {
         var ids = LogRequest();
         var result = _inner.ExecuteReader(behavior);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null)
+        {
+            if (_options.LogResponseContent)
+                return WrapReader(result, ids.Value.TraceId, ids.Value.RequestResponseId);
+            LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        }
         return result;
     }
 
@@ -88,7 +94,12 @@ public class TrackingDbCommand : DbCommand
     {
         var ids = LogRequest();
         var result = await _inner.ExecuteReaderAsync(behavior, cancellationToken);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null)
+        {
+            if (_options.LogResponseContent)
+                return WrapReader(result, ids.Value.TraceId, ids.Value.RequestResponseId);
+            LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        }
         return result;
     }
 
@@ -112,7 +123,7 @@ public class TrackingDbCommand : DbCommand
     {
         var ids = LogRequest();
         var result = _inner.ExecuteScalar();
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null) LogResponseWithContent(ids.Value.TraceId, ids.Value.RequestResponseId, FormatScalar(result));
         return result;
     }
 
@@ -120,7 +131,7 @@ public class TrackingDbCommand : DbCommand
     {
         var ids = LogRequest();
         var result = await _inner.ExecuteScalarAsync(cancellationToken);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null) LogResponseWithContent(ids.Value.TraceId, ids.Value.RequestResponseId, FormatScalar(result));
         return result;
     }
 
@@ -230,6 +241,69 @@ public class TrackingDbCommand : DbCommand
                 return new PhaseVariant(
                     vMethod, BuildUri(op, v), vContent, [], false);
             }));
+    }
+
+    private void LogResponseWithContent(Guid traceId, Guid requestResponseId, string? content)
+    {
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var op = DapperOperationClassifier.Classify(CommandText, CommandType);
+        if (_options.ExcludedOperations.Contains(op.Operation)) return;
+
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null) return;
+
+        var label = DapperOperationClassifier.GetDiagramLabel(op, effectiveVerbosity);
+        OneOf<System.Net.Http.HttpMethod, string> method = effectiveVerbosity == DapperTrackingVerbosity.Raw
+            ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+            : label;
+        var uri = BuildUri(op, effectiveVerbosity);
+        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised ? null : content;
+
+        RequestResponseLogger.Log(new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            method,
+            responseContent,
+            uri,
+            [],
+            _options.ServiceName,
+            _options.CallerName,
+            RequestResponseType.Response,
+            traceId,
+            requestResponseId,
+            false,
+            (OneOf<HttpStatusCode, string>)"OK",
+            DependencyCategory: DependencyCategories.SQL)
+        {
+            Phase = TestPhaseContext.Current
+        }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                OneOf<System.Net.Http.HttpMethod, string> vMethod = v == DapperTrackingVerbosity.Raw
+                    ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
+                    : DapperOperationClassifier.GetDiagramLabel(op, v);
+                var vContent = v == DapperTrackingVerbosity.Summarised ? null : content;
+                return new PhaseVariant(
+                    vMethod, BuildUri(op, v), vContent, [], false);
+            }));
+    }
+
+    private TrackingDbDataReader WrapReader(DbDataReader inner, Guid traceId, Guid requestResponseId)
+    {
+        return new TrackingDbDataReader(
+            inner, _options.ResponseDetail, _options.MaxResponseRows, _options.MaxValueDisplayLength,
+            content => LogResponseWithContent(traceId, requestResponseId, content));
+    }
+
+    private string? FormatScalar(object? result)
+    {
+        if (!_options.LogResponseContent) return null;
+        if (result is null or DBNull) return "null";
+        var str = result.ToString() ?? "";
+        return str.Length > _options.MaxValueDisplayLength
+            ? $"{str[.._options.MaxValueDisplayLength]}... ({str.Length} chars)"
+            : str;
     }
 
     private Uri BuildUri(DapperOperationInfo op, DapperTrackingVerbosity verbosity)

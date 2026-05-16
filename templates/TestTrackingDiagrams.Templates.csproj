@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageType>Template</PackageType>
-    <PackageVersion>2.29.17-beta</PackageVersion>
+    <PackageVersion>2.37.1</PackageVersion>
     <PackageId>TestTrackingDiagrams.Templates</PackageId>
     <Title>TestTrackingDiagrams Project Templates</Title>
     <Authors>Aryeh Citron</Authors>

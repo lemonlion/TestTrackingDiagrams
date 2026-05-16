@@ -58,4 +58,17 @@ public record MongoDbTrackingOptions
     /// Default: <c>true</c>.
     /// </summary>
     public bool AutoCorrelateWrites { get; set; } = true;
+
+    /// <summary>
+    /// Whether to include response content (documents from cursor.firstBatch) in diagrams.
+    /// Applies at Detailed verbosity. At Raw, the full reply is always shown regardless.
+    /// Default: true.
+    /// </summary>
+    public bool LogResponseContent { get; set; } = true;
+
+    /// <summary>
+    /// Maximum number of documents to include from cursor.firstBatch in response content.
+    /// Default: 5.
+    /// </summary>
+    public int MaxResponseDocuments { get; set; } = 5;
 }

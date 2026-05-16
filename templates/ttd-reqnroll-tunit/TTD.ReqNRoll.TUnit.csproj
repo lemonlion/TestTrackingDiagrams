@@ -23,7 +23,6 @@
     <PackageReference Include="Reqnroll" Version="3.3.4" />
     <PackageReference Include="Reqnroll.TUnit" Version="3.3.4" />
     <PackageReference Include="TestTrackingDiagrams.ReqNRoll.TUnit" Version="2.29.17-beta" />
-    <PackageReference Include="TestTrackingDiagrams.AssertionTracking" Version="2.29.17-beta" />
     <PackageReference Include="TUnit" Version="1.43.11" />
   </ItemGroup>
 

@@ -3,18 +3,18 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using TestTrackingDiagrams.Sql;
 
-namespace TestTrackingDiagrams.Extensions.Oracle;
+namespace TestTrackingDiagrams.Extensions.MySqlConnector;
 
 /// <summary>
-/// Tracking decorator for Oracle <see cref="DbCommand"/> that intercepts SQL execution
+/// Tracking decorator for MySQL <see cref="DbCommand"/> that intercepts SQL execution
 /// and logs operations for inclusion in test diagrams.
 /// </summary>
-public class TrackingOracleCommand : DbCommand
+public class TrackingMySqlCommand : DbCommand
 {
     private readonly DbCommand _inner;
-    private readonly TrackingOracleConnection _connection;
+    private readonly TrackingMySqlConnection _connection;
 
-    public TrackingOracleCommand(DbCommand inner, TrackingOracleConnection connection)
+    public TrackingMySqlCommand(DbCommand inner, TrackingMySqlConnection connection)
     {
         _inner = inner;
         _connection = connection;

@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
+using TestTrackingDiagrams.Sql;
 using TestTrackingDiagrams.Tracking;
 
 namespace TestTrackingDiagrams.Extensions.Spanner;
@@ -77,7 +78,12 @@ public class TrackingSpannerCommand : DbCommand
     {
         var ids = LogRequest();
         var result = _inner.ExecuteReader(behavior);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null)
+        {
+            if (_options.LogResponseContent)
+                return WrapReader(result, ids.Value.TraceId, ids.Value.RequestResponseId);
+            LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        }
         return result;
     }
 
@@ -86,7 +92,12 @@ public class TrackingSpannerCommand : DbCommand
     {
         var ids = LogRequest();
         var result = await _inner.ExecuteReaderAsync(behavior, cancellationToken);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null)
+        {
+            if (_options.LogResponseContent)
+                return WrapReader(result, ids.Value.TraceId, ids.Value.RequestResponseId);
+            LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        }
         return result;
     }
 
@@ -110,7 +121,7 @@ public class TrackingSpannerCommand : DbCommand
     {
         var ids = LogRequest();
         var result = _inner.ExecuteScalar();
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null) LogResponseWithContent(ids.Value.TraceId, ids.Value.RequestResponseId, FormatScalar(result));
         return result;
     }
 
@@ -118,7 +129,7 @@ public class TrackingSpannerCommand : DbCommand
     {
         var ids = LogRequest();
         var result = await _inner.ExecuteScalarAsync(cancellationToken);
-        if (ids is not null) LogResponse(ids.Value.TraceId, ids.Value.RequestResponseId);
+        if (ids is not null) LogResponseWithContent(ids.Value.TraceId, ids.Value.RequestResponseId, FormatScalar(result));
         return result;
     }
 
@@ -149,6 +160,28 @@ public class TrackingSpannerCommand : DbCommand
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
         _connection.Tracker.LogResponse(op, requestResponseId, traceId, responseContent);
+    }
+
+    private void LogResponseWithContent(Guid traceId, Guid requestResponseId, string? content)
+    {
+        var op = SpannerOperationClassifier.ClassifySql(CommandText, CommandType);
+        _connection.Tracker.LogResponse(op, requestResponseId, traceId, content);
+    }
+
+    private TrackingDbDataReader WrapReader(DbDataReader inner, Guid traceId, Guid requestResponseId)
+    {
+        var detail = (SqlResponseDetail)(int)_options.ResponseDetail;
+        return new TrackingDbDataReader(
+            inner, detail, _options.MaxResponseRows, 500,
+            content => LogResponseWithContent(traceId, requestResponseId, content));
+    }
+
+    private string? FormatScalar(object? result)
+    {
+        if (!_options.LogResponseContent) return null;
+        if (result is null or DBNull) return "null";
+        var str = result.ToString() ?? "";
+        return str.Length > 500 ? $"{str[..500]}... ({str.Length} chars)" : str;
     }
 
     private string? BuildParameterizedContent()

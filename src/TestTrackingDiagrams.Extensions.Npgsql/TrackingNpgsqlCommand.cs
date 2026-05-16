@@ -3,18 +3,18 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using TestTrackingDiagrams.Sql;
 
-namespace TestTrackingDiagrams.Extensions.Oracle;
+namespace TestTrackingDiagrams.Extensions.Npgsql;
 
 /// <summary>
-/// Tracking decorator for Oracle <see cref="DbCommand"/> that intercepts SQL execution
+/// Tracking decorator for Npgsql <see cref="DbCommand"/> that intercepts SQL execution
 /// and logs operations for inclusion in test diagrams.
 /// </summary>
-public class TrackingOracleCommand : DbCommand
+public class TrackingNpgsqlCommand : DbCommand
 {
     private readonly DbCommand _inner;
-    private readonly TrackingOracleConnection _connection;
+    private readonly TrackingNpgsqlConnection _connection;
 
-    public TrackingOracleCommand(DbCommand inner, TrackingOracleConnection connection)
+    public TrackingNpgsqlCommand(DbCommand inner, TrackingNpgsqlConnection connection)
     {
         _inner = inner;
         _connection = connection;
@@ -135,7 +135,7 @@ public class TrackingOracleCommand : DbCommand
         var parameters = BuildParameterString();
         return _connection.Tracker.DoLogRequest(
             CommandText,
-            _connection.InnerConnection.DataSource,
+            _connection.FormattedDataSource,
             _connection.InnerConnection.Database,
             CommandType,
             parameters);

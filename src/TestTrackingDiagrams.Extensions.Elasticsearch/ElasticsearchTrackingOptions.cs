@@ -28,4 +28,11 @@ public class ElasticsearchTrackingOptions
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
     public Microsoft.AspNetCore.Http.IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    /// <summary>
+    /// Whether to include response body content in diagrams at Detailed verbosity.
+    /// At Raw verbosity, the response body is always included regardless.
+    /// Default: true.
+    /// </summary>
+    public bool LogResponseContent { get; set; } = true;
 }

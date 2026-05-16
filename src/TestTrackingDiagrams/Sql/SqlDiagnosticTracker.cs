@@ -281,6 +281,63 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         RequestResponseLogger.Log(log);
     }
 
+    /// <summary>
+    /// Overload for DbConnection-wrapping extensions that provide pre-formatted response content
+    /// (e.g. from a <see cref="TrackingDbDataReader"/> or scalar value).
+    /// </summary>
+    protected internal void LogResponse(Guid traceId, Guid requestResponseId, string? content, Exception? exception = null)
+    {
+        if (!PhaseConfiguration.ShouldTrack(_options.TrackDuringSetup, _options.TrackDuringAction))
+            return;
+
+        var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(
+            _options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
+
+        var testInfo = TestInfoResolver.Resolve(_httpContextAccessor, _options.CurrentTestInfoFetcher);
+        if (testInfo is null)
+            return;
+
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised
+            ? null
+            : exception is not null
+                ? exception.Message
+                : content;
+
+        OneOf<HttpStatusCode, string> status = exception is not null ? "Error" : "OK";
+
+        var log = new RequestResponseLog(
+            testInfo.Value.Name,
+            testInfo.Value.Id,
+            (OneOf<HttpMethod, string>)"",
+            responseContent,
+            new Uri($"{_options.UriScheme}:///"),
+            [],
+            _options.ServiceName,
+            _options.CallerName,
+            RequestResponseType.Response,
+            traceId,
+            requestResponseId,
+            false,
+            status,
+            DependencyCategory: _options.DependencyCategory)
+        {
+            Phase = TestPhaseContext.Current
+        };
+
+        log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
+            v =>
+            {
+                var vContent = v == SqlTrackingVerbosityLevel.Summarised
+                    ? null
+                    : exception is not null
+                        ? exception.Message
+                        : content;
+                return new PhaseVariant("", new Uri($"{_options.UriScheme}:///"), vContent, [], false);
+            });
+
+        RequestResponseLogger.Log(log);
+    }
+
     private Uri BuildUri(string? dataSource, string? database, UnifiedSqlOperationInfo op, SqlTrackingVerbosityLevel verbosity)
     {
         if (string.IsNullOrEmpty(database)) database = "unknown";

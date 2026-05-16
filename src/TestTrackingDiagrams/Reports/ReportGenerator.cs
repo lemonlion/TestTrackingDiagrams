@@ -303,6 +303,15 @@ public static class ReportGenerator
                                               var hidden = d.hp || d.dep || d.st || d.sr || d.dur || d.cat;
                                               d.el.style.display = hidden ? 'none' : '';
                                           }
+                                          var rules = document.getElementsByClassName('rule');
+                                          for (var i = 0; i < rules.length; i++) {
+                                              var rs = rules[i].getElementsByClassName('scenario');
+                                              var hasVisibleInRule = false;
+                                              for (var j = 0; j < rs.length; j++) {
+                                                  if (rs[j].style.display !== 'none') { hasVisibleInRule = true; break; }
+                                              }
+                                              rules[i].style.display = hasVisibleInRule ? '' : 'none';
+                                          }
                                           for (var i = 0; i < c.features.length; i++) {
                                               var f = c.features[i];
                                               var sc = f.getElementsByClassName('scenario');

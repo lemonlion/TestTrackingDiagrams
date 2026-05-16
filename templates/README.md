@@ -53,6 +53,20 @@ dotnet new ttd-xunit3 --name MyService.Tests.Component \
 4. Run tests: `dotnet test`
 5. Find reports in: `bin/Debug/{framework}/Reports/`
 
-## Assertion Tracking
+## Assertion Tracking (Beta — Opt-in)
 
-All templates come pre-configured with `[assembly: TrackAssertions]` and a reference to `TestTrackingDiagrams.AssertionTracking`. This means all `.Should()` calls are automatically instrumented at compile time via IL weaving, producing green/red assertion notes in your HTML reports with zero manual effort.
+Assertion tracking is available as a **beta** feature via the `TestTrackingDiagrams.AssertionTracking` package. It uses IL weaving to instrument `.Should()` calls at compile time, producing green/red assertion notes in your HTML reports. Because IL weaving can interfere with some build configurations, it is **not included by default** in the templates.
+
+To opt in, add the package and assembly attribute manually:
+
+```bash
+dotnet add package TestTrackingDiagrams.AssertionTracking --prerelease
+```
+
+Then create an `AssertionTracking.cs` file in your test project:
+
+```csharp
+using TestTrackingDiagrams.Tracking;
+
+[assembly: TrackAssertions]
+```

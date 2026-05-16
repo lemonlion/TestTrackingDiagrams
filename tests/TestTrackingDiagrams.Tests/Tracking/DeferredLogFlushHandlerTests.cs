@@ -35,6 +35,8 @@ public class DeferredLogFlushHandlerTests
     [Fact]
     public async Task Does_not_flush_when_no_pending_entries()
     {
+        PendingRequestResponseLogs.Clear();
+
         var countBefore = RequestResponseLogger.RequestAndResponseLogs
             .Count(l => l.TestId == _testId);
 

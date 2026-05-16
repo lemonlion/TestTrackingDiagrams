@@ -72,7 +72,8 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
         }
 
         string? responseBody = null;
-        if (effectiveVerbosity == ElasticsearchTrackingVerbosity.Raw
+        if (effectiveVerbosity != ElasticsearchTrackingVerbosity.Summarised
+            && _options.LogResponseContent
             && responseBodyBytes is not null)
         {
             responseBody = Encoding.UTF8.GetString(responseBodyBytes);
@@ -123,7 +124,8 @@ public class ElasticsearchTrackingCallbackHandler : ITrackingComponent
         }.WithVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vResponseBody = v == ElasticsearchTrackingVerbosity.Raw && responseBodyBytes is not null
+                var vResponseBody = v != ElasticsearchTrackingVerbosity.Summarised
+                    && _options.LogResponseContent && responseBodyBytes is not null
                     ? Encoding.UTF8.GetString(responseBodyBytes) : null;
                 return new PhaseVariant(
                     ElasticsearchOperationClassifier.GetDiagramLabel(op, v),

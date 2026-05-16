@@ -139,9 +139,23 @@ public class ElasticsearchTrackingCallbackHandlerTests
     }
 
     [Fact]
-    public void LogOperation_omits_response_body_at_detailed()
+    public void LogOperation_includes_response_body_at_detailed()
     {
         var handler = new ElasticsearchTrackingCallbackHandler(MakeOptions(ElasticsearchTrackingVerbosity.Detailed));
+        var responseBody = System.Text.Encoding.UTF8.GetBytes("{\"hits\":{\"total\":42}}");
+
+        CallHandler(handler, responseBody: responseBody);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("hits", log.Content);
+    }
+
+    [Fact]
+    public void LogOperation_omits_response_body_at_detailed_when_LogResponseContent_is_false()
+    {
+        var options = MakeOptions(ElasticsearchTrackingVerbosity.Detailed);
+        options.LogResponseContent = false;
+        var handler = new ElasticsearchTrackingCallbackHandler(options);
         var responseBody = System.Text.Encoding.UTF8.GetBytes("{\"hits\":{\"total\":42}}");
 
         CallHandler(handler, responseBody: responseBody);
