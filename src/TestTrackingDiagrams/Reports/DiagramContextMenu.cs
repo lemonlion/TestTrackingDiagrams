@@ -3057,6 +3057,14 @@ public static class DiagramContextMenu
                         afterRender();
                     }
                     if (pollCount > 120) {
+                        clearInterval(poll);
+                        mo.disconnect();
+                        if (renderTarget.parentNode) renderTarget.parentNode.removeChild(renderTarget);
+                        container._noteRendering = false;
+                        window._plantumlRendering = false;
+                        container.style.minHeight = '';
+                        // Render timed out — restore previous step and sync buttons
+                        container._noteSteps[noteIdx] = oldStep;
                         makeNotesCollapsible(container);
                         addAssertionTooltips(container);
                     }
