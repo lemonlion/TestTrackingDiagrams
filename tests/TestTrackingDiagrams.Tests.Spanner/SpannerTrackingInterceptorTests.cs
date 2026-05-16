@@ -5,6 +5,7 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using TestTrackingDiagrams.Extensions.Spanner;
 using TestTrackingDiagrams.Tracking;
+using TypeCode = Google.Cloud.Spanner.V1.TypeCode;
 
 namespace TestTrackingDiagrams.Tests.Spanner;
 
@@ -431,5 +432,454 @@ public class SpannerTrackingInterceptorTests
         var log = GetLogs().First();
         Assert.Contains("INSERT INTO Orders", log.Content!);
         Assert.Contains("UPDATE Stock", log.Content!);
+    }
+
+    // ─── Response content capture ──────────────────────────
+
+    [Fact]
+    public void UnaryCall_LogsResponseContent_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name"], [["Alice"], ["Bob"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Equal(RequestResponseType.Response, responseLog.Type);
+        Assert.NotNull(responseLog.Content);
+        Assert.Contains("2 rows", responseLog.Content!);
+    }
+
+    [Fact]
+    public void UnaryCall_LogsNullContent_WhenLogResponseContentFalse()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = false;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name"], [["Alice"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Null(responseLog.Content);
+    }
+
+    [Fact]
+    public void UnaryCall_CommitResponse_LogsCommitTimestamp()
+    {
+        var options = MakeOptions();
+        var interceptor = CreateInterceptor(options);
+        var request = new CommitRequest
+        {
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        request.Mutations.Add(new Mutation
+        {
+            Insert = new Mutation.Types.Write { Table = "Users" }
+        });
+        var response = new CommitResponse
+        {
+            CommitTimestamp = Timestamp.FromDateTimeOffset(
+                new DateTimeOffset(2026, 5, 15, 12, 0, 0, TimeSpan.Zero))
+        };
+        var method = MakeMethod<CommitRequest, CommitResponse>(
+            "google.spanner.v1.Spanner", "Commit");
+        var context = new ClientInterceptorContext<CommitRequest, CommitResponse>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Contains("2026-05-15", responseLog.Content!);
+    }
+
+    [Fact]
+    public void UnaryCall_ResultSet_LogsRowCountAndColumns()
+    {
+        var options = MakeOptions();
+        options.ResponseDetail = SpannerResponseDetail.RowCountAndColumns;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name, Age FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name", "Age"], [["Alice", "30"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Contains("1 row", responseLog.Content!);
+        Assert.Contains("Name", responseLog.Content!);
+        Assert.Contains("Age", responseLog.Content!);
+    }
+
+    [Fact]
+    public async Task UnaryCall_RpcException_LogsNullContent()
+    {
+        var options = MakeOptions();
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT * FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        var rpcEx = new RpcException(new Status(StatusCode.NotFound, "Not found"));
+        var call = interceptor.AsyncUnaryCall(request, context,
+            (req, ctx) => new AsyncUnaryCall<ResultSet>(
+                Task.FromException<ResultSet>(rpcEx),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.NotFound, "Not found"),
+                () => new Metadata(),
+                () => { }));
+
+        await Assert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Equal(RequestResponseType.Response, responseLog.Type);
+        Assert.Null(responseLog.Content);
+    }
+
+    [Fact]
+    public void ResponseDetail_RowCountOnly_AffectsOutput()
+    {
+        var options = MakeOptions();
+        options.ResponseDetail = SpannerResponseDetail.RowCountOnly;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name"], [["Alice"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Equal("1 row", responseLog.Content);
+    }
+
+    [Fact]
+    public void ResponseDetail_FullRows_AffectsOutput()
+    {
+        var options = MakeOptions();
+        options.ResponseDetail = SpannerResponseDetail.FullRows;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name"], [["Alice"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Contains("Alice", responseLog.Content!);
+    }
+
+    [Fact]
+    public void MaxResponseRows_Respected()
+    {
+        var options = MakeOptions();
+        options.ResponseDetail = SpannerResponseDetail.FullRows;
+        options.MaxResponseRows = 1;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var response = MakeResultSetResponse(["Name"], [["Alice"], ["Bob"], ["Carol"]]);
+        var method = MakeMethod<ExecuteSqlRequest, ResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteSql");
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, ResultSet>(
+            method, null, new CallOptions());
+
+        interceptor.AsyncUnaryCall(request, context, (req, ctx) => FakeUnaryCall(response));
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Contains("Alice", responseLog.Content!);
+        Assert.DoesNotContain("Bob", responseLog.Content!);
+        Assert.Contains("... (2 more)", responseLog.Content!);
+    }
+
+    // ─── Streaming response tests ──────────────────────────
+
+    [Fact]
+    public void StreamingCall_WrapsStream_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var method = MakeMethod<ExecuteSqlRequest, PartialResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteStreamingSql",
+            MethodType.ServerStreaming);
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, PartialResultSet>(
+            method, null, new CallOptions());
+
+        var fakeStream = new FakeAsyncStreamReader<PartialResultSet>([]);
+        var originalCall = new AsyncServerStreamingCall<PartialResultSet>(
+            fakeStream,
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => new Metadata(),
+            () => { });
+
+        var wrappedCall = interceptor.AsyncServerStreamingCall(request, context,
+            (req, ctx) => originalCall);
+
+        // The stream should be wrapped (not the same object)
+        Assert.NotSame(fakeStream, wrappedCall.ResponseStream);
+    }
+
+    [Fact]
+    public void StreamingCall_LogsNullContent_WhenLogResponseContentFalse()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = false;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var method = MakeMethod<ExecuteSqlRequest, PartialResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteStreamingSql",
+            MethodType.ServerStreaming);
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, PartialResultSet>(
+            method, null, new CallOptions());
+
+        var fakeStream = new FakeAsyncStreamReader<PartialResultSet>([]);
+        var originalCall = new AsyncServerStreamingCall<PartialResultSet>(
+            fakeStream,
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => new Metadata(),
+            () => { });
+
+        interceptor.AsyncServerStreamingCall(request, context,
+            (req, ctx) => originalCall);
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Null(responseLog.Content);
+    }
+
+    [Fact]
+    public async Task StreamingCall_LogsContentAfterStreamCompletion()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var method = MakeMethod<ExecuteSqlRequest, PartialResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteStreamingSql",
+            MethodType.ServerStreaming);
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, PartialResultSet>(
+            method, null, new CallOptions());
+
+        var chunk = new PartialResultSet
+        {
+            Metadata = new ResultSetMetadata
+            {
+                RowType = new StructType
+                {
+                    Fields =
+                    {
+                        new StructType.Types.Field
+                        {
+                            Name = "Name",
+                            Type = new Google.Cloud.Spanner.V1.Type { Code = TypeCode.String }
+                        }
+                    }
+                }
+            },
+            Values = { Value.ForString("Alice"), Value.ForString("Bob") }
+        };
+
+        var fakeStream = new FakeAsyncStreamReader<PartialResultSet>([chunk]);
+        var originalCall = new AsyncServerStreamingCall<PartialResultSet>(
+            fakeStream,
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => new Metadata(),
+            () => { });
+
+        var wrappedCall = interceptor.AsyncServerStreamingCall(request, context,
+            (req, ctx) => originalCall);
+
+        // Consume the stream
+        while (await wrappedCall.ResponseStream.MoveNext(CancellationToken.None)) { }
+
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Equal(RequestResponseType.Response, responseLog.Type);
+        Assert.NotNull(responseLog.Content);
+        Assert.Contains("2 rows", responseLog.Content!);
+    }
+
+    [Fact]
+    public async Task StreamingCall_DisposedBeforeExhaustion_LogsPartialContent()
+    {
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        var interceptor = CreateInterceptor(options);
+        var request = new ExecuteSqlRequest
+        {
+            Sql = "SELECT Name FROM Users",
+            Session = "projects/p/instances/i/databases/d/sessions/s"
+        };
+        var method = MakeMethod<ExecuteSqlRequest, PartialResultSet>(
+            "google.spanner.v1.Spanner", "ExecuteStreamingSql",
+            MethodType.ServerStreaming);
+        var context = new ClientInterceptorContext<ExecuteSqlRequest, PartialResultSet>(
+            method, null, new CallOptions());
+
+        var chunk1 = new PartialResultSet
+        {
+            Metadata = new ResultSetMetadata
+            {
+                RowType = new StructType
+                {
+                    Fields =
+                    {
+                        new StructType.Types.Field
+                        {
+                            Name = "Name",
+                            Type = new Google.Cloud.Spanner.V1.Type { Code = TypeCode.String }
+                        }
+                    }
+                }
+            },
+            Values = { Value.ForString("Alice") }
+        };
+        var chunk2 = new PartialResultSet
+        {
+            Values = { Value.ForString("Bob") }
+        };
+
+        var fakeStream = new FakeAsyncStreamReader<PartialResultSet>([chunk1, chunk2]);
+        var disposed = false;
+        var originalCall = new AsyncServerStreamingCall<PartialResultSet>(
+            fakeStream,
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => new Metadata(),
+            () => { disposed = true; });
+
+        var wrappedCall = interceptor.AsyncServerStreamingCall(request, context,
+            (req, ctx) => originalCall);
+
+        // Read only 1 chunk, then dispose
+        await wrappedCall.ResponseStream.MoveNext(CancellationToken.None);
+        wrappedCall.Dispose();
+
+        Assert.True(disposed);
+        var logs = GetLogs();
+        var responseLog = logs.Last();
+        Assert.Equal(RequestResponseType.Response, responseLog.Type);
+    }
+
+    // ─── Helpers for response tests ─────────────────────────
+
+    private static ResultSet MakeResultSetResponse(string[] columns, string[][] rows)
+    {
+        var rs = new ResultSet
+        {
+            Metadata = new ResultSetMetadata
+            {
+                RowType = new StructType()
+            }
+        };
+        foreach (var col in columns)
+        {
+            rs.Metadata.RowType.Fields.Add(new StructType.Types.Field
+            {
+                Name = col,
+                Type = new Google.Cloud.Spanner.V1.Type { Code = TypeCode.String }
+            });
+        }
+        foreach (var row in rows)
+        {
+            var lv = new ListValue();
+            foreach (var val in row)
+                lv.Values.Add(Value.ForString(val));
+            rs.Rows.Add(lv);
+        }
+        return rs;
+    }
+
+    /// <summary>
+    /// A fake IAsyncStreamReader for testing streaming calls.
+    /// </summary>
+    private sealed class FakeAsyncStreamReader<T> : IAsyncStreamReader<T>
+    {
+        private readonly IReadOnlyList<T> _items;
+        private int _index = -1;
+
+        public FakeAsyncStreamReader(IReadOnlyList<T> items) => _items = items;
+
+        public T Current => _items[_index];
+
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
+        {
+            _index++;
+            return Task.FromResult(_index < _items.Count);
+        }
     }
 }

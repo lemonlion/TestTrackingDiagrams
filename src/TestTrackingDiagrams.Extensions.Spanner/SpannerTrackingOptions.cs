@@ -26,4 +26,24 @@ public record SpannerTrackingOptions
     public SpannerTrackingVerbosity? ActionVerbosity { get; set; }
     public bool TrackDuringSetup { get; set; } = true;
     public bool TrackDuringAction { get; set; } = true;
+
+    /// <summary>
+    /// Whether to include response content in diagrams. Default: true.
+    /// When false, response arrows are empty (previous behaviour).
+    /// Only applies at Detailed and Raw verbosity (Summarised never shows content).
+    /// </summary>
+    public bool LogResponseContent { get; set; } = true;
+
+    /// <summary>
+    /// Maximum number of rows to include in response content.
+    /// Default: 5. Set to 0 for row count only (overrides ResponseDetail for row data).
+    /// Negative values are treated as 0.
+    /// </summary>
+    public int MaxResponseRows { get; set; } = 5;
+
+    /// <summary>
+    /// Level of detail for response content in diagram arrows.
+    /// Default: RowCountAndColumns.
+    /// </summary>
+    public SpannerResponseDetail ResponseDetail { get; set; } = SpannerResponseDetail.RowCountAndColumns;
 }

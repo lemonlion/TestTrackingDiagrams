@@ -78,9 +78,28 @@ public class SpannerTrackingInterceptor : Interceptor, ITrackingComponent
 
         var call = continuation(request, context);
 
-        // Log a single response event for the stream (not per-message)
-        _tracker.LogResponse(opInfo, reqId, traceId, null);
+        if (_options.LogResponseContent)
+        {
+            var wrappedStream = new TrackingAsyncStreamReader<TResponse>(
+                call.ResponseStream, _tracker, _options, opInfo, reqId, traceId);
 
+            var originalDispose = call.Dispose;
+            void WrappedDispose()
+            {
+                wrappedStream.LogIfNotAlreadyLogged();
+                originalDispose();
+            }
+
+            return new AsyncServerStreamingCall<TResponse>(
+                wrappedStream,
+                call.ResponseHeadersAsync,
+                call.GetStatus,
+                call.GetTrailers,
+                WrappedDispose);
+        }
+
+        // When response content logging is disabled, log immediately and return as-is
+        _tracker.LogResponse(opInfo, reqId, traceId, null);
         return call;
     }
 
@@ -233,7 +252,8 @@ public class SpannerTrackingInterceptor : Interceptor, ITrackingComponent
         try
         {
             var response = await responseTask;
-            _tracker.LogResponse(opInfo, reqId, traceId, null);
+            var (responseContent, rawContent) = ExtractResponseContent(response);
+            _tracker.LogResponse(opInfo, reqId, traceId, responseContent, rawContent);
             return response;
         }
         catch (RpcException)
@@ -241,6 +261,31 @@ public class SpannerTrackingInterceptor : Interceptor, ITrackingComponent
             _tracker.LogResponse(opInfo, reqId, traceId, null);
             throw;
         }
+    }
+
+    private (string? Content, string? RawContent) ExtractResponseContent<TResponse>(TResponse response)
+    {
+        if (!_options.LogResponseContent)
+            return (null, null);
+
+        var content = response switch
+        {
+            ResultSet rs => SpannerResponseFormatter.FormatResultSet(
+                rs, _options.ResponseDetail, _options.MaxResponseRows),
+            CommitResponse cr => SpannerResponseFormatter.FormatCommitResponse(cr),
+            ExecuteBatchDmlResponse batch => SpannerResponseFormatter.FormatBatchDmlResponse(
+                batch, _options.ResponseDetail),
+            Transaction tx => $"Transaction: {tx.Id.ToBase64()}",
+            _ => null
+        };
+
+        var rawContent = (_options.Verbosity == SpannerTrackingVerbosity.Raw
+                         || _options.SetupVerbosity == SpannerTrackingVerbosity.Raw
+                         || _options.ActionVerbosity == SpannerTrackingVerbosity.Raw)
+            ? SpannerResponseFormatter.FormatRaw(response)
+            : null;
+
+        return (content, rawContent);
     }
 
     private static string? ExtractMutationTableName(CommitRequest commit)

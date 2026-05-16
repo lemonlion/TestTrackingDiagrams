@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.36.5] - 2026-05-16
+
+### Added
+- **Spanner gRPC interceptor captures response payloads** (#58) — The `SpannerTrackingInterceptor` now extracts and logs response content from Spanner gRPC calls. Response arrows in PlantUML sequence diagrams show row counts, column names, commit timestamps, and batch DML results instead of being empty.
+  - New `SpannerResponseDetail` enum (`RowCountOnly`, `RowCountAndColumns`, `FullRows`) controls response detail level.
+  - New `SpannerTrackingOptions` properties: `LogResponseContent` (default: `true`), `MaxResponseRows` (default: `5`), `ResponseDetail` (default: `RowCountAndColumns`).
+  - Streaming responses (`ExecuteStreamingSql`, `StreamingRead`) are accumulated via `TrackingAsyncStreamReader` and logged after stream completion or disposal.
+  - `SpannerResponseFormatter` formats `ResultSet`, `CommitResponse`, `ExecuteBatchDmlResponse`, and `PartialResultSet` chunks with truncation for large values (500 chars) and wide tables (20 columns).
+  - Set `LogResponseContent = false` to restore previous empty-arrow behaviour.
+
 ## [2.36.4] - 2026-05-15
 
 ### Fixed
