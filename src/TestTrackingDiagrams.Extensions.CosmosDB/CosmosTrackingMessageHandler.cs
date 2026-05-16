@@ -118,7 +118,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
             v => new PhaseVariant(
                 v == CosmosTrackingVerbosity.Raw ? request.Method : CosmosOperationClassifier.GetDiagramLabel(cosmosOp, v),
                 v == CosmosTrackingVerbosity.Raw ? request.RequestUri! : BuildCleanUri(request.RequestUri!, cosmosOp, v),
-                v == CosmosTrackingVerbosity.Summarised ? null : responseContent,
+                v == CosmosTrackingVerbosity.Summarised && !_options.LogResponseContent ? null : responseContent,
                 GetFilteredHeaders(response, v),
                 v == CosmosTrackingVerbosity.Summarised && cosmosOp.Operation == CosmosOperation.Other)));
 
@@ -178,7 +178,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
 
     private async Task<string?> GetResponseContent(HttpResponseMessage response, CosmosTrackingVerbosity verbosity, CancellationToken ct)
     {
-        if (verbosity == CosmosTrackingVerbosity.Summarised)
+        if (verbosity == CosmosTrackingVerbosity.Summarised && !_options.LogResponseContent)
             return null;
 
         return await response.Content.ReadAsStringAsync(ct);

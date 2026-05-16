@@ -115,7 +115,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         if (testInfo is null)
             return;
 
-        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
             ? null
             : exception is not null
                 ? exception.Message
@@ -147,7 +147,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vContent = v == SqlTrackingVerbosityLevel.Summarised
+                var vContent = v == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
                     ? null
                     : exception is not null
                         ? exception.Message
@@ -236,7 +236,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         if (testInfo is null)
             return;
 
-        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
             ? null
             : exception is not null
                 ? exception.Message
@@ -268,7 +268,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vContent = v == SqlTrackingVerbosityLevel.Summarised
+                var vContent = v == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
                     ? null
                     : exception is not null
                         ? exception.Message
@@ -297,7 +297,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         if (testInfo is null)
             return;
 
-        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
             ? null
             : exception is not null
                 ? exception.Message
@@ -327,7 +327,7 @@ public abstract class SqlDiagnosticTracker : ITrackingComponent
         log.AttachVariants(_options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity,
             v =>
             {
-                var vContent = v == SqlTrackingVerbosityLevel.Summarised
+                var vContent = v == SqlTrackingVerbosityLevel.Summarised && !_options.LogResponseContent
                     ? null
                     : exception is not null
                         ? exception.Message

@@ -217,7 +217,9 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
     [Fact]
     public async Task Summarised_OmitsResponseContent()
     {
-        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Summarised));
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = false;
+        using var invoker = CreateInvoker(options);
 
         await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
 
@@ -548,5 +550,64 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal("My Test", result.Value.Name);
         TestCorrelationStore.Clear();
+    }
+
+    // ─── Summarised + LogResponseContent ────────────────────────
+
+    [Fact]
+    public async Task Summarised_IncludesResponseContent_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("doc1", log.Content);
+    }
+
+    [Fact]
+    public async Task Summarised_OmitsResponseContent_WhenLogResponseContentFalse()
+    {
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = false;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public async Task Summarised_still_omits_request_content_when_LogResponseContent_true()
+    {
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeCreateRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public async Task Summarised_ResponseVariant_includes_content_when_LogResponseContent_true()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        options.SetupVerbosity = CosmosTrackingVerbosity.Summarised;
+        options.ActionVerbosity = CosmosTrackingVerbosity.Detailed;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.SetupVariant!.Content);
+        Assert.Contains("doc1", log.SetupVariant!.Content);
     }
     }

@@ -673,4 +673,83 @@ public class SqlTrackingInterceptorTests : IDisposable
         Assert.NotNull(log.SetupVariant);
         Assert.NotNull(log.ActionVariant);
     }
+
+    // ─── Summarised + LogResponseContent ────────────────────────
+
+    [Fact]
+    public void Summarised_IncludesResponseContent_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions(SqlTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeInsertCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 3);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("3", log.Content);
+    }
+
+    [Fact]
+    public void Summarised_OmitsResponseContent_WhenLogResponseContentFalse()
+    {
+        var options = MakeOptions(SqlTrackingVerbosity.Summarised);
+        options.LogResponseContent = false;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeInsertCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 3);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Summarised_IncludesScalarResponseContent_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions(SqlTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecutedWithContent(command, "42");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Equal("42", log.Content);
+    }
+
+    [Fact]
+    public void Summarised_ResponseVariant_includes_content_when_LogResponseContent_true()
+    {
+        TestPhaseContext.Reset();
+        var options = MakeOptions();
+        options.LogResponseContent = true;
+        options.SetupVerbosity = SqlTrackingVerbosity.Summarised;
+        options.ActionVerbosity = SqlTrackingVerbosity.Detailed;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeInsertCommand();
+
+        interceptor.LogCommandExecuting(command);
+        interceptor.LogCommandExecuted(command, rowsAffected: 5);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("5", log.SetupVariant!.Content);
+    }
+
+    [Fact]
+    public void Summarised_still_omits_request_content_when_LogResponseContent_true()
+    {
+        var options = MakeOptions(SqlTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        var interceptor = new SqlTrackingInterceptor(options);
+        var command = MakeSelectCommand();
+
+        interceptor.LogCommandExecuting(command);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
 }

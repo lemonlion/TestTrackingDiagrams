@@ -39,9 +39,9 @@ public record SqlTrackingOptionsBase
     public string UriScheme { get; set; } = "sql";
 
     /// <summary>
-    /// Whether to include response content in diagrams. Default: true.
-    /// When false, response arrows are empty (previous behaviour).
-    /// Only applies at Detailed and Raw verbosity (Summarised never shows content).
+    /// Whether to include response content in diagrams. Default: <c>true</c>.
+    /// When <c>true</c>, response arrows show payload data (row counts, column names, etc.) at all verbosity levels.
+    /// When <c>false</c>, response arrows are empty (previous behaviour).
     /// </summary>
     public bool LogResponseContent { get; set; } = true;
 

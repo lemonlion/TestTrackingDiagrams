@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.37.2] - 2026-05-17
+
+### Fixed
+- **Database response payloads now appear at Summarised verbosity** — Response content (row counts, column names, row previews, scalar values, HTTP response bodies) was unconditionally suppressed at `Summarised` verbosity, regardless of the `LogResponseContent` flag. Since `LogResponseContent` defaults to `true`, users at `Summarised` verbosity saw empty response arrows despite the v2.37.0 response payload feature. Response content is now included at all verbosity levels when `LogResponseContent` is `true`. Set `LogResponseContent = false` to restore empty response arrows.
+  - **EF Core** (`SqlTrackingInterceptor`): `LogCommandExecuted`, `LogCommandExecutedWithContent`, and all response phase variant builders now respect `LogResponseContent` independently of verbosity.
+  - **CosmosDB** (`CosmosTrackingMessageHandler`): New `LogResponseContent` property on `CosmosTrackingMessageHandlerOptions` (default: `true`). `GetResponseContent` and response phase variants now include content at `Summarised` when the flag is `true`.
+  - **SQL DiagnosticSource base** (`SqlDiagnosticTracker`): `LogCommandEnd` and both `LogResponse` overloads now respect `LogResponseContent` at `Summarised`. Affects SqlClient, Npgsql, MySqlConnector, and Oracle DiagnosticSource trackers.
+  - Request content, headers, and URI detail level remain controlled by verbosity as before — only response arrows are affected.
+
 ## [2.37.1] - 2026-05-17
 
 ### Changed

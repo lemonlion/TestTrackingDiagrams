@@ -118,7 +118,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             : label!;
 
         var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
-        var content = effectiveVerbosity == SqlTrackingVerbosity.Summarised
+        var content = effectiveVerbosity == SqlTrackingVerbosity.Summarised && !_options.LogResponseContent
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
@@ -275,7 +275,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
         return new PhaseVariant(method, uri, content, [], skip);
     }
 
-    private static PhaseVariant BuildResponseVariant(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, int? rowsAffected)
+    private PhaseVariant BuildResponseVariant(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, int? rowsAffected)
     {
         var skip = verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other;
         var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, verbosity);
@@ -283,14 +283,14 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
             : label!;
         var uri = BuildUri(command, sqlOp, verbosity);
-        var content = verbosity == SqlTrackingVerbosity.Summarised
+        var content = verbosity == SqlTrackingVerbosity.Summarised && !_options.LogResponseContent
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
         return new PhaseVariant(method, uri, content, [], skip);
     }
 
-    private static PhaseVariant BuildResponseVariantWithContent(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, string? responseContent)
+    private PhaseVariant BuildResponseVariantWithContent(DbCommand command, SqlOperationInfo sqlOp, SqlTrackingVerbosity verbosity, string? responseContent)
     {
         var skip = verbosity == SqlTrackingVerbosity.Summarised && sqlOp.Operation == SqlOperation.Other;
         var label = SqlOperationClassifier.GetDiagramLabel(sqlOp, verbosity);
@@ -298,7 +298,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             ? SqlOperationClassifier.GetRawKeyword(command.CommandText) ?? "SQL"
             : label!;
         var uri = BuildUri(command, sqlOp, verbosity);
-        var content = verbosity == SqlTrackingVerbosity.Summarised ? null : responseContent;
+        var content = verbosity == SqlTrackingVerbosity.Summarised && !_options.LogResponseContent ? null : responseContent;
 
         return new PhaseVariant(method, uri, content, [], skip);
     }
@@ -329,7 +329,7 @@ public class SqlTrackingInterceptor : DbCommandInterceptor, ITrackingComponent
             : label!;
 
         var requestUri = BuildUri(command, sqlOp, effectiveVerbosity);
-        var responseContent = effectiveVerbosity == SqlTrackingVerbosity.Summarised ? null : content;
+        var responseContent = effectiveVerbosity == SqlTrackingVerbosity.Summarised && !_options.LogResponseContent ? null : content;
 
         var log = new RequestResponseLog(
             testInfo.Value.Name,

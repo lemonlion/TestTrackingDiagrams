@@ -55,4 +55,11 @@ public record CosmosTrackingMessageHandlerOptions
     /// When <c>null</c>, the default key format is used: <c>cosmos:{ServiceName}:{documentId}</c>.
     /// </summary>
     public Func<string, string, string>? ChangeFeedKeyExtractor { get; set; }
+
+    /// <summary>
+    /// Whether to include response content in diagrams. Default: <c>true</c>.
+    /// When <c>true</c>, response arrows show the HTTP response body even at Summarised verbosity.
+    /// When <c>false</c>, response arrows are empty (previous behaviour).
+    /// </summary>
+    public bool LogResponseContent { get; set; } = true;
 }
