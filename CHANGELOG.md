@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-05-17
+
+### Changed
+- **Toolbar spacing refinements** — Adjusted margins for toolbar controls: `.truncate-lines-label` now uses `margin-left: 0` and `margin-right: 0.3em`, `.toggle-btn` uses `margin-left: 0.5em` (was `1.5em`), and `.truncate-lines-select` uses `margin-left: 0` (was `0.3em`).
+
 ## [3.0.1] - 2026-05-17
 
 ### Changed
