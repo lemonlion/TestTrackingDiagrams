@@ -38,7 +38,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\src\TestTrackingDiagrams.ReqNRoll.xUnit3\TestTrackingDiagrams.ReqNRoll.xUnit3.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Kronikol.ReqNRoll.xUnit3\Kronikol.ReqNRoll.xUnit3.csproj" />
   </ItemGroup>
 
 </Project>

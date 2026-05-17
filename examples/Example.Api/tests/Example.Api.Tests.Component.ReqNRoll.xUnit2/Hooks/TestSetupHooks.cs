@@ -8,9 +8,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Reqnroll;
 using Reqnroll.BoDi;
-using TestTrackingDiagrams;
-using TestTrackingDiagrams.ReqNRoll;
-using TestTrackingDiagrams.Tracking;
+using Kronikol;
+using Kronikol.ReqNRoll;
+using Kronikol.Tracking;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 namespace Example.Api.Tests.Component.ReqNRoll.xUnit2.Hooks;

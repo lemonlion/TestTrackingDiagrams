@@ -2,8 +2,8 @@ using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.Shared.HttpFakes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using TestTrackingDiagrams;
-using TestTrackingDiagrams.xUnit2;
+using Kronikol;
+using Kronikol.xUnit2;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 namespace Example.Api.Tests.Component.xUnit2.Infrastructure;

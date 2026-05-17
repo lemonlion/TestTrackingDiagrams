@@ -1,11 +1,11 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using Example.Api.Requests;
 using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.xUnit3.Infrastructure;
 using FluentAssertions;
-using TestTrackingDiagrams.xUnit3;
+using Kronikol.xUnit3;
 
 namespace Example.Api.Tests.Component.xUnit3.Scenarios;
 

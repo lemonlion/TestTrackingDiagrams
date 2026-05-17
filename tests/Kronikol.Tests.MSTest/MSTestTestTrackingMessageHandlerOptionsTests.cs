@@ -1,0 +1,59 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Kronikol.MSTest;
+using Kronikol.Tracking;
+
+namespace Kronikol.Tests.MSTest;
+
+[TestClass]
+public class MSTestTestTrackingMessageHandlerOptionsTests
+{
+    [TestMethod]
+    public void ShouldHaveCurrentTestInfoFetcherSet()
+    {
+        var options = new MSTestTestTrackingMessageHandlerOptions();
+
+        Assert.IsNotNull(options.CurrentTestInfoFetcher);
+    }
+
+    [TestMethod]
+    public void ShouldInheritFromTestTrackingMessageHandlerOptions()
+    {
+        var options = new MSTestTestTrackingMessageHandlerOptions();
+
+        Assert.IsInstanceOfType<TestTrackingMessageHandlerOptions>(options);
+    }
+
+    [TestMethod]
+    public void ShouldAllowSettingCallerName()
+    {
+        var options = new MSTestTestTrackingMessageHandlerOptions
+        {
+            CallerName = "My API"
+        };
+
+        Assert.AreEqual("My API", options.CallerName);
+    }
+
+    [TestMethod]
+    public void ShouldAllowSettingPortsToServiceNames()
+    {
+        var options = new MSTestTestTrackingMessageHandlerOptions
+        {
+            PortsToServiceNames = { { 80, "My API" }, { 5001, "Downstream" } }
+        };
+
+        Assert.AreEqual("My API", options.PortsToServiceNames[80]);
+        Assert.AreEqual("Downstream", options.PortsToServiceNames[5001]);
+    }
+
+    [TestMethod]
+    public void ShouldAllowSettingFixedNameForReceivingService()
+    {
+        var options = new MSTestTestTrackingMessageHandlerOptions
+        {
+            FixedNameForReceivingService = "My Service"
+        };
+
+        Assert.AreEqual("My Service", options.FixedNameForReceivingService);
+    }
+}

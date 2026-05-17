@@ -1,11 +1,11 @@
-# Contributing to TestTrackingDiagrams
+# Contributing to Kronikol
 
 Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/<your-username>/TestTrackingDiagrams.git`
+2. Clone your fork: `git clone https://github.com/<your-username>/Kronikol.git`
 3. Create a branch: `git checkout -b my-feature`
 4. Make your changes
 5. Push and open a Pull Request
@@ -26,17 +26,17 @@ This project follows **Test-Driven Development (TDD)**:
 ### Building
 
 ```bash
-dotnet build TestTrackingDiagrams.sln
+dotnet build Kronikol.sln
 ```
 
 ### Running Tests
 
 ```bash
 # Core tests
-dotnet test tests/TestTrackingDiagrams.Tests
+dotnet test tests/Kronikol.Tests
 
 # All tests (excluding Playwright)
-dotnet test TestTrackingDiagrams.sln --filter "FullyQualifiedName!~Playwright"
+dotnet test Kronikol.sln --filter "FullyQualifiedName!~Playwright"
 ```
 
 ### Project Structure
@@ -56,7 +56,7 @@ examples/     — Example.Api integration examples
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/lemonlion/TestTrackingDiagrams/issues) to report bugs or request features. Please include:
+Use [GitHub Issues](https://github.com/lemonlion/Kronikol/issues) to report bugs or request features. Please include:
 
 - .NET SDK version and target framework
 - Test framework and version

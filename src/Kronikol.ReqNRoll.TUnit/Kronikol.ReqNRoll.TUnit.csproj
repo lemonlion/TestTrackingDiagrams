@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework />
+	  <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+	  <Title>Test Tracking Diagrams For ReqNRoll (TUnit)</Title>
+	  <Description>ReqNRoll + TUnit extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams.</Description>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kronikol.ReqNRoll.Core\Kronikol.ReqNRoll.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kronikol.Tests" />
+  </ItemGroup>
+
+</Project>

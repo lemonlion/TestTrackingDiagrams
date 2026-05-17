@@ -1,0 +1,66 @@
+<Project>
+
+  <!-- Auto-generate the TrackAssertions attribute source into intermediate output -->
+  <Target Name="_GenerateAssertionTrackingAttributes"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TrackAssertionsEnabled)' == 'true'">
+
+    <PropertyGroup>
+      <_AssertionTrackingAttrDir>$(IntermediateOutputPath)AssertionTrackingAttributes\</_AssertionTrackingAttrDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_AssertionTrackingAttrDir)" />
+
+    <WriteLinesToFile
+      File="$(_AssertionTrackingAttrDir)TrackAssertionsAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace Kronikol.Tracking
+{
+    [AttributeUsage(AttributeTargets.Assembly)]
+    internal sealed class TrackAssertionsAttribute : Attribute { }
+}" />
+
+    <WriteLinesToFile
+      File="$(_AssertionTrackingAttrDir)SuppressAssertionTrackingAttribute.g.cs"
+      Overwrite="true"
+      Lines="// &lt;auto-generated /&gt;
+using System%3B
+
+namespace Kronikol.Tracking
+{
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class%2C Inherited = true)]
+    internal sealed class SuppressAssertionTrackingAttribute : Attribute { }
+}" />
+
+    <ItemGroup>
+      <Compile Include="$(_AssertionTrackingAttrDir)TrackAssertionsAttribute.g.cs" />
+      <Compile Include="$(_AssertionTrackingAttrDir)SuppressAssertionTrackingAttribute.g.cs" />
+    </ItemGroup>
+
+  </Target>
+
+  <!-- Run IL weaving AFTER compilation to instrument .Should() calls -->
+  <Target Name="_WeaveAssertionTracking"
+          AfterTargets="CoreCompile"
+          Condition="'$(TrackAssertionsEnabled)' == 'true'"
+          Inputs="@(IntermediateAssembly)"
+          Outputs="@(IntermediateAssembly);$(IntermediateOutputPath)__assertion_tracking_weaved__.marker">
+
+    <WeaveAssertionsTask
+      AssemblyPath="@(IntermediateAssembly)"
+      SourceRoots="@(SourceRoot)"
+      References="@(ReferencePath)" />
+
+    <Touch Files="$(IntermediateOutputPath)__assertion_tracking_weaved__.marker" AlwaysCreate="true" />
+
+  </Target>
+
+  <!-- Clean generated attributes -->
+  <Target Name="_CleanAssertionTracking" BeforeTargets="CoreClean">
+    <RemoveDir Directories="$(IntermediateOutputPath)AssertionTrackingAttributes\" />
+  </Target>
+
+</Project>

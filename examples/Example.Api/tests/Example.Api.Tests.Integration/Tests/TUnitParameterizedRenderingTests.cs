@@ -24,8 +24,8 @@ public class TUnitParameterizedRenderingTests
         {
             _cachedRun ??= TestProjectRunner.RunAsync(TestProjects.TUnit, new Dictionary<string, string>
             {
-                ["TTD_SEPARATE_SETUP"] = "true",
-                ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+                ["KRONIKOL_SEPARATE_SETUP"] = "true",
+                ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
             });
             return await _cachedRun;
         }

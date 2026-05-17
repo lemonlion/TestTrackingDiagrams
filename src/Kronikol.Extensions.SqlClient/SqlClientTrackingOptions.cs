@@ -1,0 +1,17 @@
+using Kronikol.Constants;
+using Kronikol.Sql;
+
+namespace Kronikol.Extensions.SqlClient;
+
+/// <summary>
+/// Configuration options for the SqlClient tracking extension.
+/// </summary>
+public record SqlClientTrackingOptions : SqlTrackingOptionsBase
+{
+    public SqlClientTrackingOptions()
+    {
+        ServiceName = "SQL Server";
+        DependencyCategory = DependencyCategories.SqlServer;
+        UriScheme = "sqlserver";
+    }
+}

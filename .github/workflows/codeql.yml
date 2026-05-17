@@ -37,10 +37,10 @@ jobs:
           languages: csharp
 
       - name: Restore
-        run: dotnet restore TestTrackingDiagrams.sln
+        run: dotnet restore Kronikol.sln
 
       - name: Build
-        run: dotnet build TestTrackingDiagrams.sln --no-restore
+        run: dotnet build Kronikol.sln --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

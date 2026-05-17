@@ -1,14 +1,14 @@
 <Project>
 
   <PropertyGroup>
-    <Version>2.37.4</Version>
+    <Version>3.0.0</Version>
     <TargetFramework>net10.0</TargetFramework>
     <MultiTargetFrameworks>net8.0;net9.0;net10.0</MultiTargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <PackageProjectUrl>https://github.com/lemonlion/TestTrackingDiagrams</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/lemonlion/TestTrackingDiagrams</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/lemonlion/Kronikol</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lemonlion/Kronikol</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Authors>Aryeh Citron</Authors>
     <Copyright>Copyright (c) 2023-2026 Aryeh Citron</Copyright>

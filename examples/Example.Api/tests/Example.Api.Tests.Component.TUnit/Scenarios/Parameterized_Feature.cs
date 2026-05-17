@@ -1,4 +1,4 @@
-using TestTrackingDiagrams.TUnit;
+using Kronikol.TUnit;
 using TUnit.Core;
 
 namespace Example.Api.Tests.Component.TUnit.Scenarios;

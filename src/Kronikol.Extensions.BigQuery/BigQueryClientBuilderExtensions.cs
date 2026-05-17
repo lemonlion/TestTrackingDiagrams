@@ -1,0 +1,21 @@
+using Google.Cloud.BigQuery.V2;
+
+namespace Kronikol.Extensions.BigQuery;
+
+/// <summary>
+/// Provides extension methods for configuring Google BigQuery client options to enable test tracking.
+/// </summary>
+public static class BigQueryClientBuilderExtensions
+{
+    /// <summary>
+    /// Configures a <see cref="BigQueryClientBuilder"/> to use a tracking HTTP handler that
+    /// captures all BigQuery REST API operations for test diagrams.
+    /// </summary>
+    public static BigQueryClientBuilder WithTestTracking(
+        this BigQueryClientBuilder builder,
+        BigQueryTrackingMessageHandlerOptions trackingOptions)
+    {
+        builder.HttpClientFactory = new TrackingBigQueryHttpClientFactory(trackingOptions);
+        return builder;
+    }
+}

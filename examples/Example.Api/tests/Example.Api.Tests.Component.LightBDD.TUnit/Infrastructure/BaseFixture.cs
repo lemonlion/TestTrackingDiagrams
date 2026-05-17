@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams.LightBDD.TUnit;
-using TestTrackingDiagrams.Tracking;
+using Kronikol.LightBDD.TUnit;
+using Kronikol.Tracking;
 
 namespace Example.Api.Tests.Component.LightBDD.TUnit.Infrastructure;
 

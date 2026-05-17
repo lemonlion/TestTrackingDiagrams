@@ -19,8 +19,8 @@ public class ReportGenerationTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}\n{result.StandardOutput}");
@@ -38,8 +38,8 @@ public class ReportGenerationTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -58,8 +58,8 @@ public class ReportGenerationTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -88,8 +88,8 @@ public class ReportGenerationTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");

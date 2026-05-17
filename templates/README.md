@@ -1,34 +1,34 @@
-# TestTrackingDiagrams Project Templates
+# Kronikol Project Templates
 
-Project templates for creating test projects pre-configured with [TestTrackingDiagrams](https://github.com/lemonlion/TestTrackingDiagrams) dependency tracking and automatic report generation.
+Project templates for creating test projects pre-configured with [Kronikol](https://github.com/lemonlion/Kronikol) dependency tracking and automatic report generation.
 
 ## Installation
 
 ```bash
-dotnet new install TestTrackingDiagrams.Templates
+dotnet new install Kronikol.Templates
 ```
 
 ## Available Templates
 
 | Template | Short Name | Description |
 |----------|-----------|-------------|
-| TTD Component Tests (xUnit v3) | `ttd-xunit3` | xUnit v3 test project with TTD |
-| TTD Component Tests (xUnit v2) | `ttd-xunit2` | xUnit v2 test project with TTD |
-| TTD Component Tests (TUnit) | `ttd-tunit` | TUnit test project with TTD |
-| TTD Component Tests (NUnit 4) | `ttd-nunit4` | NUnit 4 test project with TTD |
-| TTD Component Tests (MSTest) | `ttd-mstest` | MSTest test project with TTD |
-| TTD Component Tests (LightBDD + xUnit v3) | `ttd-lightbdd-xunit3` | LightBDD with xUnit v3 and TTD |
-| TTD Component Tests (LightBDD + xUnit v2) | `ttd-lightbdd-xunit2` | LightBDD with xUnit v2 and TTD |
-| TTD Component Tests (LightBDD + TUnit) | `ttd-lightbdd-tunit` | LightBDD with TUnit and TTD |
-| TTD Component Tests (BDDfy + xUnit v3) | `ttd-bddfy-xunit3` | BDDfy with xUnit v3 and TTD |
-| TTD Component Tests (ReqNRoll + xUnit v3) | `ttd-reqnroll-xunit3` | ReqNRoll (Gherkin) with xUnit v3 and TTD |
-| TTD Component Tests (ReqNRoll + xUnit v2) | `ttd-reqnroll-xunit2` | ReqNRoll (Gherkin) with xUnit v2 and TTD |
-| TTD Component Tests (ReqNRoll + TUnit) | `ttd-reqnroll-tunit` | ReqNRoll (Gherkin) with TUnit and TTD |
+| TTD Component Tests (xUnit v3) | `kronikol-xunit3` | xUnit v3 test project with TTD |
+| TTD Component Tests (xUnit v2) | `kronikol-xunit2` | xUnit v2 test project with TTD |
+| TTD Component Tests (TUnit) | `kronikol-tunit` | TUnit test project with TTD |
+| TTD Component Tests (NUnit 4) | `kronikol-nunit4` | NUnit 4 test project with TTD |
+| TTD Component Tests (MSTest) | `kronikol-mstest` | MSTest test project with TTD |
+| TTD Component Tests (LightBDD + xUnit v3) | `kronikol-lightbdd-xunit3` | LightBDD with xUnit v3 and TTD |
+| TTD Component Tests (LightBDD + xUnit v2) | `kronikol-lightbdd-xunit2` | LightBDD with xUnit v2 and TTD |
+| TTD Component Tests (LightBDD + TUnit) | `kronikol-lightbdd-tunit` | LightBDD with TUnit and TTD |
+| TTD Component Tests (BDDfy + xUnit v3) | `kronikol-bddfy-xunit3` | BDDfy with xUnit v3 and TTD |
+| TTD Component Tests (ReqNRoll + xUnit v3) | `kronikol-reqnroll-xunit3` | ReqNRoll (Gherkin) with xUnit v3 and TTD |
+| TTD Component Tests (ReqNRoll + xUnit v2) | `kronikol-reqnroll-xunit2` | ReqNRoll (Gherkin) with xUnit v2 and TTD |
+| TTD Component Tests (ReqNRoll + TUnit) | `kronikol-reqnroll-tunit` | ReqNRoll (Gherkin) with TUnit and TTD |
 
 ## Usage
 
 ```bash
-dotnet new ttd-xunit3 --name MyService.Tests.Component \
+dotnet new kronikol-xunit3 --name MyService.Tests.Component \
   --service-name "Order Service" \
   --downstream-service "Payment Gateway" \
   --downstream-port 15060 \
@@ -55,18 +55,18 @@ dotnet new ttd-xunit3 --name MyService.Tests.Component \
 
 ## Assertion Tracking (Beta — Opt-in)
 
-Assertion tracking is available as a **beta** feature via the `TestTrackingDiagrams.AssertionTracking` package. It uses IL weaving to instrument `.Should()` calls at compile time, producing green/red assertion notes in your HTML reports. Because IL weaving can interfere with some build configurations, it is **not included by default** in the templates.
+Assertion tracking is available as a **beta** feature via the `Kronikol.AssertionTracking` package. It uses IL weaving to instrument `.Should()` calls at compile time, producing green/red assertion notes in your HTML reports. Because IL weaving can interfere with some build configurations, it is **not included by default** in the templates.
 
 To opt in, add the package and assembly attribute manually:
 
 ```bash
-dotnet add package TestTrackingDiagrams.AssertionTracking --prerelease
+dotnet add package Kronikol.AssertionTracking --prerelease
 ```
 
 Then create an `AssertionTracking.cs` file in your test project:
 
 ```csharp
-using TestTrackingDiagrams.Tracking;
+using Kronikol.Tracking;
 
 [assembly: TrackAssertions]
 ```

@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams.LightBDD;
-using TestTrackingDiagrams.LightBDD.xUnit3;
-using TestTrackingDiagrams.Tracking;
+using Kronikol.LightBDD;
+using Kronikol.LightBDD.xUnit3;
+using Kronikol.Tracking;
 
 namespace Example.Api.Tests.Component.LightBDD.xUnit3.Infrastructure;
 

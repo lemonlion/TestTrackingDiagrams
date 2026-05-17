@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\src\TestTrackingDiagrams.TUnit\TestTrackingDiagrams.TUnit.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Kronikol.TUnit\Kronikol.TUnit.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 using Example.Api.Tests.Component.xUnit3.Infrastructure;
 using FluentAssertions;
-using TestTrackingDiagrams.xUnit3;
+using Kronikol.xUnit3;
 
 namespace Example.Api.Tests.Component.xUnit3.Scenarios;
 

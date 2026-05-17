@@ -5,7 +5,7 @@ using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.TUnit.Infrastructure;
 using FluentAssertions;
-using TestTrackingDiagrams.TUnit;
+using Kronikol.TUnit;
 using TUnit.Core;
 
 namespace Example.Api.Tests.Component.TUnit.Scenarios;

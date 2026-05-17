@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using TestTrackingDiagrams;
+using Kronikol;
 
 namespace Example.Api.Tests.Integration.Helpers;
 

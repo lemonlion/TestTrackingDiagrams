@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams.Tracking;
-using TestTrackingDiagrams.xUnit3;
+using Kronikol.Tracking;
+using Kronikol.xUnit3;
 
 namespace Example.Api.Tests.CiPreview.AllFailing.Infrastructure;
 

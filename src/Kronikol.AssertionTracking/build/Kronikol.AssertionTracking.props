@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Support old property name for backward compatibility -->
+    <TrackAssertionsEnabled Condition="'$(TrackAssertionsEnabled)' == '' AND '$(TrackAssertionsBetaEnabled)' != ''">$(TrackAssertionsBetaEnabled)</TrackAssertionsEnabled>
+    <TrackAssertionsEnabled Condition="'$(TrackAssertionsEnabled)' == ''">true</TrackAssertionsEnabled>
+    <_AssertionTrackingTaskDir>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\</_AssertionTrackingTaskDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Kronikol.AssertionTracking.WeaveAssertionsTask"
+             AssemblyFile="$(_AssertionTrackingTaskDir)Kronikol.AssertionTracking.dll" />
+
+</Project>

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-05-17
+
+### Changed
+- **Complete rebrand: TestTrackingDiagrams → Kronikol** — The project, all NuGet packages, namespaces, and assemblies have been renamed from `TestTrackingDiagrams` to `Kronikol`. This is a **breaking change** requiring updates to package references and `using` directives.
+  - **NuGet packages**: All packages renamed (e.g. `TestTrackingDiagrams` → `Kronikol`, `TestTrackingDiagrams.xUnit3` → `Kronikol.xUnit3`, `TestTrackingDiagrams.Extensions.Redis` → `Kronikol.Extensions.Redis`, etc.)
+  - **Namespaces**: All `TestTrackingDiagrams.*` namespaces → `Kronikol.*`
+  - **dotnet new templates**: Template short names changed from `ttd-*` to `kronikol-*` (e.g. `dotnet new kronikol-xunit3`). Install via `dotnet new install Kronikol.Templates`.
+  - **Environment variables**: Prefix changed from `TTD_` to `KRONIKOL_` (e.g. `KRONIKOL_PLANTUML_RENDERING`). The old `TTD_` prefix is still supported as a fallback for backward compatibility.
+  - **HTTP headers**: Test identity headers changed from `ttd-test-name`/`ttd-test-id` to `kronikol-test-name`/`kronikol-test-id`.
+  - **JSON report field**: `ttdVersion` → `kronikolVersion`.
+  - **GitHub repository**: Renamed from `lemonlion/TestTrackingDiagrams` to `lemonlion/Kronikol`.
+  - **New icon**: Updated package icon to new scroll/parchment design.
+
 ## [2.37.4] - 2026-05-17
 
 ### Added
@@ -44,7 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.37.1] - 2026-05-17
 
 ### Changed
-- **Templates: removed assertion tracking (beta)** — The `[assembly: TrackAssertions]` attribute and `TestTrackingDiagrams.AssertionTracking` package reference have been removed from all dotnet templates. IL weaving can interfere with some build configurations, so assertion tracking is now an opt-in beta feature. See the templates README for instructions on enabling it manually.
+- **Templates: removed assertion tracking (beta)** — The `[assembly: TrackAssertions]` attribute and `Kronikol.AssertionTracking` package reference have been removed from all dotnet templates. IL weaving can interfere with some build configurations, so assertion tracking is now an opt-in beta feature. See the templates README for instructions on enabling it manually.
 
 ## [2.37.0] - 2026-05-17
 
@@ -146,7 +159,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.35.3] - 2026-05-14
 
 ### Fixed
-- **Empty rule containers shown when search/filter hides all child scenarios** — The `applyVisibility()` function now hides `.rule` elements when all their child scenarios are filtered out, identical to how features are hidden. Rules are evaluated before features so that a feature correctly hides when all its rules are empty. Fixes [#57](https://github.com/lemonlion/TestTrackingDiagrams/issues/57).
+- **Empty rule containers shown when search/filter hides all child scenarios** — The `applyVisibility()` function now hides `.rule` elements when all their child scenarios are filtered out, identical to how features are hidden. Rules are evaluated before features so that a feature correctly hides when all its rules are empty. Fixes [#57](https://github.com/lemonlion/Kronikol/issues/57).
 
 ## [2.35.0] - 2026-05-14
 
@@ -191,9 +204,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.34.0] - 2026-05-13
 
 ### Added
-- **Automatic test identity propagation through messaging extensions** — All messaging extensions (Kafka, ServiceBus, EventHubs, PubSub, MassTransit) now automatically propagate test identity (`ttd-test-name` and `ttd-test-id`) through message headers/properties/attributes. When a test produces a message, the current test identity is injected into the message metadata. When a consumer/subscriber receives the message, the test identity is extracted and established as the ambient `TestIdentityScope`, enabling tracking to work correctly in event-driven architectures where ASP.NET applications listen to events rather than serving HTTP requests. Controlled via `PropagateTestIdentity` option (default: `true`) on each extension's options class.
+- **Automatic test identity propagation through messaging extensions** — All messaging extensions (Kafka, ServiceBus, EventHubs, PubSub, MassTransit) now automatically propagate test identity (`kronikol-test-name` and `kronikol-test-id`) through message headers/properties/attributes. When a test produces a message, the current test identity is injected into the message metadata. When a consumer/subscriber receives the message, the test identity is extracted and established as the ambient `TestIdentityScope`, enabling tracking to work correctly in event-driven architectures where ASP.NET applications listen to events rather than serving HTTP requests. Controlled via `PropagateTestIdentity` option (default: `true`) on each extension's options class.
 - **`TestIdentityScope.SetFromMessage()`** — New method for establishing test identity from incoming message headers without creating a disposable scope. Identity persists on the async context until the next message is processed or explicitly cleared.
-- **`TestTrackingMessageHeaders` constants** — New constants class defining `ttd-test-name` and `ttd-test-id` header names for cross-extension consistency.
+- **`TestTrackingMessageHeaders` constants** — New constants class defining `kronikol-test-name` and `kronikol-test-id` header names for cross-extension consistency.
 
 ## [2.33.79] - 2026-05-13
 
@@ -287,7 +300,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Fixed
 - **Data reports (JSON/XML/YAML) now include `rule`, `backgroundSteps`, `outlineId`, `exampleValues`, and step `attachments`** — These fields were present on the `Scenario` and `ScenarioStep` models and rendered correctly in the HTML report but were missing from the JSON, XML, and YAML data report serializers. All three formats now emit the full scenario metadata. JSON/XSD schemas updated accordingly.
 - **Image attachments now render as inline `<img>` elements in HTML report** — Image file attachments (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) were rendered as plain `<a>` download links. They now render as `<img class="attachment-image">` elements for immediate visual feedback.
-- **ReqNRoll attachment capturing now works without plugin discovery** — The `AttachmentCapturingPlugin` was never loaded by ReqNRoll because it only discovers plugins from DLLs named `*.ReqnrollPlugin.dll`, but our assembly is `TestTrackingDiagrams.ReqNRoll.Core.dll`. The `IReqnrollOutputHelper` wrapping is now performed in the `[BeforeScenario]` hook (which IS discovered via `bindingAssemblies`), ensuring `Track.Attachment()` is called for all `outputHelper.AddAttachment()` calls.
+- **ReqNRoll attachment capturing now works without plugin discovery** — The `AttachmentCapturingPlugin` was never loaded by ReqNRoll because it only discovers plugins from DLLs named `*.ReqnrollPlugin.dll`, but our assembly is `Kronikol.ReqNRoll.Core.dll`. The `IReqnrollOutputHelper` wrapping is now performed in the `[BeforeScenario]` hook (which IS discovered via `bindingAssemblies`), ensuring `Track.Attachment()` is called for all `outputHelper.AddAttachment()` calls.
 - **TableRef segments with formatted values but no matching parameter now render the value** — When a `StepTextSegment.TableRef` had a `TableReferenceFormattedValue` (e.g., from bracket-appended params in CompositeStep methods) but no matching `StepParameter`, the renderer showed the parameter name as plain text instead of the formatted value. Now renders as `<span class="step-param-inline">` with the formatted value.
 
 ## [2.33.60] - 2026-05-11
@@ -441,7 +454,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.33.34] - 2025-07-12
 
 ### Added
-- **`dependencyCategory` parameter on `ReplaceWithTracked` simplified overload** — The simplified `ReplaceWithTracked<TService>()` extension method in `TestTrackingDiagrams.Extensions.DispatchProxy` now accepts an optional `string? dependencyCategory` parameter, forwarding it to `TrackingProxyOptions.DependencyCategory`. Previously, only the full `TrackingProxyOptions` overload supported dependency categories for component diagram participant shapes and colours.
+- **`dependencyCategory` parameter on `ReplaceWithTracked` simplified overload** — The simplified `ReplaceWithTracked<TService>()` extension method in `Kronikol.Extensions.DispatchProxy` now accepts an optional `string? dependencyCategory` parameter, forwarding it to `TrackingProxyOptions.DependencyCategory`. Previously, only the full `TrackingProxyOptions` overload supported dependency categories for component diagram participant shapes and colours.
 
 ## [2.33.33] - 2025-07-12
 
@@ -506,7 +519,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 - **Cross-SDK IL weaver tests** — 18 new tests that compile fixtures with .NET 9, 10, and 11 preview SDKs (both Debug and Release), then weave and execute them to verify the IL weaver produces valid IL across different Roslyn codegen patterns (degenerate async state machines, real async with awaits, null-conditional branches). Uses isolated `AssemblyLoadContext` for each fixture and `TestAssemblyBuilder.BuildWithSdk()` which shells out to `dotnet build` with pinned SDK versions via temporary `global.json` files.
-- **Assertion Tracking tests added to CI** — The `tests/TestTrackingDiagrams.Tests.AssertionTracking` project now has its own CI job. .NET 9 SDK also installed in CI for cross-SDK test coverage.
+- **Assertion Tracking tests added to CI** — The `tests/Kronikol.Tests.AssertionTracking` project now has its own CI job. .NET 9 SDK also installed in CI for cross-SDK test coverage.
 
 ## [2.33.23] - 2026-05-10
 
@@ -630,17 +643,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.33.2] - 2026-05-10
 
 ### Fixed
-- **NullReferenceException in `Track.ResolveVariableValues` with awaited assertions** — When an awaited assertion (e.g. TUnit `await value.Should().BeEqualTo(x)`) with captured variables failed, the IL weaver's `WrapAwaitedAssertion` method placed the `tryStart` nop *after* the captured-variable array construction. Branches retargeted from the merge point to `tryStart` (the sync-completion `brtrue` path) skipped array initialization, leaving `namesLocal`/`valuesLocal` as null. The catch handler then passed null arrays to `AssertionFailedWithValues` → `ResolveVariableValues`, which crashed on `varNames.Length`. Fixed by inserting `tryStart` *before* array construction so both sync and async paths initialize the arrays. Also added a defensive null guard in `ResolveVariableValues`. Fixes [#52](https://github.com/lemonlion/TestTrackingDiagrams/issues/52).
+- **NullReferenceException in `Track.ResolveVariableValues` with awaited assertions** — When an awaited assertion (e.g. TUnit `await value.Should().BeEqualTo(x)`) with captured variables failed, the IL weaver's `WrapAwaitedAssertion` method placed the `tryStart` nop *after* the captured-variable array construction. Branches retargeted from the merge point to `tryStart` (the sync-completion `brtrue` path) skipped array initialization, leaving `namesLocal`/`valuesLocal` as null. The catch handler then passed null arrays to `AssertionFailedWithValues` → `ResolveVariableValues`, which crashed on `varNames.Length`. Fixed by inserting `tryStart` *before* array construction so both sync and async paths initialize the arrays. Also added a defensive null guard in `ResolveVariableValues`. Fixes [#52](https://github.com/lemonlion/Kronikol/issues/52).
 
 ## [2.33.1] - 2026-05-09
 
 ### Fixed
-- **AssertionTracking `InvalidProgramException` with record `with` expressions** — C# record init-only property setters return `System.Void modreq(IsExternalInit)`, but the weaver's `GetInstructionPushCount` compared `ReturnType.FullName` directly against `"System.Void"`, missing the `modreq` wrapper. This caused each init setter to be counted as pushing a value, inflating exit stack depth and generating spurious exit-spill `stloc` instructions that corrupted IL. The fix strips `modreq`/`modopt` wrappers before checking for void. Resolves the remaining 5 failures from [#47](https://github.com/lemonlion/TestTrackingDiagrams/issues/47).
+- **AssertionTracking `InvalidProgramException` with record `with` expressions** — C# record init-only property setters return `System.Void modreq(IsExternalInit)`, but the weaver's `GetInstructionPushCount` compared `ReturnType.FullName` directly against `"System.Void"`, missing the `modreq` wrapper. This caused each init setter to be counted as pushing a value, inflating exit stack depth and generating spurious exit-spill `stloc` instructions that corrupted IL. The fix strips `modreq`/`modopt` wrappers before checking for void. Resolves the remaining 5 failures from [#47](https://github.com/lemonlion/Kronikol/issues/47).
 
 ## [2.33.0] - 2026-05-09
 
 ### Added
-- **TUnit `[HeadIn]` attribute** — `TestTrackingDiagrams.TUnit` now includes a `[HeadIn]` attribute implementing `IDataSourceAttribute` for tabular data-driven tests in TUnit.
+- **TUnit `[HeadIn]` attribute** — `Kronikol.TUnit` now includes a `[HeadIn]` attribute implementing `IDataSourceAttribute` for tabular data-driven tests in TUnit.
 - **Auto-verify `TabularOutputs<T>` on disposal** — `TabularOutputs<T>` now implements `IDisposable`. Disposing auto-calls `Verify()` if actuals were recorded and `Verify()` was not already called. On xUnit v3 (`DisposalTracker`) and TUnit (`TestBuilderContext.Events.OnDispose`), this happens automatically — no explicit `Verify()` needed.
 
 ### Changed
@@ -650,7 +663,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Fixed
 - **Parameter table preview shows array properties instead of items** — Arrays and collections used as step parameters displayed their .NET properties (`{ Length: 3, LongLength: 3, Rank: 1, ... }`) in the summary preview instead of their contents. The `GeneratePreview()` method now handles `IEnumerable` types: scalar arrays render inline as `["A", "B", "C"]` (truncated at 10 items), complex-item collections show `N items`, and empty collections show `[]`.
-- **StepTracking package missing from NuGet releases** — The `TestTrackingDiagrams.StepTracking` package was not included in `release.slnf`, so it was never packed or pushed to NuGet during releases. Added it to the release solution filter.
+- **StepTracking package missing from NuGet releases** — The `Kronikol.StepTracking` package was not included in `release.slnf`, so it was never packed or pushed to NuGet during releases. Added it to the release solution filter.
 
 ## [2.32.3] - 2026-05-09
 
@@ -674,7 +687,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 - **Tabular Attributes** — Data-driven tests with typed input/output rows and built-in verification, ported from [LightBDD.TabularAttributes](https://github.com/AdaskoTheBeAsT/LightBDD.TabularAttributes).
-  - **Core types** (`TestTrackingDiagrams` package):
+  - **Core types** (`Kronikol` package):
     - `[Inputs(...)]`, `[Outputs(...)]`, `[HeadOut(...)]` — plain attributes for declaring data rows and output column names.
     - `TabularInputs<T>` — `IReadOnlyList<T>` with per-row diagram delimiters emitted during `foreach` iteration.
     - `TabularOutputs<T>` — `IReadOnlyList<T>` with `RecordActualResult()` + `Verify()` for position-based output comparison.
@@ -682,16 +695,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
     - `TabularResolver` — reads tabular attributes from `MethodInfo` and constructs typed parameter values.
     - `ITabularParameterData` — interface enabling `StepCollector` to automatically render tabular step parameters in reports.
   - **Framework-specific `[HeadIn]` attributes** (acts as the data source trigger):
-    - `TestTrackingDiagrams.xUnit3` — extends `Xunit.v3.DataAttribute`
-    - `TestTrackingDiagrams.xUnit2` — extends `Xunit.Sdk.DataAttribute`
-    - `TestTrackingDiagrams.NUnit4` — implements `NUnit.Framework.Interfaces.ITestBuilder`
-    - `TestTrackingDiagrams.MSTest` — implements `Microsoft.VisualStudio.TestTools.UnitTesting.ITestDataSource`
+    - `Kronikol.xUnit3` — extends `Xunit.v3.DataAttribute`
+    - `Kronikol.xUnit2` — extends `Xunit.Sdk.DataAttribute`
+    - `Kronikol.NUnit4` — implements `NUnit.Framework.Interfaces.ITestBuilder`
+    - `Kronikol.MSTest` — implements `Microsoft.VisualStudio.TestTools.UnitTesting.ITestDataSource`
   - **`StepCollector.BuildParameters()` enhancement** — automatically detects `ITabularParameterData` values and produces `Tabular` step parameters instead of `Inline`.
 
 ## [2.31.6] - 2026-05-08
 
 ### Fixed
-- **`TrackingDiagramOverride` now falls back to `TestIdentityScope` when `TestContext` is unavailable (issue #49)** — Previously, `GetTestId()` in both `TestTrackingDiagrams.xUnit3` and `TestTrackingDiagrams.BDDfy.xUnit3` silently returned `null` when `TestContext.Current` threw or `.Test` was null (non-test threads), causing diagram overrides (`StartOverride`, `EndOverride`, `InsertPlantUml`, `InsertTestDelimiter`, `StartAction`, `StartSetup`) to be silently discarded. Now falls through to `TestIdentityScope.Current` (AsyncLocal) then `TestIdentityScope.GlobalFallback` — the same resolution chain used by `TestInfoResolver.Resolve()`. Diagram overrides called from hosted services, background threads, and change-feed processors now correctly associate with the running test.
+- **`TrackingDiagramOverride` now falls back to `TestIdentityScope` when `TestContext` is unavailable (issue #49)** — Previously, `GetTestId()` in both `Kronikol.xUnit3` and `Kronikol.BDDfy.xUnit3` silently returned `null` when `TestContext.Current` threw or `.Test` was null (non-test threads), causing diagram overrides (`StartOverride`, `EndOverride`, `InsertPlantUml`, `InsertTestDelimiter`, `StartAction`, `StartSetup`) to be silently discarded. Now falls through to `TestIdentityScope.Current` (AsyncLocal) then `TestIdentityScope.GlobalFallback` — the same resolution chain used by `TestInfoResolver.Resolve()`. Diagram overrides called from hosted services, background threads, and change-feed processors now correctly associate with the running test.
 
 ## [2.31.5] - 2026-08-06
 
@@ -707,7 +720,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - Release-mode multi-dup patterns (multiple assertions sharing a subject via `dup;dup;brtrue`) left values on the stack that were cleared by `leave`. Assertions with exit stack depth > 0 are now skipped (not instrumented) to avoid invalid IL.
   - Branch-into-try retargeting now correctly points to the entry spill `stloc` instructions (before `tryStart`) so that branches arriving with values on the stack have them properly stored before try entry.
   - `SpillStackIfNeeded` now correctly forces `depth = 1` when `firstInstr` is `dup` and the linear stack walk returns ≤ 0.
-- **"Test context not available on this thread" exceptions (issue #49)** — `TrackingDiagramOverride.GetTestId()` in both `TestTrackingDiagrams.xUnit3` and `TestTrackingDiagrams.BDDfy.xUnit3` now catches exceptions from `TestContext.Current` and gracefully returns when called on non-test threads.
+- **"Test context not available on this thread" exceptions (issue #49)** — `TrackingDiagramOverride.GetTestId()` in both `Kronikol.xUnit3` and `Kronikol.BDDfy.xUnit3` now catches exceptions from `TestContext.Current` and gracefully returns when called on non-test threads.
 
 ## [2.31.3] - 2026-08-05
 
@@ -739,7 +752,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 - **Assertion tracking: `TrackAssertionsBeta` renamed to `TrackAssertions`** — The IL weaver attribute `[assembly: TrackAssertionsBeta]` has been renamed to `[assembly: TrackAssertions]`. The old attribute name is still recognized for backward compatibility.
 - **MSBuild property renamed**: `TrackAssertionsBetaEnabled` → `TrackAssertionsEnabled`. The old property name is still supported for backward compatibility.
-- **IL weaver is now the sole assertion tracking approach** — The `TestTrackingDiagrams.AssertionRewriter` (Roslyn source rewriter) package has been removed from the solution. The IL weaver (`TestTrackingDiagrams.AssertionTracking`) is now the only automated assertion tracking package.
+- **IL weaver is now the sole assertion tracking approach** — The `Kronikol.AssertionRewriter` (Roslyn source rewriter) package has been removed from the solution. The IL weaver (`Kronikol.AssertionTracking`) is now the only automated assertion tracking package.
 - **All project templates** updated from `AssertionRewriter` to `AssertionTracking` package reference.
 
 ### Added
@@ -747,8 +760,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **Backward compatibility test** for old `TrackAssertionsBetaAttribute`.
 
 ### Removed
-- **`TestTrackingDiagrams.AssertionRewriter` package** — The Roslyn source rewriter has been removed. Use `TestTrackingDiagrams.AssertionTracking` (IL weaver) instead. Migration: replace `[assembly: TrackAssertions]` package reference from `AssertionRewriter` to `AssertionTracking` — the attribute name remains the same.
-- **`TestTrackingDiagrams.Tests.AssertionRewriter` test project** — Removed along with the source rewriter.
+- **`Kronikol.AssertionRewriter` package** — The Roslyn source rewriter has been removed. Use `Kronikol.AssertionTracking` (IL weaver) instead. Migration: replace `[assembly: TrackAssertions]` package reference from `AssertionRewriter` to `AssertionTracking` — the attribute name remains the same.
+- **`Kronikol.Tests.AssertionRewriter` test project** — Removed along with the source rewriter.
 
 ## [2.30.36] - 2026-08-05
 
@@ -812,7 +825,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.30.29] - 2026-07-05
 
 ### Added
-- **New package: TestTrackingDiagrams.StepTracking** — IL weaver that instruments methods decorated with `[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[ButStep]`, or `[Step]` attributes with automatic BDD step tracking. Activated via `[assembly: TrackSteps]`.
+- **New package: Kronikol.StepTracking** — IL weaver that instruments methods decorated with `[GivenStep]`, `[WhenStep]`, `[ThenStep]`, `[ButStep]`, or `[Step]` attributes with automatic BDD step tracking. Activated via `[assembly: TrackSteps]`.
   - Records step entry/exit timing and pass/fail status via `StepCollector`
   - Method names are humanized (PascalCase → "Pascal case", underscores → spaces)
   - Method parameters are captured as `StepParameter` values at runtime
@@ -900,7 +913,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.30.16] - 2026-05-07
 
 ### Fixed
-- **BDDfy.xUnit3: `CurrentTestInfo.Fetcher` was permanently null** — The static initializer `xUnit3.CurrentTestInfo.Fetcher` resolved to the same class (self-reference) because namespace `TestTrackingDiagrams.BDDfy` contains child namespace `xUnit3`, causing C# name resolution to bind `xUnit3.CurrentTestInfo` to `TestTrackingDiagrams.BDDfy.xUnit3.CurrentTestInfo` instead of the intended `TestTrackingDiagrams.xUnit3.CurrentTestInfo`. The self-referencing read returned null during static construction, permanently disabling HTTP tracking in all BDDfy + xUnit3 projects. Fixed by fully qualifying the reference. Fixes #44.
+- **BDDfy.xUnit3: `CurrentTestInfo.Fetcher` was permanently null** — The static initializer `xUnit3.CurrentTestInfo.Fetcher` resolved to the same class (self-reference) because namespace `Kronikol.BDDfy` contains child namespace `xUnit3`, causing C# name resolution to bind `xUnit3.CurrentTestInfo` to `Kronikol.BDDfy.xUnit3.CurrentTestInfo` instead of the intended `Kronikol.xUnit3.CurrentTestInfo`. The self-referencing read returned null during static construction, permanently disabling HTTP tracking in all BDDfy + xUnit3 projects. Fixed by fully qualifying the reference. Fixes #44.
 
 ## [2.30.15] - 2026-05-07
 
@@ -911,7 +924,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.30.14] - 2026-05-07
 
 ### Fixed
-- **AssertionTracking: version mismatch detection** — The IL weaver now checks the version of the referenced `TestTrackingDiagrams` core library before weaving. If the core library is older than v2.30.7 (when `Track.AssertionPassed` was introduced), the weaver emits a clear build error instead of producing weaved IL that would crash at runtime with `MissingMethodException`. Fixes #43.
+- **AssertionTracking: version mismatch detection** — The IL weaver now checks the version of the referenced `Kronikol` core library before weaving. If the core library is older than v2.30.7 (when `Track.AssertionPassed` was introduced), the weaver emits a clear build error instead of producing weaved IL that would crash at runtime with `MissingMethodException`. Fixes #43.
 - **AssertionTracking: exclude `ret` from try blocks** — The weaver now excludes trailing `ret` instructions from assertion statement boundaries (alongside the existing `leave`/`leave.s` exclusion). A `ret` inside a try block is invalid IL that causes `InvalidProgramException` at runtime. This could occur when the assertion is the last statement in a sync method.
 
 ## [2.30.13] - 2026-05-07
@@ -953,7 +966,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.30.7] - 2026-05-07
 
 ### Added
-- **AssertionTracking package** (TestTrackingDiagrams.AssertionTracking): Cecil-based IL weaver that instruments FluentAssertions .Should() call chains post-compilation with assertion tracking. Operates on compiled IL preserving full C# semantics including null propagation. Activated via [assembly: TrackAssertionsBeta].
+- **AssertionTracking package** (Kronikol.AssertionTracking): Cecil-based IL weaver that instruments FluentAssertions .Should() call chains post-compilation with assertion tracking. Operates on compiled IL preserving full C# semantics including null propagation. Activated via [assembly: TrackAssertionsBeta].
   - [SuppressAssertionTracking] attribute works on method and class level
   - Safely skips async state machine methods (MoveNext)
   - Detects and skips null-propagation (?.) statements that would produce invalid IL
@@ -1025,12 +1038,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.29.17-beta] - 2026-05-06
 
 ### Added
-- **Project templates** (`TestTrackingDiagrams.Templates`): 12 `dotnet new` templates for scaffolding component test projects pre-configured with dependency tracking, report generation, and automatic assertion rewriting. Templates: `ttd-xunit3`, `ttd-xunit2`, `ttd-tunit`, `ttd-nunit4`, `ttd-mstest`, `ttd-lightbdd-xunit3`, `ttd-lightbdd-xunit2`, `ttd-lightbdd-tunit`, `ttd-bddfy-xunit3`, `ttd-reqnroll-xunit3`, `ttd-reqnroll-xunit2`, `ttd-reqnroll-tunit`.
+- **Project templates** (`Kronikol.Templates`): 12 `dotnet new` templates for scaffolding component test projects pre-configured with dependency tracking, report generation, and automatic assertion rewriting. Templates: `kronikol-xunit3`, `kronikol-xunit2`, `kronikol-tunit`, `kronikol-nunit4`, `kronikol-mstest`, `kronikol-lightbdd-xunit3`, `kronikol-lightbdd-xunit2`, `kronikol-lightbdd-tunit`, `kronikol-bddfy-xunit3`, `kronikol-reqnroll-xunit3`, `kronikol-reqnroll-xunit2`, `kronikol-reqnroll-tunit`.
 
 ## [2.29.16-beta] - 2026-05-05
 
 ### Added
-- **AssertionRewriter package** (`TestTrackingDiagrams.AssertionRewriter`): Roslyn-based MSBuild task that automatically wraps `.Should()` expression statements in `Track.That(() => ...)` at compile time. Opt in with `[assembly: TrackAssertions]`. Supports `[SuppressAssertionTracking]` attribute and `#pragma warning disable` regions for selective opt-out.
+- **AssertionRewriter package** (`Kronikol.AssertionRewriter`): Roslyn-based MSBuild task that automatically wraps `.Should()` expression statements in `Track.That(() => ...)` at compile time. Opt in with `[assembly: TrackAssertions]`. Supports `[SuppressAssertionTracking]` attribute and `#pragma warning disable` regions for selective opt-out.
 
 ### Changed
 - **E2E test parallelization**: Split 388 Playwright tests from a single sequential collection into 6 parallel collections (Zoom, Notes, Search, Diagrams, Reports, Scenarios) + existing FullPipeline. Increased `maxParallelThreads` from 4 to 8. Reduces local E2E execution time from ~20 min to ~9.5 min.
@@ -1107,8 +1120,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Changed
 - **Framework-specific argument capture decorators for LightBDD.xUnit3 and LightBDD.TUnit**: Each package now registers its own `IScenarioDecorator` that extracts raw test method arguments directly from the underlying framework's test context (`XUnit3ArgumentExtractor` / `TUnitArgumentExtractor`), falling back to LightBDD's generic `IScenario.Descriptor.Parameters` extraction if the framework context is unavailable. This ensures the same argument extraction logic used by the non-LightBDD adapters is also used when running LightBDD on those frameworks.
-- **Added `TUnitArgumentExtractor` in `TestTrackingDiagrams.TUnit`**: Shared helper for extracting raw arguments from TUnit's `TestContext.Metadata.TestDetails.TestMethodArguments`, analogous to `XUnit3ArgumentExtractor` in the xUnit3 package.
-- **Added project references from LightBDD framework packages to their base packages**: `LightBDD.TUnit` → `TestTrackingDiagrams.TUnit`, `LightBDD.xUnit2` → `TestTrackingDiagrams.xUnit2`. Enables sharing of argument extractors, `CurrentTestInfo`, and other infrastructure.
+- **Added `TUnitArgumentExtractor` in `Kronikol.TUnit`**: Shared helper for extracting raw arguments from TUnit's `TestContext.Metadata.TestDetails.TestMethodArguments`, analogous to `XUnit3ArgumentExtractor` in the xUnit3 package.
+- **Added project references from LightBDD framework packages to their base packages**: `LightBDD.TUnit` → `Kronikol.TUnit`, `LightBDD.xUnit2` → `Kronikol.xUnit2`. Enables sharing of argument extractors, `CurrentTestInfo`, and other infrastructure.
 - **Core `ArgumentCaptureScenarioDecorator.TryCaptureFromDescriptor()` now `internal static`**: Framework-specific decorators can call this as a fallback when native extraction fails.
 - **`CreateStandardReportsWithDiagramsInternal` accepts `registerDefaultDecorator` parameter**: Framework packages that register their own decorator pass `false` to avoid redundant registration.
 
@@ -1120,8 +1133,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **`ReportWritersConfiguration.CreateStandardReportsWithDiagrams()` deprecated** across all packages: The old overload still works but produces a compiler warning directing users to the `LightBddConfiguration` overload.
 - **`[CaptureLightBddArguments]` attribute deprecated** (xUnit3): The assembly-level attribute is no longer needed when using the new API.
 - **BDDfy adapter now captures raw test method arguments**: `DiagramCapturingProcessor` captures `TestMethodArguments` from xUnit3's test context, passing them through `ParameterParser.ExtractStructuredParametersWithRaw()` — the same pipeline used by the non-BDDfy xUnit3 adapter. Enables rich rendering of complex objects in BDDfy parameterized tests.
-- **Consolidated shared xUnit3 argument extraction code**: Created `XUnit3ArgumentExtractor` in `TestTrackingDiagrams.xUnit3` — a single shared helper for extracting raw arguments from `XunitTest`/`XunitTestCase`. Used by all three xUnit3-based packages (xUnit3, BDDfy.xUnit3, LightBDD.xUnit3) instead of duplicating the extraction pattern.
-- **Added project references for code sharing**: `TestTrackingDiagrams.BDDfy.xUnit3` and `TestTrackingDiagrams.LightBDD.xUnit3` now reference `TestTrackingDiagrams.xUnit3` directly, enabling shared infrastructure (argument extraction, `CurrentTestInfo`) and eliminating code duplication that would be difficult to keep in sync.
+- **Consolidated shared xUnit3 argument extraction code**: Created `XUnit3ArgumentExtractor` in `Kronikol.xUnit3` — a single shared helper for extracting raw arguments from `XunitTest`/`XunitTestCase`. Used by all three xUnit3-based packages (xUnit3, BDDfy.xUnit3, LightBDD.xUnit3) instead of duplicating the extraction pattern.
+- **Added project references for code sharing**: `Kronikol.BDDfy.xUnit3` and `Kronikol.LightBDD.xUnit3` now reference `Kronikol.xUnit3` directly, enabling shared infrastructure (argument extraction, `CurrentTestInfo`) and eliminating code duplication that would be difficult to keep in sync.
 - **BDDfy `CurrentTestInfo` delegates to xUnit3 implementation**: Eliminates near-identical copy in the BDDfy package.
 
 ## [2.29.6-beta] - 2026-05-05
@@ -1244,7 +1257,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.28.34] - 2026-05-03
 
 ### Removed
-- **Selenium test project**: Removed `TestTrackingDiagrams.Tests.Selenium` — fully replaced by the Playwright-based `TestTrackingDiagrams.Tests.EndToEnd` suite (identical 293-test coverage)
+- **Selenium test project**: Removed `Kronikol.Tests.Selenium` — fully replaced by the Playwright-based `Kronikol.Tests.EndToEnd` suite (identical 293-test coverage)
 - Removed Selenium CI matrix jobs (4 jobs) — Playwright E2E jobs now provide full browser test coverage in CI
 
 ## [2.28.33] - 2026-05-03
@@ -1278,7 +1291,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.28.29] - 2026-05-04
 
 ### Added
-- **Playwright E2E test suite**: Migrated all 27 Selenium browser test files to Playwright in `TestTrackingDiagrams.Tests.EndToEnd`. 309 tests pass (28 skipped wiki screenshot/gif tests). Tests run with full parallel execution support.
+- **Playwright E2E test suite**: Migrated all 27 Selenium browser test files to Playwright in `Kronikol.Tests.EndToEnd`. 309 tests pass (28 skipped wiki screenshot/gif tests). Tests run with full parallel execution support.
 - **AGENTS.md**: Added agent customization file with Playwright test conventions.
 
 ### Fixed
@@ -1326,10 +1339,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.28.23] - 2026-05-01
 
 ### Fixed
-- **`TrackDependenciesForDiagrams` no longer produces unpaired `override.com` entries in diagnostic reports** (fixes [#24](https://github.com/lemonlion/TestTrackingDiagrams/issues/24)): `TestTrackingMessageHandler` now auto-excludes requests to `override.com` (ASP.NET Core TestServer's internal base address) from tracking. These requests are still forwarded normally to the inner handler but produce no log entries. A new `ExcludedHosts` property on `TestTrackingMessageHandlerOptions` (default: `["override.com"]`) allows customising which hosts are excluded. Set to an empty collection to restore previous behavior.
+- **`TrackDependenciesForDiagrams` no longer produces unpaired `override.com` entries in diagnostic reports** (fixes [#24](https://github.com/lemonlion/Kronikol/issues/24)): `TestTrackingMessageHandler` now auto-excludes requests to `override.com` (ASP.NET Core TestServer's internal base address) from tracking. These requests are still forwarded normally to the inner handler but produce no log entries. A new `ExcludedHosts` property on `TestTrackingMessageHandlerOptions` (default: `["override.com"]`) allows customising which hosts are excluded. Set to an empty collection to restore previous behavior.
 
 ### Added
-- **`services.RemoveDbContext<TContext>()` extension method** (fixes [#25](https://github.com/lemonlion/TestTrackingDiagrams/issues/25)): New DI helper in `TestTrackingDiagrams.Extensions.EfCore.Relational` that removes all registrations related to a DbContext type — including `IDbContextOptionsConfiguration<TContext>` (an internal EF Core type that survives `RemoveAll<DbContextOptions<T>>()`). Call this in `ConfigureTestServices` before re-registering the DbContext with a tracking interceptor to ensure no production configuration callbacks survive.
+- **`services.RemoveDbContext<TContext>()` extension method** (fixes [#25](https://github.com/lemonlion/Kronikol/issues/25)): New DI helper in `Kronikol.Extensions.EfCore.Relational` that removes all registrations related to a DbContext type — including `IDbContextOptionsConfiguration<TContext>` (an internal EF Core type that survives `RemoveAll<DbContextOptions<T>>()`). Call this in `ConfigureTestServices` before re-registering the DbContext with a tracking interceptor to ensure no production configuration callbacks survive.
 
 ### Documentation
 - **EF Core Extension wiki**: Replaced `RemoveAll<DbContextOptions<T>>()` in Option A with `RemoveDbContext<T>()` and added migration warning about the insufficient removal pattern.
@@ -1443,7 +1456,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.28.11] - 2026-04-30
 
 ### Added
-- **`DiagramMethod` and `DiagramStatusCode` wrapper types**: Named alternatives to `OneOf<HttpMethod, string>` and `OneOf<HttpStatusCode, string>` that avoid the `CS0104` ambiguous reference error when a project also references the popular `OneOf` NuGet package. Both types inherit from the existing `OneOf<T1,T2>` and are assignment-compatible everywhere the base type is used. Use `DiagramMethod method = "Blob Upload";` instead of `TestTrackingDiagrams.Tracking.OneOf<HttpMethod, string> method = "Blob Upload";`.
+- **`DiagramMethod` and `DiagramStatusCode` wrapper types**: Named alternatives to `OneOf<HttpMethod, string>` and `OneOf<HttpStatusCode, string>` that avoid the `CS0104` ambiguous reference error when a project also references the popular `OneOf` NuGet package. Both types inherit from the existing `OneOf<T1,T2>` and are assignment-compatible everywhere the base type is used. Use `DiagramMethod method = "Blob Upload";` instead of `Kronikol.Tracking.OneOf<HttpMethod, string> method = "Blob Upload";`.
 - **`RequestResponseLogger.LogPair()` auto-resolving overload**: New overload that doesn't require `testName`/`testId` parameters — resolves test identity from an optional `testInfoFetcher` delegate, then falls back to `TestIdentityScope.Current`. Simplifies custom dependency tracking in background processing scenarios.
 - **`MessageTracker.TrackSendMessage()`**: Atomic request+response tracking with standard (non-event) arrow styling. Unlike `TrackSendEvent()` which produces event-styled blue arrows, `TrackSendMessage()` produces standard arrows matching HTTP call styling. Ideal for the common `AfterPublish` handler pattern where you want to log a successful send atomically.
 - **Diagnostic report: Unknown entries breakdown**: The `DiagnosticReport.html` now includes a dedicated "Unknown Entries Breakdown" section when log entries with test ID `"unknown"` are present. Groups entries by service name and method with counts and timestamp ranges, making it easy to identify which background operations (change feed processor, hosted services, etc.) are producing unattributed tracking entries.
@@ -1524,11 +1537,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 - **Direct database tracking extensions for 5 popular databases**: New NuGet packages providing first-class SQL operation tracking without depending on EF Core or Dapper:
-  - **`TestTrackingDiagrams.Extensions.Npgsql`** — PostgreSQL tracking via Npgsql's built-in `DiagnosticSource` instrumentation. Subscribes to the `"Npgsql"` diagnostic listener and correlates `BeforeExecuteCommand`/`AfterExecuteCommand` events.
-  - **`TestTrackingDiagrams.Extensions.SqlClient`** — SQL Server tracking via `Microsoft.Data.SqlClient`'s `DiagnosticSource`. Subscribes to `"SqlClientDiagnosticListener"` and handles both `WriteCommand*` and legacy `Execute*` event patterns.
-  - **`TestTrackingDiagrams.Extensions.MySqlConnector`** — MySQL tracking via MySqlConnector's `DiagnosticSource`. Subscribes to the `"MySqlConnector"` diagnostic listener.
-  - **`TestTrackingDiagrams.Extensions.Sqlite`** — SQLite tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Intercepts all 6 execution paths (ExecuteReader/NonQuery/Scalar × sync/async), plus transaction begin/commit/rollback.
-  - **`TestTrackingDiagrams.Extensions.Oracle`** — Oracle tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Same 6-method interception + transaction tracking as SQLite.
+  - **`Kronikol.Extensions.Npgsql`** — PostgreSQL tracking via Npgsql's built-in `DiagnosticSource` instrumentation. Subscribes to the `"Npgsql"` diagnostic listener and correlates `BeforeExecuteCommand`/`AfterExecuteCommand` events.
+  - **`Kronikol.Extensions.SqlClient`** — SQL Server tracking via `Microsoft.Data.SqlClient`'s `DiagnosticSource`. Subscribes to `"SqlClientDiagnosticListener"` and handles both `WriteCommand*` and legacy `Execute*` event patterns.
+  - **`Kronikol.Extensions.MySqlConnector`** — MySQL tracking via MySqlConnector's `DiagnosticSource`. Subscribes to the `"MySqlConnector"` diagnostic listener.
+  - **`Kronikol.Extensions.Sqlite`** — SQLite tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Intercepts all 6 execution paths (ExecuteReader/NonQuery/Scalar × sync/async), plus transaction begin/commit/rollback.
+  - **`Kronikol.Extensions.Oracle`** — Oracle tracking via `DbConnection` wrapping decorator pattern (no `DiagnosticSource` available). Same 6-method interception + transaction tracking as SQLite.
 - **`UnifiedSqlClassifier`** in core package: Shared SQL operation parser supporting all major dialects (SQL Server brackets, PostgreSQL/MySQL quotes, MySQL backticks, Spanner hints). Classifies 16 operation types including DDL, upserts (5 patterns), stored procedures, and transactions.
 - **`SqlDiagnosticTracker` base class** in core package: Abstract tracker with command correlation (ConcurrentDictionary-based), phase-aware tracking, test info resolution, and variant attachment. Shared by all 5 database extensions.
 - **`SqlTrackingOptionsBase`** in core package: Common configuration for all SQL trackers (service name, verbosity, parameter logging, phase-aware setup/action tracking, excluded operations).
@@ -1570,7 +1583,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.27.16] - 2026-04-28
 
 ### Added
-- **New package: `TestTrackingDiagrams.Extensions.Kafka.BuildInterception`** — Automatically intercepts `ConsumerBuilder<TKey,TValue>.Build()` and `ProducerBuilder<TKey,TValue>.Build()` via [Harmony](https://github.com/pardeike/Harmony) runtime patching, wrapping the result with `TrackingKafkaConsumer` / `TrackingKafkaProducer` when tracking is enabled. This enables **zero production code changes** — no `.BuildTracked()`, no package reference in the API project, no DI changes. The Harmony dependency is isolated in the addon package.
+- **New package: `Kronikol.Extensions.Kafka.BuildInterception`** — Automatically intercepts `ConsumerBuilder<TKey,TValue>.Build()` and `ProducerBuilder<TKey,TValue>.Build()` via [Harmony](https://github.com/pardeike/Harmony) runtime patching, wrapping the result with `TrackingKafkaConsumer` / `TrackingKafkaProducer` when tracking is enabled. This enables **zero production code changes** — no `.BuildTracked()`, no package reference in the API project, no DI changes. The Harmony dependency is isolated in the addon package.
 - **`KafkaBuildInterceptor.EnableConsumerTracking<TKey,TValue>()`** — Enables consumer tracking and patches `ConsumerBuilder<TKey,TValue>.Build()` in a single call.
 - **`KafkaBuildInterceptor.EnableProducerTracking<TKey,TValue>()`** — Enables producer tracking and patches `ProducerBuilder<TKey,TValue>.Build()` in a single call.
 - **`KafkaBuildInterceptor.EnableTracking<TKey,TValue>()`** — Convenience method that enables both consumer and producer tracking and patches both `Build()` methods.
@@ -1733,7 +1746,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   ```csharp
   CurrentTestInfoFetcher = CurrentTestInfo.Fetcher
   ```
-  Available in: `TestTrackingDiagrams.xUnit3`, `TestTrackingDiagrams.xUnit2`, `TestTrackingDiagrams.NUnit4`, `TestTrackingDiagrams.MSTest`, `TestTrackingDiagrams.TUnit`, `TestTrackingDiagrams.LightBDD` (Core/xUnit2/xUnit3/TUnit), `TestTrackingDiagrams.ReqNRoll` (Core/xUnit2/xUnit3/TUnit), `TestTrackingDiagrams.BDDfy.xUnit3`.
+  Available in: `Kronikol.xUnit3`, `Kronikol.xUnit2`, `Kronikol.NUnit4`, `Kronikol.MSTest`, `Kronikol.TUnit`, `Kronikol.LightBDD` (Core/xUnit2/xUnit3/TUnit), `Kronikol.ReqNRoll` (Core/xUnit2/xUnit3/TUnit), `Kronikol.BDDfy.xUnit3`.
 - **`XUnit2TestTrackingMessageHandlerOptions.TestInfoFetcher`**: xUnit v2 options class now exposes a static `TestInfoFetcher` field (previously the delegate was only set inline in the constructor), aligning it with all other framework adapters.
 
 ### Documentation
@@ -1748,7 +1761,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.26.0] - 2026-07-14
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.AtlasDataApi` package**: MongoDB Atlas Data API extension with a `DelegatingHandler` (`AtlasDataApiTrackingMessageHandler`) that intercepts and classifies REST API operations. Supports 10 classified operations (FindOne, Find, InsertOne, InsertMany, UpdateOne, UpdateMany, DeleteOne, DeleteMany, ReplaceOne, Aggregate) with directional arrows (← read, → write, ↔ read-modify-write), three verbosity levels (Raw, Detailed, Summarised), JSON body metadata extraction (dataSource, database, collection, filter), ExcludedOperations filtering, and DI registration via `AddAtlasDataApiTestTracking()`.
+- **New `Kronikol.Extensions.AtlasDataApi` package**: MongoDB Atlas Data API extension with a `DelegatingHandler` (`AtlasDataApiTrackingMessageHandler`) that intercepts and classifies REST API operations. Supports 10 classified operations (FindOne, Find, InsertOne, InsertMany, UpdateOne, UpdateMany, DeleteOne, DeleteMany, ReplaceOne, Aggregate) with directional arrows (← read, → write, ↔ read-modify-write), three verbosity levels (Raw, Detailed, Summarised), JSON body metadata extraction (dataSource, database, collection, filter), ExcludedOperations filtering, and DI registration via `AddAtlasDataApiTestTracking()`.
 - **MongoDB Extension — 11 new classified operations**: Added Change Streams (`Watch` via `$changeStream` pipeline detection), Transactions (`CommitTransaction`, `AbortTransaction`), Admin (`DropDatabase`, `ServerStatus`, `DbStats`, `CollStats`), DDL (`RenameCollection`, `ListIndexes`), and Legacy (`MapReduce`). Total classified operations: 28 (up from 17).
 - **MongoDB Extension — directional arrows**: Detailed verbosity labels now include directional arrows: `←` for reads (Find, Aggregate, Count, Distinct, ListCollections, ListDatabases, ListIndexes), `→` for writes (Insert, Delete, DropIndex, DropCollection, DropDatabase, RenameCollection), `↔` for read-modify-write (FindAndModify, Update, BulkWrite). Schema and admin operations show no arrow.
 - **MongoDB Extension — enriched metadata**: `MongoDbOperationInfo` now includes `DocumentCount` (from insert arrays), `DocumentId` (from filter `_id`), `PipelineStages` (from aggregate pipelines), and `IsGridFs` (from `fs.files`/`fs.chunks` collections). Detailed labels show enriched info like `Insert (×5) → users` and `Aggregate ($match, $group) ← orders`.
@@ -1782,15 +1795,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.24.0] - 2026-07-14
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.Spanner` package**: Google Cloud Spanner extension with ADO.NET connection wrapping (`TrackingSpannerConnection`, `TrackingSpannerCommand`, `TrackingSpannerTransaction`) and a direct `SpannerTracker` for gRPC-style usage. Classifies 18 Spanner operations (Query, Read, Insert, Update, Delete, InsertOrUpdate, Replace, Commit, Rollback, BeginTransaction, BatchDml, PartitionQuery, PartitionRead, Ddl, CreateSession, DeleteSession, StreamingRead, Other) with three verbosity levels (Raw, Detailed, Summarised). Includes DI registration via `AddSpannerTestTracking()` and connection extension `WithTestTracking()`.
-- **New `TestTrackingDiagrams.Extensions.Bigtable` package**: Google Cloud Bigtable extension with a direct `BigtableTracker` implementing `ITrackingComponent`. Classifies 7 Bigtable operations (ReadRows, MutateRow, MutateRows, CheckAndMutateRow, ReadModifyWriteRow, SampleRowKeys, Other) with directional diagram labels (← for reads, → for writes) and short table name extraction from full Bigtable resource paths. Includes DI registration via `AddBigtableTestTracking()`.
+- **New `Kronikol.Extensions.Spanner` package**: Google Cloud Spanner extension with ADO.NET connection wrapping (`TrackingSpannerConnection`, `TrackingSpannerCommand`, `TrackingSpannerTransaction`) and a direct `SpannerTracker` for gRPC-style usage. Classifies 18 Spanner operations (Query, Read, Insert, Update, Delete, InsertOrUpdate, Replace, Commit, Rollback, BeginTransaction, BatchDml, PartitionQuery, PartitionRead, Ddl, CreateSession, DeleteSession, StreamingRead, Other) with three verbosity levels (Raw, Detailed, Summarised). Includes DI registration via `AddSpannerTestTracking()` and connection extension `WithTestTracking()`.
+- **New `Kronikol.Extensions.Bigtable` package**: Google Cloud Bigtable extension with a direct `BigtableTracker` implementing `ITrackingComponent`. Classifies 7 Bigtable operations (ReadRows, MutateRow, MutateRows, CheckAndMutateRow, ReadModifyWriteRow, SampleRowKeys, Other) with directional diagram labels (← for reads, → for writes) and short table name extraction from full Bigtable resource paths. Includes DI registration via `AddBigtableTestTracking()`.
 - **`BigQueryTracker`**: New direct tracker class for the BigQuery extension, providing `LogRequest`/`LogResponse` pair logging without HTTP interception. Useful for scenarios where BigQuery operations are tracked at a layer above or below the HTTP pipeline.
 - **`BigQueryServiceCollectionExtensions.AddBigQueryTestTracking()`**: New DI extension in the BigQuery package that registers a singleton `BigQueryTracker` with `IHttpContextAccessor` auto-resolved from DI.
 
 ## [2.23.13] - 2026-04-27
 
 ### Fixed
-- **SqlTrackingInterceptor**: Fixed `UriFormatException` when `Verbosity` is `Detailed` or `Raw` and the SQL Server connection uses comma-separated port notation (e.g. `127.0.0.1,33262` from Docker containers). The `DataSource` comma is now normalised to a colon for valid URI construction. ([#22](https://github.com/lemonlion/TestTrackingDiagrams/issues/22))
+- **SqlTrackingInterceptor**: Fixed `UriFormatException` when `Verbosity` is `Detailed` or `Raw` and the SQL Server connection uses comma-separated port notation (e.g. `127.0.0.1,33262` from Docker containers). The `DataSource` comma is now normalised to a colon for valid URI construction. ([#22](https://github.com/lemonlion/Kronikol/issues/22))
 
 ## [2.23.12] - 2026-04-27
 
@@ -1816,7 +1829,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Fixed
 - **gRPC Activity spans not appearing in Activity Diagrams / Flamecharts**: Fixed three issues preventing gRPC calls from producing activity spans:
-  1. `InternalFlowSpanCollector.FilterByAutoInstrumentation()` excluded `"TestTrackingDiagrams.Grpc"` spans because the source was not in `WellKnownAutoInstrumentationSources`. Added `"TestTrackingDiagrams.Grpc"` and `"Grpc.Net.Client"` to the well-known list.
+  1. `InternalFlowSpanCollector.FilterByAutoInstrumentation()` excluded `"Kronikol.Grpc"` spans because the source was not in `WellKnownAutoInstrumentationSources`. Added `"Kronikol.Grpc"` and `"Grpc.Net.Client"` to the well-known list.
   2. `AsyncUnaryCall` disposed its `Activity` immediately on method return (before the async response arrived), producing near-zero-duration spans. The Activity is now kept alive and stopped in `WrapUnaryResponse` after the response is logged, so spans cover the full call duration.
   3. No trace context was propagated to the server. A `traceparent` metadata header is now injected into all outgoing gRPC calls, allowing server-side ASP.NET Core spans to share the same TraceId.
 
@@ -1838,7 +1851,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 - **`CreateTestTrackingGrpcClient` convenience extension on `WebApplicationFactory`**: New `factory.CreateTestTrackingGrpcClient<TEntryPoint, TClient>(options)` extension method mirrors the HTTP `CreateTestTrackingClient` API for gRPC. A single call handles the `GrpcResponseVersionHandler` (HTTP/2 fix for TestServer), `GrpcChannel` creation, `GrpcTrackingInterceptor` installation, and typed gRPC client construction — making it impossible to accidentally forget tracking. Also provides a `CreateTestTrackingGrpcClientWithChannel` variant that returns the underlying `GrpcChannel` for disposal.
-- **`GrpcResponseVersionHandler`**: Built-in `DelegatingHandler` that fixes the HTTP response version mismatch when testing gRPC services in-process via `TestServer`. `TestServer` returns HTTP/1.1, but gRPC requires HTTP/2 — this handler copies the request version onto the response. Previously, every test project had to implement their own `ResponseVersionHandler`; now it's included in the `TestTrackingDiagrams.Extensions.Grpc` package.
+- **`GrpcResponseVersionHandler`**: Built-in `DelegatingHandler` that fixes the HTTP response version mismatch when testing gRPC services in-process via `TestServer`. `TestServer` returns HTTP/1.1, but gRPC requires HTTP/2 — this handler copies the request version onto the response. Previously, every test project had to implement their own `ResponseVersionHandler`; now it's included in the `Kronikol.Extensions.Grpc` package.
 
 ## [2.23.6] - 2026-04-26
 
@@ -2035,7 +2048,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **WebApplicationFactory NRE on teardown when ComponentDiagramOptions is null**: The v2.22.6 fix for `ComponentDiagramOptions` null handling changed the semantic behavior — `null` options now defaulted to embedding the component diagram (via `new ComponentDiagramOptions()` where `EmbedInTestRunReport = true`). This caused unexpected component diagram embedding for consumers who never configured `ComponentDiagramOptions`, adding work during report generation that could trigger a `NullReferenceException` in `WebApplicationFactory<T>.DisposeAsync()`. Reverted to the v2.22.5 null-conditional behavior: `null` `ComponentDiagramOptions` now means "don't embed".
 
 ### Added
-- **TTD version embedded in all reports**: The TestTrackingDiagrams version is now included in HTML reports (as a `<meta name="generator">` tag and in the Test Execution Summary table), JSON data (`ttdVersion` field), YAML data (`TtdVersion` field), XML data (`<TtdVersion>` element), and the JSON schema.
+- **TTD version embedded in all reports**: The Kronikol version is now included in HTML reports (as a `<meta name="generator">` tag and in the Test Execution Summary table), JSON data (`kronikolVersion` field), YAML data (`TtdVersion` field), XML data (`<TtdVersion>` element), and the JSON schema.
 
 ## [2.22.11] - 2026-04-23
 
@@ -2151,7 +2164,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.21.2] - 2026-04-22
 
 ### Fixed
-- **`TestTrackingMessageHandler.SendAsync` no longer sets `Activity.Current`**: The handler was creating a `new Activity("TestTrackingDiagrams.Request").Start()` when no ambient Activity existed, which set `Activity.Current` and interfered with Application Insights' telemetry correlation — `DependencyTelemetry` items received the wrong `Context.Operation.Name` (or none at all) instead of the server request's operation name (e.g. `"GET /health"`). The handler now generates trace/span IDs directly via `ActivityTraceId.CreateRandom()` / `ActivitySpanId.CreateRandom()` and injects the `traceparent` header without creating an Activity. This preserves W3C trace context propagation for InternalFlow span correlation while leaving `Activity.Current` untouched.
+- **`TestTrackingMessageHandler.SendAsync` no longer sets `Activity.Current`**: The handler was creating a `new Activity("Kronikol.Request").Start()` when no ambient Activity existed, which set `Activity.Current` and interfered with Application Insights' telemetry correlation — `DependencyTelemetry` items received the wrong `Context.Operation.Name` (or none at all) instead of the server request's operation name (e.g. `"GET /health"`). The handler now generates trace/span IDs directly via `ActivityTraceId.CreateRandom()` / `ActivitySpanId.CreateRandom()` and injects the `traceparent` header without creating an Activity. This preserves W3C trace context propagation for InternalFlow span correlation while leaving `Activity.Current` untouched.
 
 ## [2.21.1] - 2026-04-22
 
@@ -2174,7 +2187,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.20.0] - 2026-04-22
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.EventBridge` package**: Track Amazon EventBridge operations in test diagrams via the AWS SDK HTTP pipeline. Intercepts `X-Amz-Target` JSON-RPC calls using the same `DelegatingHandler` pattern as the S3, DynamoDB, SQS, and SNS extensions. Includes:
+- **New `Kronikol.Extensions.EventBridge` package**: Track Amazon EventBridge operations in test diagrams via the AWS SDK HTTP pipeline. Intercepts `X-Amz-Target` JSON-RPC calls using the same `DelegatingHandler` pattern as the S3, DynamoDB, SQS, and SNS extensions. Includes:
   - `EventBridgeTrackingMessageHandler` — DelegatingHandler implementing `ITrackingComponent` with auto-registration. Classifies and logs PutEvents, rule management, target management, event bus lifecycle, archive, replay, and tagging operations.
   - `EventBridgeOperationClassifier` — Dictionary-based classifier mapping 28 `X-Amz-Target` headers to `EventBridgeOperation` enum values, with JSON body parsing for PutEvents (DetailType, Source, EntryCount, EventBusName) and rule operations (Name, EventBusName).
   - `AmazonEventBridgeConfigExtensions.WithTestTracking()` — Fluent extension on `AmazonEventBridgeConfig` that injects the tracking handler via `HttpClientFactory`.
@@ -2185,7 +2198,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.19.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.Dapper` package**: Track Dapper and ADO.NET SQL operations in test diagrams. Wraps `DbConnection` to intercept all query execution with zero Dapper-specific dependencies — works with any ADO.NET provider. Includes:
+- **New `Kronikol.Extensions.Dapper` package**: Track Dapper and ADO.NET SQL operations in test diagrams. Wraps `DbConnection` to intercept all query execution with zero Dapper-specific dependencies — works with any ADO.NET provider. Includes:
   - `TrackingDbConnection` — Decorator wrapping `DbConnection` that implements `ITrackingComponent` with auto-registration. Creates `TrackingDbCommand` instances that intercept `ExecuteReader`, `ExecuteNonQuery`, `ExecuteScalar` (sync + async).
   - `TrackingDbCommand` — Intercepts all execution methods, classifies the SQL, and logs request/response pairs to `RequestResponseLogger`.
   - `TrackingDbTransaction` — Transparent wrapper that logs `BEGIN`, `COMMIT`, and `ROLLBACK` operations.
@@ -2197,7 +2210,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.18.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.Elasticsearch` package**: Track Elasticsearch operations in test diagrams via the Elastic .NET client's `OnRequestCompleted` callback. Intercepts and classifies REST API operations across indices. Includes:
+- **New `Kronikol.Extensions.Elasticsearch` package**: Track Elasticsearch operations in test diagrams via the Elastic .NET client's `OnRequestCompleted` callback. Intercepts and classifies REST API operations across indices. Includes:
   - `ElasticsearchTrackingCallbackHandler` — Callback handler implementing `ITrackingComponent`. Classifies and logs index, search, document, bulk, and cluster operations.
   - `ElasticsearchOperationClassifier` — Classifies 24 Elasticsearch REST API operations (IndexDocument, GetDocument, Search, Bulk, CreateIndex, DeleteIndex, etc.) from URL path patterns and HTTP methods.
   - `ElasticsearchClientSettingsExtensions.WithTestTracking()` — Fluent extension on `ElasticsearchClientSettings` that enables `DisableDirectStreaming` and registers the tracking callback.
@@ -2207,7 +2220,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.17.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.Kafka` package**: Track Apache Kafka produce and consume operations in test diagrams using wrapper classes around Confluent.Kafka's `IProducer<TKey,TValue>` and `IConsumer<TKey,TValue>`. Includes:
+- **New `Kronikol.Extensions.Kafka` package**: Track Apache Kafka produce and consume operations in test diagrams using wrapper classes around Confluent.Kafka's `IProducer<TKey,TValue>` and `IConsumer<TKey,TValue>`. Includes:
   - `KafkaTracker` — Central logging component implementing `ITrackingComponent`. Logs produce, consume, subscribe, and commit operations with Event MetaType. Consume operations swap caller/service names to reflect incoming message direction.
   - `TrackingKafkaProducer<TKey,TValue>` — Wrapper implementing `IProducer<TKey,TValue>` that intercepts `Produce` and `ProduceAsync` calls with topic, partition, and offset tracking.
   - `TrackingKafkaConsumer<TKey,TValue>` — Wrapper implementing `IConsumer<TKey,TValue>` that intercepts `Consume` and `Subscribe` calls, skipping EOF/null results.
@@ -2218,7 +2231,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.16.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.MassTransit` package**: Track MassTransit message operations (RabbitMQ, Azure Service Bus, Amazon SQS, and other transports) in test diagrams using MassTransit observer interfaces. Includes:
+- **New `Kronikol.Extensions.MassTransit` package**: Track MassTransit message operations (RabbitMQ, Azure Service Bus, Amazon SQS, and other transports) in test diagrams using MassTransit observer interfaces. Includes:
   - `MassTransitTracker` — Central logging component implementing `ITrackingComponent`. Logs send, publish, consume, and fault operations with Event MetaType.
   - `TrackingSendObserver`, `TrackingPublishObserver`, `TrackingConsumeObserver` — MassTransit observer implementations that delegate to the tracker.
   - `MassTransitOperationClassifier` — Classifies operations (Send, Publish, Consume, SendFault, PublishFault, ConsumeFault) with message type and URI extraction.
@@ -2229,7 +2242,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.15.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.StorageQueues` package**: Track Azure Storage Queue operations in test diagrams using the Azure.Core Transport pattern (same as BlobStorage). Includes:
+- **New `Kronikol.Extensions.StorageQueues` package**: Track Azure Storage Queue operations in test diagrams using the Azure.Core Transport pattern (same as BlobStorage). Includes:
   - `StorageQueueOperationClassifier` — Classifies Storage Queue REST API operations (SendMessage, ReceiveMessages, PeekMessages, DeleteMessage, UpdateMessage, ClearMessages, CreateQueue, DeleteQueue, GetProperties, SetMetadata, ListQueues) from URL path patterns and query parameters.
   - `StorageQueueTrackingMessageHandler` — `DelegatingHandler` + `ITrackingComponent` that intercepts HTTP requests, classifies operations, and logs request/response pairs.
   - `QueueClientOptionsExtensions.WithTestTracking()` — Fluent extension on `QueueClientOptions` that sets `Transport` to `HttpClientTransport` with tracking handler.
@@ -2239,7 +2252,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.14.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.EventHubs` package**: Track Azure Event Hubs operations in test diagrams using the wrapper/decorator pattern around `EventHubProducerClient` and `EventHubConsumerClient`. Includes:
+- **New `Kronikol.Extensions.EventHubs` package**: Track Azure Event Hubs operations in test diagrams using the wrapper/decorator pattern around `EventHubProducerClient` and `EventHubConsumerClient`. Includes:
   - `EventHubsOperationClassifier` — Classifies Event Hubs operations (Send, SendBatch, CreateBatch, ReadEvents, ReadEventsFromPartition, GetPartitionIds, GetEventHubProperties, GetPartitionProperties, StartProcessing, StopProcessing, ProcessEvent) by method name with event count awareness.
   - `EventHubsTracker` — Central logging helper implementing `ITrackingComponent`. Logs request/response pairs with Event MetaType. Supports three verbosity levels with partition ID in URI.
   - `TrackingEventHubProducerClient` — Wrapper around `EventHubProducerClient` tracking single and batch send operations with event body serialization.
@@ -2249,7 +2262,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.13.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.CloudStorage` package**: Track Google Cloud Storage operations in test diagrams using the `DelegatingHandler` pattern via Google APIs `HttpClientFactory`. Includes:
+- **New `Kronikol.Extensions.CloudStorage` package**: Track Google Cloud Storage operations in test diagrams using the `DelegatingHandler` pattern via Google APIs `HttpClientFactory`. Includes:
   - `CloudStorageOperationClassifier` — Classifies GCS REST API operations (Upload, Download, Delete, ListObjects, GetMetadata, UpdateMetadata, Copy, Compose, CreateBucket, DeleteBucket, GetBucket, ListBuckets) from URL path patterns. Distinguishes Download vs GetMetadata via `alt=media` query parameter.
   - `CloudStorageTrackingMessageHandler` — `DelegatingHandler` + `ITrackingComponent` that intercepts HTTP requests, classifies operations, and logs request/response pairs.
   - `TrackingCloudStorageHttpClientFactory` — Google APIs `HttpClientFactory` wrapper that injects the tracking handler.
@@ -2260,7 +2273,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.12.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.SNS` package**: Track Amazon SNS operations in test diagrams using the `DelegatingHandler` pattern via `AmazonSimpleNotificationServiceConfig.HttpClientFactory`. Includes:
+- **New `Kronikol.Extensions.SNS` package**: Track Amazon SNS operations in test diagrams using the `DelegatingHandler` pattern via `AmazonSimpleNotificationServiceConfig.HttpClientFactory`. Includes:
   - `SnsOperationClassifier` — Classifies SNS operations (Publish, PublishBatch, Subscribe, Unsubscribe, CreateTopic, DeleteTopic, ListTopics, ListSubscriptions, ListSubscriptionsByTopic, GetTopicAttributes, SetTopicAttributes, ConfirmSubscription) from `X-Amz-Target: AmazonSimpleNotificationService.{Op}` header or legacy `Action` query/form parameter. Extracts topic name from `TopicArn`/`TargetArn` ARN fields.
   - `SnsTrackingMessageHandler` — `DelegatingHandler` + `ITrackingComponent` that intercepts HTTP requests, classifies operations, and logs request/response pairs with configurable verbosity. Reconstructs request body after classification for downstream handlers.
   - `AmazonSNSConfigExtensions.WithTestTracking()` — Fluent extension on `AmazonSimpleNotificationServiceConfig` that installs the tracking handler via `HttpClientFactory`.
@@ -2270,7 +2283,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.11.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.PubSub` package**: Track Google Cloud Pub/Sub operations in test diagrams using wrapper/decorator pattern around `PublisherClient` and `SubscriberClient`. Includes:
+- **New `Kronikol.Extensions.PubSub` package**: Track Google Cloud Pub/Sub operations in test diagrams using wrapper/decorator pattern around `PublisherClient` and `SubscriberClient`. Includes:
   - `PubSubOperationClassifier` — Classifies Pub/Sub operations (Publish, PublishBatch, Pull, Acknowledge, ModifyAckDeadline, Receive, StartSubscriber, StopSubscriber) with short name extraction from full GCP resource paths (`projects/p/topics/t` → `t`).
   - `PubSubTracker` — Central logging helper implementing `ITrackingComponent`. Logs request/response pairs with Event MetaType for publish/receive operations. Supports three verbosity levels.
   - `TrackingPublisherClient` — Wrapper around `PublisherClient` tracking single and batch publish operations with message content at Raw/Detailed verbosity.
@@ -2280,7 +2293,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.10.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.Grpc` package**: Track gRPC client calls in test diagrams using the `Grpc.Core.Interceptors.Interceptor` API. Includes:
+- **New `Kronikol.Extensions.Grpc` package**: Track gRPC client calls in test diagrams using the `Grpc.Core.Interceptors.Interceptor` API. Includes:
   - `GrpcOperationClassifier` — Classifies gRPC calls by method type (Unary, ServerStreaming, ClientStreaming, DuplexStreaming) with service name, method name, and full method path extraction from `ClientInterceptorContext`.
   - `GrpcTrackingInterceptor` — Client-side interceptor that intercepts all gRPC call types (AsyncUnaryCall, BlockingUnaryCall, AsyncServerStreamingCall, AsyncClientStreamingCall, AsyncDuplexStreamingCall). Logs request/response pairs with protobuf message serialization. Implements `ITrackingComponent` with auto-registration. Maps gRPC `StatusCode` to HTTP status codes for consistent error logging.
   - `GrpcChannelExtensions.WithTestTracking()` — Fluent extension on `GrpcChannel` that wraps the channel's `CallInvoker` with the tracking interceptor.
@@ -2292,7 +2305,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.9.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.SQS` package**: Track Amazon SQS operations in test diagrams. Includes:
+- **New `Kronikol.Extensions.SQS` package**: Track Amazon SQS operations in test diagrams. Includes:
   - `SqsOperationClassifier` — Classifies SQS operations from both the JSON protocol (`X-Amz-Target: AmazonSQS.{Op}`) and legacy query protocol (`Action=` parameter in query string or form body). Extracts queue names from URL path (`/account-id/queue-name`), body `QueueUrl` field, or body `QueueName` field. Supports 14 operations: messaging (SendMessage, SendMessageBatch, ReceiveMessage, DeleteMessage, DeleteMessageBatch), visibility (ChangeMessageVisibility, ChangeMessageVisibilityBatch), queue management (CreateQueue, DeleteQueue, GetQueueUrl, GetQueueAttributes, SetQueueAttributes, PurgeQueue, ListQueues).
   - `SqsTrackingMessageHandler` — `DelegatingHandler` that intercepts all SQS HTTP traffic, reads and reconstructs request bodies for classification, and logs request/response pairs for diagram generation. Implements `ITrackingComponent` with auto-registration.
   - `AmazonSQSConfigExtensions.WithTestTracking()` — Fluent extension on `AmazonSQSConfig` that injects a tracking `HttpClientFactory` into the AWS SDK pipeline. Zero production code changes required.
@@ -2303,7 +2316,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.8.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.MongoDB` package**: Track MongoDB operations in test diagrams using the driver's built-in command monitoring events. Includes:
+- **New `Kronikol.Extensions.MongoDB` package**: Track MongoDB operations in test diagrams using the driver's built-in command monitoring events. Includes:
   - `MongoDbOperationClassifier` — Classifies MongoDB commands by name (find, insert, update, delete, aggregate, count, findAndModify, distinct, bulkWrite, createIndexes, dropIndexes, create, drop, listCollections, listDatabases, getMore), extracts collection name from the command BsonDocument, and optionally extracts filter text.
   - `MongoDbTrackingSubscriber` — Event-driven subscriber that hooks into `CommandStartedEvent`, `CommandSucceededEvent`, and `CommandFailedEvent` via `ClusterBuilder.Subscribe<T>()`. Uses `ConcurrentDictionary<int, PendingOperation>` to correlate request/response pairs by `RequestId`. Implements `ITrackingComponent` with auto-registration.
   - `MongoClientSettingsExtensions.WithTestTracking()` — Fluent extension on `MongoClientSettings` that chains a tracking subscriber into `ClusterConfigurator` without replacing existing configurators.
@@ -2314,7 +2327,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.7.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.DynamoDB` package**: Track Amazon DynamoDB operations in test diagrams. Includes:
+- **New `Kronikol.Extensions.DynamoDB` package**: Track Amazon DynamoDB operations in test diagrams. Includes:
   - `DynamoDbOperationClassifier` — Classifies DynamoDB operations from the `X-Amz-Target` header, extracting table names from JSON request bodies (including batch operations via `RequestItems` keys) and PartiQL statements. Supports 19 distinct operations: CRUD (PutItem, GetItem, UpdateItem, DeleteItem), queries (Query, Scan), batch (BatchWriteItem, BatchGetItem), transactions (TransactWriteItems, TransactGetItems), table management (CreateTable, DeleteTable, DescribeTable, ListTables, UpdateTable), and PartiQL (ExecuteStatement, BatchExecuteStatement, ExecuteTransaction).
   - `DynamoDbTrackingMessageHandler` — `DelegatingHandler` that intercepts all DynamoDB HTTP traffic, reads and reconstructs request bodies for classification, and logs request/response pairs for diagram generation. Implements `ITrackingComponent` with auto-registration.
   - `AmazonDynamoDBConfigExtensions.WithTestTracking()` — Fluent extension on `AmazonDynamoDBConfig` that injects a tracking `HttpClientFactory` into the AWS SDK pipeline. Zero production code changes required.
@@ -2327,7 +2340,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.6.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.S3` package**: Track Amazon S3 operations in test diagrams. Includes:
+- **New `Kronikol.Extensions.S3` package**: Track Amazon S3 operations in test diagrams. Includes:
   - `S3OperationClassifier` — Regex-based classifier that identifies S3 operations from HTTP requests, supporting both **path-style** (`s3.region.amazonaws.com/bucket/key`) and **virtual-hosted-style** (`bucket.s3.region.amazonaws.com/key`) URL formats. Classifies 20 distinct operations including PutObject, GetObject, DeleteObject, CopyObject, multipart uploads, tagging, and bucket management.
   - `S3TrackingMessageHandler` — `DelegatingHandler` that intercepts all S3 HTTP traffic, classifies operations, and logs request/response pairs for diagram generation. Implements `ITrackingComponent` with auto-registration.
   - `AmazonS3ConfigExtensions.WithTestTracking()` — Fluent extension on `AmazonS3Config` that injects a tracking `HttpClientFactory` into the AWS SDK pipeline. Zero production code changes required.
@@ -2362,7 +2375,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.4.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.ServiceBus` package**: Track Azure Service Bus messaging operations in test diagrams. Includes:
+- **New `Kronikol.Extensions.ServiceBus` package**: Track Azure Service Bus messaging operations in test diagrams. Includes:
   - `ServiceBusTracker` — Central logging helper that logs send/receive/management operations as request/response pairs for diagram generation. Implements `ITrackingComponent` with auto-registration.
   - `TrackingServiceBusClient` — Wrapper around `ServiceBusClient` that creates tracked senders and receivers.
   - `TrackingServiceBusSender` — Wrapper around `ServiceBusSender` that intercepts `SendMessageAsync`, `SendMessagesAsync`, `ScheduleMessageAsync`, and `CancelScheduledMessageAsync`.
@@ -2406,7 +2419,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.2.0] - 2026-04-21
 
 ### Added
-- **New `TestTrackingDiagrams.Extensions.BigQuery` package**: Track Google BigQuery REST API operations in test diagrams. Includes:
+- **New `Kronikol.Extensions.BigQuery` package**: Track Google BigQuery REST API operations in test diagrams. Includes:
   - `BigQueryTrackingMessageHandler` — A `DelegatingHandler` that intercepts all BigQuery REST calls and logs them as request/response pairs for diagram generation.
   - `BigQueryOperationClassifier` — Classifies BigQuery REST API URLs into operations (Query, Insert, Read, List, Create, Delete, Update, Cancel) with resource type extraction (table, dataset, job, model, routine, query, tabledata).
   - `BigQueryClientBuilderExtensions.WithTestTracking()` — Extension method on `BigQueryClientBuilder` for one-line integration.
@@ -2439,7 +2452,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Fixed
 - **Per-call activity diagrams showing wrong spans**: `InternalFlowSegmentBuilder.BuildSegments()` now filters spans by the specific request log's `ActivityTraceId` in addition to timestamp windowing. Previously, all spans from all trace IDs within a test were pooled and separated only by timestamps — causing spans from one HTTP call to bleed into another call's popup when timing overlapped or was coarse (Windows ~15.6ms timer resolution). Each call's internal flow popup now correctly shows only spans belonging to that call's W3C trace.
-- **Root span excluded from per-call diagrams**: Added a 50ms tolerance before the segment start timestamp to capture the `TestTrackingDiagrams.Request` root span, whose `Activity.Start()` fires before the log's `Timestamp = DateTimeOffset.UtcNow` is recorded. Combined with per-call TraceId filtering, this ensures the tolerance doesn't accidentally include unrelated spans.
+- **Root span excluded from per-call diagrams**: Added a 50ms tolerance before the segment start timestamp to capture the `Kronikol.Request` root span, whose `Activity.Start()` fires before the log's `Timestamp = DateTimeOffset.UtcNow` is recorded. Combined with per-call TraceId filtering, this ensures the tolerance doesn't accidentally include unrelated spans.
 
 ## [2.0.172-beta] - 2026-04-20
 
@@ -2565,7 +2578,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.0.152-beta] - 2026-04-18
 
 ### Changed
-- Renamed README title from "Test Tracking Diagrams" to "TestTrackingDiagrams" (PascalCase, matching .NET package naming convention)
+- Renamed README title from "Test Tracking Diagrams" to "Kronikol" (PascalCase, matching .NET package naming convention)
 - Added TTD icon prefix to README title
 - Updated nuget-readme.md title to match
 
@@ -2626,8 +2639,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [2.0.138-beta] - 2026-04-18
 
 ### Fixed
-- LightBDD.xUnit3 example: added missing `using TestTrackingDiagrams.LightBDD` for `HappyPathAttribute`, `LightBddTestTrackingMessageHandlerOptions`, and `TrackingDiagramOverride`
-- ReqNRoll xUnit2/xUnit3 examples: added `TestTrackingDiagrams.ReqNRoll.Core` to `reqnroll.json` binding assemblies so ReqNRoll discovers `[Binding]` hooks
+- LightBDD.xUnit3 example: added missing `using Kronikol.LightBDD` for `HappyPathAttribute`, `LightBddTestTrackingMessageHandlerOptions`, and `TrackingDiagramOverride`
+- ReqNRoll xUnit2/xUnit3 examples: added `Kronikol.ReqNRoll.Core` to `reqnroll.json` binding assemblies so ReqNRoll discovers `[Binding]` hooks
 
 ## [2.0.137-beta] - 2026-04-18
 
@@ -2653,9 +2666,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [1.x] - 2023–2025
 
 ### Notes
-- Initial release series. See [GitHub Releases](https://github.com/lemonlion/TestTrackingDiagrams/releases) for detailed history.
+- Initial release series. See [GitHub Releases](https://github.com/lemonlion/Kronikol/releases) for detailed history.
 
-[Unreleased]: https://github.com/lemonlion/TestTrackingDiagrams/compare/v2.0.139-beta...HEAD
-[2.0.139-beta]: https://github.com/lemonlion/TestTrackingDiagrams/compare/v2.0.138-beta...v2.0.139-beta
-[2.0.138-beta]: https://github.com/lemonlion/TestTrackingDiagrams/compare/v2.0.137-beta...v2.0.138-beta
-[2.0.137-beta]: https://github.com/lemonlion/TestTrackingDiagrams/releases/tag/v2.0.137-beta
+[Unreleased]: https://github.com/lemonlion/Kronikol/compare/v2.0.139-beta...HEAD
+[2.0.139-beta]: https://github.com/lemonlion/Kronikol/compare/v2.0.138-beta...v2.0.139-beta
+[2.0.138-beta]: https://github.com/lemonlion/Kronikol/compare/v2.0.137-beta...v2.0.138-beta
+[2.0.137-beta]: https://github.com/lemonlion/Kronikol/releases/tag/v2.0.137-beta

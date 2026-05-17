@@ -1,5 +1,5 @@
 using Example.Api.Tests.CiPreview.AllFailing.Infrastructure;
-using TestTrackingDiagrams.xUnit3;
+using Kronikol.xUnit3;
 
 namespace Example.Api.Tests.CiPreview.AllFailing;
 

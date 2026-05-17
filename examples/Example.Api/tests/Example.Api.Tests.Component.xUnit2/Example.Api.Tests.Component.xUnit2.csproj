@@ -39,7 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\src\TestTrackingDiagrams.xUnit2\TestTrackingDiagrams.xUnit2.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Kronikol.xUnit2\Kronikol.xUnit2.csproj" />
   </ItemGroup>
 
   <ItemGroup>

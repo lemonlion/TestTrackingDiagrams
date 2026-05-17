@@ -21,47 +21,47 @@ jobs:
       matrix:
         include:
           - name: Core Tests
-            projects: tests/TestTrackingDiagrams.Tests
+            projects: tests/Kronikol.Tests
           - name: Adapter Tests
             projects: >-
-              tests/TestTrackingDiagrams.Tests.MSTest
-              tests/TestTrackingDiagrams.Tests.xUnit2
-              tests/TestTrackingDiagrams.Tests.xUnit3
-              tests/TestTrackingDiagrams.Tests.LightBDD.xUnit3
+              tests/Kronikol.Tests.MSTest
+              tests/Kronikol.Tests.xUnit2
+              tests/Kronikol.Tests.xUnit3
+              tests/Kronikol.Tests.LightBDD.xUnit3
           - name: Extension Tests
             projects: >-
-              tests/TestTrackingDiagrams.Tests.CosmosDB
-              tests/TestTrackingDiagrams.Tests.EfCore.Relational
-              tests/TestTrackingDiagrams.Tests.Redis
+              tests/Kronikol.Tests.CosmosDB
+              tests/Kronikol.Tests.EfCore.Relational
+              tests/Kronikol.Tests.Redis
           - name: PlantUml IKVM Tests
-            projects: tests/TestTrackingDiagrams.Tests.PlantUml.Ikvm
+            projects: tests/Kronikol.Tests.PlantUml.Ikvm
             needs-disk-cleanup: true
           - name: E2E (Popups & Flows)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: IflowPopupTests|ComponentFlowPopupTests|WholeTestFlowTests
             needs-playwright: true
           - name: E2E (Search & Filters)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: UrlHashFilterHighlightTests|FilterPerformanceTests|AdvancedSearchTests|DependencyColoringTests
             needs-playwright: true
           - name: E2E (Toolbar & Reports)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: ReportToolbarTests|MobileResponsiveTests|LoadingMessageTests|JumpToFailureTests
             needs-playwright: true
           - name: E2E (Scenarios & Navigation)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: ScenarioInteractionTests|ParameterizedGroupTests|FailureClusterLinkTests
             needs-playwright: true
           - name: E2E (Diagram Notes)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: DiagramNoteBasicTests|DiagramNoteLongNoteTests|DiagramNoteSplitTests|DiagramNotePartitionTests|NoteButtonIndexTests
             needs-playwright: true
           - name: E2E (Diagram Interactions)
-            projects: tests/TestTrackingDiagrams.Tests.EndToEnd
+            projects: tests/Kronikol.Tests.EndToEnd
             filter: DiagramZoomTests|ContextMenuExtendedTests|HeadersDetailsInterferenceTests|NoteButtonsAfterHeaderHideTests|ZoomNoteInteractionTests
             needs-playwright: true
           - name: Assertion Tracking Tests
-            projects: tests/TestTrackingDiagrams.Tests.AssertionTracking
+            projects: tests/Kronikol.Tests.AssertionTracking
           - name: Example.Api xUnit Tests
             projects: >-
               examples/Example.Api/tests/Example.Api.Tests.Component.xUnit2

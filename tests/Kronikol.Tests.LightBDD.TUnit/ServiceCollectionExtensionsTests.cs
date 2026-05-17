@@ -1,0 +1,54 @@
+using Microsoft.Extensions.DependencyInjection;
+using Kronikol.LightBDD;
+using Kronikol.Tracking;
+
+namespace Kronikol.Tests.LightBDD.TUnit;
+
+public class ServiceCollectionExtensionsTests
+{
+    [Fact]
+    public void TrackDependenciesForDiagrams_ShouldReturnServiceCollection()
+    {
+        var services = new ServiceCollection();
+        var options = new LightBddTestTrackingMessageHandlerOptions
+        {
+            PortsToServiceNames = new Dictionary<int, string> { { 5001, "TestService" } },
+            CallerName = "Caller"
+        };
+
+        var result = services.TrackDependenciesForDiagrams(options);
+
+        Assert.Same(services, result);
+    }
+
+    [Fact]
+    public void TrackDependenciesForDiagrams_ShouldRegisterOptions()
+    {
+        var services = new ServiceCollection();
+        var options = new LightBddTestTrackingMessageHandlerOptions
+        {
+            PortsToServiceNames = new Dictionary<int, string> { { 5001, "TestService" } },
+            CallerName = "Caller"
+        };
+
+        services.TrackDependenciesForDiagrams(options);
+
+        var provider = services.BuildServiceProvider();
+        var resolved = provider.GetService<TestTrackingMessageHandlerOptions>();
+
+        Assert.NotNull(resolved);
+        Assert.IsType<LightBddTestTrackingMessageHandlerOptions>(resolved);
+    }
+
+    [Fact]
+    public void TrackDependenciesForDiagrams_ShouldAcceptLightBddOptions()
+    {
+        var services = new ServiceCollection();
+        var options = new LightBddTestTrackingMessageHandlerOptions();
+
+        // Should compile and not throw - proves the extension method accepts the LightBDD-specific options type
+        services.TrackDependenciesForDiagrams(options);
+
+        Assert.True(services.Count > 0);
+    }
+}

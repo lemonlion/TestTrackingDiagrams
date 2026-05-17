@@ -1,0 +1,15 @@
+using Microsoft.Extensions.DependencyInjection;
+using Kronikol.Tracking;
+
+namespace Kronikol.NUnit4;
+
+/// <summary>
+/// Provides extension methods for configuring dependency tracking on <see cref="IServiceCollection"/> for NUnit tests.
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection TrackDependenciesForDiagrams(this IServiceCollection services, NUnitTestTrackingMessageHandlerOptions options)
+    {
+        return ServiceCollectionHelper.TrackDependenciesForDiagrams(services, options);
+    }
+}

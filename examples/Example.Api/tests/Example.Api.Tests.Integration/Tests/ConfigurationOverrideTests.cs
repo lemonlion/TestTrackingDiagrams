@@ -19,9 +19,9 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_HIGHLIGHT_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_HIGHLIGHT_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -37,8 +37,8 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "false",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "false",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -54,9 +54,9 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_HIGHLIGHT_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_HIGHLIGHT_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -72,9 +72,9 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_HIGHLIGHT_SETUP"] = "false",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_HIGHLIGHT_SETUP"] = "false",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -93,8 +93,8 @@ public class ConfigurationOverrideTests
 
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SPECIFICATIONS_TITLE"] = customTitle,
-            ["TTD_SEPARATE_SETUP"] = "true"
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = customTitle,
+            ["KRONIKOL_SEPARATE_SETUP"] = "true"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -113,9 +113,9 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_EXCLUDED_HEADERS"] = "traceparent,Request-Id"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["KRONIKOL_EXCLUDED_HEADERS"] = "traceparent,Request-Id"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -145,10 +145,10 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "true",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server",
-            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
+            ["KRONIKOL_LAZY_LOAD_DIAGRAM_IMAGES"] = "true",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["KRONIKOL_PLANTUML_RENDERING"] = "Server",
+            ["KRONIKOL_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -167,10 +167,10 @@ public class ConfigurationOverrideTests
     {
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_LAZY_LOAD_DIAGRAM_IMAGES"] = "false",
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server",
-            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
+            ["KRONIKOL_LAZY_LOAD_DIAGRAM_IMAGES"] = "false",
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["KRONIKOL_PLANTUML_RENDERING"] = "Server",
+            ["KRONIKOL_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");
@@ -193,10 +193,10 @@ public class ConfigurationOverrideTests
 
         var result = await TestProjectRunner.RunAsync(projectName, new Dictionary<string, string>
         {
-            ["TTD_PLANTUML_SERVER_BASE_URL"] = customBaseUrl,
-            ["TTD_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
-            ["TTD_PLANTUML_RENDERING"] = "Server",
-            ["TTD_INTERNAL_FLOW_TRACKING"] = "false"
+            ["KRONIKOL_PLANTUML_SERVER_BASE_URL"] = customBaseUrl,
+            ["KRONIKOL_SPECIFICATIONS_TITLE"] = "Dessert Provider Specifications",
+            ["KRONIKOL_PLANTUML_RENDERING"] = "Server",
+            ["KRONIKOL_INTERNAL_FLOW_TRACKING"] = "false"
         });
 
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}");

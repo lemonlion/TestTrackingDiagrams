@@ -5,7 +5,7 @@ using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
 using FluentAssertions;
 using Reqnroll;
-using TestTrackingDiagrams.ReqNRoll;
+using Kronikol.ReqNRoll;
 
 namespace Example.Api.Tests.Component.ReqNRoll.xUnit2.StepDefinitions;
 

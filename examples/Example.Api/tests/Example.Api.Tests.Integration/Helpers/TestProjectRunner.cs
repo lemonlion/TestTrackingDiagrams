@@ -46,7 +46,7 @@ public static class TestProjectRunner
         };
 
         // Always enable integration mode
-        psi.Environment["TTD_INTEGRATION_MODE"] = "true";
+        psi.Environment["KRONIKOL_INTEGRATION_MODE"] = "true";
 
         if (environmentVariables is not null)
         {

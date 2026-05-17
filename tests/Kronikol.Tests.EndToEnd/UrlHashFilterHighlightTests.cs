@@ -1,0 +1,219 @@
+using Kronikol.Reports;
+
+namespace Kronikol.Tests.EndToEnd;
+
+[Collection(PlaywrightCollections.Search)]
+public class UrlHashFilterHighlightTests : PlaywrightTestBase
+{
+    public UrlHashFilterHighlightTests(PlaywrightFixture fixture) : base(fixture) { }
+
+    private string GenerateAndServeReport(string fileName)
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "Order Feature",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "t1", DisplayName = "Create order", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(2)
+                    },
+                    new Scenario
+                    {
+                        Id = "t2", DisplayName = "Delete order", IsHappyPath = false,
+                        Result = ExecutionResult.Failed, Duration = TimeSpan.FromSeconds(5)
+                    },
+                    new Scenario
+                    {
+                        Id = "t3", DisplayName = "List orders", IsHappyPath = true,
+                        Result = ExecutionResult.Passed, Duration = TimeSpan.FromSeconds(1)
+                    }
+                ]
+            }
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            [], features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(TempDir, fileName), "Test", true,
+            diagramFormat: DiagramFormat.PlantUml, plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(OutputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    private async Task<string> GetComputedBgColor(string selector) =>
+        await Page.Locator(selector).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+
+    private static bool IsHighlighted(string bgColor) => bgColor.Contains("66, 133, 244");
+
+    [Fact]
+    public async Task Status_filter_buttons_highlighted_after_url_hash_restore()
+    {
+        var url = GenerateAndServeReport("UrlHashStatusHighlight.html");
+        await Page.GotoAsync(url + "#status=Passed");
+
+        var passedBtn = Page.Locator(".status-toggle[data-status='Passed']");
+        await Expect(passedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        var bgColor = await GetComputedBgColor(".status-toggle[data-status='Passed']");
+        Assert.True(IsHighlighted(bgColor),
+            $"Expected 'Passed' button to be highlighted (rgb(66, 133, 244)) but got: {bgColor}");
+    }
+
+    [Fact]
+    public async Task Status_filter_hides_scenarios_and_highlights_button_on_url_restore()
+    {
+        var url = GenerateAndServeReport("UrlHashStatusHideHighlight.html");
+        await Page.GotoAsync(url + "#status=Failed");
+
+        var failedBtn = Page.Locator(".status-toggle[data-status='Failed']");
+        await Expect(failedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        Assert.True(IsHighlighted(await GetComputedBgColor(".status-toggle[data-status='Failed']")),
+            "Failed button should be highlighted after URL hash restore");
+
+        var allHidden = await Page.EvaluateAsync<bool>("""
+            () => Array.from(document.querySelectorAll('.scenario[data-status="Passed"]'))
+                .every(s => getComputedStyle(s).display === 'none')
+        """);
+        Assert.True(allHidden);
+    }
+
+    [Fact]
+    public async Task Happy_path_button_highlighted_after_url_hash_restore()
+    {
+        var url = GenerateAndServeReport("UrlHashHappyPathHighlight.html");
+        await Page.GotoAsync(url + "#hp=1");
+
+        var hpBtn = Page.Locator(".happy-path-toggle");
+        await hpBtn.WaitForAsync();
+        await Expect(hpBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("happy-path-active"));
+        Assert.True(IsHighlighted(await GetComputedBgColor(".happy-path-toggle")));
+    }
+
+    [Fact]
+    public async Task Search_text_restored_after_url_hash_restore()
+    {
+        var url = GenerateAndServeReport("UrlHashSearchRestore.html");
+        await Page.GotoAsync(url + "#q=" + Uri.EscapeDataString("Create order"));
+
+        var searchBar = Page.Locator("#searchbar");
+        await searchBar.WaitForAsync();
+        await Expect(searchBar).ToHaveValueAsync("Create order");
+    }
+
+    [Fact]
+    public async Task Status_filter_highlighted_after_click_then_refresh()
+    {
+        var url = GenerateAndServeReport("UrlHashClickRefresh.html");
+        await Page.GotoAsync(url);
+
+        var passedBtn = Page.Locator(".status-toggle[data-status='Passed']");
+        await passedBtn.WaitForAsync();
+        await passedBtn.ClickAsync();
+
+        Assert.True(IsHighlighted(await GetComputedBgColor(".status-toggle[data-status='Passed']")));
+        Assert.Contains("#", Page.Url);
+
+        await Page.ReloadAsync();
+
+        await Expect(passedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+        Assert.True(IsHighlighted(await GetComputedBgColor(".status-toggle[data-status='Passed']")));
+    }
+
+    [Fact]
+    public async Task Happy_path_highlighted_after_click_then_refresh()
+    {
+        var url = GenerateAndServeReport("UrlHashHPClickRefresh.html");
+        await Page.GotoAsync(url);
+
+        var hpBtn = Page.Locator(".happy-path-toggle");
+        await hpBtn.WaitForAsync();
+        await hpBtn.ClickAsync();
+
+        Assert.True(IsHighlighted(await GetComputedBgColor(".happy-path-toggle")));
+
+        await Page.ReloadAsync();
+
+        await hpBtn.WaitForAsync(new() { Timeout = 10000 });
+        await Expect(hpBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("happy-path-active"));
+        Assert.True(IsHighlighted(await GetComputedBgColor(".happy-path-toggle")));
+    }
+
+    [Fact]
+    public async Task Multiple_status_filters_highlighted_after_click_then_refresh()
+    {
+        var url = GenerateAndServeReport("UrlHashMultiStatusRefresh.html");
+        await Page.GotoAsync(url);
+
+        await Page.Locator(".status-toggle[data-status='Passed']").ClickAsync();
+        await Page.Locator(".status-toggle[data-status='Failed']").ClickAsync();
+
+        await Page.ReloadAsync();
+
+        var passedBtn = Page.Locator(".status-toggle[data-status='Passed']");
+        await Expect(passedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        var failedBtn2 = Page.Locator(".status-toggle[data-status='Failed']");
+        await Expect(failedBtn2).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        var skippedCls = await Page.Locator(".status-toggle[data-status='Skipped']").GetAttributeAsync("class");
+        Assert.DoesNotContain("status-active", skippedCls!);
+    }
+
+    [Fact]
+    public async Task Status_and_happy_path_both_highlighted_after_click_then_refresh()
+    {
+        var url = GenerateAndServeReport("UrlHashComboRefresh.html");
+        await Page.GotoAsync(url);
+
+        await Page.Locator(".status-toggle[data-status='Failed']").ClickAsync();
+        await Page.Locator(".happy-path-toggle").ClickAsync();
+
+        await Page.ReloadAsync();
+
+        var failedBtn = Page.Locator(".status-toggle[data-status='Failed']");
+        await Expect(failedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        var hpBtn2 = Page.Locator(".happy-path-toggle");
+        await Expect(hpBtn2).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("happy-path-active"));
+    }
+
+    [Fact]
+    public async Task Percentile_button_highlighted_after_click_then_refresh()
+    {
+        var url = GenerateAndServeReport("UrlHashP99Refresh.html");
+        await Page.GotoAsync(url);
+
+        var p99Btn = Page.Locator("button.percentile-btn", new() { HasTextString = "P99" });
+        await p99Btn.WaitForAsync();
+        await p99Btn.ClickAsync();
+
+        await Expect(p99Btn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("percentile-active"));
+        Assert.Contains("pctl=", Page.Url);
+
+        await Page.ReloadAsync();
+
+        await p99Btn.WaitForAsync(new() { Timeout = 10000 });
+        await Expect(p99Btn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("percentile-active"));
+        Assert.True(IsHighlighted(await GetComputedBgColor("button.percentile-btn:has-text('P99')")));
+    }
+
+    [Fact]
+    public async Task User_report_status_filter_highlighted_after_url_hash_restore()
+    {
+        var url = GenerateAndServeReport("UrlHashUserReport.html");
+        await Page.GotoAsync(url + "#status=Passed");
+
+        var passedBtn = Page.Locator(".status-toggle[data-status='Passed']");
+        await Expect(passedBtn).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("status-active"));
+
+        var bgColor = await GetComputedBgColor(".status-toggle[data-status='Passed']");
+        Assert.True(IsHighlighted(bgColor),
+            $"Expected 'Passed' button to be highlighted (rgb(66, 133, 244)) but got: {bgColor}");
+    }
+}

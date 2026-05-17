@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework />
+		<TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+		<Title>Test Tracking Diagrams For XUnit v2</Title>
+		<Description>xUnit v2 extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams.</Description>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<IsPackable>true</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.extensibility.execution" Version="2.9.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Kronikol.LightBDD.xUnit2" />
+		<InternalsVisibleTo Include="Kronikol.Tests.xUnit2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Kronikol\Kronikol.csproj" />
+	</ItemGroup>
+
+</Project>

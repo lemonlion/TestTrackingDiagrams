@@ -1,5 +1,5 @@
 using Example.Api.Events;
-using TestTrackingDiagrams.Tracking;
+using Kronikol.Tracking;
 
 namespace Example.Api.Tests.Component.Shared.Fakes;
 

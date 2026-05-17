@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams;
-using TestTrackingDiagrams.BDDfy.xUnit3;
-using TestTrackingDiagrams.Tracking;
+using Kronikol;
+using Kronikol.BDDfy.xUnit3;
+using Kronikol.Tracking;
 using Xunit;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 

@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TestTrackingDiagrams.Tracking;
-using TestTrackingDiagrams.xUnit2;
+using Kronikol.Tracking;
+using Kronikol.xUnit2;
 
 namespace Example.Api.Tests.Component.xUnit2.Infrastructure;
 

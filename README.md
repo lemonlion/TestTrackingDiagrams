@@ -1,11 +1,11 @@
-[![NuGet](https://img.shields.io/nuget/v/TestTrackingDiagrams.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/TestTrackingDiagrams.svg)](https://www.nuget.org/packages/TestTrackingDiagrams)
-[![CI](https://github.com/lemonlion/TestTrackingDiagrams/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonlion/TestTrackingDiagrams/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/Kronikol.svg)](https://www.nuget.org/packages/Kronikol)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Kronikol.svg)](https://www.nuget.org/packages/Kronikol)
+[![CI](https://github.com/lemonlion/Kronikol/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonlion/Kronikol/actions/workflows/ci.yml)
 
 
 <a name="top"></a>
 
-# <img src="icon.svg" width="32" height="32" alt="TTD icon" style="vertical-align: middle;"> TestTrackingDiagrams
+# <img src="icon.svg" width="32" height="32" alt="Kronikol icon" style="vertical-align: middle;"> Kronikol
 
 Automatically generates [rich interactive HTML reports](https://lemonlion.github.io/BreakfastProvider/) with PlantUML sequence, activity and component diagrams, with timeline visualizations from your integration/component test HTTP traffic (real or faked) and telemetry.
 
@@ -34,7 +34,7 @@ Input data sets (eg InlineData/MemberData/ClassData for xUnit, and equivalents i
 
 Each test that uses tracked dependencies automatically produces a sequence diagram (with matching PlantUML) showing the full request/response flow between services.
 
-> **Tip:** You can visually separate the setup (arrange) phase from the action phase using the [`SeparateSetup`](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation#setup-separation) flag.
+> **Tip:** You can visually separate the setup (arrange) phase from the action phase using the [`SeparateSetup`](https://github.com/lemonlion/Kronikol/wiki/Diagram-Customisation#setup-separation) flag.
 
 ---
 
@@ -95,7 +95,7 @@ Each test that uses tracked dependencies automatically produces a sequence diagr
     | **Any interface** | `TrackingProxy<T>` | .NET `DispatchProxy` wrapping any interface — logs method calls, arguments, return values, and exceptions |
     | **Events / messages** | `MessageTracker` | Manual logging — for Kafka, RabbitMQ, EventGrid, or any message bus |
 
-    See the [Tracking Dependencies](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Tracking-Dependencies) wiki page for setup guides.
+    See the [Tracking Dependencies](https://github.com/lemonlion/Kronikol/wiki/Tracking-Dependencies) wiki page for setup guides.
 
 2. **Collect** — All logged `RequestResponseLog` entries are held in the static `RequestResponseLogger`. Each entry captures the operation details, service names, and a trace ID to correlate requests across services.
 
@@ -133,11 +133,11 @@ New team members can browse the HTML reports to quickly understand how the syste
 
 ### CI summary integration
 
-Enable `WriteCiSummary = true` on your `ReportConfigurationOptions` to surface test results and sequence diagrams directly in your **GitHub Actions job summary** or **Azure DevOps build summary**. The summary includes a pass/fail table, and when tests fail, the failed scenarios are shown with error messages, stack traces, and their sequence diagrams — giving you immediate visual context without downloading artifacts. When all tests pass, diagrams for the first N scenarios are shown as a quick validation. See the [CI Summary Integration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/CI-Summary-Integration) wiki page for full details.
+Enable `WriteCiSummary = true` on your `ReportConfigurationOptions` to surface test results and sequence diagrams directly in your **GitHub Actions job summary** or **Azure DevOps build summary**. The summary includes a pass/fail table, and when tests fail, the failed scenarios are shown with error messages, stack traces, and their sequence diagrams — giving you immediate visual context without downloading artifacts. When all tests pass, diagrams for the first N scenarios are shown as a quick validation. See the [CI Summary Integration](https://github.com/lemonlion/Kronikol/wiki/CI-Summary-Integration) wiki page for full details.
 
 ### CI artifact upload
 
-Enable `PublishCiArtifacts = true` to automatically publish generated report files as CI artifacts. On **Azure DevOps**, reports are uploaded directly via `##vso[artifact.upload]` logging commands during test execution — no additional pipeline configuration needed. On **GitHub Actions**, the library writes the reports directory path and retention days to `$GITHUB_OUTPUT` so you can add a single `upload-artifact` step to your workflow. Artifact retention defaults to 1 day (`CiArtifactRetentionDays`). See the [CI Artifact Upload](https://github.com/lemonlion/TestTrackingDiagrams/wiki/CI-Artifact-Upload) wiki page for configuration and workflow examples.
+Enable `PublishCiArtifacts = true` to automatically publish generated report files as CI artifacts. On **Azure DevOps**, reports are uploaded directly via `##vso[artifact.upload]` logging commands during test execution — no additional pipeline configuration needed. On **GitHub Actions**, the library writes the reports directory path and retention days to `$GITHUB_OUTPUT` so you can add a single `upload-artifact` step to your workflow. Artifact retention defaults to 1 day (`CiArtifactRetentionDays`). See the [CI Artifact Upload](https://github.com/lemonlion/Kronikol/wiki/CI-Artifact-Upload) wiki page for configuration and workflow examples.
 
 ---
 
@@ -145,7 +145,7 @@ Enable `PublishCiArtifacts = true` to automatically publish generated report fil
 
 A key advantage of these diagrams is that they are **deterministic** — they are derived directly from actual interactions captured during test execution (HTTP traffic, database queries, cache commands, events, method calls), not generated by an AI model. AI-generated diagrams are non-deterministic by nature: they vary between runs, may hallucinate service interactions that don't exist, omit ones that do, or represent payloads inaccurately. The accuracy depends entirely on the model's understanding of your codebase, which is always incomplete.
 
-Because TestTrackingDiagrams captures what actually happened at runtime, the output is a faithful, reproducible record of your system's behaviour. This makes the diagrams and PlantUML source especially valuable as **input to AI tools** — when you give an AI a deterministic, verified diagram as context, it can produce far more accurate outputs for:
+Because Kronikol captures what actually happened at runtime, the output is a faithful, reproducible record of your system's behaviour. This makes the diagrams and PlantUML source especially valuable as **input to AI tools** — when you give an AI a deterministic, verified diagram as context, it can produce far more accurate outputs for:
 
 - **Debugging** — The AI sees the exact chain of interactions that led to a failure, rather than guessing from code paths
 - **Code understanding** — The AI can reason about concrete service interactions instead of inferring them from scattered registrations and handler code
@@ -160,32 +160,32 @@ In short: use deterministic diagrams as the source of truth, and let AI tools bu
 
 | Framework | Package | Test Runner | NuGet |
 |---|---|---|---|
-| **Core library** | `TestTrackingDiagrams` | — | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams)](https://www.nuget.org/packages/TestTrackingDiagrams) |
-| **xUnit v3** | `TestTrackingDiagrams.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.xUnit3) |
-| **xUnit v2** | `TestTrackingDiagrams.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.xUnit2) |
-| **NUnit** | `TestTrackingDiagrams.NUnit4` | NUnit v4 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.NUnit4)](https://www.nuget.org/packages/TestTrackingDiagrams.NUnit4) |
-| **MSTest** | `TestTrackingDiagrams.MSTest` | MSTest v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.MSTest)](https://www.nuget.org/packages/TestTrackingDiagrams.MSTest) |
-| **TUnit** | `TestTrackingDiagrams.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.TUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.TUnit) |
-| **BDDfy** | `TestTrackingDiagrams.BDDfy.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.BDDfy.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.BDDfy.xUnit3) |
-| **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit2) |
-| **LightBDD** | `TestTrackingDiagrams.LightBDD.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.xUnit3) |
-| **LightBDD** | `TestTrackingDiagrams.LightBDD.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.LightBDD.TUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.LightBDD.TUnit) |
-| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit2)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit2) |
-| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.xUnit3)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.xUnit3) |
-| **ReqNRoll** | `TestTrackingDiagrams.ReqNRoll.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.ReqNRoll.TUnit)](https://www.nuget.org/packages/TestTrackingDiagrams.ReqNRoll.TUnit) |
+| **Core library** | `Kronikol` | — | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol)](https://www.nuget.org/packages/Kronikol) |
+| **xUnit v3** | `Kronikol.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.xUnit3)](https://www.nuget.org/packages/Kronikol.xUnit3) |
+| **xUnit v2** | `Kronikol.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.xUnit2)](https://www.nuget.org/packages/Kronikol.xUnit2) |
+| **NUnit** | `Kronikol.NUnit4` | NUnit v4 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.NUnit4)](https://www.nuget.org/packages/Kronikol.NUnit4) |
+| **MSTest** | `Kronikol.MSTest` | MSTest v3 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.MSTest)](https://www.nuget.org/packages/Kronikol.MSTest) |
+| **TUnit** | `Kronikol.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.TUnit)](https://www.nuget.org/packages/Kronikol.TUnit) |
+| **BDDfy** | `Kronikol.BDDfy.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.BDDfy.xUnit3)](https://www.nuget.org/packages/Kronikol.BDDfy.xUnit3) |
+| **LightBDD** | `Kronikol.LightBDD.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.LightBDD.xUnit2)](https://www.nuget.org/packages/Kronikol.LightBDD.xUnit2) |
+| **LightBDD** | `Kronikol.LightBDD.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.LightBDD.xUnit3)](https://www.nuget.org/packages/Kronikol.LightBDD.xUnit3) |
+| **LightBDD** | `Kronikol.LightBDD.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.LightBDD.TUnit)](https://www.nuget.org/packages/Kronikol.LightBDD.TUnit) |
+| **ReqNRoll** | `Kronikol.ReqNRoll.xUnit2` | xUnit v2 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.ReqNRoll.xUnit2)](https://www.nuget.org/packages/Kronikol.ReqNRoll.xUnit2) |
+| **ReqNRoll** | `Kronikol.ReqNRoll.xUnit3` | xUnit v3 | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.ReqNRoll.xUnit3)](https://www.nuget.org/packages/Kronikol.ReqNRoll.xUnit3) |
+| **ReqNRoll** | `Kronikol.ReqNRoll.TUnit` | TUnit | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.ReqNRoll.TUnit)](https://www.nuget.org/packages/Kronikol.ReqNRoll.TUnit) |
 
 ### Extensions
 
 | Extension | Package | Description | NuGet |
 |---|---|---|---|
-| **CosmosDB** | `TestTrackingDiagrams.Extensions.CosmosDB` | Tracks Azure Cosmos DB SDK operations with classified labels (Create, Read, Query, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.CosmosDB)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.CosmosDB) |
-| **EF Core Relational** | `TestTrackingDiagrams.Extensions.EfCore.Relational` | Tracks SQL operations from any EF Core relational provider (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, Spanner) with classified labels and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.EfCore.Relational)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.EfCore.Relational) |
-| **Redis** | `TestTrackingDiagrams.Extensions.Redis` | Tracks StackExchange.Redis operations with cache hit/miss visualization, classified labels (Get, Set, Delete, Hash, List, Set, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.Redis)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.Redis) |
-| **Blob Storage** | `TestTrackingDiagrams.Extensions.BlobStorage` | Tracks Azure Blob Storage operations in your tests and converts them into diagrams | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.BlobStorage)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.BlobStorage) |
-| **DispatchProxy** | `TestTrackingDiagrams.Extensions.DispatchProxy` | DI integration helpers for `TrackingProxy<T>` — provides `ReplaceWithTracked<T>()` extension method for `IServiceCollection` to replace service registrations with tracking proxies | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.DispatchProxy)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.DispatchProxy) |
-| **MediatR** | `TestTrackingDiagrams.Extensions.MediatR` | Wraps `IMediator` and `ISender` with `TrackingProxy` to record Send, Publish, and CreateStream calls with command/query type names as diagram labels | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.MediatR)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.MediatR) |
-| **OpenTelemetry** | `TestTrackingDiagrams.Extensions.OpenTelemetry` | Captures internal SUT spans during tests for internal flow visualization in sequence diagram popups | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.Extensions.OpenTelemetry)](https://www.nuget.org/packages/TestTrackingDiagrams.Extensions.OpenTelemetry) |
-| **PlantUML IKVM** | `TestTrackingDiagrams.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/TestTrackingDiagrams.PlantUml.Ikvm)](https://www.nuget.org/packages/TestTrackingDiagrams.PlantUml.Ikvm) |
+| **CosmosDB** | `Kronikol.Extensions.CosmosDB` | Tracks Azure Cosmos DB SDK operations with classified labels (Create, Read, Query, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.CosmosDB)](https://www.nuget.org/packages/Kronikol.Extensions.CosmosDB) |
+| **EF Core Relational** | `Kronikol.Extensions.EfCore.Relational` | Tracks SQL operations from any EF Core relational provider (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, Spanner) with classified labels and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.EfCore.Relational)](https://www.nuget.org/packages/Kronikol.Extensions.EfCore.Relational) |
+| **Redis** | `Kronikol.Extensions.Redis` | Tracks StackExchange.Redis operations with cache hit/miss visualization, classified labels (Get, Set, Delete, Hash, List, Set, etc.) and configurable verbosity | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.Redis)](https://www.nuget.org/packages/Kronikol.Extensions.Redis) |
+| **Blob Storage** | `Kronikol.Extensions.BlobStorage` | Tracks Azure Blob Storage operations in your tests and converts them into diagrams | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.BlobStorage)](https://www.nuget.org/packages/Kronikol.Extensions.BlobStorage) |
+| **DispatchProxy** | `Kronikol.Extensions.DispatchProxy` | DI integration helpers for `TrackingProxy<T>` — provides `ReplaceWithTracked<T>()` extension method for `IServiceCollection` to replace service registrations with tracking proxies | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.DispatchProxy)](https://www.nuget.org/packages/Kronikol.Extensions.DispatchProxy) |
+| **MediatR** | `Kronikol.Extensions.MediatR` | Wraps `IMediator` and `ISender` with `TrackingProxy` to record Send, Publish, and CreateStream calls with command/query type names as diagram labels | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.MediatR)](https://www.nuget.org/packages/Kronikol.Extensions.MediatR) |
+| **OpenTelemetry** | `Kronikol.Extensions.OpenTelemetry` | Captures internal SUT spans during tests for internal flow visualization in sequence diagram popups | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.Extensions.OpenTelemetry)](https://www.nuget.org/packages/Kronikol.Extensions.OpenTelemetry) |
+| **PlantUML IKVM** | `Kronikol.PlantUml.Ikvm` | Local PlantUML rendering via IKVM — no remote server or Java installation required. Supports file-based and inline base64 images | [![NuGet Version](https://img.shields.io/nuget/v/Kronikol.PlantUml.Ikvm)](https://www.nuget.org/packages/Kronikol.PlantUml.Ikvm) |
 
 All packages from 1.23.X onwards target **.NET 8.0**, **.NET 9.0**, and **.NET 10.0** (multi-target).
 
@@ -193,21 +193,21 @@ All packages from 1.23.X onwards target **.NET 8.0**, **.NET 9.0**, and **.NET 1
 
 ## <a name="documentation"></a>Documentation [↑](#top)
 
-For full documentation including quick start guides, configuration, customisation, and API reference, see the **[Wiki](https://github.com/lemonlion/TestTrackingDiagrams/wiki)**.
+For full documentation including quick start guides, configuration, customisation, and API reference, see the **[Wiki](https://github.com/lemonlion/Kronikol/wiki)**.
 
 Key pages:
-- [Quick Start (xUnit)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit))
-- [Framework Integration Guides](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Framework-Integration-Guides)
-- [CosmosDB Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-CosmosDB-Extension)
-- [EF Core Relational Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-EF-Core-Relational-Extension)
-- [Redis Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-Redis-Extension)
-- [Blob Storage Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-BlobStorage-Extension)
-- [DispatchProxy Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-DispatchProxy-Extension)
-- [MediatR Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-MediatR-Extension)
-- [OpenTelemetry Extension](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-OpenTelemetry-Extension)
-- [PlantUML IKVM (Local Rendering)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Integration-PlantUML-IKVM)
-- [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
-- [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
-- [Report Configuration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Report-Configuration)
-- [API Reference](https://github.com/lemonlion/TestTrackingDiagrams/wiki/API-Reference)
-- [Example Project](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Example-Project)
+- [Quick Start (xUnit)](https://github.com/lemonlion/Kronikol/wiki/Quick-Start-(xUnit))
+- [Framework Integration Guides](https://github.com/lemonlion/Kronikol/wiki/Framework-Integration-Guides)
+- [CosmosDB Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-CosmosDB-Extension)
+- [EF Core Relational Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-EF-Core-Relational-Extension)
+- [Redis Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-Redis-Extension)
+- [Blob Storage Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-BlobStorage-Extension)
+- [DispatchProxy Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-DispatchProxy-Extension)
+- [MediatR Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-MediatR-Extension)
+- [OpenTelemetry Extension](https://github.com/lemonlion/Kronikol/wiki/Integration-OpenTelemetry-Extension)
+- [PlantUML IKVM (Local Rendering)](https://github.com/lemonlion/Kronikol/wiki/Integration-PlantUML-IKVM)
+- [HTTP Tracking Setup](https://github.com/lemonlion/Kronikol/wiki/HTTP-Tracking-Setup)
+- [Diagram Customisation](https://github.com/lemonlion/Kronikol/wiki/Diagram-Customisation)
+- [Report Configuration](https://github.com/lemonlion/Kronikol/wiki/Report-Configuration)
+- [API Reference](https://github.com/lemonlion/Kronikol/wiki/API-Reference)
+- [Example Project](https://github.com/lemonlion/Kronikol/wiki/Example-Project)

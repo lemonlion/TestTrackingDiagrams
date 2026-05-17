@@ -11,8 +11,8 @@ using FluentAssertions;
 using LightBDD.Framework;
 using LightBDD.Framework.Parameters;
 using LightBDD.Framework.Scenarios;
-using TestTrackingDiagrams.LightBDD;
-using TestTrackingDiagrams.LightBDD.xUnit3;
+using Kronikol.LightBDD;
+using Kronikol.LightBDD.xUnit3;
 
 namespace Example.Api.Tests.Component.LightBDD.xUnit3.Scenarios;
 

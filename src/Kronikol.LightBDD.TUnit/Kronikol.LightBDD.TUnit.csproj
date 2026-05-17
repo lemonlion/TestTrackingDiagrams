@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework />
+	  <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+	  <Title>Test Tracking Diagrams For LightBDD TUnit</Title>
+	  <Description>LightBDD + TUnit extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams.</Description>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <IsPackable>true</IsPackable>
+	  <IsTestProject>false</IsTestProject>
+	  <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LightBDD.TUnit" Version="3.12.0">
+      <PrivateAssets>build;buildTransitive;analyzers</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.2.2">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>build;buildTransitive;buildMultitargeting</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kronikol.LightBDD.Core\Kronikol.LightBDD.Core.csproj" />
+    <ProjectReference Include="..\Kronikol.TUnit\Kronikol.TUnit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kronikol.Tests" />
+  </ItemGroup>
+
+</Project>

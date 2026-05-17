@@ -1,7 +1,0 @@
-{
-  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
-  "bindingAssemblies": [
-    { "assembly": "TestTrackingDiagrams.ReqNRoll.TUnit" },
-    { "assembly": "TestTrackingDiagrams.ReqNRoll.Core" }
-  ]
-}

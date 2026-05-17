@@ -6,7 +6,7 @@ using Example.Api.Tests.Component.BDDfy.xUnit3.Infrastructure;
 using Example.Api.Tests.Component.Shared;
 using FluentAssertions;
 using TestStack.BDDfy;
-using TestTrackingDiagrams.BDDfy.xUnit3;
+using Kronikol.BDDfy.xUnit3;
 using Xunit;
 
 namespace Example.Api.Tests.Component.BDDfy.xUnit3.Scenarios;

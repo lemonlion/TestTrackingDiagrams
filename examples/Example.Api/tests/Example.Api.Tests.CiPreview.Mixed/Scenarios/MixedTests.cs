@@ -4,7 +4,7 @@ using Example.Api.Requests;
 using Example.Api.Responses;
 using Example.Api.Tests.CiPreview.Mixed.Infrastructure;
 using FluentAssertions;
-using TestTrackingDiagrams.xUnit3;
+using Kronikol.xUnit3;
 
 namespace Example.Api.Tests.CiPreview.Mixed.Scenarios;
 

@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\TestTrackingDiagrams\TestTrackingDiagrams.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Kronikol\Kronikol.csproj" />
   </ItemGroup>
 
   <ItemGroup>

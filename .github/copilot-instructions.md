@@ -22,11 +22,11 @@
 
 ## Documentation
 
-After any changes are made that might effect the public API or functionality, documentation must be updated to reflect those changes.  The documentation should be clear and comprehensive, covering all new features, changes to existing features, and any deprecations or removals.  This includes updating README file (if relevant), the changelog, but mainly the wiki which can be found in a sister folder to the main repository - ../TestTrackingDiagrams.wiki.
+After any changes are made that might effect the public API or functionality, documentation must be updated to reflect those changes.  The documentation should be clear and comprehensive, covering all new features, changes to existing features, and any deprecations or removals.  This includes updating README file (if relevant), the changelog, but mainly the wiki which can be found in a sister folder to the main repository - ../Kronikol.wiki.
 
 ## Playwright E2E Test Rules
 
-When writing or modifying Playwright end-to-end tests in `tests/TestTrackingDiagrams.Tests.EndToEnd/`:
+When writing or modifying Playwright end-to-end tests in `tests/Kronikol.Tests.EndToEnd/`:
 
 - **No `{ force: true }` click bypass** — never use `ClickAsync(new() { Force = true })` or similar. If a click doesn't work, diagnose and fix the root cause (e.g., use JS `dispatchEvent` for SVG elements that intercept pointer events).
 - **No network mocking** — do not mock network requests. Tests must use real page rendering with local HTML files.

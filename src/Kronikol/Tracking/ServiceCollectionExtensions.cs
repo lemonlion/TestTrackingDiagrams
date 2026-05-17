@@ -1,0 +1,53 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Kronikol.Tracking;
+
+/// <summary>
+/// DI extension methods for registering HTTP and message tracking in the service collection.
+/// </summary>
+public static class ServiceCollectionHelper
+{
+    public static IServiceCollection TrackDependenciesForDiagrams(IServiceCollection services, TestTrackingMessageHandlerOptions options)
+    {
+        services.AddSingleton(options);
+        services.AddHttpContextAccessor();
+        services.AddSingleton<IHttpClientFactory, TestTrackingHttpClientFactory>();
+
+        return services;
+    }
+
+    public static IServiceCollection TrackMessagesForDiagrams(
+        this IServiceCollection services,
+        string callingServiceName,
+        JsonSerializerOptions? serializerOptions = null,
+        Func<(string Name, string Id)>? testInfoFallback = null)
+    {
+        services.AddHttpContextAccessor();
+        services.AddSingleton(sp => new MessageTracker(
+            sp.GetRequiredService<IHttpContextAccessor>(),
+            callingServiceName,
+            serializerOptions,
+            testInfoFallback));
+
+        return services;
+    }
+
+    public static IServiceCollection TrackMessagesForDiagrams(
+        this IServiceCollection services,
+        MessageTrackerOptions options)
+    {
+        if (options.UseHttpContextCorrelation)
+        {
+            services.AddHttpContextAccessor();
+            services.AddSingleton(sp => new MessageTracker(options, sp.GetRequiredService<IHttpContextAccessor>()));
+        }
+        else
+        {
+            services.AddSingleton(new MessageTracker(options));
+        }
+
+        return services;
+    }
+}

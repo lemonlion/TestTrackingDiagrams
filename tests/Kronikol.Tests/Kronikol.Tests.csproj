@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.4.0" />
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Kronikol\Kronikol.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.Extensions.AtlasDataApi\Kronikol.Extensions.AtlasDataApi.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.Extensions.BigQuery\Kronikol.Extensions.BigQuery.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.Extensions.OpenTelemetry\Kronikol.Extensions.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.BDDfy.xUnit3\Kronikol.BDDfy.xUnit3.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.ReqNRoll.xUnit3\Kronikol.ReqNRoll.xUnit3.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.ReqNRoll.TUnit\Kronikol.ReqNRoll.TUnit.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.LightBDD.xUnit3\Kronikol.LightBDD.xUnit3.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.Extensions.DispatchProxy\Kronikol.Extensions.DispatchProxy.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

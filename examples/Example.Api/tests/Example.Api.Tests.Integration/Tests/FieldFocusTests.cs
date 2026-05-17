@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Example.Api.Tests.Integration.Helpers;
-using TestTrackingDiagrams;
+using Kronikol;
 
 namespace Example.Api.Tests.Integration.Tests;
 
@@ -27,9 +27,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -44,9 +44,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Colored",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Colored",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -59,9 +59,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold,Colored",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold,Colored",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -74,9 +74,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "None",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "None",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -94,9 +94,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -110,9 +110,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "SmallerText",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "SmallerText",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -125,9 +125,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "Hidden",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "Hidden",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -143,9 +143,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray,SmallerText",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray,SmallerText",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -158,9 +158,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "None",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "None",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -178,9 +178,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -195,9 +195,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs,Milk"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs,Milk"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -212,9 +212,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_RESPONSE_FIELDS"] = "BatchId"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_RESPONSE_FIELDS"] = "BatchId"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -228,10 +228,10 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs",
-            ["TTD_FOCUS_RESPONSE_FIELDS"] = "BatchId"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs",
+            ["KRONIKOL_FOCUS_RESPONSE_FIELDS"] = "BatchId"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -245,9 +245,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "NonExistentField"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "NonExistentField"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -262,9 +262,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray"
-            // No TTD_FOCUS_REQUEST_FIELDS or TTD_FOCUS_RESPONSE_FIELDS
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray"
+            // No KRONIKOL_FOCUS_REQUEST_FIELDS or KRONIKOL_FOCUS_RESPONSE_FIELDS
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -279,11 +279,11 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_SEPARATE_SETUP"] = "true",
-            ["TTD_HIGHLIGHT_SETUP"] = "true",
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "LightGray",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_SEPARATE_SETUP"] = "true",
+            ["KRONIKOL_HIGHLIGHT_SETUP"] = "true",
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "LightGray",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -297,9 +297,9 @@ public class FieldFocusTests
     {
         var plantUmlSources = await RunWithFocusConfig(projectName, new Dictionary<string, string>
         {
-            ["TTD_FOCUS_EMPHASIS"] = "Bold",
-            ["TTD_FOCUS_DE_EMPHASIS"] = "Hidden",
-            ["TTD_FOCUS_REQUEST_FIELDS"] = "Eggs"
+            ["KRONIKOL_FOCUS_EMPHASIS"] = "Bold",
+            ["KRONIKOL_FOCUS_DE_EMPHASIS"] = "Hidden",
+            ["KRONIKOL_FOCUS_REQUEST_FIELDS"] = "Eggs"
         });
 
         var happyPathDiagram = GetHappyPathDiagram(plantUmlSources);
@@ -316,7 +316,7 @@ public class FieldFocusTests
         [CallerMemberName] string callerName = "")
     {
         // Ensure baseline config
-        envVars.TryAdd("TTD_SPECIFICATIONS_TITLE", "Dessert Provider Specifications");
+        envVars.TryAdd("KRONIKOL_SPECIFICATIONS_TITLE", "Dessert Provider Specifications");
 
         var result = await TestProjectRunner.RunAsync(projectName, envVars, runLabel: callerName);
         Assert.True(result.Success, $"{projectName} failed:\n{result.StandardError}\n{result.StandardOutput}");

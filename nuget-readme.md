@@ -1,4 +1,4 @@
-# TestTrackingDiagrams
+# Kronikol
 
 Effortlessly autogenerate **PlantUML sequence diagrams** from your component and acceptance tests. Tracks interactions between your test caller, your Service Under Test (SUT), and its dependencies — including HTTP calls, Azure Cosmos DB operations, SQL queries (via EF Core), Redis commands, events/messages, and arbitrary method calls — then converts them into diagrams embedded in searchable HTML reports and structured data files.
 
@@ -18,33 +18,33 @@ Each test that uses tracked dependencies automatically produces a sequence diagr
 ## Quick Start
 
 ```
-dotnet add package TestTrackingDiagrams.xUnit3
+dotnet add package Kronikol.xUnit3
 ```
 
-See the [Quick Start guide](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit)) for full setup instructions.
+See the [Quick Start guide](https://github.com/lemonlion/Kronikol/wiki/Quick-Start-(xUnit)) for full setup instructions.
 
 ## Supported Frameworks
 
 | Framework | Package |
 |---|---|
-| Core library | `TestTrackingDiagrams` |
-| xUnit v3 | `TestTrackingDiagrams.xUnit3` |
-| xUnit v2 | `TestTrackingDiagrams.xUnit2` |
-| NUnit v4 | `TestTrackingDiagrams.NUnit4` |
-| MSTest v3 | `TestTrackingDiagrams.MSTest` |
-| TUnit | `TestTrackingDiagrams.TUnit` |
-| BDDfy | `TestTrackingDiagrams.BDDfy.xUnit3` |
-| LightBDD | `TestTrackingDiagrams.LightBDD.xUnit3` / `.xUnit2` / `.TUnit` |
-| ReqNRoll | `TestTrackingDiagrams.ReqNRoll.xUnit3` / `.xUnit2` / `.TUnit` |
+| Core library | `Kronikol` |
+| xUnit v3 | `Kronikol.xUnit3` |
+| xUnit v2 | `Kronikol.xUnit2` |
+| NUnit v4 | `Kronikol.NUnit4` |
+| MSTest v3 | `Kronikol.MSTest` |
+| TUnit | `Kronikol.TUnit` |
+| BDDfy | `Kronikol.BDDfy.xUnit3` |
+| LightBDD | `Kronikol.LightBDD.xUnit3` / `.xUnit2` / `.TUnit` |
+| ReqNRoll | `Kronikol.ReqNRoll.xUnit3` / `.xUnit2` / `.TUnit` |
 
 ### Extensions
 
 | Extension | Package |
 |---|---|
-| Azure Cosmos DB | `TestTrackingDiagrams.Extensions.CosmosDB` |
-| EF Core (Relational) | `TestTrackingDiagrams.Extensions.EfCore.Relational` |
-| Redis | `TestTrackingDiagrams.Extensions.Redis` |
-| Local PlantUML (IKVM) | `TestTrackingDiagrams.PlantUml.Ikvm` |
+| Azure Cosmos DB | `Kronikol.Extensions.CosmosDB` |
+| EF Core (Relational) | `Kronikol.Extensions.EfCore.Relational` |
+| Redis | `Kronikol.Extensions.Redis` |
+| Local PlantUML (IKVM) | `Kronikol.PlantUml.Ikvm` |
 
 ## Use Cases
 
@@ -57,14 +57,14 @@ See the [Quick Start guide](https://github.com/lemonlion/TestTrackingDiagrams/wi
 
 ## Documentation
 
-For full documentation, see the **[Wiki](https://github.com/lemonlion/TestTrackingDiagrams/wiki)**.
+For full documentation, see the **[Wiki](https://github.com/lemonlion/Kronikol/wiki)**.
 
 Key pages:
 
-- [Quick Start (xUnit)](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Quick-Start-(xUnit))
-- [Framework Integration Guides](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Framework-Integration-Guides)
-- [HTTP Tracking Setup](https://github.com/lemonlion/TestTrackingDiagrams/wiki/HTTP-Tracking-Setup)
-- [Diagram Customisation](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Diagram-Customisation)
-- [Report Configuration](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Report-Configuration)
-- [API Reference](https://github.com/lemonlion/TestTrackingDiagrams/wiki/API-Reference)
-- [Example Project](https://github.com/lemonlion/TestTrackingDiagrams/wiki/Example-Project)
+- [Quick Start (xUnit)](https://github.com/lemonlion/Kronikol/wiki/Quick-Start-(xUnit))
+- [Framework Integration Guides](https://github.com/lemonlion/Kronikol/wiki/Framework-Integration-Guides)
+- [HTTP Tracking Setup](https://github.com/lemonlion/Kronikol/wiki/HTTP-Tracking-Setup)
+- [Diagram Customisation](https://github.com/lemonlion/Kronikol/wiki/Diagram-Customisation)
+- [Report Configuration](https://github.com/lemonlion/Kronikol/wiki/Report-Configuration)
+- [API Reference](https://github.com/lemonlion/Kronikol/wiki/API-Reference)
+- [Example Project](https://github.com/lemonlion/Kronikol/wiki/Example-Project)

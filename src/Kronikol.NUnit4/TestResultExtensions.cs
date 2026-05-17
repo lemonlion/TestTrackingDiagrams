@@ -1,0 +1,23 @@
+using Kronikol.Reports;
+using NUnit.Framework.Interfaces;
+
+namespace Kronikol.NUnit4;
+
+/// <summary>
+/// Provides extension methods for converting NUnit <c>TestStatus</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
+public static class TestStatusExtensions
+{
+    public static ExecutionResult ToExecutionResult(this TestStatus result)
+    {
+        return result switch
+        {
+            TestStatus.Passed => ExecutionResult.Passed,
+            TestStatus.Warning => ExecutionResult.Passed,
+            TestStatus.Failed => ExecutionResult.Failed,
+            TestStatus.Skipped => ExecutionResult.Skipped,
+            TestStatus.Inconclusive => ExecutionResult.Skipped,
+            _ => throw new ArgumentOutOfRangeException(nameof(result), result, null)
+        };
+    }
+}

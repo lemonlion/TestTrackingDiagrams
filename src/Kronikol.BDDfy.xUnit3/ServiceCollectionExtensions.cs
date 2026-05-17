@@ -1,0 +1,15 @@
+using Microsoft.Extensions.DependencyInjection;
+using Kronikol.Tracking;
+
+namespace Kronikol.BDDfy.xUnit3;
+
+/// <summary>
+/// Provides extension methods for configuring dependency tracking on <see cref="IServiceCollection"/> for BDDfy tests.
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection TrackDependenciesForDiagrams(this IServiceCollection services, BDDfyTestTrackingMessageHandlerOptions options)
+    {
+        return ServiceCollectionHelper.TrackDependenciesForDiagrams(services, options);
+    }
+}

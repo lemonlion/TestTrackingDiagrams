@@ -1,0 +1,35 @@
+using Kronikol.Reports;
+
+namespace Kronikol.BDDfy.xUnit3;
+
+/// <summary>
+/// Provides extension methods for converting BDDfy <c>Result</c> values to <see cref="ExecutionResult"/>.
+/// </summary>
+public static class ResultExtensions
+{
+    public static ExecutionResult ToExecutionResult(this TestStack.BDDfy.Result result)
+    {
+        return result switch
+        {
+            TestStack.BDDfy.Result.Passed => ExecutionResult.Passed,
+            TestStack.BDDfy.Result.Failed => ExecutionResult.Failed,
+            TestStack.BDDfy.Result.Inconclusive => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotImplemented => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotExecuted => ExecutionResult.Skipped,
+            _ => ExecutionResult.Failed
+        };
+    }
+
+    internal static ExecutionResult ToStepResult(this TestStack.BDDfy.Result result, bool priorFailure)
+    {
+        return result switch
+        {
+            TestStack.BDDfy.Result.Passed => ExecutionResult.Passed,
+            TestStack.BDDfy.Result.Failed => ExecutionResult.Failed,
+            TestStack.BDDfy.Result.Inconclusive => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotImplemented => ExecutionResult.Skipped,
+            TestStack.BDDfy.Result.NotExecuted => priorFailure ? ExecutionResult.SkippedAfterFailure : ExecutionResult.Skipped,
+            _ => ExecutionResult.Failed
+        };
+    }
+}

@@ -34,7 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Example.Api.Tests.Component.Shared\Example.Api.Tests.Component.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\src\TestTrackingDiagrams.LightBDD.TUnit\TestTrackingDiagrams.LightBDD.TUnit.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Kronikol.LightBDD.TUnit\Kronikol.LightBDD.TUnit.csproj" />
   </ItemGroup>
 
 </Project>

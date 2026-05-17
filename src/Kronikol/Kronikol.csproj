@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams</Title>
+    <Description>Autogenerate PlantUML sequence diagrams from your component and acceptance tests. Tracks HTTP calls, database operations (Cosmos DB, SQL via EF Core), Redis commands, events/messages, and arbitrary method calls, then converts them into searchable HTML reports and structured data files.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Kronikol.Tests" />
+		<InternalsVisibleTo Include="Kronikol.Tests.EndToEnd" />
+		<InternalsVisibleTo Include="Kronikol.Extensions.Grpc" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="PlantUml\plantuml-render.js" />
+		<EmbeddedResource Include="Reports\advanced-search.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.26" Condition="'$(TargetFramework)' == 'net8.0'" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.15" Condition="'$(TargetFramework)' == 'net9.0'" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.7" Condition="'$(TargetFramework)' == 'net10.0'" />
+	</ItemGroup>
+
+</Project>

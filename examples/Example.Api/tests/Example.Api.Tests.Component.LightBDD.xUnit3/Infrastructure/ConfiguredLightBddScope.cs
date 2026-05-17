@@ -6,8 +6,8 @@ using LightBDD.Framework.Configuration;
 using LightBDD.XUnit3;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using TestTrackingDiagrams;
-using TestTrackingDiagrams.LightBDD.xUnit3;
+using Kronikol;
+using Kronikol.LightBDD.xUnit3;
 using Xunit.v3;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 

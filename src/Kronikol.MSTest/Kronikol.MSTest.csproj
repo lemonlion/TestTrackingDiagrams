@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework />
+	  <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+	  <Title>Test Tracking Diagrams For MSTest</Title>
+	  <Description>MSTest extensions for tracking service interactions (HTTP, database, cache, events, and more) in your tests and converting them into PlantUML sequence diagrams.</Description>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kronikol.Tests.MSTest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest.TestFramework" Version="4.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kronikol\Kronikol.csproj" />
+  </ItemGroup>
+
+</Project>

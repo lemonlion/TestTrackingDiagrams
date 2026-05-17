@@ -1,5 +1,5 @@
 using Example.Api.Tests.Component.LightBDD.xUnit2.Models;
-using TestTrackingDiagrams.LightBDD;
+using Kronikol.LightBDD;
 using LightBDD.Framework;
 using LightBDD.Framework.Scenarios;
 using LightBDD.TabularAttributes;

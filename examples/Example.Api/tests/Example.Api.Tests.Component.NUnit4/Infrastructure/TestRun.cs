@@ -2,8 +2,8 @@ using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.Shared.HttpFakes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using TestTrackingDiagrams;
-using TestTrackingDiagrams.NUnit4;
+using Kronikol;
+using Kronikol.NUnit4;
 using CowServiceHttpFake = Example.Api.HttpFakes.CowService.Program;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)] 

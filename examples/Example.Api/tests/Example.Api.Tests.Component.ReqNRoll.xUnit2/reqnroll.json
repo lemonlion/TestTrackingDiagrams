@@ -2,10 +2,10 @@
   "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
   "bindingAssemblies": [
     {
-      "assembly": "TestTrackingDiagrams.ReqNRoll.xUnit2"
+      "assembly": "Kronikol.ReqNRoll.xUnit2"
     },
     {
-      "assembly": "TestTrackingDiagrams.ReqNRoll.Core"
+      "assembly": "Kronikol.ReqNRoll.Core"
     }
   ],
   "formatters": {

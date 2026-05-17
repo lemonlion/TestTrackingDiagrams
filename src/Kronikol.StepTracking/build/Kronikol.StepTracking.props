@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <TrackStepsEnabled Condition="'$(TrackStepsEnabled)' == ''">true</TrackStepsEnabled>
+    <_StepTrackingTaskDir>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\</_StepTrackingTaskDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Kronikol.StepTracking.WeaveStepsTask"
+             AssemblyFile="$(_StepTrackingTaskDir)Kronikol.StepTracking.dll" />
+
+</Project>

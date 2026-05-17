@@ -5,7 +5,7 @@ using Example.Api.Responses;
 using Example.Api.Tests.Component.Shared;
 using Example.Api.Tests.Component.xUnit2.Infrastructure;
 using FluentAssertions;
-using TestTrackingDiagrams.xUnit2;
+using Kronikol.xUnit2;
 
 namespace Example.Api.Tests.Component.xUnit2.Scenarios;
 

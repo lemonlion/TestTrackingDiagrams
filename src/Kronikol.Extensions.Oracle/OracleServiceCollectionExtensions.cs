@@ -1,0 +1,30 @@
+using System.Data.Common;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Oracle.ManagedDataAccess.Client;
+using Kronikol.Tracking;
+
+namespace Kronikol.Extensions.Oracle;
+
+/// <summary>
+/// Provides extension methods for configuring Oracle dependency tracking on <see cref="Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+/// </summary>
+public static class OracleServiceCollectionExtensions
+{
+    public static IServiceCollection AddOracleTestTracking(
+        this IServiceCollection services,
+        Action<OracleTrackingOptions>? configure = null)
+    {
+        var options = new OracleTrackingOptions();
+        configure?.Invoke(options);
+
+        services.DecorateAll<DbConnection>((sp, inner) =>
+        {
+            if (inner is not OracleConnection oracleConn) return inner;
+            options.HttpContextAccessor ??= sp.GetService<IHttpContextAccessor>();
+            return new TrackingOracleConnection(oracleConn, options, options.HttpContextAccessor);
+        });
+
+        return services;
+    }
+}
