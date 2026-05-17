@@ -168,7 +168,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
         if (verbosity == CosmosTrackingVerbosity.Summarised)
             return op.QueryText;
 
-        var content = await request.Content.ReadAsStringAsync(ct);
+        var content = await HttpContentReader.ReadContentAsStringAsync(request.Content, ct);
 
         if (verbosity == CosmosTrackingVerbosity.Detailed && op.Operation == CosmosOperation.Query)
             return op.QueryText;
@@ -181,7 +181,7 @@ public class CosmosTrackingMessageHandler : DelegatingHandler, ITrackingComponen
         if (verbosity == CosmosTrackingVerbosity.Summarised && !_options.LogResponseContent)
             return null;
 
-        return await response.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, CosmosTrackingVerbosity verbosity)

@@ -128,13 +128,13 @@ public class StorageQueueTrackingMessageHandler : DelegatingHandler, ITrackingCo
     {
         if (request.Content is null) return null;
         if (verbosity == StorageQueueTrackingVerbosity.Summarised) return null;
-        return await request.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(request.Content, ct);
     }
 
     private async Task<string?> GetResponseContent(HttpResponseMessage response, StorageQueueTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (verbosity == StorageQueueTrackingVerbosity.Summarised) return null;
-        return await response.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, StorageQueueTrackingVerbosity verbosity)

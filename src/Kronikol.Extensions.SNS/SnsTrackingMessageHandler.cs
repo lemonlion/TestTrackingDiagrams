@@ -38,7 +38,7 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         string? requestBody = null;
         if (request.Content is not null)
-            requestBody = await request.Content.ReadAsStringAsync(cancellationToken);
+            requestBody = await HttpContentReader.ReadContentAsStringAsync(request.Content, cancellationToken);
 
         var snsOp = SnsOperationClassifier.Classify(request, requestBody);
 
@@ -113,7 +113,7 @@ public class SnsTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var responseContent = effectiveVerbosity == SnsTrackingVerbosity.Summarised
             ? null
-            : await response.Content.ReadAsStringAsync(cancellationToken);
+            : await HttpContentReader.ReadContentAsStringAsync(response.Content, cancellationToken);
 
         var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 

@@ -131,7 +131,7 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (verbosity == S3TrackingVerbosity.Summarised)
             return null;
 
-        return await request.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(request.Content, ct);
     }
 
     private async Task<string?> GetResponseContent(HttpResponseMessage response, S3TrackingVerbosity verbosity, CancellationToken ct)
@@ -139,7 +139,7 @@ public class S3TrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (verbosity == S3TrackingVerbosity.Summarised)
             return null;
 
-        return await response.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, S3TrackingVerbosity verbosity)

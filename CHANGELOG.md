@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-05-17
+
+### Fixed
+- **Binary/garbled response content in diagrams** — HTTP responses with `Content-Encoding: gzip`, `deflate`, or `br` (Brotli) are now properly decompressed before logging. This fixes CosmosDB and other extensions producing unreadable binary content in diagram notes instead of the expected JSON. Affected extensions: CosmosDB, DynamoDB, EventBridge, SNS, SQS, AtlasDataApi, BlobStorage, CloudStorage, StorageQueues, S3, and the core `TestTrackingMessageHandler`.
+
+### Changed
+- **Shared `HttpContentReader` utility** — Extracted a shared `HttpContentReader.ReadContentAsStringAsync()` method in the core `Kronikol` package that handles gzip, deflate, and Brotli decompression. BigQuery's existing private decompression method was replaced with this shared utility to eliminate duplication.
+
 ## [3.0.2] - 2026-05-17
 
 ### Changed

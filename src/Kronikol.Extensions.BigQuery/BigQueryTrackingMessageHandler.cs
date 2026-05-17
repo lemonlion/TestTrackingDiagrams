@@ -1,6 +1,5 @@
 using Kronikol.Constants;
 using Microsoft.AspNetCore.Http;
-using System.IO.Compression;
 using Kronikol.Tracking;
 
 namespace Kronikol.Extensions.BigQuery;
@@ -134,7 +133,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return null;
 
-        return await ReadContentAsync(request.Content, ct);
+        return await HttpContentReader.ReadContentAsStringAsync(request.Content, ct);
     }
 
     private async Task<string?> GetResponseContent(HttpResponseMessage response, BigQueryTrackingVerbosity verbosity, CancellationToken ct)
@@ -142,31 +141,7 @@ public class BigQueryTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         if (verbosity == BigQueryTrackingVerbosity.Summarised)
             return null;
 
-        return await ReadContentAsync(response.Content, ct);
-    }
-
-    private static async Task<string?> ReadContentAsync(HttpContent content, CancellationToken ct)
-    {
-        var encoding = content.Headers.ContentEncoding;
-        if (encoding.Contains("gzip"))
-        {
-            var bytes = await content.ReadAsByteArrayAsync(ct);
-            using var compressed = new MemoryStream(bytes);
-            using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
-            using var reader = new StreamReader(gzip);
-            return await reader.ReadToEndAsync(ct);
-        }
-
-        if (encoding.Contains("deflate"))
-        {
-            var bytes = await content.ReadAsByteArrayAsync(ct);
-            using var compressed = new MemoryStream(bytes);
-            using var deflate = new DeflateStream(compressed, CompressionMode.Decompress);
-            using var reader = new StreamReader(deflate);
-            return await reader.ReadToEndAsync(ct);
-        }
-
-        return await content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, BigQueryTrackingVerbosity verbosity)

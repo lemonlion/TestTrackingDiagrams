@@ -42,8 +42,8 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
         string? bodyJson = null;
         if (request.Content is not null)
         {
-            bodyJson = await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            request.Content = new StringContent(bodyJson, System.Text.Encoding.UTF8, "application/json");
+            bodyJson = await HttpContentReader.ReadContentAsStringAsync(request.Content, cancellationToken).ConfigureAwait(false);
+            request.Content = new StringContent(bodyJson!, System.Text.Encoding.UTF8, "application/json");
         }
 
         var apiOp = AtlasDataApiOperationClassifier.Classify(request, bodyJson);
@@ -152,7 +152,7 @@ public class AtlasDataApiTrackingMessageHandler : DelegatingHandler, ITrackingCo
         HttpResponseMessage response, AtlasDataApiTrackingVerbosity verbosity, CancellationToken ct)
     {
         if (verbosity == AtlasDataApiTrackingVerbosity.Summarised) return null;
-        return await response.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(

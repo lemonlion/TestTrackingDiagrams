@@ -39,7 +39,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
         // Read request body first — needed for classification (table name is in body)
         string? requestBody = null;
         if (request.Content is not null)
-            requestBody = await request.Content.ReadAsStringAsync(cancellationToken);
+            requestBody = await HttpContentReader.ReadContentAsStringAsync(request.Content, cancellationToken);
 
         var dynamoOp = DynamoDbOperationClassifier.Classify(request, requestBody);
 
@@ -115,7 +115,7 @@ public class DynamoDbTrackingMessageHandler : DelegatingHandler, ITrackingCompon
 
         var responseContent = effectiveVerbosity == DynamoDbTrackingVerbosity.Summarised
             ? null
-            : await response.Content.ReadAsStringAsync(cancellationToken);
+            : await HttpContentReader.ReadContentAsStringAsync(response.Content, cancellationToken);
 
         var responseHeaders = GetFilteredHeaders(response, effectiveVerbosity);
 

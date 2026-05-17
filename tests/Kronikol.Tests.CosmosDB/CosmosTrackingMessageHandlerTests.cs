@@ -610,4 +610,79 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
         Assert.NotNull(log.SetupVariant!.Content);
         Assert.Contains("doc1", log.SetupVariant!.Content);
     }
+
+    // ─── Gzip decompression ────────────────────────────────────
+
+    [Fact]
+    public async Task Detailed_Decompresses_Gzip_Response_Content()
+    {
+        var json = """{"id":"doc1","_rid":"abc==","status":"created"}""";
+        var compressed = GzipCompress(json);
+
+        var responseContent = new ByteArrayContent(compressed);
+        responseContent.Headers.ContentEncoding.Add("gzip");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK) { Content = responseContent };
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("doc1", log.Content!);
+        Assert.Contains("created", log.Content!);
+    }
+
+    [Fact]
+    public async Task Detailed_Decompresses_Gzip_Request_Content()
+    {
+        var json = """{"id":"order-1","total":42.50}""";
+        var compressed = GzipCompress(json);
+
+        var content = new ByteArrayContent(compressed);
+        content.Headers.ContentEncoding.Add("gzip");
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            "https://account.documents.azure.com/dbs/mydb/colls/orders/docs")
+        {
+            Content = content
+        };
+
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Contains("order-1", log.Content!);
+    }
+
+    [Fact]
+    public async Task Summarised_Decompresses_Gzip_Response_When_LogResponseContent()
+    {
+        var json = """{"id":"doc1","_rid":"abc=="}""";
+        var compressed = GzipCompress(json);
+
+        var responseContent = new ByteArrayContent(compressed);
+        responseContent.Headers.ContentEncoding.Add("gzip");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK) { Content = responseContent };
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeReadRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("doc1", log.Content!);
+    }
+
+    private static byte[] GzipCompress(string text)
+    {
+        using var output = new System.IO.MemoryStream();
+        using (var gzip = new System.IO.Compression.GZipStream(output, System.IO.Compression.CompressionLevel.Optimal))
+        using (var writer = new System.IO.StreamWriter(gzip))
+            writer.Write(text);
+        return output.ToArray();
+    }
     }

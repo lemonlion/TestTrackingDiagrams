@@ -133,7 +133,7 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (verbosity == BlobTrackingVerbosity.Summarised)
             return null;
 
-        return await request.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(request.Content, ct);
     }
 
     private async Task<string?> GetResponseContent(HttpResponseMessage response, BlobTrackingVerbosity verbosity, CancellationToken ct)
@@ -141,7 +141,7 @@ public class BlobTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (verbosity == BlobTrackingVerbosity.Summarised)
             return null;
 
-        return await response.Content.ReadAsStringAsync(ct);
+        return await HttpContentReader.ReadContentAsStringAsync(response.Content, ct);
     }
 
     private (string Key, string? Value)[] GetFilteredHeaders(HttpRequestMessage request, BlobTrackingVerbosity verbosity)

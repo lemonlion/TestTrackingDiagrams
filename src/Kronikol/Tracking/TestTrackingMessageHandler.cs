@@ -135,7 +135,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             }
         }
 
-        var requestContentString = request.Content is null ? null : await request.Content!.ReadAsStringAsync(cancellationToken);
+        var requestContentString = request.Content is null ? null : await HttpContentReader.ReadContentAsStringAsync(request.Content!, cancellationToken);
         var requestHeaders = request.Headers.SelectMany(x => x.Value.Select(value => (x.Key, (string?)value))).ToArray();
 
         StringValues currentTestNameHeaders = new();
@@ -223,7 +223,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var responseContentString = await response.Content.ReadAsStringAsync(cancellationToken);
+        var responseContentString = await HttpContentReader.ReadContentAsStringAsync(response.Content, cancellationToken);
         var responseHeaders = response.Headers.SelectMany(x => x.Value.Select(value => (x.Key, (string?)value))).ToArray();
 
         RequestResponseLogger.Log(new RequestResponseLog(
