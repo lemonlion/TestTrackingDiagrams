@@ -155,7 +155,7 @@ public class TrackingSpannerCommand : DbCommand
         var effectiveVerbosity = PhaseConfiguration.GetEffectiveVerbosity(
             _options.Verbosity, _options.SetupVerbosity, _options.ActionVerbosity);
 
-        var responseContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised && !_options.LogResponseContent
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 

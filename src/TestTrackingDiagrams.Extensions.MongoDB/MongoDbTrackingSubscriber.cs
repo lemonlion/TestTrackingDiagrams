@@ -144,9 +144,9 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
 
         var content = effectiveVerbosity switch
         {
-            MongoDbTrackingVerbosity.Summarised => null,
+            MongoDbTrackingVerbosity.Summarised when !_options.LogResponseContent => null,
             MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
-            _ => ExtractDetailedResponse(e.Reply) // Detailed: metadata + optional document preview
+            _ => ExtractDetailedResponse(e.Reply) // Detailed/Summarised+LogResponseContent: metadata + optional document preview
         };
 
         RequestResponseLogger.Log(new RequestResponseLog(
@@ -164,7 +164,7 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
             {
                 var vContent = v switch
                 {
-                    MongoDbTrackingVerbosity.Summarised => null,
+                    MongoDbTrackingVerbosity.Summarised when !_options.LogResponseContent => null,
                     MongoDbTrackingVerbosity.Raw => e.Reply?.ToString(),
                     _ => ExtractDetailedResponse(e.Reply)
                 };

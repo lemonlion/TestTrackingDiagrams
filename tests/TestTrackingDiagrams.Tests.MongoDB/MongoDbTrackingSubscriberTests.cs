@@ -271,7 +271,9 @@ public class MongoDbTrackingSubscriberTests : IDisposable
     [Fact]
     public void Summarised_ResponseContentIsNull()
     {
-        var subscriber = new MongoDbTrackingSubscriber(MakeOptions(MongoDbTrackingVerbosity.Summarised));
+        var opts = MakeOptions(MongoDbTrackingVerbosity.Summarised);
+        opts.LogResponseContent = false;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
 
         subscriber.OnCommandStarted(MakeStartedEvent("find"));
         subscriber.OnCommandSucceeded(MakeSucceededEvent("find"));
@@ -610,5 +612,70 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         Assert.Equal(2, logs.Length);
         Assert.Equal(RequestResponseType.Response, logs[1].Type);
         Assert.Equal(HttpStatusCode.InternalServerError, logs[1].StatusCode?.Value);
+    }
+
+    // ─── Summarised + LogResponseContent ─────────────────────
+
+    [Fact]
+    public void Summarised_IncludesResponseContent_WhenLogResponseContentTrue()
+    {
+        var opts = MakeOptions(MongoDbTrackingVerbosity.Summarised);
+        opts.LogResponseContent = true;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("update"));
+        var reply = new BsonDocument { { "ok", 1 }, { "n", 3 }, { "nModified", 2 } };
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("update", reply: reply));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("n=3", log.Content!);
+    }
+
+    [Fact]
+    public void Summarised_OmitsResponseContent_WhenLogResponseContentFalse()
+    {
+        var opts = MakeOptions(MongoDbTrackingVerbosity.Summarised);
+        opts.LogResponseContent = false;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("update"));
+        var reply = new BsonDocument { { "ok", 1 }, { "n", 3 }, { "nModified", 2 } };
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("update", reply: reply));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Summarised_ResponseVariant_includes_content_when_LogResponseContent_true()
+    {
+        var opts = MakeOptions(MongoDbTrackingVerbosity.Detailed);
+        opts.SetupVerbosity = MongoDbTrackingVerbosity.Summarised;
+        opts.LogResponseContent = true;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("update"));
+        var reply = new BsonDocument { { "ok", 1 }, { "n", 5 } };
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("update", reply: reply));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.SetupVariant);
+        Assert.NotNull(log.SetupVariant!.Content);
+        Assert.Contains("n=5", log.SetupVariant!.Content!);
+    }
+
+    [Fact]
+    public void Summarised_still_omits_request_content_when_LogResponseContent_true()
+    {
+        var opts = MakeOptions(MongoDbTrackingVerbosity.Summarised);
+        opts.LogResponseContent = true;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find",
+            new BsonDocument { { "find", "users" }, { "filter", new BsonDocument("age", 25) } }));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
     }
 }

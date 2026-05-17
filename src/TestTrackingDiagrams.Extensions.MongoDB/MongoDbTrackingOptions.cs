@@ -61,7 +61,8 @@ public record MongoDbTrackingOptions
 
     /// <summary>
     /// Whether to include response content (documents from cursor.firstBatch) in diagrams.
-    /// Applies at Detailed verbosity. At Raw, the full reply is always shown regardless.
+    /// Response arrows show payload data (metadata, document previews) at all verbosity levels.
+    /// At Raw, the full reply is always shown regardless.
     /// Default: true.
     /// </summary>
     public bool LogResponseContent { get; set; } = true;

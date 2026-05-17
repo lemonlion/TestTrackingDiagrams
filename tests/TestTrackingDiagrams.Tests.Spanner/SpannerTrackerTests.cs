@@ -407,4 +407,69 @@ public class SpannerTrackerTests
         var log = GetLogsFromThisTest().First();
         Assert.Equal("Select", log.SetupVariant!.Method.Value?.ToString());
     }
+
+    // ─── Summarised + LogResponseContent ─────────────────────
+
+    [Fact]
+    public void Summarised_IncludesResponseContent_WhenLogResponseContentTrue()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        var (reqId, traceId) = tracker.LogRequest(op, "SELECT * FROM Users");
+        tracker.LogResponse(op, reqId, traceId, "3 rows (Id, Name)");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Equal("3 rows (Id, Name)", log.Content);
+    }
+
+    [Fact]
+    public void Summarised_OmitsResponseContent_WhenLogResponseContentFalse()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Summarised);
+        options.LogResponseContent = false;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        var (reqId, traceId) = tracker.LogRequest(op, "SELECT * FROM Users");
+        tracker.LogResponse(op, reqId, traceId, "3 rows (Id, Name)");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Null(log.Content);
+    }
+
+    [Fact]
+    public void Summarised_ResponseVariant_includes_content_when_LogResponseContent_true()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Detailed);
+        options.SetupVerbosity = SpannerTrackingVerbosity.Summarised;
+        options.LogResponseContent = true;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        var (reqId, traceId) = tracker.LogRequest(op, "SELECT * FROM Users");
+        tracker.LogResponse(op, reqId, traceId, "5 rows (Id, Name, Email)");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.SetupVariant);
+        Assert.NotNull(log.SetupVariant!.Content);
+        Assert.Equal("5 rows (Id, Name, Email)", log.SetupVariant!.Content);
+    }
+
+    [Fact]
+    public void Summarised_still_omits_request_content_when_LogResponseContent_true()
+    {
+        var options = MakeOptions(SpannerTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        var tracker = new SpannerTracker(options);
+        var op = new SpannerOperationInfo(SpannerOperation.Query, "Users");
+
+        tracker.LogRequest(op, "SELECT * FROM Users");
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Null(log.Content);
+    }
 }

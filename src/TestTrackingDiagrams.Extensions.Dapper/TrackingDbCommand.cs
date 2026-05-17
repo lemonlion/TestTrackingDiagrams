@@ -208,7 +208,7 @@ public class TrackingDbCommand : DbCommand
             ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
             : label;
         var uri = BuildUri(op, effectiveVerbosity);
-        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised
+        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised && !_options.LogResponseContent
             ? null
             : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
 
@@ -235,7 +235,7 @@ public class TrackingDbCommand : DbCommand
                 OneOf<System.Net.Http.HttpMethod, string> vMethod = v == DapperTrackingVerbosity.Raw
                     ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
                     : DapperOperationClassifier.GetDiagramLabel(op, v);
-                var vContent = v == DapperTrackingVerbosity.Summarised
+                var vContent = v == DapperTrackingVerbosity.Summarised && !_options.LogResponseContent
                     ? null
                     : rowsAffected.HasValue ? $"{rowsAffected.Value} rows affected" : null;
                 return new PhaseVariant(
@@ -258,7 +258,7 @@ public class TrackingDbCommand : DbCommand
             ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
             : label;
         var uri = BuildUri(op, effectiveVerbosity);
-        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised ? null : content;
+        var responseContent = effectiveVerbosity == DapperTrackingVerbosity.Summarised && !_options.LogResponseContent ? null : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
             testInfo.Value.Name,
@@ -283,7 +283,7 @@ public class TrackingDbCommand : DbCommand
                 OneOf<System.Net.Http.HttpMethod, string> vMethod = v == DapperTrackingVerbosity.Raw
                     ? DapperOperationClassifier.GetRawKeyword(CommandText) ?? "SQL"
                     : DapperOperationClassifier.GetDiagramLabel(op, v);
-                var vContent = v == DapperTrackingVerbosity.Summarised ? null : content;
+                var vContent = v == DapperTrackingVerbosity.Summarised && !_options.LogResponseContent ? null : content;
                 return new PhaseVariant(
                     vMethod, BuildUri(op, v), vContent, [], false);
             }));

@@ -98,7 +98,7 @@ public class SpannerTracker : ITrackingComponent
             ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
             : label;
 
-        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised ? null :
+        var logContent = effectiveVerbosity == SpannerTrackingVerbosity.Summarised && !_options.LogResponseContent ? null :
             effectiveVerbosity == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content;
 
         RequestResponseLogger.Log(new RequestResponseLog(
@@ -115,7 +115,7 @@ public class SpannerTracker : ITrackingComponent
                     ? SpannerOperationClassifier.GetRawKeyword(operation) ?? "Spanner"
                     : SpannerOperationClassifier.GetDiagramLabel(operation, v),
                 BuildUri(operation, v),
-                v == SpannerTrackingVerbosity.Summarised ? null :
+                v == SpannerTrackingVerbosity.Summarised && !_options.LogResponseContent ? null :
                     v == SpannerTrackingVerbosity.Raw ? (rawContent ?? content) : content,
                 [], false)));
     }

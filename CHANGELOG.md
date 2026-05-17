@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.37.3] - 2026-05-17
+
+### Fixed
+- **Database response payloads now appear at Summarised verbosity for MongoDB, Dapper, and Spanner** — Same bug as v2.37.2 (response content unconditionally suppressed at `Summarised` verbosity regardless of `LogResponseContent`) also affected three additional extensions that were missed in the initial fix.
+  - **MongoDB** (`MongoDbTrackingSubscriber`): `OnCommandSucceeded` main response and phase variant now check `LogResponseContent` before suppressing at `Summarised`.
+  - **Dapper** (`TrackingDbCommand`): `LogResponse` (rows-affected path) and `LogResponseWithContent` (scalar/reader path) plus their phase variants now check `LogResponseContent`.
+  - **Spanner** (`SpannerTracker`): `LogResponse` main content and phase variant now check `LogResponseContent`. `TrackingSpannerCommand.LogResponse` rows-affected gate also fixed.
+  - 13 new tests across 3 extensions covering Summarised + LogResponseContent scenarios.
+
 ## [2.37.2] - 2026-05-17
 
 ### Fixed

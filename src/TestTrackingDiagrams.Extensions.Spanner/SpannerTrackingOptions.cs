@@ -30,7 +30,7 @@ public record SpannerTrackingOptions
     /// <summary>
     /// Whether to include response content in diagrams. Default: true.
     /// When false, response arrows are empty (previous behaviour).
-    /// Only applies at Detailed and Raw verbosity (Summarised never shows content).
+    /// Response arrows show payload data (row counts, column names, etc.) at all verbosity levels.
     /// </summary>
     public bool LogResponseContent { get; set; } = true;
 

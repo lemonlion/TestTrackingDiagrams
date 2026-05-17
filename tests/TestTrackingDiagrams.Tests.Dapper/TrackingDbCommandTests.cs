@@ -249,6 +249,7 @@ public class TrackingDbCommandTests : IDisposable
     public void Summarised_verbosity_has_null_content()
     {
         _options.Verbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = false;
         using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
         using var reader = cmd.ExecuteReader();
         reader.Close();
@@ -413,5 +414,79 @@ public class TrackingDbCommandTests : IDisposable
 
         var log = GetLogsForTest().First();
         Assert.Equal("SELECT", log.SetupVariant!.Method.Value?.ToString());
+    }
+
+    // ─── Summarised + LogResponseContent ─────────────────────
+
+    [Fact]
+    public void Summarised_IncludesResponseContent_WhenLogResponseContentTrue()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = true;
+        var fakeCmd = new FakeDbCommand { NonQueryResult = 7 };
+        using var cmd = new TrackingDbCommand(fakeCmd, _trackingConnection, _options);
+        cmd.CommandText = "DELETE FROM Users WHERE Active = 0";
+        cmd.ExecuteNonQuery();
+
+        var response = GetLogsForTest()[1];
+        Assert.NotNull(response.Content);
+        Assert.Equal("7 rows affected", response.Content);
+    }
+
+    [Fact]
+    public void Summarised_OmitsResponseContent_WhenLogResponseContentFalse()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = false;
+        var fakeCmd = new FakeDbCommand { NonQueryResult = 7 };
+        using var cmd = new TrackingDbCommand(fakeCmd, _trackingConnection, _options);
+        cmd.CommandText = "DELETE FROM Users WHERE Active = 0";
+        cmd.ExecuteNonQuery();
+
+        var response = GetLogsForTest()[1];
+        Assert.Null(response.Content);
+    }
+
+    [Fact]
+    public void Summarised_IncludesScalarResponseContent_WhenLogResponseContentTrue()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = true;
+        using var cmd = CreateCommand("SELECT COUNT(*) FROM Users");
+        cmd.ExecuteScalar();
+
+        var response = GetLogsForTest()[1];
+        Assert.NotNull(response.Content);
+        Assert.Equal("42", response.Content);
+    }
+
+    [Fact]
+    public void Summarised_ResponseVariant_includes_content_when_LogResponseContent_true()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Detailed;
+        _options.SetupVerbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = true;
+        var fakeCmd = new FakeDbCommand { NonQueryResult = 3 };
+        using var cmd = new TrackingDbCommand(fakeCmd, _trackingConnection, _options);
+        cmd.CommandText = "UPDATE Users SET Active = 1";
+        cmd.ExecuteNonQuery();
+
+        var response = GetLogsForTest()[1];
+        Assert.NotNull(response.SetupVariant);
+        Assert.NotNull(response.SetupVariant!.Content);
+        Assert.Equal("3 rows affected", response.SetupVariant!.Content);
+    }
+
+    [Fact]
+    public void Summarised_still_omits_request_content_when_LogResponseContent_true()
+    {
+        _options.Verbosity = DapperTrackingVerbosity.Summarised;
+        _options.LogResponseContent = true;
+        _options.LogSqlText = false;
+        using var cmd = CreateCommand("SELECT * FROM Users WHERE Id = 1");
+        cmd.ExecuteReader();
+
+        var request = GetLogsForTest()[0];
+        Assert.Null(request.Content);
     }
 }
