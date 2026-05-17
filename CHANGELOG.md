@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-05-17
+
+### Changed
+- **MongoDB: response documents now formatted as indented JSON** — Document previews in response arrows (from `cursor.firstBatch`) are now pretty-printed with 2-space indentation instead of compact single-line JSON. Nested objects and arrays are also properly indented. The `"N document(s)"` count prefix and `MaxResponseDocuments` truncation continue to work as before.
+
 ## [3.0.0] - 2026-05-17
 
 ### Changed

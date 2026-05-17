@@ -210,15 +210,15 @@ public static class DiagramContextMenu
         }
         .details-radio-btn:hover { background: rgb(230, 240, 255); border-color: rgb(100, 150, 255); }
         .details-radio-btn.details-active { background: rgb(66, 133, 244); color: white; border-color: rgb(66, 133, 244); }
-        .toggle-btn { margin-left: 1.5em; }
+        .toggle-btn { margin-left: 0.5em; }
         .truncate-lines-select {
             padding: 0.2em 0.3em;
             border: 1px solid rgb(180, 180, 180);
             border-radius: 0.4em;
             font-size: 0.85em;
-            margin-left: 0.3em;
+            margin-left: 0;
         }
-        .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0.2em; }
+        .truncate-lines-label { font-size: 0.85em; color: rgb(100, 100, 100); margin-left: 0; margin-right: 0.3em; }
         .note-toggle-icon { user-select: none; -webkit-user-select: none; }
         @media (max-width: 768px) {
             .details-radio { flex-wrap: wrap; }

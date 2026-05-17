@@ -2,6 +2,7 @@ using Kronikol.Constants;
 using System.Collections.Concurrent;
 using System.Net;
 using global::MongoDB.Bson;
+using global::MongoDB.Bson.IO;
 using global::MongoDB.Driver.Core.Events;
 using Microsoft.AspNetCore.Http;
 using Kronikol.Tracking;
@@ -230,11 +231,17 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
                 var docs = firstBatch.AsBsonArray;
                 if (docs.Count > 0)
                 {
-                    var preview = docs.Take(_options.MaxResponseDocuments)
-                        .Select(d => d.ToString())
+                    var jsonSettings = new JsonWriterSettings { Indent = true, IndentChars = "  ", NewLineChars = "\n" };
+                    var formattedDocs = docs.Take(_options.MaxResponseDocuments)
+                        .Select(d =>
+                        {
+                            var json = d.ToJson(jsonSettings);
+                            return "  " + json.Replace("\n", "\n  ");
+                        })
                         .ToList();
+                    var formattedJson = "[\n" + string.Join(",\n", formattedDocs) + "\n]";
 
-                    var docText = $"{docs.Count} document(s)\n[{string.Join(",\n", preview)}]";
+                    var docText = $"{docs.Count} document(s)\n{formattedJson}";
                     if (docs.Count > _options.MaxResponseDocuments)
                         docText += $"\n... ({docs.Count - _options.MaxResponseDocuments} more)";
 

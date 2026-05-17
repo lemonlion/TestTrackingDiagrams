@@ -678,4 +678,151 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
         Assert.Null(log.Content);
     }
+
+    // ─── Document response formatting ────────────────────────
+
+    private static BsonDocument MakeReplyWithDocuments(params BsonDocument[] documents) =>
+        new("cursor", new BsonDocument
+        {
+            { "id", 0L },
+            { "ns", "testdb.testcollection" },
+            { "firstBatch", new BsonArray(documents) }
+        });
+
+    [Fact]
+    public void Detailed_ResponseWithDocuments_FormatsAsIndentedJson()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+        var doc = new BsonDocument { { "_id", "abc-123" }, { "Name", "Alice" } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc)));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+
+        // Should contain indented JSON, not single-line
+        Assert.Contains("\"_id\" : \"abc-123\"", log.Content!);
+        Assert.Contains("[\n  {", log.Content!);  // array element indented
+        Assert.Contains("\n    \"Name\"", log.Content!);  // field indented inside object
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithMultipleDocuments_FormatsAsIndentedJsonArray()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+        var doc1 = new BsonDocument { { "_id", "1" }, { "Name", "Alice" } };
+        var doc2 = new BsonDocument { { "_id", "2" }, { "Name", "Bob" } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc1, doc2)));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("2 document(s)", log.Content!);
+
+        // Both documents should be indented in the array
+        Assert.Contains("\"Alice\"", log.Content!);
+        Assert.Contains("\"Bob\"", log.Content!);
+        Assert.Contains("[\n  {", log.Content!);
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithDocuments_IncludesDocumentCount()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+        var doc = new BsonDocument { { "_id", "abc" } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc)));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.StartsWith("1 document(s)", log.Content!);
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithDocumentsTruncated_ShowsMoreIndicator()
+    {
+        var opts = MakeOptions();
+        opts.MaxResponseDocuments = 1;
+        var subscriber = new MongoDbTrackingSubscriber(opts);
+
+        var doc1 = new BsonDocument { { "_id", "1" } };
+        var doc2 = new BsonDocument { { "_id", "2" } };
+        var doc3 = new BsonDocument { { "_id", "3" } };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc1, doc2, doc3)));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.Contains("3 document(s)", log.Content!);
+        Assert.Contains("... (2 more)", log.Content!);
+
+        // Only the first document should be in the formatted output
+        Assert.Contains("\"_id\" : \"1\"", log.Content!);
+        Assert.DoesNotContain("\"_id\" : \"2\"", log.Content!);
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithEmptyFirstBatch_ShowsZeroDocuments()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments()));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("0 documents", log.Content!);
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithMetadataAndDocuments_CombinesBoth()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+        var reply = new BsonDocument
+        {
+            { "ok", 1 },
+            { "n", 1 },
+            { "cursor", new BsonDocument
+                {
+                    { "id", 0L },
+                    { "ns", "testdb.testcollection" },
+                    { "firstBatch", new BsonArray { new BsonDocument { { "_id", "x" }, { "Rating", 5 } } } }
+                }
+            }
+        };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: reply));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("n=1", log.Content!);
+        Assert.Contains("1 document(s)", log.Content!);
+        Assert.Contains("\"Rating\" : 5", log.Content!);
+    }
+
+    [Fact]
+    public void Detailed_ResponseWithNestedObjects_FormatsNestedIndentation()
+    {
+        var subscriber = new MongoDbTrackingSubscriber(MakeOptions());
+        var doc = new BsonDocument
+        {
+            { "_id", "abc" },
+            { "Tags", new BsonArray { "fluffy", "breakfast" } },
+            { "CreatedAt", new BsonDocument("$date", "2026-05-17T12:00:00Z") }
+        };
+
+        subscriber.OnCommandStarted(MakeStartedEvent("find"));
+        subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc)));
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+
+        // Nested array and objects should also be indented
+        Assert.Contains("\"Tags\"", log.Content!);
+        Assert.Contains("\"fluffy\"", log.Content!);
+        Assert.Contains("\"$date\"", log.Content!);
+    }
 }
