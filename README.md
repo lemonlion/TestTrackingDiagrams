@@ -1,5 +1,4 @@
 [![NuGet](https://img.shields.io/nuget/v/Kronikol.svg)](https://www.nuget.org/packages/Kronikol)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/Kronikol.svg)](https://www.nuget.org/packages/Kronikol)
 [![CI](https://github.com/lemonlion/Kronikol/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonlion/Kronikol/actions/workflows/ci.yml)
 
 
