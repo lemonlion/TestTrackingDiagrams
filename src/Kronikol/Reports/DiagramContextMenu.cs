@@ -2689,6 +2689,36 @@ public static class DiagramContextMenu
                 // Propagate truncateLines from owner
                 if (!container._truncateLines) container._truncateLines = owner._truncateLines || window._truncateLines;
 
+                // Map filtered note indices → original-source note indices.
+                // When filters (database/step/assertion) remove notes, the
+                // rendered source has fewer notes than the original.  Button
+                // callbacks must reference original indices so setNoteState
+                // and buildSourceWithNoteStates stay aligned.
+                var filteredToOrigMap = null;
+                if (owner._noteOriginalSource && ownerNoteBlocks.length > 0) {
+                    var cleanFilt = owner._noteOriginalSource;
+                    if (!owner._assertionsVisible) cleanFilt = stripAssertionNotes(cleanFilt);
+                    if (!owner._stepsVisible) cleanFilt = stripStepDelimiters(cleanFilt);
+                    if (!owner._databasesVisible) cleanFilt = stripDatabaseCalls(cleanFilt);
+                    var cleanFiltNotes = parseNoteBlocks(cleanFilt);
+                    if (cleanFiltNotes.length < ownerNoteBlocks.length && cleanFiltNotes.length > 0) {
+                        var _map = [];
+                        var _oi = 0;
+                        for (var _fi = 0; _fi < cleanFiltNotes.length && _oi < ownerNoteBlocks.length; _fi++) {
+                            var _fc = cleanFiltNotes[_fi].contentLines.join('\n');
+                            while (_oi < ownerNoteBlocks.length) {
+                                if (ownerNoteBlocks[_oi].contentLines.join('\n') === _fc) {
+                                    _map.push(_oi);
+                                    _oi++;
+                                    break;
+                                }
+                                _oi++;
+                            }
+                        }
+                        if (_map.length === cleanFiltNotes.length) filteredToOrigMap = _map;
+                    }
+                }
+
                 var noteGroups = findNoteGroups(svg);
 
                 // Safety net: if more SVG groups were detected than note blocks exist,
@@ -2783,7 +2813,8 @@ public static class DiagramContextMenu
 
                 for (var ni = 0; ni < loopCount; ni++) {
                     (function(svgIdx, srcIdx) {
-                        var globalIdx = srcIdx + noteIndexOffset;
+                        var globalFilteredIdx = srcIdx + noteIndexOffset;
+                        var globalIdx = filteredToOrigMap ? (globalFilteredIdx < filteredToOrigMap.length ? filteredToOrigMap[globalFilteredIdx] : globalFilteredIdx) : globalFilteredIdx;
                         var grp = noteGroups[svgIdx];
                         var bbox = getNoteBBox(grp);
                         var step = owner._noteSteps[globalIdx] || 0;
@@ -3003,8 +3034,10 @@ public static class DiagramContextMenu
                 container.style.minHeight = container.offsetHeight + 'px';
 
                 // Render into a temporary child div to keep old SVG visible until new one is ready
+                // Use unique ID per render to prevent TeaVM global state leaking between sequential renders
+                window._renderTmpCounter = (window._renderTmpCounter || 0) + 1;
                 var renderTarget = document.createElement('div');
-                renderTarget.id = container.id + '-render-tmp';
+                renderTarget.id = container.id + '-render-tmp-' + window._renderTmpCounter;
                 renderTarget.style.display = 'none';
                 container.appendChild(renderTarget);
 
@@ -3306,26 +3339,30 @@ public static class DiagramContextMenu
                 var renderSource = !el._assertionsVisible ? stripAssertionNotes(source) : source;
                 renderSource = !el._stepsVisible ? stripStepDelimiters(renderSource) : renderSource;
                 renderSource = !el._databasesVisible ? stripDatabaseCalls(renderSource) : renderSource;
-                var noteBlocks = parseNoteBlocks(renderSource);
-                if (noteBlocks.length === 0 && renderSource === source) return source;
+                // Always use the ORIGINAL source for note indexing so that
+                // _noteSteps indices align with buildSourceWithNoteStates and
+                // setNoteState, which both operate on the original source.
+                var origNoteBlocks = parseNoteBlocks(source);
+                if (origNoteBlocks.length === 0 && renderSource === source) return source;
                 el._noteOriginalSource = source;
-                if (noteBlocks.length === 0) return renderSource;
+                if (origNoteBlocks.length === 0) return renderSource;
                 var state = window._detailsDefault;
                 // Always initialize _noteSteps so that subsequent headers toggle
                 // or details changes see the correct state (step 2 = expanded)
                 if (!el._noteSteps) el._noteSteps = {};
                 // Preserve per-element truncateLines if already set by a scenario-level change
                 if (el._truncateLines === undefined) el._truncateLines = window._truncateLines;
-                for (var i = 0; i < noteBlocks.length; i++) {
+                for (var i = 0; i < origNoteBlocks.length; i++) {
                     var targetStep;
                     if (state === 'expanded') { targetStep = 2; }
-                    else if (state === 'truncated') { targetStep = isLongNote(noteBlocks[i].contentLines, el._truncateLines) ? 1 : 2; }
+                    else if (state === 'truncated') { targetStep = isLongNote(origNoteBlocks[i].contentLines, el._truncateLines) ? 1 : 2; }
                     else { targetStep = 0; }
                     el._noteSteps[i] = targetStep;
                 }
                 el._headersHidden = window._headersHidden;
                 if (state !== 'expanded' || window._headersHidden) {
-                    return buildSourceWithNoteStates(renderSource, el._noteSteps, noteBlocks, window._headersHidden, el._truncateLines);
+                    var built = buildSourceWithNoteStates(source, el._noteSteps, origNoteBlocks, window._headersHidden, el._truncateLines);
+                    return applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(built, el._assertionsVisible), el._stepsVisible), el._databasesVisible);
                 }
                 return renderSource;
             };
@@ -3349,7 +3386,8 @@ public static class DiagramContextMenu
                     renderWaitCount = 0;
                     var item = queue.shift();
                     var container = item.container;
-                    var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, item.noteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
+                    var origNoteBlocks = parseNoteBlocks(container._noteOriginalSource);
+                    var newSource = applyDatabasesFilter(applyStepsFilter(applyAssertionFilter(buildSourceWithNoteStates(container._noteOriginalSource, container._noteSteps, origNoteBlocks, !!container._headersHidden, container._truncateLines), !!container._assertionsVisible), !!container._stepsVisible), !!container._databasesVisible);
                     container.setAttribute('data-plantuml', newSource);
 
                     // Re-split into fragments if needed
@@ -3442,8 +3480,10 @@ public static class DiagramContextMenu
                     // Preserve container height to prevent layout shift during re-render
                     container.style.minHeight = container.offsetHeight + 'px';
                     // Render into temporary child to keep old SVG visible until new one is ready
+                    // Use unique ID per render to prevent TeaVM global state leaking between sequential renders
+                    window._renderTmpCounter = (window._renderTmpCounter || 0) + 1;
                     var renderTarget = document.createElement('div');
-                    renderTarget.id = container.id + '-render-tmp';
+                    renderTarget.id = container.id + '-render-tmp-' + window._renderTmpCounter;
                     renderTarget.style.display = 'none';
                     container.appendChild(renderTarget);
                     var done = false;

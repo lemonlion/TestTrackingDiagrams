@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.7] - 2026-05-17
+
+### Fixed
+- **Binary CosmosDB TransactionalBatch content in diagrams** — HTTP responses and requests containing binary-framed content (HybridRow/RecordIO) are now detected and have embedded JSON documents extracted. This fixes CosmosDB `TransactionalBatch` operations producing garbled binary output in diagram notes. The generic binary detection in `HttpContentReader` scans the first 256 bytes for control characters and uses brace-depth counting with string-literal awareness to extract valid JSON objects.
+- **Note collapse after filter toggle** — Fixed a bug where collapsing or expanding a diagram note after hiding databases or steps would render the wrong note content. The root cause was twofold: (1) note indices in the filtered PlantUML source didn't map back to the original source indices, and (2) the PlantUML TeaVM renderer's global state leaked between sequential renders that reused the same temporary element ID. Fixed by computing a `filteredToOrigMap` for note index translation and using unique counter-based render target IDs.
+
 ## [3.0.6] - 2026-05-17
 
 ### Changed

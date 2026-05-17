@@ -685,4 +685,126 @@ public class CosmosTrackingMessageHandlerTests : IDisposable
             writer.Write(text);
         return output.ToArray();
     }
+
+    // ─── Binary batch response handling ────────────────────────
+
+    [Fact]
+    public async Task Detailed_Batch_BinaryResponse_ExtractsJsonDocuments()
+    {
+        var json1 = """{"id":"order-1","total":42.50}""";
+        var json2 = """{"id":"outbox-1","type":"OrderCreated"}""";
+        var binaryPayload = BuildBinaryBatchResponse(json1, json2);
+
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(binaryPayload)
+        };
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
+
+        await invoker.SendAsync(MakeBatchRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("order-1", log.Content);
+        Assert.Contains("outbox-1", log.Content);
+        Assert.DoesNotContain("\uFFFD", log.Content); // No replacement characters
+    }
+
+    [Fact]
+    public async Task Raw_Batch_BinaryResponse_ExtractsJsonDocuments()
+    {
+        var json = """{"id":"doc1","status":"created"}""";
+        var binaryPayload = BuildBinaryBatchResponse(json);
+
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(binaryPayload)
+        };
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Raw));
+
+        await invoker.SendAsync(MakeBatchRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("doc1", log.Content);
+        Assert.Contains("created", log.Content);
+    }
+
+    [Fact]
+    public async Task Detailed_Batch_BinaryRequest_ExtractsJsonDocuments()
+    {
+        var json = """{"id":"order-1","total":42.50}""";
+        var binaryPayload = BuildBinaryBatchResponse(json);
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            "https://account.documents.azure.com/dbs/mydb/colls/orders/docs/pk-value")
+        {
+            Content = new ByteArrayContent(binaryPayload)
+        };
+
+        using var invoker = CreateInvoker(MakeOptions(CosmosTrackingVerbosity.Detailed));
+        await invoker.SendAsync(request, CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.NotNull(log.Content);
+        Assert.Contains("order-1", log.Content);
+    }
+
+    [Fact]
+    public async Task Summarised_Batch_BinaryResponse_LogResponseContent_ExtractsJson()
+    {
+        var json = """{"id":"doc1"}""";
+        var binaryPayload = BuildBinaryBatchResponse(json);
+
+        _innerHandler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(binaryPayload)
+        };
+        var options = MakeOptions(CosmosTrackingVerbosity.Summarised);
+        options.LogResponseContent = true;
+        using var invoker = CreateInvoker(options);
+
+        await invoker.SendAsync(MakeBatchRequest(), CancellationToken.None);
+
+        var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
+        Assert.NotNull(log.Content);
+        Assert.Contains("doc1", log.Content);
+    }
+
+    private static HttpRequestMessage MakeBatchRequest()
+    {
+        return new HttpRequestMessage(HttpMethod.Post,
+            "https://account.documents.azure.com/dbs/mydb/colls/orders/docs/pk-value")
+        {
+            Content = new ByteArrayContent(BuildBinaryBatchResponse(
+                """{"id":"order-1","total":42.50}""",
+                """{"id":"outbox-1","type":"OrderCreated"}"""))
+        };
+    }
+
+    private static byte[] BuildBinaryBatchResponse(params string[] jsonDocuments)
+    {
+        using var ms = new System.IO.MemoryStream();
+        // HybridRow version byte + binary framing header
+        ms.Write(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00 });
+
+        foreach (var json in jsonDocuments)
+        {
+            // Binary field framing (status code, sub-status)
+            ms.Write(new byte[] { 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+            // etag-like string
+            var etagBytes = System.Text.Encoding.UTF8.GetBytes("$" + Guid.NewGuid().ToString());
+            ms.WriteByte((byte)etagBytes.Length);
+            ms.Write(etagBytes);
+            // Field marker before resourceBody
+            ms.Write(new byte[] { 0x06, 0x00 });
+            // The JSON document bytes
+            ms.Write(System.Text.Encoding.UTF8.GetBytes(json));
+            // Binary trailer (request charge, retry-after)
+            ms.Write(new byte[] { 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00 });
+        }
+
+        ms.Write(new byte[] { 0x00, 0x00, 0x00, 0x00 });
+        return ms.ToArray();
+    }
     }
