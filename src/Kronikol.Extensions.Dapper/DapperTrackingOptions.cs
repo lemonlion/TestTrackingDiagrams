@@ -34,9 +34,9 @@ public record DapperTrackingOptions
     public bool LogResponseContent { get; set; } = true;
 
     /// <summary>
-    /// Maximum number of rows to include in response content. Default: 5.
+    /// Maximum number of rows to include in response content. Default: 10.
     /// </summary>
-    public int MaxResponseRows { get; set; } = 5;
+    public int MaxResponseRows { get; set; } = 10;
 
     /// <summary>
     /// Maximum display length for individual cell values. Default: 500.

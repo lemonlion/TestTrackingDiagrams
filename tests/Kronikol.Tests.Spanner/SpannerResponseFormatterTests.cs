@@ -66,7 +66,7 @@ public class SpannerResponseFormatterTests
 
         var result = SpannerResponseFormatter.FormatResultSet(rs, SpannerResponseDetail.FullRows, 5);
 
-        Assert.Contains("2 rows", result);
+        Assert.DoesNotContain("2 rows", result);
         Assert.Contains("Alice", result);
         Assert.Contains("Bob", result);
     }
@@ -81,7 +81,7 @@ public class SpannerResponseFormatterTests
         Assert.Contains("Alice", result);
         Assert.Contains("Bob", result);
         Assert.DoesNotContain("Carol", result);
-        Assert.Contains("... (3 more)", result);
+        Assert.Contains("... (3 more rows not shown)", result);
     }
 
     [Fact]

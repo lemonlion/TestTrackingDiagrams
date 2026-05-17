@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-05-17
+
+### Changed
+- **MongoDB response format** — Removed the synthetic `N document(s)` prefix from MongoDB response content. Responses now show only the raw JSON array. When results are truncated, a `... (N more documents not shown)` footer is appended.
+- **SQL response format** — Removed the `N rows` prefix from SQL FullRows response content (Dapper, EF Core, SqlClient, Npgsql, MySqlConnector, Oracle). Responses now show only the JSON array. When results are truncated, the footer now reads `... (N more rows not shown)`.
+- **Spanner response format** — Same treatment as SQL: removed `N rows [columns]` prefix from FullRows mode. Truncation footer updated to `... (N more rows not shown)`.
+- **Increased default MaxResponseDocuments** — MongoDB `MaxResponseDocuments` default increased from 5 to 10.
+- **Increased default MaxResponseRows** — SQL and Spanner `MaxResponseRows` default increased from 5 to 10 across all extensions (SqlClient, Npgsql, MySqlConnector, Oracle, Dapper, EF Core, Spanner).
+- **Removed "Step: " prefix from step delimiter hnotes** — Step delimiter notes in sequence diagrams no longer include the redundant `Step: ` prefix (e.g. `Step: Given A user exists` → `Given A user exists`).
+
 ## [3.0.4] - 2026-05-17
 
 ### Fixed

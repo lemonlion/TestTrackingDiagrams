@@ -719,8 +719,6 @@ public class MongoDbTrackingSubscriberTests : IDisposable
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
         Assert.NotNull(log.Content);
-        Assert.Contains("2 document(s)", log.Content!);
-
         // Both documents should be indented in the array
         Assert.Contains("\"Alice\"", log.Content!);
         Assert.Contains("\"Bob\"", log.Content!);
@@ -737,7 +735,7 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc)));
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
-        Assert.StartsWith("1 document(s)", log.Content!);
+        Assert.StartsWith("[\n  {", log.Content!);
     }
 
     [Fact]
@@ -755,8 +753,7 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         subscriber.OnCommandSucceeded(MakeSucceededEvent("find", reply: MakeReplyWithDocuments(doc1, doc2, doc3)));
 
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
-        Assert.Contains("3 document(s)", log.Content!);
-        Assert.Contains("... (2 more)", log.Content!);
+        Assert.Contains("... (2 more documents not shown)", log.Content!);
 
         // Only the first document should be in the formatted output
         Assert.Contains("\"_id\" : \"1\"", log.Content!);
@@ -799,8 +796,8 @@ public class MongoDbTrackingSubscriberTests : IDisposable
         var log = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Response);
         Assert.NotNull(log.Content);
         Assert.Contains("n=1", log.Content!);
-        Assert.Contains("1 document(s)", log.Content!);
         Assert.Contains("\"Rating\" : 5", log.Content!);
+        Assert.DoesNotContain("document(s)", log.Content!);
     }
 
     [Fact]

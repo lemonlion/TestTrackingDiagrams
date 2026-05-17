@@ -1176,13 +1176,13 @@ public static class ReportTestHelper
         participant "OrderService" as svc
         participant "Database" as db
 
-        hnote across <<stepDelimiter>> #black:<color:white>Step: Given the system is running
+        hnote across <<stepDelimiter>> #black:<color:white>Given the system is running
         caller -> svc : POST /api/orders
         note left
         Content-Type: application/json
         {"item":"Widget","qty":2}
         end note
-        hnote across <<stepDelimiter>> #black:<color:white>Step: When I create an order
+        hnote across <<stepDelimiter>> #black:<color:white>When I create an order
         svc -> db : INSERT INTO Orders
         note left
         INSERT INTO Orders (Item, Qty)
@@ -1665,10 +1665,10 @@ public static class ReportTestHelper
         database "Spanner" as spanner
         
         
-        hnote across <<stepDelimiter>> #black:<color:white>Step: Given a valid customer preference request
+        hnote across <<stepDelimiter>> #black:<color:white>Given a valid customer preference request
         
         
-        hnote across <<stepDelimiter>> #black:<color:white>Step: When the customer preferences are saved
+        hnote across <<stepDelimiter>> #black:<color:white>When the customer preferences are saved
         
         caller -[#438DD5]> breakfastProvider: [[#iflow-67a2a680-5cb1-4b1e-a145-e5046cd095af PUT: /customer-preferences/d37d5aba2a244807b7fe008d01f6ba0f]]
         note left
@@ -1699,7 +1699,7 @@ public static class ReportTestHelper
         }
         end note
         
-        hnote across <<stepDelimiter>> #black:<color:white>Step: Then the preference response should contain the saved preferences
+        hnote across <<stepDelimiter>> #black:<color:white>Then the preference response should contain the saved preferences
         
         
         hnote across <<assertionNote>> #d4edda

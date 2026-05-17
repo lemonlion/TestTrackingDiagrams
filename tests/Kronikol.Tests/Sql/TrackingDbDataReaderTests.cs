@@ -28,7 +28,7 @@ public class TrackingDbDataReaderTests
         Assert.Contains("Alice", captured);
         Assert.Contains("Bob", captured);
         Assert.DoesNotContain("Carol", captured);
-        Assert.Contains("... (1 more)", captured);
+        Assert.Contains("... (1 more rows not shown)", captured);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class TrackingDbDataReaderTests
         reader.Close();
 
         Assert.NotNull(captured);
-        Assert.Contains("1 row", captured);
+        Assert.Contains("Alice", captured);
     }
 
     [Fact]
@@ -220,11 +220,8 @@ public class TrackingDbDataReaderTests
         reader.Close();
 
         Assert.NotNull(captured);
-        // Content after the row label line should be valid JSON
-        var lines = captured!.Split('\n', 2);
-        Assert.Equal(2, lines.Length);
-        var json = lines[1];
-        var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+        // Content should be valid JSON (no row label prefix)
+        var parsed = JsonSerializer.Deserialize<JsonElement>(captured!);
         Assert.Equal(JsonValueKind.Array, parsed.ValueKind);
         Assert.Equal(1, parsed.GetArrayLength());
     }
@@ -242,7 +239,7 @@ public class TrackingDbDataReaderTests
         while (reader.Read()) { }
         reader.Close();
 
-        Assert.StartsWith("1 row", captured!);
+        Assert.StartsWith("[", captured!);
     }
 
     [Fact]
@@ -293,7 +290,8 @@ public class TrackingDbDataReaderTests
         await reader.CloseAsync();
 
         Assert.NotNull(captured);
-        Assert.Contains("2 rows", captured);
+        Assert.Contains("Alice", captured);
+        Assert.Contains("Bob", captured);
     }
 
     // ─── Delegation ─────────────────────────────────────────

@@ -241,9 +241,9 @@ public class MongoDbTrackingSubscriber : ITrackingComponent, IEventSubscriber
                         .ToList();
                     var formattedJson = "[\n" + string.Join(",\n", formattedDocs) + "\n]";
 
-                    var docText = $"{docs.Count} document(s)\n{formattedJson}";
+                    var docText = formattedJson;
                     if (docs.Count > _options.MaxResponseDocuments)
-                        docText += $"\n... ({docs.Count - _options.MaxResponseDocuments} more)";
+                        docText += $"\n... ({docs.Count - _options.MaxResponseDocuments} more documents not shown)";
 
                     return metadata is not null ? $"{metadata}\n{docText}" : docText;
                 }

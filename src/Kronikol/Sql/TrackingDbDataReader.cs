@@ -123,19 +123,13 @@ public sealed class TrackingDbDataReader : DbDataReader
         // FullRows
         var sb = new StringBuilder();
 
-        if (_maxRows > 0 && _totalRowsRead > _maxRows)
-            sb.Append($"{rowLabel} (showing first {_maxRows})");
+        if (_capturedRows.Count > 0)
+            sb.Append(JsonSerializer.Serialize(_capturedRows, JsonOptions));
         else
             sb.Append(rowLabel);
 
-        if (_capturedRows.Count > 0)
-        {
-            sb.AppendLine();
-            sb.Append(JsonSerializer.Serialize(_capturedRows, JsonOptions));
-        }
-
         if (_maxRows > 0 && _totalRowsRead > _maxRows)
-            sb.Append($"\n... ({_totalRowsRead - _maxRows} more)");
+            sb.Append($"\n... ({_totalRowsRead - _maxRows} more rows not shown)");
 
         return sb.ToString();
     }

@@ -32,19 +32,25 @@ public static class SpannerResponseFormatter
 
         // FullRows
         var sb = new StringBuilder();
-        sb.Append(rowLabel);
-        if (columnNames is not null)
-            sb.Append($" [{columnNames}]");
 
         var displayCount = maxRows > 0 ? Math.Min(rowCount, maxRows) : rowCount;
-        for (var i = 0; i < displayCount; i++)
+        if (displayCount > 0)
         {
-            sb.AppendLine();
-            sb.Append(FormatRow(response.Rows[i], columns));
+            for (var i = 0; i < displayCount; i++)
+            {
+                if (i > 0) sb.AppendLine();
+                sb.Append(FormatRow(response.Rows[i], columns));
+            }
+        }
+        else
+        {
+            sb.Append(rowLabel);
+            if (columnNames is not null)
+                sb.Append($" [{columnNames}]");
         }
 
         if (maxRows > 0 && rowCount > maxRows)
-            sb.Append($"\n... ({rowCount - maxRows} more)");
+            sb.Append($"\n... ({rowCount - maxRows} more rows not shown)");
 
         return sb.ToString();
     }

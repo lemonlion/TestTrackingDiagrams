@@ -36,10 +36,10 @@ public record SpannerTrackingOptions
 
     /// <summary>
     /// Maximum number of rows to include in response content.
-    /// Default: 5. Set to 0 for row count only (overrides ResponseDetail for row data).
+    /// Default: 10. Set to 0 for row count only (overrides ResponseDetail for row data).
     /// Negative values are treated as 0.
     /// </summary>
-    public int MaxResponseRows { get; set; } = 5;
+    public int MaxResponseRows { get; set; } = 10;
 
     /// <summary>
     /// Level of detail for response content in diagram arrows.

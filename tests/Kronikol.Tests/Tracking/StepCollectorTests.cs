@@ -458,7 +458,7 @@ public class StepCollectorTests
             .ToArray();
 
         Assert.Single(logs);
-        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Given A user exists", logs[0].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 
@@ -478,7 +478,7 @@ public class StepCollectorTests
 
         // Only the top-level step should emit a delimiter, not the sub-step
         Assert.Single(logs);
-        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("Given A user exists", logs[0].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 
@@ -522,8 +522,8 @@ public class StepCollectorTests
             .ToArray();
 
         Assert.Equal(2, logs.Length);
-        Assert.Contains("Step: Given A user exists", logs[0].PlantUml!);
-        Assert.Contains("Step: And A product exists", logs[1].PlantUml!);
+        Assert.Contains("Given A user exists", logs[0].PlantUml!);
+        Assert.Contains("And A product exists", logs[1].PlantUml!);
         StepCollector.ClearSteps(testId);
     }
 

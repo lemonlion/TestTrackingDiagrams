@@ -69,7 +69,7 @@ public record MongoDbTrackingOptions
 
     /// <summary>
     /// Maximum number of documents to include from cursor.firstBatch in response content.
-    /// Default: 5.
+    /// Default: 10.
     /// </summary>
-    public int MaxResponseDocuments { get; set; } = 5;
+    public int MaxResponseDocuments { get; set; } = 10;
 }

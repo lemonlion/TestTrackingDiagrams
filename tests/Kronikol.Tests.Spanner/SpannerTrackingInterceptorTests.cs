@@ -646,7 +646,7 @@ public class SpannerTrackingInterceptorTests
         var responseLog = logs.Last();
         Assert.Contains("Alice", responseLog.Content!);
         Assert.DoesNotContain("Bob", responseLog.Content!);
-        Assert.Contains("... (2 more)", responseLog.Content!);
+        Assert.Contains("... (2 more rows not shown)", responseLog.Content!);
     }
 
     // ─── Streaming response tests ──────────────────────────
