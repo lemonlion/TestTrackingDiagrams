@@ -4,7 +4,7 @@
 
 <a name="top"></a>
 
-# <img src="icon.svg" width="32" height="32" alt="Kronikol icon" style="vertical-align: middle;"> Kronikol* 
+# <img src="icon.svg" width="32" height="32" alt="Kronikol icon" style="vertical-align: middle;"> Kronikol <sup>†</sup>
 
 Automatically generates [rich interactive HTML reports](https://lemonlion.github.io/BreakfastProvider/) with PlantUML sequence, activity and component diagrams, with timeline visualizations from your integration/component test HTTP traffic (real or faked) and telemetry.
 
@@ -12,7 +12,7 @@ Tracks interactions between your test caller, your Service Under Test (SUT), and
 
 Input data sets (eg InlineData/MemberData/ClassData for xUnit, and equivalents in NUnit, TUnit & ReqNRoll & LightBDD) are automatically turned into dynamic clickable tables showing you the correct diagrams for each set of inputs.  Data is all collapsible, truncatable and toggleable at view time, allowing you to see from higher level to lower level at the click of a button.  Also contains features for tracking your assertions from FluentAssertions/Awesome assertions and displaying them in the reports in plain english.  
 
-<sub>*Formerly named 'TestTrackingDiagrams'</sub>
+<sub>† Formerly named 'TestTrackingDiagrams'</sub>
 
 ---
 
