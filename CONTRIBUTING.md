@@ -35,8 +35,8 @@ dotnet build TestTrackingDiagrams.sln
 # Core tests
 dotnet test tests/TestTrackingDiagrams.Tests
 
-# All tests (excluding Selenium)
-dotnet test TestTrackingDiagrams.sln --filter "FullyQualifiedName!~Selenium"
+# All tests (excluding Playwright)
+dotnet test TestTrackingDiagrams.sln --filter "FullyQualifiedName!~Playwright"
 ```
 
 ### Project Structure

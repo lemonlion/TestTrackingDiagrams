@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.37.4] - 2026-05-17
+
+### Added
+- **Mobile UX improvements for HTML test reports** — Comprehensive responsive design enhancements for viewing reports on phones and tablets (375px–768px viewports):
+  - **Collapsible filter section** — Filters are collapsed behind a "Filters" toggle on mobile, keeping the search bar and content immediately accessible instead of pushing content 4–5 screens down.
+  - **Sticky search bar** — The search input stays pinned at the top of the filtering box when scrolling, always accessible on mobile.
+  - **Back-to-top floating button** — A "↑" button appears after scrolling 2+ viewport heights, scrolls smoothly to top on tap.
+  - **Diagram tap-to-fullscreen** — Diagrams that are shrunk to fit mobile width can be tapped to open in a full-screen scrollable overlay (pinch-zoom friendly). Press Escape or tap outside to close.
+  - **Horizontally scrollable diagrams** — Diagram containers use `overflow-x: auto` on mobile instead of shrinking to illegibility.
+  - **Per-scenario diagram controls toggle** — The Details/Headers/Steps/Databases toolbar is collapsed behind a "⚙ Diagram Settings" button on mobile, reducing visual clutter.
+  - **Touch target size bump** — Filter/toggle buttons get `min-height: 36px` and larger padding at ≤480px for easier tapping.
+  - **Filter button text truncation** — Long dependency/category button labels truncate with ellipsis instead of overflowing.
+  - **"lines" label hidden** — The truncation `lines` label is hidden at ≤480px to save horizontal space.
+  - **Step duration `nowrap`** — Step duration badges no longer wrap to a separate line at ≤768px.
+  - **Failure `<pre>` word-break** — Stack traces in failure details use `word-break: break-word` to prevent horizontal overflow on narrow screens.
+  - Violet theme support for sticky search bar background and back-to-top button colors.
+
 ## [2.37.3] - 2026-05-17
 
 ### Fixed

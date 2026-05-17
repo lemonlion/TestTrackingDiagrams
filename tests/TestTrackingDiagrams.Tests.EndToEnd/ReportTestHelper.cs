@@ -4,7 +4,7 @@ using static TestTrackingDiagrams.DefaultDiagramsFetcher;
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
 /// <summary>
-/// Shared helper for generating test reports with diagrams for Selenium tests.
+/// Shared helper for generating test reports with diagrams for Playwright tests.
 /// </summary>
 public static class ReportTestHelper
 {
@@ -382,7 +382,7 @@ public static class ReportTestHelper
     public static string GenerateReportWithLongNotes(string tempDir, string outputDir, string fileName)
     {
         var (features, _) = CreateTestData();
-        // Only one diagram to avoid ambiguity in Selenium selectors
+        // Only one diagram to avoid ambiguity in Playwright selectors
         var diagrams = new[]
         {
             new DiagramAsCode("t1", "", LongNotePlantUmlSource)
@@ -800,7 +800,7 @@ public static class ReportTestHelper
     public static string GenerateReportWithLongNotesAndHeaders(string tempDir, string outputDir, string fileName)
     {
         var (features, _) = CreateTestData();
-        // Only one diagram to avoid ambiguity in Selenium selectors
+        // Only one diagram to avoid ambiguity in Playwright selectors
         var diagrams = new[]
         {
             new DiagramAsCode("t1", "", LongNoteWithHeadersPlantUmlSource)

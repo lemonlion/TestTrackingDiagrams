@@ -83,7 +83,7 @@ public static class TestPageGenerator
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Selenium Test Page</title>
+                <title>Playwright Test Page</title>
                 <style>
                     {{styles}}
                     {{contextMenuStyles}}

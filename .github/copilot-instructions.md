@@ -5,7 +5,7 @@
 - Always use Test-Driven Development (TDD): write tests first, then follow the red-green-refactor cycle.
 - Write a failing test (red), implement the minimum code to make it pass (green), then refactor.
 - Write additional failing tests to cover edge cases and error conditions, and repeat the cycle until you have comprehensive test coverage for the feature or bug fix you're working on.
-- UI features should include Selenium tests to verify the user experience and catch any regressions in the UI layer, not just unit tests for the underlying logic.
+- UI features should include Playwright tests to verify the user experience and catch any regressions in the UI layer, not just unit tests for the underlying logic.
 
 ## Bug Fixing
 

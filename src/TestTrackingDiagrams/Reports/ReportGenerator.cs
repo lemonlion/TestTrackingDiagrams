@@ -1377,6 +1377,70 @@ public static class ReportGenerator
                              if (window.location.hash && window.location.hash.length > 1) {
                                  parse_url_hash();
                              }
+
+                             // #10 Back-to-top FAB — show after scrolling 2 viewports
+                             var backToTop = document.getElementById('back-to-top');
+                             if (backToTop) {
+                                 window.addEventListener('scroll', function() {
+                                     backToTop.style.display = window.scrollY > window.innerHeight * 2 ? 'block' : 'none';
+                                 }, { passive: true });
+                             }
+
+                             // #1 Diagram fullscreen overlay — tap diagram to enter fullscreen on mobile
+                             var overlay = document.getElementById('diagram-fullscreen-overlay');
+                             if (overlay && window.matchMedia('(max-width: 768px)').matches) {
+                                 document.querySelectorAll('.plantuml-browser, .plantuml-inline-svg').forEach(function(el) {
+                                     el.style.cursor = 'zoom-in';
+                                     el.addEventListener('click', function(e) {
+                                         if (e.target.closest('.note-toggle-btn, .note-hover-rect')) return;
+                                         var svg = el.querySelector('svg');
+                                         if (!svg) return;
+                                         overlay.innerHTML = '';
+                                         var clone = svg.cloneNode(true);
+                                         clone.style.maxWidth = 'none';
+                                         clone.style.width = 'auto';
+                                         overlay.appendChild(clone);
+                                         overlay.classList.add('active');
+                                         overlay.scrollLeft = 0;
+                                         overlay.scrollTop = 0;
+                                     });
+                                 });
+                                 document.addEventListener('keydown', function(e) {
+                                     if (e.key === 'Escape') overlay.classList.remove('active');
+                                 });
+                             }
+
+                             // #2 Collapsible filter section on mobile
+                             var isMobile = window.matchMedia('(max-width: 768px)').matches;
+                             if (isMobile) {
+                                 var filtersDiv = document.querySelector('.filters');
+                                 var filterToggle = document.querySelector('.mobile-filter-toggle');
+                                 if (filtersDiv && filterToggle) {
+                                     filtersDiv.style.display = 'none';
+                                     filterToggle.addEventListener('click', function() {
+                                         var isOpen = filterToggle.classList.toggle('filter-open');
+                                         filtersDiv.style.display = isOpen ? 'flex' : 'none';
+                                     });
+                                 }
+                             }
+
+                             // #4 Per-scenario diagram controls toggle on mobile
+                             if (isMobile) {
+                                 document.querySelectorAll('.diagram-toggle').forEach(function(controls) {
+                                     controls.classList.add('scenario-diagram-controls');
+                                     controls.style.display = 'none';
+                                     var btn = document.createElement('button');
+                                     btn.className = 'scenario-diagram-controls-toggle';
+                                     btn.textContent = '\u2699 Diagram Settings';
+                                     btn.style.display = 'inline-block';
+                                     controls.parentNode.insertBefore(btn, controls);
+                                     btn.addEventListener('click', function() {
+                                         var showing = controls.style.display === 'flex';
+                                         controls.style.display = showing ? 'none' : 'flex';
+                                         btn.textContent = showing ? '\u2699 Diagram Settings' : '\u2699 Hide Settings';
+                                     });
+                                 });
+                             }
                          });
                          """;
 
@@ -1629,8 +1693,9 @@ public static class ReportGenerator
         body.Append($"""
                  <div class="filtering-box">
                     <div class="filtering-box-header"><h2>Filtering</h2><div class="filtering-box-export"><button class="export-btn" onclick="clear_all_filters()">Clear All</button><button class="export-btn" onclick="export_html()">Export Filtered HTML</button><button class="export-btn" onclick="export_csv()">Export Filtered CSV</button></div></div>
-                    <div class="filters">
                     <div class="filter-search"><input id="searchbar" placeholder="Search... (@tag, $status, &&, ||, !!, parentheses)" onkeyup="search_scenarios()" /><button type="button" class="search-help-toggle" onclick="toggle_search_help()" title="Search syntax help">?</button></div>
+                    <div class="mobile-filter-toggle">Filters</div>
+                    <div class="filters">
                     <div class="search-help-panel" style="display:none">
                     <table class="search-help-table">
                     <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
@@ -2239,6 +2304,12 @@ public static class ReportGenerator
         {
             body.Append($"""<button class="jump-to-failure" onclick="jump_to_next_failure()">Next Failure <span class="failure-counter" id="failure-counter">(0/{failureCount})</span></button>""");
         }
+
+        // Back-to-top FAB (#10)
+        body.Append("""<button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>""");
+
+        // Diagram fullscreen overlay (#1)
+        body.Append("""<div class="diagram-fullscreen-overlay" id="diagram-fullscreen-overlay" onclick="if(event.target===this)this.classList.remove('active')"></div>""");
 
         html += body;
         if (diagramDataMap.Count > 0)

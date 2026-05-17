@@ -13,6 +13,7 @@ public static class PlaywrightCollections
     public const string Diagrams = "Playwright.Diagrams";
     public const string Reports = "Playwright.Reports";
     public const string Scenarios = "Playwright.Scenarios";
+    public const string Mobile = "Playwright.Mobile";
 }
 
 [CollectionDefinition(PlaywrightCollections.Zoom)]
@@ -32,3 +33,6 @@ public class ReportsCollection : ICollectionFixture<PlaywrightFixture> { }
 
 [CollectionDefinition(PlaywrightCollections.Scenarios)]
 public class ScenariosCollection : ICollectionFixture<PlaywrightFixture> { }
+
+[CollectionDefinition(PlaywrightCollections.Mobile)]
+public class MobileCollection : ICollectionFixture<PlaywrightFixture> { }

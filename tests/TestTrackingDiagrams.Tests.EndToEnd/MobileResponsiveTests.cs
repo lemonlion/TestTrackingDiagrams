@@ -2,7 +2,7 @@ using Microsoft.Playwright;
 
 namespace TestTrackingDiagrams.Tests.EndToEnd;
 
-[Collection(PlaywrightCollections.Reports)]
+[Collection(PlaywrightCollections.Mobile)]
 public class MobileResponsiveTests : PlaywrightTestBase
 {
     public MobileResponsiveTests(PlaywrightFixture fixture) : base(fixture) { }
@@ -78,9 +78,13 @@ public class MobileResponsiveTests : PlaywrightTestBase
     public async Task Filter_row_stacks_vertically_on_mobile()
     {
         await Page.GotoAsync(GenerateReport("MobileFilters.html"));
-        await Page.Locator(".filter-row").WaitForAsync(new() { Timeout = 5000 });
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Expand the collapsed filter section first
+        await Page.Locator(".mobile-filter-toggle").ClickAsync();
 
         var filterRow = Page.Locator(".filter-row");
+        await filterRow.WaitForAsync(new() { Timeout = 5000 });
         var flexDirection = await GetComputedStyle(filterRow, "flex-direction");
         Assert.Equal("column", flexDirection);
     }
@@ -314,5 +318,261 @@ public class MobileResponsiveTests : PlaywrightTestBase
         var padding = await GetComputedStyle(item, "padding-top");
         var paddingPx = double.Parse(padding.Replace("px", ""));
         Assert.True(paddingPx >= 10, $"Menu item padding too small for touch: {padding}");
+    }
+
+    // ── #2 Collapsible filter section ──
+
+    [Fact]
+    public async Task Filters_collapsed_by_default_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileFiltersCollapse1.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // The .mobile-filter-toggle should be visible
+        var toggle = Page.Locator(".mobile-filter-toggle");
+        await Expect(toggle).ToBeVisibleAsync();
+
+        // The .filters div should be hidden
+        var filtersVisible = await Page.EvaluateAsync<bool>(
+            "() => { var f = document.querySelector('.filters'); return f && f.style.display !== 'none'; }");
+        Assert.False(filtersVisible, "Filters should be collapsed by default on mobile");
+    }
+
+    [Fact]
+    public async Task Filter_toggle_expands_and_collapses_filters()
+    {
+        await Page.GotoAsync(GenerateReport("MobileFiltersCollapse2.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var toggle = Page.Locator(".mobile-filter-toggle");
+
+        // Click to expand
+        await toggle.ClickAsync();
+        var expanded = await Page.EvaluateAsync<bool>(
+            "() => { var f = document.querySelector('.filters'); return f && f.style.display !== 'none'; }");
+        Assert.True(expanded, "Filters should be visible after toggling open");
+
+        // Click to collapse
+        await toggle.ClickAsync();
+        var collapsed = await Page.EvaluateAsync<bool>(
+            "() => { var f = document.querySelector('.filters'); return f && f.style.display === 'none'; }");
+        Assert.True(collapsed, "Filters should be hidden after toggling closed");
+    }
+
+    // ── #7 Sticky search bar ──
+
+    [Fact]
+    public async Task Search_bar_is_sticky_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileStickySearch.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var position = await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.filter-search')).position");
+        Assert.Equal("sticky", position);
+    }
+
+    // ── #10 Back-to-top FAB ──
+
+    [Fact]
+    public async Task Back_to_top_hidden_initially()
+    {
+        await Page.GotoAsync(GenerateReport("MobileBackToTop1.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var display = await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.getElementById('back-to-top')).display");
+        Assert.Equal("none", display);
+    }
+
+    [Fact]
+    public async Task Back_to_top_appears_after_scrolling()
+    {
+        await Page.GotoAsync(GenerateReport("MobileBackToTop2.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Expand features and inject a spacer to guarantee enough page height
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+        await Page.EvaluateAsync("() => { var d = document.createElement('div'); d.style.height = '3000px'; document.body.appendChild(d); }");
+
+        // Scroll to bottom of document
+        await Page.EvaluateAsync("() => window.scrollTo(0, document.body.scrollHeight)");
+
+        // Wait for the back-to-top button to appear
+        await Page.WaitForFunctionAsync(
+            "() => document.getElementById('back-to-top').style.display === 'block'",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
+
+        var display = await Page.EvaluateAsync<string>(
+            "() => document.getElementById('back-to-top').style.display");
+        Assert.Equal("block", display);
+    }
+
+    [Fact]
+    public async Task Back_to_top_scrolls_to_top()
+    {
+        await Page.GotoAsync(GenerateReport("MobileBackToTop3.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Features" }).ClickAsync();
+        await Page.Locator("button.collapse-expand-all", new() { HasTextString = "Expand All Scenarios" }).ClickAsync();
+        await Page.EvaluateAsync("() => { var d = document.createElement('div'); d.style.height = '3000px'; document.body.appendChild(d); }");
+
+        // Scroll to bottom of document
+        await Page.EvaluateAsync("() => window.scrollTo(0, document.body.scrollHeight)");
+        await Page.WaitForFunctionAsync(
+            "() => document.getElementById('back-to-top').style.display === 'block'",
+            null, new() { Timeout = 10000, PollingInterval = 200 });
+
+        // Click back-to-top
+        await Page.Locator("#back-to-top").ClickAsync();
+
+        // Wait for scroll to top
+        await Page.WaitForFunctionAsync(
+            "() => window.scrollY < 10",
+            null, new() { Timeout = 5000, PollingInterval = 200 });
+
+        var scrollY = await Page.EvaluateAsync<double>("() => window.scrollY");
+        Assert.True(scrollY < 10, $"Expected scroll near top, but was {scrollY}");
+    }
+
+    // ── #1 Diagram scrollable container ──
+
+    [Fact]
+    public async Task Diagram_container_is_horizontally_scrollable()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramScrollable.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        var overflowX = await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.plantuml-browser')).overflowX");
+        Assert.Equal("auto", overflowX);
+    }
+
+    // ── #1 Diagram fullscreen overlay ──
+
+    [Fact]
+    public async Task Diagram_fullscreen_overlay_exists_in_dom()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramFullscreen.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var exists = await Page.EvaluateAsync<bool>(
+            "() => document.getElementById('diagram-fullscreen-overlay') !== null");
+        Assert.True(exists, "Diagram fullscreen overlay element should exist in DOM");
+    }
+
+    // ── #4 Per-scenario diagram controls toggle ──
+
+    [Fact]
+    public async Task Diagram_controls_toggle_button_appears_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramCtrlToggle1.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        // Force diagram rendering
+        await Page.EvaluateAsync(
+            "() => { if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body); }");
+
+        // Wait for SVG
+        await Page.Locator("[data-diagram-type='plantuml'] svg").First
+            .WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20000 });
+
+        // The toggle button should be visible
+        var toggleBtn = Page.Locator(".scenario-diagram-controls-toggle").First;
+        await Expect(toggleBtn).ToBeVisibleAsync();
+
+        // The controls should be hidden initially
+        var controlsHidden = await Page.EvaluateAsync<bool>(
+            "() => { var c = document.querySelector('.scenario-diagram-controls'); return c && c.style.display === 'none'; }");
+        Assert.True(controlsHidden, "Diagram controls should be hidden by default on mobile");
+    }
+
+    [Fact]
+    public async Task Diagram_controls_toggle_shows_and_hides_controls()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramCtrlToggle2.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        await Page.EvaluateAsync(
+            "() => { if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body); }");
+        await Page.Locator("[data-diagram-type='plantuml'] svg").First
+            .WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20000 });
+
+        var toggleBtn = Page.Locator(".scenario-diagram-controls-toggle").First;
+
+        // Click to show controls
+        await toggleBtn.ClickAsync();
+        var shown = await Page.EvaluateAsync<bool>(
+            "() => { var c = document.querySelector('.scenario-diagram-controls'); return c && c.style.display === 'flex'; }");
+        Assert.True(shown, "Controls should be visible after clicking toggle");
+
+        // Click to hide controls
+        await toggleBtn.ClickAsync();
+        var hidden = await Page.EvaluateAsync<bool>(
+            "() => { var c = document.querySelector('.scenario-diagram-controls'); return c && c.style.display === 'none'; }");
+        Assert.True(hidden, "Controls should be hidden after clicking toggle again");
+    }
+
+    // ── #6 Touch target sizes ──
+
+    [Fact]
+    public async Task Touch_targets_meet_minimum_height()
+    {
+        await Page.GotoAsync(GenerateReport("MobileTouchTargets.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Check that status toggle buttons have at least 36px min-height
+        var minHeight = await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.status-toggle')).minHeight");
+        Assert.Equal("36px", minHeight);
+    }
+
+    // ── #5 Dependency button overflow truncation ──
+
+    [Fact]
+    public async Task Dependency_buttons_truncate_long_text()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDepTruncate.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Expand filters first
+        var toggle = Page.Locator(".mobile-filter-toggle");
+        await toggle.ClickAsync();
+
+        var overflow = await Page.EvaluateAsync<string>(
+            "() => { var b = document.querySelector('.dependency-toggle'); return b ? getComputedStyle(b).overflow : ''; }");
+        Assert.Equal("hidden", overflow);
+    }
+
+    // ── #9 Step duration white-space ──
+
+    [Fact]
+    public async Task Step_duration_does_not_wrap()
+    {
+        await Page.GotoAsync(GenerateReport("MobileStepDuration.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        // Inject a .step-duration element to verify the CSS rule applies
+        await Page.EvaluateAsync("""
+            () => {
+                var step = document.querySelector('.step');
+                if (step) {
+                    var span = document.createElement('span');
+                    span.className = 'step-duration';
+                    span.textContent = '(1.234s)';
+                    step.appendChild(span);
+                }
+            }
+        """);
+
+        var whiteSpace = await Page.EvaluateAsync<string>(
+            "() => { var d = document.querySelector('.step-duration'); return d ? getComputedStyle(d).whiteSpace : ''; }");
+        Assert.Equal("nowrap", whiteSpace);
     }
 }

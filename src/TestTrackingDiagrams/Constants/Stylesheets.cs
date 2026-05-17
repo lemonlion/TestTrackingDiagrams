@@ -1344,6 +1344,82 @@ public class Stylesheets
                 details.param-expand .expand-body .prop-key { color: #7d3c98; }
                 details.param-expand .expand-body .prop-val { color: #1a5276; }
 
+                /* #2 Collapsible filter section — hidden on desktop */
+                .mobile-filter-toggle {
+                    display: none;
+                    align-items: center;
+                    gap: 0.5em;
+                    cursor: pointer;
+                    padding: 0.4em 0;
+                    font-size: 0.9em;
+                    color: rgb(100, 100, 100);
+                    user-select: none;
+                }
+                .mobile-filter-toggle::before {
+                    content: '▸';
+                    font-size: 0.8em;
+                    transition: transform 0.15s ease;
+                }
+                .mobile-filter-toggle.filter-open::before {
+                    transform: rotate(90deg);
+                }
+
+                /* #4 Per-scenario diagram controls — shown on desktop, toggle hidden */
+                .scenario-diagram-controls-toggle {
+                    display: none;
+                    padding: 0.2em 0.5em;
+                    border: 1px solid rgb(180, 180, 180);
+                    border-radius: 0.4em;
+                    background: rgb(245, 245, 245);
+                    cursor: pointer;
+                    font-size: 0.8em;
+                    color: rgb(100, 100, 100);
+                }
+                .scenario-diagram-controls-toggle:hover {
+                    background: rgb(230, 240, 255);
+                    border-color: rgb(100, 150, 255);
+                }
+
+                /* #1 Diagram fullscreen lightbox */
+                .diagram-fullscreen-overlay {
+                    display: none;
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(255,255,255,0.97);
+                    z-index: 10000;
+                    overflow: auto;
+                    -webkit-overflow-scrolling: touch;
+                    cursor: zoom-out;
+                    padding: 1em;
+                }
+                .diagram-fullscreen-overlay.active { display: block; }
+                .diagram-fullscreen-overlay svg {
+                    max-width: none;
+                    width: auto;
+                    cursor: default;
+                }
+
+                /* #10 Back-to-top FAB */
+                .back-to-top {
+                    display: none;
+                    position: fixed;
+                    bottom: 1.5em;
+                    left: 1.5em;
+                    padding: 0.5em 0.8em;
+                    background: rgb(100, 100, 100);
+                    color: white;
+                    border: none;
+                    border-radius: 0.5em;
+                    cursor: pointer;
+                    font-size: 1em;
+                    z-index: 1000;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    line-height: 1;
+                }
+                .back-to-top:hover {
+                    background: rgb(70, 70, 70);
+                }
+
                 /* ── Mobile / Responsive ── */
                 @media (max-width: 768px) {
                     body {
@@ -1374,9 +1450,23 @@ public class Stylesheets
                         box-sizing: border-box;
                     }
 
+                    /* #7 Sticky search bar on mobile */
+                    .filter-search {
+                        position: sticky;
+                        top: 0;
+                        z-index: 100;
+                        background: rgb(224, 224, 224);
+                        padding: 0.4em 0;
+                    }
+
                     .filter-row {
                         flex-direction: column;
                         align-items: flex-start;
+                    }
+
+                    /* #2 Collapsible filter section — toggle styling */
+                    .mobile-filter-toggle {
+                        display: flex;
                     }
 
                     .toolbar-row {
@@ -1452,6 +1542,7 @@ public class Stylesheets
 
                     .failure-result pre {
                         font-size: 0.8em;
+                        word-break: break-word;
                     }
 
                     .endpoint {
@@ -1463,6 +1554,14 @@ public class Stylesheets
                     .jump-to-failure {
                         bottom: 0.8em;
                         right: 0.8em;
+                        font-size: 0.8em;
+                        padding: 0.4em 0.8em;
+                    }
+
+                    /* #10 Back-to-top FAB */
+                    .back-to-top {
+                        bottom: 0.8em;
+                        left: 0.8em;
                         font-size: 0.8em;
                         padding: 0.4em 0.8em;
                     }
@@ -1480,9 +1579,36 @@ public class Stylesheets
                     .expand-row {
                         flex-wrap: wrap;
                     }
+
+                    /* #1 Diagram scrollable at mobile instead of shrinking to illegible */
+                    .plantuml-browser, .plantuml-inline-svg {
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                    }
+                    .plantuml-browser svg, .plantuml-inline-svg svg {
+                        max-width: none;
+                        width: auto;
+                    }
+
+                    /* #4 Per-scenario diagram controls collapse on mobile */
+                    .scenario-diagram-controls {
+                        display: none;
+                    }
+                    .scenario-diagram-controls-toggle {
+                        display: inline-block;
+                    }
+
+                    /* #9 Step duration stays inline */
+                    .step-duration {
+                        white-space: nowrap;
+                    }
                 }
 
                 @media (max-width: 480px) {
+                    body {
+                        font-size: 1em;
+                    }
+
                     .header-row {
                         gap: 0.3em;
                     }
@@ -1505,10 +1631,25 @@ public class Stylesheets
                         gap: 0.3em;
                     }
 
+                    /* #6 Touch target size bump */
                     .happy-path-toggle, .dependency-toggle, .status-toggle,
                     .category-toggle, .percentile-btn, .collapse-expand-all, .export-btn {
                         font-size: 0.75em;
-                        padding: 0.2em 0.4em;
+                        padding: 0.3em 0.6em;
+                        min-height: 36px;
+                    }
+
+                    /* #5 Dependency/category buttons overflow — truncate long labels */
+                    .dependency-toggle, .category-toggle {
+                        max-width: 100%;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .dependency-filters, .category-filters {
+                        max-width: 100%;
+                        overflow: hidden;
                     }
 
                     .duration-badge {
@@ -1519,8 +1660,13 @@ public class Stylesheets
                         font-size: 0.6em;
                     }
 
-                    span.label {rgb(100, 100, 100)
+                    span.label {
                         font-size: 0.6em;
+                    }
+
+                    /* #3 "lines" label wrapping fix */
+                    .truncate-lines-label {
+                        display: none;
                     }
                 }
         """;
@@ -1591,5 +1737,10 @@ public class Stylesheets
                 .feature-summary-table th { background: #F5F3FF; }
                 .param-success { background: #EDE9FE; }
                 .duration-fast { background: #EDE9FE; color: #5B21B6; }
+                @media (max-width: 768px) {
+                    .filter-search { background: #DDD6FE; }
+                }
+                .back-to-top { background: #8B5CF6; }
+                .back-to-top:hover { background: #7C3AED; }
         """;
 }
