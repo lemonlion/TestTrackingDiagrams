@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.8] - 2026-05-18
+
+### Fixed
+- **Colored arrow detection in diagram splitting** — Fixed a bug where PlantUML colored arrows (`-[#color]>` and `-[#color]->`) were not recognized by the diagram splitting logic. The `indexOf('->')` check missed colored forward arrows entirely (since `-[#438DD5]>` doesn't contain the literal `->` substring), causing `parseTraceUnits`, `countArrows`, and `estimateUnitHeight` to treat them as plain text. This led to malformed fragment splits with only assertion notes and no arrows, producing `Syntax Error? (Assumed diagram type: class)` when rendering multi-fragment diagrams. Replaced all `indexOf`-based arrow detection with regex `/-(\\[[^\\]]*\\])?-?>/` which matches plain (`->`, `-->`), colored (`-[#color]>`), and colored return (`-[#color]->`) arrow syntax.
+
 ## [3.0.7] - 2026-05-17
 
 ### Fixed

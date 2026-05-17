@@ -408,6 +408,13 @@ public static class DiagramContextMenu
                 var _estimatedNoteLineHeight = 18;
                 window._splitDiagramSource = splitDiagramSource;
                 window._chunkLargeNotes = chunkLargeNotes;
+                window._countArrows = function(lines) { return countArrows(lines); };
+                // Regex arrow detection: matches ->, -->, -[#color]>, -[#color]->
+                var _arrowRx = /-(?:\[[^\]]*\])?-?>/;
+                // Regex return arrow detection: matches --> and -[#color]->
+                var _returnArrowRx = /-(?:\[[^\]]*\])?->/;
+                function isArrowLine(trimmed) { return _arrowRx.test(trimmed); }
+                function isReturnArrow(trimmed) { return _returnArrowRx.test(trimmed); }
                 function getPumlZ(el) {
                     if (!_pumlData) {
                         var s = document.getElementById('puml-data');
@@ -485,11 +492,11 @@ public static class DiagramContextMenu
                             currentUnit.push(lines[i]);
                         } else if (inNote) {
                             currentUnit.push(lines[i]);
-                        } else if (trimmed.indexOf('->') >= 0 || trimmed.indexOf('-->') >= 0) {
+                        } else if (isArrowLine(trimmed)) {
                             // Arrow line — this starts a new trace unit if we have response from previous
                             // Heuristic: arrows with -> (request) or --> (return) alternate
-                            // Start new unit on request arrows (contains -> but not -->)
-                            var isReturn = trimmed.indexOf('-->') >= 0;
+                            // Start new unit on request arrows (not return arrows)
+                            var isReturn = isReturnArrow(trimmed);
                             if (!isReturn && currentUnit.length > 0) {
                                 units.push(currentUnit);
                                 currentUnit = [];
@@ -512,7 +519,7 @@ public static class DiagramContextMenu
                     var inNote = false;
                     for (var i = 0; i < unitLines.length; i++) {
                         var trimmed = unitLines[i].trim();
-                        if (trimmed.indexOf('->') >= 0 || trimmed.indexOf('-->') >= 0) {
+                        if (isArrowLine(trimmed)) {
                             height += _estimatedArrowHeight;
                         } else if (trimmed.startsWith('note') && (trimmed.indexOf(' left') >= 0 || trimmed.indexOf(' right') >= 0)) {
                             inNote = true;
@@ -596,7 +603,7 @@ public static class DiagramContextMenu
                     var c = 0;
                     for (var i = 0; i < lines.length; i++) {
                         var t = lines[i].trim();
-                        if ((t.indexOf('->') >= 0 || t.indexOf('-->') >= 0) && !t.startsWith('note') && !t.startsWith('end note')) c++;
+                        if (isArrowLine(t) && !t.startsWith('note') && !t.startsWith('end note')) c++;
                     }
                     return c;
                 }
@@ -604,7 +611,7 @@ public static class DiagramContextMenu
                     var c = 0;
                     for (var i = 0; i < unitLines.length; i++) {
                         var t = unitLines[i].trim();
-                        if ((t.indexOf('->') >= 0 || t.indexOf('-->') >= 0) && !t.startsWith('note')) c++;
+                        if (isArrowLine(t) && !t.startsWith('note')) c++;
                     }
                     return c;
                 }

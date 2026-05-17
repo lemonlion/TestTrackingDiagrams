@@ -1886,4 +1886,79 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    /// <summary>
+    /// PlantUML source using colored arrow syntax (-[#color]> and -[#color]->) with
+    /// step delimiters and assertion notes, modelled on real-world ReqNRoll test output.
+    /// Generates enough interactions to exceed _maxDiagramHeight (12000px) and trigger
+    /// client-side fragment splitting via splitDiagramSource.
+    /// </summary>
+    private static string ColoredArrowPlantUmlSource
+    {
+        get
+        {
+            // Build 100 colored request-response pairs (200 arrows ≈ 9000px)
+            // plus step delimiters and assertion notes to push past 12000px
+            var interactions = new System.Text.StringBuilder();
+            for (int i = 1; i <= 100; i++)
+            {
+                interactions.AppendLine(
+                    $"\nhnote across <<stepDelimiter>> #black:<color:white>Step {i}\n" +
+                    $"\ncaller -[#438DD5]> svc : [[#iflow-{i} GET: /api/item/{i}]]\n" +
+                    $"note left\n<color:gray>[traceparent=00-abc-{i.ToString("D3")}-00]\nend note\n" +
+                    $"svc -[#438DD5]-> caller : OK\n" +
+                    "note right\n" +
+                    "{\n" +
+                    $"  \"id\": {i},\n" +
+                    $"  \"name\": \"Item {i}\"\n" +
+                    "}\nend note\n" +
+                    "\nhnote across <<assertionNote>> #d4edda\n" +
+                    $"✓ Response status should be OK for item {i}\nend note\n");
+            }
+
+            return """
+                @startuml
+                !pragma teoz true
+                <style>
+                 .eventNote {
+                     BackgroundColor #cfecf7
+                     FontSize 11
+                     RoundCorner 10
+                 }
+                </style>
+                <style>
+                 .assertionNote {
+                     FontSize 11
+                     RoundCorner 5
+                 }
+                </style>
+                skinparam wrapWidth 800
+                autonumber 1
+
+                actor "Caller" as caller
+                entity "Service" as svc
+                database "Database" as db
+
+                """ + interactions + "\n@enduml\n";
+        }
+    }
+
+    public static string GenerateReportWithColoredArrows(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", ColoredArrowPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }
