@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-05-17
+
+### Fixed
+- **Removed diagram fullscreen lightbox on mobile** — The tap-to-fullscreen overlay introduced in v2.37.4 has been reverted. Diagrams remain horizontally scrollable in their containers without a lightbox modal, which was confusing on mobile.
+- **Diagram toggle button sizing on mobile** — Removed the `max-width: 5.5em` constraint on "Sequence Diagrams", "Activity Diagrams", and "Flame Chart" buttons that crushed them to 71.5px and caused unreadable text wrapping.
+- **Diagram Settings button now full width on mobile** — The "⚙ Diagram Settings" toggle button is now `display: block` with left/right margins matching the diagram content, instead of a small inline button.
+- **CI metadata box full width on mobile** — The CI (e.g. GitHubActions) metadata box now stretches to full width of the header row on mobile viewports, instead of being constrained to its content width.
+
 ## [3.0.3] - 2026-05-17
 
 ### Fixed

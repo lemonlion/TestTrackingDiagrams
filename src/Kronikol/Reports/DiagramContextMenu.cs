@@ -225,7 +225,7 @@ public static class DiagramContextMenu
             .toggle-btn { margin-left: 0; }
             .diagram-toggle { flex-wrap: wrap; gap: 0.3em; }
             .diagram-toggle-spacer { display: none; }
-            .diagram-toggle-btn { max-width: 5.5em; text-align: center; }
+            .diagram-toggle-btn { text-align: center; }
         }
         """;
 

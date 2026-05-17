@@ -1386,30 +1386,6 @@ public static class ReportGenerator
                                  }, { passive: true });
                              }
 
-                             // #1 Diagram fullscreen overlay — tap diagram to enter fullscreen on mobile
-                             var overlay = document.getElementById('diagram-fullscreen-overlay');
-                             if (overlay && window.matchMedia('(max-width: 768px)').matches) {
-                                 document.querySelectorAll('.plantuml-browser, .plantuml-inline-svg').forEach(function(el) {
-                                     el.style.cursor = 'zoom-in';
-                                     el.addEventListener('click', function(e) {
-                                         if (e.target.closest('.note-toggle-btn, .note-hover-rect')) return;
-                                         var svg = el.querySelector('svg');
-                                         if (!svg) return;
-                                         overlay.innerHTML = '';
-                                         var clone = svg.cloneNode(true);
-                                         clone.style.maxWidth = 'none';
-                                         clone.style.width = 'auto';
-                                         overlay.appendChild(clone);
-                                         overlay.classList.add('active');
-                                         overlay.scrollLeft = 0;
-                                         overlay.scrollTop = 0;
-                                     });
-                                 });
-                                 document.addEventListener('keydown', function(e) {
-                                     if (e.key === 'Escape') overlay.classList.remove('active');
-                                 });
-                             }
-
                              // #2 Collapsible filter section on mobile
                              var isMobile = window.matchMedia('(max-width: 768px)').matches;
                              if (isMobile) {
@@ -1432,7 +1408,7 @@ public static class ReportGenerator
                                      var btn = document.createElement('button');
                                      btn.className = 'scenario-diagram-controls-toggle';
                                      btn.textContent = '\u2699 Diagram Settings';
-                                     btn.style.display = 'inline-block';
+                                     btn.style.display = 'block';
                                      controls.parentNode.insertBefore(btn, controls);
                                      btn.addEventListener('click', function() {
                                          var showing = controls.style.display === 'flex';
@@ -2307,9 +2283,6 @@ public static class ReportGenerator
 
         // Back-to-top FAB (#10)
         body.Append("""<button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>""");
-
-        // Diagram fullscreen overlay (#1)
-        body.Append("""<div class="diagram-fullscreen-overlay" id="diagram-fullscreen-overlay" onclick="if(event.target===this)this.classList.remove('active')"></div>""");
 
         html += body;
         if (diagramDataMap.Count > 0)

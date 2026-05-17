@@ -1380,25 +1380,6 @@ public class Stylesheets
                     border-color: rgb(100, 150, 255);
                 }
 
-                /* #1 Diagram fullscreen lightbox */
-                .diagram-fullscreen-overlay {
-                    display: none;
-                    position: fixed;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(255,255,255,0.97);
-                    z-index: 10000;
-                    overflow: auto;
-                    -webkit-overflow-scrolling: touch;
-                    cursor: zoom-out;
-                    padding: 1em;
-                }
-                .diagram-fullscreen-overlay.active { display: block; }
-                .diagram-fullscreen-overlay svg {
-                    max-width: none;
-                    width: auto;
-                    cursor: default;
-                }
-
                 /* #10 Back-to-top FAB */
                 .back-to-top {
                     display: none;
@@ -1441,8 +1422,16 @@ public class Stylesheets
                         align-self: center;
                     }
 
+                    .ci-chart-group {
+                        width: 100%;
+                        box-sizing: border-box;
+                        align-self: stretch;
+                    }
+
                     .ci-metadata {
                         align-self: center;
+                        width: 100%;
+                        box-sizing: border-box;
                     }
 
                     .filtering-box {
@@ -1595,7 +1584,8 @@ public class Stylesheets
                         display: none;
                     }
                     .scenario-diagram-controls-toggle {
-                        display: inline-block;
+                        display: block;
+                        margin: 0 1em;
                     }
 
                     /* #9 Step duration stays inline */

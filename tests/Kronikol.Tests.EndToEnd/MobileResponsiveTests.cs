@@ -242,7 +242,7 @@ public class MobileResponsiveTests : PlaywrightTestBase
     // ── Diagram toggle buttons ──
 
     [Fact]
-    public async Task Diagram_toggle_buttons_have_max_width_on_mobile()
+    public async Task Diagram_toggle_buttons_have_no_max_width_on_mobile()
     {
         await Page.GotoAsync(GenerateReport("MobileDiagramBtns.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
@@ -259,7 +259,7 @@ public class MobileResponsiveTests : PlaywrightTestBase
         if (await btns.CountAsync() > 0)
         {
             var maxWidth = await GetComputedStyle(btns.First, "max-width");
-            Assert.NotEqual("none", maxWidth);
+            Assert.Equal("none", maxWidth);
             var textAlign = await GetComputedStyle(btns.First, "text-align");
             Assert.Equal("center", textAlign);
         }
@@ -451,17 +451,29 @@ public class MobileResponsiveTests : PlaywrightTestBase
         Assert.Equal("auto", overflowX);
     }
 
-    // ── #1 Diagram fullscreen overlay ──
+    // ── #1 Diagram fullscreen overlay removed ──
 
     [Fact]
-    public async Task Diagram_fullscreen_overlay_exists_in_dom()
+    public async Task Diagram_fullscreen_overlay_does_not_exist_in_dom()
     {
         await Page.GotoAsync(GenerateReport("MobileDiagramFullscreen.html"));
         await Page.Locator("details.feature").First.WaitForAsync();
 
         var exists = await Page.EvaluateAsync<bool>(
             "() => document.getElementById('diagram-fullscreen-overlay') !== null");
-        Assert.True(exists, "Diagram fullscreen overlay element should exist in DOM");
+        Assert.False(exists, "Diagram fullscreen overlay should have been removed");
+    }
+
+    [Fact]
+    public async Task Diagram_containers_do_not_have_zoom_in_cursor()
+    {
+        await Page.GotoAsync(GenerateReport("MobileDiagramNoCursor.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        var cursor = await Page.EvaluateAsync<string>(
+            "() => { var el = document.querySelector('.plantuml-browser'); return el ? el.style.cursor : ''; }");
+        Assert.NotEqual("zoom-in", cursor);
     }
 
     // ── #4 Per-scenario diagram controls toggle ──
@@ -574,5 +586,45 @@ public class MobileResponsiveTests : PlaywrightTestBase
         var whiteSpace = await Page.EvaluateAsync<string>(
             "() => { var d = document.querySelector('.step-duration'); return d ? getComputedStyle(d).whiteSpace : ''; }");
         Assert.Equal("nowrap", whiteSpace);
+    }
+
+    // ── Diagram settings button full width ──
+
+    [Fact]
+    public async Task Diagram_settings_button_is_block_display_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileSettingsBtn.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+
+        await Page.EvaluateAsync(
+            "() => { if (window._renderDiagramsInContainer) window._renderDiagramsInContainer(document.body); }");
+        await Page.Locator("[data-diagram-type='plantuml'] svg").First
+            .WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20000 });
+
+        var toggleBtn = Page.Locator(".scenario-diagram-controls-toggle").First;
+        await Expect(toggleBtn).ToBeVisibleAsync();
+
+        var display = await GetComputedStyle(toggleBtn, "display");
+        Assert.Equal("block", display);
+    }
+
+    // ── CI box full width on mobile ──
+
+    [Fact]
+    public async Task Ci_chart_group_full_width_on_mobile()
+    {
+        await Page.GotoAsync(GenerateReport("MobileCiFullWidth.html"));
+        var headerRow = Page.Locator(".header-row");
+        await headerRow.WaitForAsync(new() { Timeout = 5000 });
+
+        var ciGroup = Page.Locator(".ci-chart-group");
+        if (await ciGroup.CountAsync() > 0)
+        {
+            var headerWidth = await headerRow.EvaluateAsync<double>("e => e.offsetWidth");
+            var groupWidth = await ciGroup.EvaluateAsync<double>("e => e.offsetWidth");
+            Assert.True(groupWidth >= headerWidth - 2,
+                $"CI chart group width ({groupWidth}) should match header row ({headerWidth})");
+        }
     }
 }
