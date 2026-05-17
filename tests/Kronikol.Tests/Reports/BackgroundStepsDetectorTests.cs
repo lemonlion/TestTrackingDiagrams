@@ -25,7 +25,7 @@ public class BackgroundStepsDetectorTests
     // ── Basic prefix detection ──
 
     [Fact]
-    public void Two_scenarios_sharing_common_prefix_extracts_background()
+    public void Two_scenarios_sharing_common_prefix_skips_extraction_when_remaining_starts_with_When()
     {
         var scenarios = new[]
         {
@@ -35,20 +35,11 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        Assert.NotNull(scenarios[0].BackgroundSteps);
-        Assert.Equal(2, scenarios[0].BackgroundSteps!.Length);
-        Assert.Equal("the system is running", scenarios[0].BackgroundSteps[0].Text);
-        Assert.Equal("a user exists", scenarios[0].BackgroundSteps[1].Text);
-
-        // Steps should have the prefix removed
-        Assert.Equal(2, scenarios[0].Steps!.Length);
-        Assert.Equal("I do X", scenarios[0].Steps[0].Text);
-        Assert.Equal("Y happens", scenarios[0].Steps[1].Text);
-
-        // Both scenarios should get the same background
-        Assert.NotNull(scenarios[1].BackgroundSteps);
-        Assert.Equal(2, scenarios[1].BackgroundSteps!.Length);
-        Assert.Equal(2, scenarios[1].Steps!.Length);
+        // Remaining steps start with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(4, scenarios[0].Steps!.Length);
+        Assert.Equal(4, scenarios[1].Steps!.Length);
     }
 
     [Fact]
@@ -82,7 +73,7 @@ public class BackgroundStepsDetectorTests
     }
 
     [Fact]
-    public void Partial_prefix_extracts_only_matching_steps()
+    public void Partial_prefix_skips_extraction_when_remaining_starts_with_Given()
     {
         var scenarios = new[]
         {
@@ -92,11 +83,11 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        Assert.NotNull(scenarios[0].BackgroundSteps);
-        Assert.Single(scenarios[0].BackgroundSteps!);
-        Assert.Equal("A", scenarios[0].BackgroundSteps![0].Text);
-        Assert.Equal(2, scenarios[0].Steps!.Length);
-        Assert.Equal("B", scenarios[0].Steps[0].Text);
+        // Remaining steps start with "Given" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(3, scenarios[0].Steps!.Length);
+        Assert.Equal(3, scenarios[1].Steps!.Length);
     }
 
     [Fact]
@@ -114,7 +105,7 @@ public class BackgroundStepsDetectorTests
     }
 
     [Fact]
-    public void Unequal_step_counts_handles_shortest()
+    public void Unequal_step_counts_skips_extraction_when_remaining_starts_with_When()
     {
         var scenarios = new[]
         {
@@ -124,15 +115,11 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        Assert.NotNull(scenarios[0].BackgroundSteps);
-        Assert.Single(scenarios[0].BackgroundSteps!);
-        Assert.Equal("A", scenarios[0].BackgroundSteps![0].Text);
-
-        // s1 should have remaining steps
-        Assert.Equal(2, scenarios[0].Steps!.Length);
-
-        // s2 should have empty steps (all were background)
-        Assert.Empty(scenarios[1].Steps!);
+        // s1's remaining starts with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(3, scenarios[0].Steps!.Length);
+        Assert.Single(scenarios[1].Steps!);
     }
 
     [Fact]
@@ -161,7 +148,7 @@ public class BackgroundStepsDetectorTests
     // ── Rule-scoped detection ──
 
     [Fact]
-    public void Two_rules_with_different_backgrounds_get_separate_extraction()
+    public void Two_rules_with_different_backgrounds_skip_extraction_when_remaining_starts_with_When()
     {
         var scenarios = new[]
         {
@@ -173,17 +160,11 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        // Rule A scenarios
-        Assert.NotNull(scenarios[0].BackgroundSteps);
-        Assert.Equal("A setup", scenarios[0].BackgroundSteps![0].Text);
-        Assert.Single(scenarios[0].Steps!);
-        Assert.Equal("A does X", scenarios[0].Steps![0].Text);
-
-        // Rule B scenarios
-        Assert.NotNull(scenarios[2].BackgroundSteps);
-        Assert.Equal("B setup", scenarios[2].BackgroundSteps![0].Text);
-        Assert.Single(scenarios[2].Steps!);
-        Assert.Equal("B does X", scenarios[2].Steps![0].Text);
+        // All rules' remaining steps start with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[2].BackgroundSteps);
+        Assert.Equal(2, scenarios[0].Steps!.Length);
+        Assert.Equal(2, scenarios[2].Steps!.Length);
     }
 
     [Fact]
@@ -198,8 +179,8 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        // Rule A has 2 scenarios → should extract
-        Assert.NotNull(scenarios[0].BackgroundSteps);
+        // Rule A: remaining starts with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
 
         // Rule B has 1 scenario → should NOT extract
         Assert.Null(scenarios[2].BackgroundSteps);
@@ -207,7 +188,7 @@ public class BackgroundStepsDetectorTests
     }
 
     [Fact]
-    public void Mixed_scenarios_outside_and_inside_rules_detected_separately()
+    public void Mixed_scenarios_outside_and_inside_rules_skip_extraction_when_remaining_starts_with_When()
     {
         var scenarios = new[]
         {
@@ -221,13 +202,11 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
-        // Outside-rule group
-        Assert.NotNull(scenarios[0].BackgroundSteps);
-        Assert.Equal("global setup", scenarios[0].BackgroundSteps![0].Text);
-
-        // Rule A group
-        Assert.NotNull(scenarios[2].BackgroundSteps);
-        Assert.Equal("rule setup", scenarios[2].BackgroundSteps![0].Text);
+        // All groups' remaining starts with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[2].BackgroundSteps);
+        Assert.Equal(2, scenarios[0].Steps!.Length);
+        Assert.Equal(2, scenarios[2].Steps!.Length);
     }
 
     [Fact]
@@ -302,7 +281,7 @@ public class BackgroundStepsDetectorTests
     }
 
     [Fact]
-    public void Scenario_starting_with_Given_still_extracts_background()
+    public void Scenario_with_common_Given_skips_extraction_when_remaining_starts_with_When()
     {
         var scenarios = new[]
         {
@@ -312,8 +291,139 @@ public class BackgroundStepsDetectorTests
 
         BackgroundStepsDetector.DetectAndExtract(scenarios);
 
+        // Remaining starts with "When" → no extraction
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(3, scenarios[0].Steps!.Length);
+    }
+
+    // ── Remaining-step keyword guards ──
+
+    [Fact]
+    public void Extracts_background_when_remaining_starts_with_Then()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "A"), ("Given", "B"), ("Then", "X")),
+            MakeScenario("s2", ("Given", "A"), ("Given", "B"), ("Then", "Y"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.NotNull(scenarios[0].BackgroundSteps);
+        Assert.Equal(2, scenarios[0].BackgroundSteps!.Length);
+        Assert.Equal("A", scenarios[0].BackgroundSteps[0].Text);
+        Assert.Equal("B", scenarios[0].BackgroundSteps[1].Text);
+        Assert.Single(scenarios[0].Steps!);
+        Assert.Equal("X", scenarios[0].Steps![0].Text);
+    }
+
+    [Fact]
+    public void Extracts_background_when_remaining_starts_with_But()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "A"), ("But", "X")),
+            MakeScenario("s2", ("Given", "A"), ("But", "Y"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
         Assert.NotNull(scenarios[0].BackgroundSteps);
         Assert.Single(scenarios[0].BackgroundSteps!);
-        Assert.Equal("shared", scenarios[0].BackgroundSteps![0].Text);
+        Assert.Equal("A", scenarios[0].BackgroundSteps![0].Text);
+        Assert.Single(scenarios[0].Steps!);
+    }
+
+    [Fact]
+    public void Extracts_background_when_all_steps_are_common()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "A"), ("Given", "B")),
+            MakeScenario("s2", ("Given", "A"), ("Given", "B"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        // All steps are common, no remaining → extraction happens
+        Assert.NotNull(scenarios[0].BackgroundSteps);
+        Assert.Equal(2, scenarios[0].BackgroundSteps!.Length);
+        Assert.Empty(scenarios[0].Steps!);
+    }
+
+    [Fact]
+    public void Does_not_extract_when_remaining_starts_with_Given()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "shared"), ("Given", "specific A"), ("Then", "X")),
+            MakeScenario("s2", ("Given", "shared"), ("Given", "specific B"), ("Then", "Y"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+        Assert.Equal(3, scenarios[0].Steps!.Length);
+    }
+
+    [Fact]
+    public void Does_not_extract_when_any_scenario_remaining_starts_with_When()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "shared"), ("Then", "X")),
+            MakeScenario("s2", ("Given", "shared"), ("When", "Y"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        // s2's remaining starts with "When" → no extraction for the group
+        Assert.Null(scenarios[0].BackgroundSteps);
+        Assert.Null(scenarios[1].BackgroundSteps);
+    }
+
+    [Fact]
+    public void Extracts_background_when_one_scenario_has_no_remaining_steps()
+    {
+        var scenarios = new[]
+        {
+            MakeScenario("s1", ("Given", "A"), ("Then", "X")),
+            MakeScenario("s2", ("Given", "A"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        // s1 remaining starts with "Then", s2 has no remaining → extraction happens
+        Assert.NotNull(scenarios[0].BackgroundSteps);
+        Assert.Single(scenarios[0].BackgroundSteps!);
+        Assert.Single(scenarios[0].Steps!);
+        Assert.Empty(scenarios[1].Steps!);
+    }
+
+    [Fact]
+    public void Rules_with_Then_remaining_extract_while_When_remaining_skip()
+    {
+        var scenarios = new[]
+        {
+            // Rule A: remaining starts with "Then" → extraction
+            MakeScenario("s1", "Rule A", ("Given", "setup"), ("Then", "X")),
+            MakeScenario("s2", "Rule A", ("Given", "setup"), ("Then", "Y")),
+            // Rule B: remaining starts with "When" → no extraction
+            MakeScenario("s3", "Rule B", ("Given", "setup"), ("When", "Z")),
+            MakeScenario("s4", "Rule B", ("Given", "setup"), ("When", "W"))
+        };
+
+        BackgroundStepsDetector.DetectAndExtract(scenarios);
+
+        // Rule A extracted
+        Assert.NotNull(scenarios[0].BackgroundSteps);
+        Assert.Equal("setup", scenarios[0].BackgroundSteps![0].Text);
+        Assert.Single(scenarios[0].Steps!);
+
+        // Rule B skipped
+        Assert.Null(scenarios[2].BackgroundSteps);
+        Assert.Equal(2, scenarios[2].Steps!.Length);
     }
 }

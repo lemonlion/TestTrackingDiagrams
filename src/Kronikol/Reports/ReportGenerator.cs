@@ -2068,7 +2068,7 @@ public static class ReportGenerator
                 if (scenario.BackgroundSteps is { Length: > 0 })
                 {
                     body.Append("""<details class="scenario-background">""");
-                    body.Append("""<summary class="h4">Background</summary>""");
+                    body.Append("""<summary class="h4">Background Steps</summary>""");
                     for (var bi = 0; bi < scenario.BackgroundSteps.Length; bi++)
                     {
                         var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;
@@ -2801,7 +2801,7 @@ public static class ReportGenerator
                 if (s.BackgroundSteps is { Length: > 0 })
                 {
                     body.Append("""<details class="scenario-background">""");
-                    body.Append("""<summary class="h4">Background</summary>""");
+                    body.Append("""<summary class="h4">Background Steps</summary>""");
                     for (var bi = 0; bi < s.BackgroundSteps.Length; bi++)
                     {
                         var numberPrefix = showStepNumbers ? $"{bi + 1}." : null;

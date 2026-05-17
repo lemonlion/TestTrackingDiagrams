@@ -34,6 +34,13 @@ public static class BackgroundStepsDetector
             if (commonPrefixLength == 0)
                 continue;
 
+            // Don't extract if any scenario's first remaining step starts with "Given" or "When";
+            // background extraction only makes sense when remaining steps start with continuation
+            // keywords (Then, And, But) or when all steps are common (no remaining steps).
+            if (members.Any(s => s.Steps!.Length > commonPrefixLength &&
+                                 s.Steps![commonPrefixLength].Keyword is "Given" or "When"))
+                continue;
+
             // Use the first scenario's steps as the background template
             var backgroundSteps = members[0].Steps!.Take(commonPrefixLength).ToArray();
 

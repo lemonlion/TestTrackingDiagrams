@@ -830,7 +830,7 @@ public class StepRenderingReportTests
         };
         var content = GenerateReport(MakeFeatures(scenario), "BgSeparate.html");
         Assert.Contains("<details class=\"scenario-background\">", content);
-        Assert.Contains("<summary class=\"h4\">Background</summary>", content);
+        Assert.Contains("<summary class=\"h4\">Background Steps</summary>", content);
     }
 
     [Fact]

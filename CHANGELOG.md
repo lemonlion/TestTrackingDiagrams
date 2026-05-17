@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.6] - 2026-05-17
+
+### Changed
+- **Background section renamed to "Background Steps"** — The collapsible `<details>` section for background steps in reports now displays "Background Steps" instead of "Background".
+- **Background extraction skipped when remaining steps start with Given or When** — `BackgroundStepsDetector` no longer extracts common step prefixes as background when the first remaining step in any scenario has keyword "Given" or "When". This prevents a separate "Background Steps" section from appearing in standard Given-When-Then BDD scenarios. Background extraction now only produces a separate section when remaining steps start with continuation keywords (Then, And, But) or when all steps are common.
+
 ## [3.0.5] - 2026-05-17
 
 ### Changed
