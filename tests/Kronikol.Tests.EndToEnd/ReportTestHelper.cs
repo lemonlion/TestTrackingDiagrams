@@ -1961,4 +1961,89 @@ public static class ReportTestHelper
         File.Copy(path, Path.Combine(outputDir, fileName), true);
         return new Uri(path).AbsoluteUri;
     }
+
+    private static string LargeNotePlantUmlSource
+    {
+        get
+        {
+            // Build 50 colored request-response pairs with small notes (~7650px estimated height)
+            // then one pair with a very large note (>15000 chars) that triggers chunkLargeNotes.
+            // Combined, Part 0 of the chunked split exceeds 12000px and gets height-split.
+            // This reproduces the bug where Part 0 (no @enduml) has its last 'end note'
+            // excluded by parseDiagramStructure, leaving an unclosed note in the fragment.
+            var interactions = new System.Text.StringBuilder();
+            for (int i = 1; i <= 50; i++)
+            {
+                interactions.AppendLine(
+                    $"caller -[#438DD5]> svc : [[#iflow-{i} GET: /api/item/{i}]]\n" +
+                    "note left\n" +
+                    $"<color:gray>[traceparent=00-abc-{i:D3}-00]\n" +
+                    "end note\n" +
+                    "svc -[#438DD5]-> caller : OK\n" +
+                    "note right\n" +
+                    $"{{\"id\":{i},\"name\":\"Item {i}\"}}\n" +
+                    "end note");
+            }
+
+            // Add an arrow pair with a very large note (>15000 chars)
+            interactions.AppendLine("svc -[#E74C3C]> db : Query /data");
+            interactions.AppendLine("note left\nSELECT * FROM items\nend note");
+            interactions.AppendLine("db -[#E74C3C]-> svc : OK");
+            interactions.AppendLine("note right");
+            interactions.AppendLine("{");
+            for (int j = 0; j < 500; j++)
+            {
+                interactions.AppendLine($"  \"item_{j:D4}\": \"value_{j:D4}_xxxxxxxxxxxx\",");
+            }
+            interactions.AppendLine("}");
+            interactions.AppendLine("end note");
+
+            // One more arrow after the large note
+            interactions.AppendLine("svc -[#438DD5]-> caller : OK");
+
+            return """
+                @startuml
+                !pragma teoz true
+                <style>
+                 .eventNote {
+                     BackgroundColor #cfecf7
+                     FontSize 11
+                     RoundCorner 10
+                 }
+                </style>
+                <style>
+                 .assertionNote {
+                     FontSize 11
+                     RoundCorner 5
+                 }
+                </style>
+                skinparam wrapWidth 800
+                autonumber 1
+
+                actor "Caller" as caller
+                entity "Service" as svc
+                database "Database" as db
+
+                """ + interactions + "\n@enduml\n";
+        }
+    }
+
+    public static string GenerateReportWithLargeNote(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", LargeNotePlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
 }

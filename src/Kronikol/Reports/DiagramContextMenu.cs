@@ -703,6 +703,12 @@ public static class DiagramContextMenu
                                     prevSteps += countArrows(allFragments[pf].split('\n'));
                                 }
                                 partSource = structure.prefix.replace(/autonumber\s+\d+/, 'autonumber ' + prevSteps) + '\n' + partSource + '\n@enduml';
+                            } else if (partSource.indexOf('@enduml') < 0) {
+                                // Part has @startuml but no @enduml (first part in chunked split).
+                                // Without @enduml, parseDiagramStructure treats the last line as
+                                // the end marker and excludes it from the body, which breaks
+                                // note blocks whose 'end note' happens to be on the last line.
+                                partSource = partSource + '\n@enduml';
                             }
                             var heightFrags = splitDiagramSource(partSource, maxHeight);
                             for (var hf = 0; hf < heightFrags.length; hf++) {

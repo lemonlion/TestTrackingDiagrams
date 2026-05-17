@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.9] - 2026-05-18
+
+### Fixed
+- **Unclosed note in chunked diagram splits** — Fixed a bug where diagrams with notes exceeding 15,000 characters produced `Syntax Error? (Assumed diagram type: class)` when the first chunked part was also height-split. `chunkLargeNotes` inserts `__SPLIT_BOUNDARY__` markers between note chunks, but the first part (containing `@startuml` but no `@enduml`) was passed to `splitDiagramSource` without appending `@enduml`. This caused `parseDiagramStructure` to treat the last line (`end note`) as the end boundary, excluding it from the body and leaving the note unclosed in the height-split fragment.
+
 ## [3.0.8] - 2026-05-18
 
 ### Fixed

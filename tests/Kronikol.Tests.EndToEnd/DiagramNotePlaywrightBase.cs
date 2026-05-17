@@ -52,6 +52,9 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
     protected string GenerateColoredArrowReport(string fileName) =>
         ReportTestHelper.GenerateReportWithColoredArrows(TempDir, OutputDir, fileName);
 
+    protected string GenerateLargeNoteReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithLargeNote(TempDir, OutputDir, fileName);
+
     protected async Task ExpandAndRenderLongNoteDiagram(string fileName)
     {
         await Page.GotoAsync(GenerateLongNoteReport(fileName));
