@@ -638,13 +638,32 @@ public static class DiagramContextMenu
                             inNote = false;
                             var noteContent = noteLines.join('\n');
                             if (noteContent.length > maxChars) {
+                                // Find the last arrow before this note to determine the anchor participant
+                                var anchorParticipant = '';
+                                var noteDir = /\bright\b/.test(noteHeader) ? 'right' : 'left';
+                                for (var ra = result.length - 1; ra >= 0; ra--) {
+                                    if (isArrowLine(result[ra].trim())) {
+                                        var am = result[ra].match(/^\s*(\S+)\s+.*?>\s+(\S+)/);
+                                        if (am) {
+                                            // 'note right' anchors to target; 'note left' anchors to source
+                                            anchorParticipant = noteDir === 'right' ? am[2] : am[1];
+                                        }
+                                        break;
+                                    }
+                                }
                                 // Chunk the note content
                                 var chunks = chunkString(noteContent, maxChars);
                                 for (var ci = 0; ci < chunks.length; ci++) {
                                     var chunk = chunks[ci];
                                     if (ci > 0) chunk = '..Continued From Previous Diagram..\n' + chunk;
                                     if (ci < chunks.length - 1) chunk = chunk + '\n..Continued On Next Diagram..';
-                                    result.push(noteHeader);
+                                    // For continuation chunks, anchor note to participant so
+                                    // PlantUML renders it even without a preceding message
+                                    if (ci > 0 && anchorParticipant) {
+                                        result.push(noteHeader.replace(/\b(left|right)\b(?!\s+of\b)/, '$1 of ' + anchorParticipant));
+                                    } else {
+                                        result.push(noteHeader);
+                                    }
                                     var chunkLines = chunk.split('\n');
                                     for (var cl = 0; cl < chunkLines.length; cl++) result.push(chunkLines[cl]);
                                     result.push('end note');

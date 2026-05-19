@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.10] - 2026-05-19
+
+### Fixed
+- **Empty intermediate diagrams when expanding chunked notes** — Fixed a bug where continuation fragments of notes exceeding 15,000 characters rendered as empty diagrams (showing only participants with no visible content). When `chunkLargeNotes` splits a large note into multiple chunks, intermediate chunks contained bare `note right` without a preceding message interaction. PlantUML requires a prior message to anchor a directional note; without one, it renders nothing. Fixed by modifying the note header in continuation chunks to `note right of <participant>` (or `note left of <participant>`), explicitly anchoring the note to the relevant participant extracted from the preceding arrow.
+
 ## [3.0.9] - 2026-05-18
 
 ### Fixed

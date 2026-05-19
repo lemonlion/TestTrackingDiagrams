@@ -112,4 +112,86 @@ public class LargeNoteSplitTests : DiagramNotePlaywrightBase
         Assert.True(string.IsNullOrEmpty(syntaxErrorText),
             $"Found PlantUML syntax error in rendered diagram: {syntaxErrorText}");
     }
+
+    [Fact]
+    public async Task Intermediate_note_chunks_are_anchored_to_participant()
+    {
+        await Page.GotoAsync(GenerateLargeNoteReport("LargeNoteAnchored.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        // Build a source where the large note produces 3+ chunks,
+        // so at least one intermediate chunk (no arrows) exists.
+        // Verify that intermediate fragments anchor the note to a participant
+        // (via 'note ... of <participant>' or by having a preceding arrow),
+        // otherwise PlantUML renders an empty diagram (just participants, no content).
+        var result = await Page.EvaluateAsync<string>("""
+            () => {
+                var prefix = '@startuml\n!pragma teoz true\nskinparam wrapWidth 800\nautonumber 1\nactor "Caller" as caller\nentity "Service" as svc\ndatabase "DB" as db\n\n';
+
+                var body = '';
+                for (var i = 1; i <= 10; i++) {
+                    body += 'caller -[#438DD5]> svc : GET /api/item/' + i + '\n';
+                    body += 'note left\n<color:gray>[traceparent=00-abc-' + i + '-00]\nend note\n';
+                    body += 'svc -[#438DD5]-> caller : OK\n';
+                    body += 'note right\n{"id":' + i + '}\nend note\n';
+                }
+
+                // One arrow pair with a very large note (>30000 chars → 3 chunks)
+                body += 'svc -[#E74C3C]> db : Query /data\n';
+                body += 'note left\nSELECT * FROM items\nend note\n';
+                body += 'db -[#E74C3C]-> svc : OK\n';
+                body += 'note right\n{\n';
+                for (var j = 0; j < 750; j++) {
+                    body += '  "item_' + ('000' + j).slice(-4) + '": "value_' + ('000' + j).slice(-4) + '_xxxxxxxxxxxxxxxxxxxx",\n';
+                }
+                body += '}\nend note\n';
+                body += 'svc -[#438DD5]-> caller : Done\n';
+
+                var source = prefix + body + '@enduml';
+
+                if (!window._splitWithChunkedNotes) return 'NO_FUNCTION';
+                var frags = window._splitWithChunkedNotes(source);
+                if (frags.length < 3) return 'NOT_ENOUGH_FRAGS:' + frags.length;
+
+                // For each fragment, check that any 'note right' or 'note left' either:
+                // 1. Uses 'of <participant>' syntax, OR
+                // 2. Is preceded by an arrow line in the body
+                var errors = [];
+                for (var i = 0; i < frags.length; i++) {
+                    var lines = frags[i].split('\n');
+                    var bodyStarted = false;
+                    var seenArrowInBody = false;
+                    for (var li = 0; li < lines.length; li++) {
+                        var t = lines[li].trim();
+                        if (t === '@enduml') break;
+                        // Detect body start (after participants/autonumber/etc)
+                        if (!bodyStarted) {
+                            if (t === '' || t.startsWith('@startuml') || t.startsWith('!') ||
+                                t.startsWith('skinparam') || t.startsWith('hide ') ||
+                                t.startsWith('autonumber') || t.startsWith('participant ') ||
+                                t.startsWith('actor ') || t.startsWith('entity ') ||
+                                t.startsWith('database ') || t.startsWith('<style')) {
+                                continue;
+                            }
+                            // Check for multi-line style block
+                            if (t === '}') continue;
+                            bodyStarted = true;
+                        }
+                        if (/^.+-(?:\[[^\]]*\])?-?>/.test(t)) {
+                            seenArrowInBody = true;
+                        }
+                        // Check bare 'note left' or 'note right' without 'of'
+                        var noteMatch = t.match(/^note(?:<<\w+>>)?\s+(left|right)\s*$/);
+                        if (noteMatch && !seenArrowInBody) {
+                            errors.push('frag ' + i + ': bare "' + t + '" without preceding arrow or "of <participant>"');
+                        }
+                    }
+                }
+
+                return errors.length > 0 ? 'ERRORS: ' + errors.join('; ') : 'OK:' + frags.length;
+            }
+        """);
+
+        Assert.StartsWith("OK:", result);
+    }
 }
