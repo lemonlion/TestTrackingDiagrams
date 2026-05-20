@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Kronikol.Extensions.MongoDB.V2\Kronikol.Extensions.MongoDB.V2.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Kronikol.Tests.MongoDB\MongoDbTrackingSubscriberTests.cs" Link="MongoDbTrackingSubscriberTests.cs" />
+    <Compile Include="..\Kronikol.Tests.MongoDB\MongoDbOperationClassifierTests.cs" Link="MongoDbOperationClassifierTests.cs" />
+    <Compile Include="..\Kronikol.Tests.MongoDB\MongoClientSettingsExtensionsTests.cs" Link="MongoClientSettingsExtensionsTests.cs" />
+    <Compile Include="..\Kronikol.Tests.MongoDB\MongoDbServiceCollectionExtensionsTests.cs" Link="MongoDbServiceCollectionExtensionsTests.cs" />
+    <Compile Include="..\Kronikol.Tests.MongoDB\ChangeStreamCorrelationTests.cs" Link="ChangeStreamCorrelationTests.cs" />
+  </ItemGroup>
+</Project>

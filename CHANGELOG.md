@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.18] - 2026-05-21
+
+### Added
+- **Kronikol.Extensions.MongoDB.V2** — New package for projects using MongoDB.Driver v2.x. Identical API to `Kronikol.Extensions.MongoDB` but compatible with `MongoDB.Driver.Core` v2.x transitive dependencies. Fixes CS0433 build errors when platform libraries pin to MongoDB.Driver v2. ([#61](https://github.com/lemonlion/Kronikol/issues/61))
+- **`AddRedisConnectionMultiplexerTracking()`** — New extension method that decorates `IConnectionMultiplexer` registrations so that `GetDatabase()` returns tracked `IDatabase` instances. Use this when your application uses a Redis wrapper library that doesn't expose `IDatabase` via DI. ([#60](https://github.com/lemonlion/Kronikol/issues/60))
+- **`RedisTrackingConnectionMultiplexer`** — Public wrapper for manual `IConnectionMultiplexer` tracking outside DI.
+
+### Fixed
+- **ReqNRoll binding discovery** — Framework assemblies (`Kronikol.ReqNRoll.xUnit2`, `Kronikol.ReqNRoll.xUnit3`, `Kronikol.ReqNRoll.TUnit`) now contain discoverable `[Binding]` classes, eliminating the need to add `Kronikol.ReqNRoll.Core` to `reqnroll.json` `bindingAssemblies`. ([#59](https://github.com/lemonlion/Kronikol/issues/59))
+- Added idempotency guards to ReqNRoll hooks to prevent double-execution if both Core and framework assemblies are scanned.
+
 ## [3.0.17] - 2026-05-21
 
 ### Fixed

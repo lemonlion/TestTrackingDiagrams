@@ -32,6 +32,7 @@
     <ProjectReference Include="..\..\src\Kronikol.Extensions.OpenTelemetry\Kronikol.Extensions.OpenTelemetry.csproj" />
     <ProjectReference Include="..\..\src\Kronikol.BDDfy.xUnit3\Kronikol.BDDfy.xUnit3.csproj" />
     <ProjectReference Include="..\..\src\Kronikol.ReqNRoll.xUnit3\Kronikol.ReqNRoll.xUnit3.csproj" />
+    <ProjectReference Include="..\..\src\Kronikol.ReqNRoll.xUnit2\Kronikol.ReqNRoll.xUnit2.csproj" />
     <ProjectReference Include="..\..\src\Kronikol.ReqNRoll.TUnit\Kronikol.ReqNRoll.TUnit.csproj" />
     <ProjectReference Include="..\..\src\Kronikol.LightBDD.xUnit3\Kronikol.LightBDD.xUnit3.csproj" />
     <ProjectReference Include="..\..\src\Kronikol.Extensions.DispatchProxy\Kronikol.Extensions.DispatchProxy.csproj" />

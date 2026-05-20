@@ -31,6 +31,11 @@ public class ReqNRollTrackingHooks
     [BeforeScenario(Order = int.MinValue)]
     public void BeforeScenario()
     {
+        // Idempotency guard: if hooks have already run for this scenario (e.g. both base
+        // and derived [Binding] classes discovered), skip duplicate execution.
+        if (_scenarioContext.ContainsKey(ReqNRollConstants.ScenarioRuntimeIdKey))
+            return;
+
         _stopwatch = Stopwatch.StartNew();
         var scenarioId = Guid.NewGuid().ToString();
         _scenarioContext[ReqNRollConstants.ScenarioRuntimeIdKey] = scenarioId;

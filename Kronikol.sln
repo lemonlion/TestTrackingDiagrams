@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
@@ -196,6 +196,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kronikol.Tests.StepTracking", "tests\Kronikol.Tests.StepTracking\Kronikol.Tests.StepTracking.csproj", "{F0589C06-51B3-4B2A-9C09-B7728EB5B3DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kronikol.Tests.AssertionTracking", "tests\Kronikol.Tests.AssertionTracking\Kronikol.Tests.AssertionTracking.csproj", "{9EF4F6F9-4D5F-485C-AB4A-1116DA56BC2F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kronikol.Extensions.MongoDB.V2", "src\Kronikol.Extensions.MongoDB.V2\Kronikol.Extensions.MongoDB.V2.csproj", "{4550121C-DD81-48CE-859D-EB32AB180C28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kronikol.Tests.MongoDB.V2", "tests\Kronikol.Tests.MongoDB.V2\Kronikol.Tests.MongoDB.V2.csproj", "{647FEE90-114C-4AD3-AB10-A49C909F1BD8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1335,6 +1339,30 @@ Global
 		{9EF4F6F9-4D5F-485C-AB4A-1116DA56BC2F}.Release|x64.Build.0 = Release|Any CPU
 		{9EF4F6F9-4D5F-485C-AB4A-1116DA56BC2F}.Release|x86.ActiveCfg = Release|Any CPU
 		{9EF4F6F9-4D5F-485C-AB4A-1116DA56BC2F}.Release|x86.Build.0 = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|x64.Build.0 = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Debug|x86.Build.0 = Debug|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|x64.ActiveCfg = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|x64.Build.0 = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|x86.ActiveCfg = Release|Any CPU
+		{4550121C-DD81-48CE-859D-EB32AB180C28}.Release|x86.Build.0 = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|x64.Build.0 = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Debug|x86.Build.0 = Debug|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|x64.ActiveCfg = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|x64.Build.0 = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|x86.ActiveCfg = Release|Any CPU
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1398,6 +1426,8 @@ Global
 		{8FC5D47C-4B08-423D-AD0C-D00E160458CF} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{F0589C06-51B3-4B2A-9C09-B7728EB5B3DD} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{9EF4F6F9-4D5F-485C-AB4A-1116DA56BC2F} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{4550121C-DD81-48CE-859D-EB32AB180C28} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{647FEE90-114C-4AD3-AB10-A49C909F1BD8} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {800A06E3-2498-445E-A515-7CF26A36503F}

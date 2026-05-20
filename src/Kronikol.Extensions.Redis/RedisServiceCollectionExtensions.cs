@@ -34,4 +34,31 @@ public static class RedisServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Decorates all existing <see cref="IConnectionMultiplexer"/> registrations so that
+    /// <see cref="IConnectionMultiplexer.GetDatabase"/> returns tracked <see cref="IDatabase"/>
+    /// instances for test diagram tracking.
+    /// <para>
+    /// Use this when your application uses a Redis wrapper library that manages its own
+    /// <see cref="IConnectionMultiplexer"/> internally and doesn't register <see cref="IDatabase"/>
+    /// directly in DI.
+    /// </para>
+    /// <para>No-op when no matching registrations exist.</para>
+    /// </summary>
+    public static IServiceCollection AddRedisConnectionMultiplexerTracking(
+        this IServiceCollection services,
+        Action<RedisTrackingDatabaseOptions>? configure = null)
+    {
+        var options = new RedisTrackingDatabaseOptions();
+        configure?.Invoke(options);
+
+        services.DecorateAll<IConnectionMultiplexer>((sp, inner) =>
+        {
+            options.HttpContextAccessor ??= sp.GetService<IHttpContextAccessor>();
+            return RedisTrackingConnectionMultiplexer.Create(inner, options);
+        });
+
+        return services;
+    }
 }

@@ -23,6 +23,7 @@
       "src/Kronikol.Extensions.MassTransit/Kronikol.Extensions.MassTransit.csproj",
       "src/Kronikol.Extensions.MediatR/Kronikol.Extensions.MediatR.csproj",
       "src/Kronikol.Extensions.MongoDB/Kronikol.Extensions.MongoDB.csproj",
+      "src/Kronikol.Extensions.MongoDB.V2/Kronikol.Extensions.MongoDB.V2.csproj",
       "src/Kronikol.Extensions.MySqlConnector/Kronikol.Extensions.MySqlConnector.csproj",
       "src/Kronikol.Extensions.Npgsql/Kronikol.Extensions.Npgsql.csproj",
       "src/Kronikol.Extensions.OpenTelemetry/Kronikol.Extensions.OpenTelemetry.csproj",

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(MultiTargetFrameworks)</TargetFrameworks>
+    <Title>Test Tracking Diagrams MongoDB Extension (Driver v2)</Title>
+    <Description>MongoDB tracking for test diagrams, compatible with MongoDB.Driver v2.x. Intercepts and classifies MongoDB operations using the driver's command event system.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <InternalsVisibleTo>Kronikol.Tests.MongoDB.V2</InternalsVisibleTo>
+    <RootNamespace>Kronikol.Extensions.MongoDB</RootNamespace>
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="2.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Kronikol\Kronikol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbTrackingSubscriber.cs" Link="MongoDbTrackingSubscriber.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbServiceCollectionExtensions.cs" Link="MongoDbServiceCollectionExtensions.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoClientSettingsExtensions.cs" Link="MongoClientSettingsExtensions.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbOperation.cs" Link="MongoDbOperation.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbOperationClassifier.cs" Link="MongoDbOperationClassifier.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbOperationInfo.cs" Link="MongoDbOperationInfo.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbTrackingOptions.cs" Link="MongoDbTrackingOptions.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\MongoDbTrackingVerbosity.cs" Link="MongoDbTrackingVerbosity.cs" />
+    <Compile Include="..\Kronikol.Extensions.MongoDB\ChangeStreamCorrelation.cs" Link="ChangeStreamCorrelation.cs" />
+  </ItemGroup>
+</Project>
