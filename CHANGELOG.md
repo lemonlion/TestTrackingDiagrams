@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.16] - 2026-05-21
+
+### Changed
+- **Happy path tag detection now recognizes `happy-path`, `happy_path`, and `happypath` (case-insensitive)** in BDDfy and ReqNRoll adapters. Previously only `happy-path` was matched. Users tagging scenarios with `@happy_path` or `@happypath` will now have those scenarios correctly identified as happy paths, ordered first, badged, and filterable via the "Happy Paths Only" button.
+
 ## [3.0.15] - 2026-05-21
 
 ### Fixed

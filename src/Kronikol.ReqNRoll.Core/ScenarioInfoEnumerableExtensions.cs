@@ -20,7 +20,7 @@ internal static class ScenarioInfoEnumerableExtensions
                     ?[ReqNRollConstants.EndpointTagPrefix.Length..];
 
                 var featureLabels = firstScenario.CombinedTags
-                    .Where(t => !t.Equals(ReqNRollConstants.HappyPathTag, StringComparison.OrdinalIgnoreCase)
+                    .Where(t => !HappyPathDetection.IsHappyPathTag(t)
                              && !t.StartsWith(ReqNRollConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase)
                              && !t.StartsWith(ReqNRollConstants.CategoryTagPrefix, StringComparison.OrdinalIgnoreCase)
                              && !firstScenario.ScenarioTags.Contains(t, StringComparer.OrdinalIgnoreCase))
@@ -28,7 +28,7 @@ internal static class ScenarioInfoEnumerableExtensions
 
                 var scenarios = featureGroup
                         .DistinctBy(x => x.ScenarioId)
-                        .OrderByDescending(x => x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
+                        .OrderByDescending(x => HappyPathDetection.AnyHappyPathTag(x.ScenarioTags))
                         .ThenBy(x => x.ScenarioTitle)
                         .ThenBy(x => x.ExampleValues is { Count: > 0 }
                             ? string.Join("|", x.ExampleValues.Values)
@@ -36,7 +36,7 @@ internal static class ScenarioInfoEnumerableExtensions
                         .Select(x =>
                         {
                             var labels = x.ScenarioTags
-                                .Where(t => !t.Equals(ReqNRollConstants.HappyPathTag, StringComparison.OrdinalIgnoreCase)
+                                .Where(t => !HappyPathDetection.IsHappyPathTag(t)
                                          && !t.StartsWith(ReqNRollConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase)
                                          && !t.StartsWith(ReqNRollConstants.CategoryTagPrefix, StringComparison.OrdinalIgnoreCase))
                                 .ToArray();
@@ -50,7 +50,7 @@ internal static class ScenarioInfoEnumerableExtensions
                             {
                                 Id = x.ScenarioId,
                                 DisplayName = x.ScenarioTitle,
-                                IsHappyPath = x.ScenarioTags.Contains(ReqNRollConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
+                                IsHappyPath = HappyPathDetection.AnyHappyPathTag(x.ScenarioTags),
                                 Result = x.ExecutionStatus.ToExecutionResult(),
                                 ErrorMessage = x.TestError?.Message,
                                 ErrorStackTrace = x.TestError?.StackTrace,

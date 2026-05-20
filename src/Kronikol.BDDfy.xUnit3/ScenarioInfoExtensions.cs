@@ -21,12 +21,12 @@ internal static class ScenarioInfoExtensions
 
                 var scenarios = DeduplicateScenarioTitles(featureGroup
                         .DistinctBy(x => x.TestId)
-                        .OrderByDescending(x => x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase))
+                        .OrderByDescending(x => HappyPathDetection.AnyHappyPathTag(x.Tags))
                         .ThenBy(x => x.ScenarioTitle)
                         .Select(x =>
                         {
                             var labels = x.Tags
-                                .Where(t => !t.Equals(BDDfyConstants.HappyPathTag, StringComparison.OrdinalIgnoreCase)
+                                .Where(t => !HappyPathDetection.IsHappyPathTag(t)
                                          && !t.StartsWith(BDDfyConstants.EndpointTagPrefix, StringComparison.OrdinalIgnoreCase))
                                 .ToArray();
 
@@ -60,7 +60,7 @@ internal static class ScenarioInfoExtensions
                             {
                                 Id = x.TestId,
                                 DisplayName = x.ScenarioTitle,
-                                IsHappyPath = x.Tags.Contains(BDDfyConstants.HappyPathTag, StringComparer.OrdinalIgnoreCase),
+                                IsHappyPath = HappyPathDetection.AnyHappyPathTag(x.Tags),
                                 Result = x.Steps.Count == 0 && x.Result == TestStack.BDDfy.Result.NotExecuted
                                     ? ExecutionResult.Passed
                                     : x.Result.ToExecutionResult(),
