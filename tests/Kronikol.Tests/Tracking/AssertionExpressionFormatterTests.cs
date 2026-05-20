@@ -328,4 +328,14 @@ public class AssertionExpressionFormatterTests
         var result = AssertionExpressionFormatter.Format(expression);
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("() => response.StatusCode.ToString().Should().Be(\"200\")", "Response status code should be \"200\"")]
+    [InlineData("() => order.Id.ToString().Should().NotBeEmpty()", "Order id should not be empty")]
+    [InlineData("() => item.Name.ToString().Should().StartWith(\"A\")", "Item name should start with \"A\"")]
+    public void Format_removes_to_string_from_subject(string expression, string expected)
+    {
+        var result = AssertionExpressionFormatter.Format(expression);
+        Assert.Equal(expected, result);
+    }
 }

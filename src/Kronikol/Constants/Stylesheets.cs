@@ -264,6 +264,7 @@ public class Stylesheets
                     flex-wrap: wrap;
                     gap: 0.5em;
                     align-items: center;
+                    margin-top: 0.5em;
                 }
 
                 .failure-result {

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.12] - 2026-05-20
+
+### Fixed
+- **Assertion formatting includes "to string" from ToString() calls** — When an assertion subject contains `.ToString()` (e.g., `response.StatusCode.ToString().Should().Be("200")`), the formatted output previously included "to string()" in the readable sentence. Now strips " to string() " and " to string " from the final formatted assertion text, producing cleaner output like "Response status code should be \"200\"".
+
 ## [3.0.11] - 2026-05-20
 
 ### Fixed

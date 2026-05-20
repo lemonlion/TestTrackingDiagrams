@@ -75,6 +75,9 @@ public static partial class AssertionExpressionFormatter
             ? $"{formattedSubject} should {formattedMethod}"
             : $"{formattedSubject} should {formattedMethod} {formattedArgs}";
 
+        result = result.Replace(" to string() ", " ");
+        result = result.Replace(" to string ", " ");
+
         return result;
     }
 
