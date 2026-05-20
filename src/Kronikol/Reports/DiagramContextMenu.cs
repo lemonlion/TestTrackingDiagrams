@@ -1367,6 +1367,31 @@ public static class DiagramContextMenu
                 }
 
                 var selectedText = (window.getSelection() || '').toString().trim();
+                // Normalize SVG text selection against original note source to remove
+                // artificial newlines inserted by the browser at <text> element boundaries.
+                if (selectedText && svg && clickedNoteIdx >= 0) {
+                    var noteSource = _noteIsNotExpanded
+                        ? (_currentNoteText || _fullNoteText)
+                        : _fullNoteText;
+                    if (noteSource) {
+                        var selChars = selectedText.replace(/\s+/g, '');
+                        var noteChars = noteSource.replace(/\s+/g, '');
+                        var charIdx = noteChars.indexOf(selChars);
+                        if (charIdx >= 0) {
+                            var count = 0, start = -1, end = -1;
+                            for (var k = 0; k < noteSource.length; k++) {
+                                if (/\S/.test(noteSource[k])) {
+                                    if (count === charIdx && start < 0) start = k;
+                                    count++;
+                                    if (count === charIdx + selChars.length) { end = k + 1; break; }
+                                }
+                            }
+                            if (start >= 0 && end > start) {
+                                selectedText = noteSource.substring(start, end).trim();
+                            }
+                        }
+                    }
+                }
                 if (selectedText) {
                     menu.appendChild(createMenuItem('Copy Highlighted Text', function() {
                         navigator.clipboard.writeText(selectedText);

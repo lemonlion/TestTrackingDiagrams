@@ -1099,6 +1099,49 @@ public static class ReportTestHelper
         """;
 
     /// <summary>
+    /// PlantUML source with a regular note containing multiple lines that will render as
+    /// separate SVG text elements. Used to test that "Copy Highlighted Text" normalizes
+    /// text against the original note source (removing artificial newlines from word-wrap).
+    /// </summary>
+    private const string LongLineNotePlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        participant "Database" as db
+
+        caller -> svc : POST /api/orders
+        note left
+        <color:gray>[Content-Type=application/json]
+        <color:gray>[Authorization=Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.abc123]
+
+        {"orderId":"ord-12345","customerName":"John Smith","items":[{"sku":"WIDGET-001","quantity":2,"price":29.99}],"shippingAddress":"123 Main Street, Springfield, IL 62701"}
+        end note
+        svc -> db : INSERT INTO Orders
+        db --> svc : OK
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    public static string GenerateReportWithLongLineNote(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", LongLineNotePlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    /// <summary>
     /// PlantUML source with entity, queue, and database participant types that generate
     /// SVG path+text groups similar to notes. Tests that findNoteGroups correctly
     /// distinguishes notes from participant shapes using fold-triangle detection.

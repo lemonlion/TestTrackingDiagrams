@@ -110,6 +110,35 @@ public class DiagramContextMenuTests
     }
 
     // ═══════════════════════════════════════════════════════════
+    // Copy Highlighted Text — SVG selection normalization
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void CopyHighlightedText_normalizes_selection_against_note_source()
+    {
+        // The context menu script should normalize selectedText against
+        // the original note source to remove artificial newlines from word-wrap
+        Assert.Contains("selChars = selectedText.replace(/\\s+/g, '')", _script);
+        Assert.Contains("noteChars = noteSource.replace(/\\s+/g, '')", _script);
+        Assert.Contains("noteChars.indexOf(selChars)", _script);
+    }
+
+    [Fact]
+    public void CopyHighlightedText_uses_noteSource_from_fullNoteText_or_currentNoteText()
+    {
+        // Should use _currentNoteText for non-expanded notes, _fullNoteText for expanded
+        Assert.Contains("_noteIsNotExpanded", _script);
+        Assert.Contains("_currentNoteText || _fullNoteText", _script);
+    }
+
+    [Fact]
+    public void CopyHighlightedText_guards_on_svg_and_clickedNoteIdx()
+    {
+        // Only normalizes when inside an SVG note (not for HTML text selections)
+        Assert.Contains("selectedText && svg && clickedNoteIdx >= 0", _script);
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // Collapsible notes script
     // ═══════════════════════════════════════════════════════════
 

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.14] - 2026-05-20
+
+### Fixed
+- **"Copy Highlighted Text" inserts newlines at word-wrap boundaries in SVG notes** — When selecting text within an SVG sequence diagram note and using the context menu's "Copy Highlighted Text" option, the clipboard text now preserves the original spacing from the PlantUML source. Previously, the browser's `getSelection().toString()` would insert `\n` at every SVG `<text>` element boundary (word-wrap positions). The fix normalizes the selected text by character-mapping it back to the original note source, preserving real line breaks while removing artificial ones.
+
 ## [3.0.13] - 2026-05-20
 
 ### Fixed
