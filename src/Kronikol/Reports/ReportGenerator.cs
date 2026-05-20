@@ -2082,10 +2082,18 @@ public static class ReportGenerator
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
                     var renderCombined = ShouldRenderCombinedTable(scenario.Steps);
+                    var afterThen = false;
                     for (var si = 0; si < scenario.Steps.Length; si++)
                     {
+                        var keyword = scenario.Steps[si].Keyword?.Trim();
+                        if (keyword?.Equals("Then", StringComparison.OrdinalIgnoreCase) == true)
+                            afterThen = true;
+                        else if (keyword?.Equals("Given", StringComparison.OrdinalIgnoreCase) == true ||
+                                 keyword?.Equals("When", StringComparison.OrdinalIgnoreCase) == true)
+                            afterThen = false;
+
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, scenario.Steps[si], numberPrefix, skipTabularInline: renderCombined);
+                        RenderStep(body, scenario.Steps[si], numberPrefix, skipTabularInline: renderCombined && afterThen);
                     }
 
                     if (renderCombined)
@@ -2815,10 +2823,18 @@ public static class ReportGenerator
                     body.Append("""<details class="scenario-steps" open>""");
                     body.Append("""<summary class="h4">Steps</summary>""");
                     var renderCombined = ShouldRenderCombinedTable(s.Steps);
+                    var afterThen = false;
                     for (var si = 0; si < s.Steps.Length; si++)
                     {
+                        var keyword = s.Steps[si].Keyword?.Trim();
+                        if (keyword?.Equals("Then", StringComparison.OrdinalIgnoreCase) == true)
+                            afterThen = true;
+                        else if (keyword?.Equals("Given", StringComparison.OrdinalIgnoreCase) == true ||
+                                 keyword?.Equals("When", StringComparison.OrdinalIgnoreCase) == true)
+                            afterThen = false;
+
                         var numberPrefix = showStepNumbers ? $"{si + 1}." : null;
-                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined);
+                        RenderStep(body, s.Steps[si], numberPrefix, skipTabularInline: renderCombined && afterThen);
                     }
                     if (renderCombined)
                         RenderCombinedTabularParameters(body, s.Steps);

@@ -333,8 +333,10 @@ public class ParameterRenderingReportTests
         Assert.Contains("Alice", content);
         Assert.Contains("OK", content);
 
-        // Should not have individual step-param-table divs for the tabular params
-        Assert.DoesNotContain("<div class=\"step-param-table\">", content);
+        // Given step table should render inline even when combined table exists
+        Assert.Contains("<div class=\"step-param-table\" data-param=\"inputs\"", content);
+        // Then step table should NOT render inline (only in combined table)
+        Assert.DoesNotContain("data-param=\"expectedOutputs\"", content.Split("step-param-combined-table")[0]);
 
         // Combined table should be inside the scenario-steps details, not after it
         var stepsIdx = content.IndexOf("class=\"scenario-steps\"");
@@ -347,6 +349,203 @@ public class ParameterRenderingReportTests
         // Verify no other <details> opens between the combined table and that </details>
         var intervening = content.Substring(combinedIdx, closingAfterCombined - combinedIdx);
         Assert.DoesNotContain("<details", intervening);
+    }
+
+    [Fact]
+    public void Given_step_table_renders_inline_when_combined_table_exists()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "I have data [inputs: \"<$inputs>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "inputs",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("ReportDate", false), new TabularColumn("Cadence", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("2025-10-01", null, VerificationStatus.NotApplicable),
+                                                 new TabularCell("Monthly", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "I call the endpoint" },
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "response matches [results: \"<$results>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "results",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Status", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("200", "200", VerificationStatus.Success)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Combined table should exist
+        Assert.Contains("step-param-combined-table", content);
+
+        // Given step's table should render inline
+        Assert.Contains("<div class=\"step-param-table\" data-param=\"inputs\"", content);
+        // The inline table should contain the Given step's data
+        var inlineTableIdx = content.IndexOf("data-param=\"inputs\"");
+        var inlineSection = content.Substring(inlineTableIdx, 500);
+        Assert.Contains("2025-10-01", inlineSection);
+    }
+
+    [Fact]
+    public void Then_step_table_does_not_render_inline_when_combined_table_exists()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep
+                            {
+                                Keyword = "Given", Text = "I have data [inputs: \"<$inputs>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "inputs",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Field", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("Value", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "I call the endpoint" },
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "response matches [results: \"<$results>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "results",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Status", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("200", "200", VerificationStatus.Success)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Combined table should exist
+        Assert.Contains("step-param-combined-table", content);
+
+        // Then step's table should NOT render inline (suppressed in favor of combined table)
+        var beforeCombined = content.Split("step-param-combined-table")[0];
+        Assert.DoesNotContain("data-param=\"results\"", beforeCombined);
+    }
+
+    [Fact]
+    public void And_after_given_table_renders_inline_when_combined_table_exists()
+    {
+        var features = new[]
+        {
+            new Feature
+            {
+                DisplayName = "F",
+                Scenarios =
+                [
+                    new Scenario
+                    {
+                        Id = "s1", DisplayName = "Test",
+                        Steps =
+                        [
+                            new ScenarioStep { Keyword = "Given", Text = "I have a request" },
+                            new ScenarioStep
+                            {
+                                Keyword = "And", Text = "with parameters [params: \"<$params>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "params",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Key", false), new TabularColumn("Value", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("limit", null, VerificationStatus.NotApplicable),
+                                                 new TabularCell("10", null, VerificationStatus.NotApplicable)])])
+                                    }
+                                ]
+                            },
+                            new ScenarioStep { Keyword = "When", Text = "I call the endpoint" },
+                            new ScenarioStep
+                            {
+                                Keyword = "Then", Text = "response matches [results: \"<$results>\"]",
+                                Parameters =
+                                [
+                                    new StepParameter
+                                    {
+                                        Name = "results",
+                                        Kind = StepParameterKind.Tabular,
+                                        TabularValue = new TabularParameterValue(
+                                            [new TabularColumn("Status", false)],
+                                            [new TabularRow(TableRowType.Matching,
+                                                [new TabularCell("200", "200", VerificationStatus.Success)])])
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var content = GenerateReport(features);
+
+        // Combined table should exist
+        Assert.Contains("step-param-combined-table", content);
+
+        // And step's table (which follows Given) should render inline
+        Assert.Contains("<div class=\"step-param-table\" data-param=\"params\"", content);
     }
 
     [Fact]

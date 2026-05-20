@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.15] - 2026-05-21
+
+### Fixed
+- **Given/When step tables suppressed when combined table exists** — When a scenario had tabular parameters in both Given/When and Then steps (triggering the combined results table), ALL inline step tables were suppressed — including the input tables from Given/When steps which should remain visible inline. Now only Then/And-after-Then step tables are suppressed (moved to the combined table), while Given/When/And-after-Given tables continue to render inline as expected.
+
 ## [3.0.14] - 2026-05-20
 
 ### Fixed
