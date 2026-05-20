@@ -47,7 +47,7 @@ public class CustomBrandingReportTests
     {
         var content = GenerateReport(SimpleFeatures());
         Assert.Contains("<link rel=\"icon\" href=\"data:image/svg+xml;base64,", content);
-        Assert.Contains("VFREPC90ZXh0", content); // text element from the SVG
+        Assert.Contains("aWVudCBpZD0ic2Nyb2xs", content); // scroll gradient from the SVG
     }
 
     [Fact]

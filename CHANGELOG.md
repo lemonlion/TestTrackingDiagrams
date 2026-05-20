@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.17] - 2026-05-21
+
+### Fixed
+- **Default favicon updated from old TTD monogram to new Kronikol scroll icon** — The generated HTML reports now display the Kronikol parchment/scroll icon (with white directional arrows) instead of the legacy blue TTD monogram.
+- **Diagnostic report title changed from "TTD Diagnostic Report" to "Kronikol Diagnostic Report"** — Fixes remaining TTD branding reference in the diagnostic report's HTML `<title>` element.
+
 ## [3.0.16] - 2026-05-21
 
 ### Changed

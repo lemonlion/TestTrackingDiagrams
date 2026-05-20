@@ -28,7 +28,7 @@ public static class DiagnosticReportGenerator
     {
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset=\"utf-8\"/>");
-        sb.AppendLine("<title>TTD Diagnostic Report</title>");
+        sb.AppendLine("<title>Kronikol Diagnostic Report</title>");
         sb.AppendLine("<style>body{font-family:system-ui,sans-serif;margin:2em;color:#333}table{border-collapse:collapse;margin:1em 0}th,td{border:1px solid #ddd;padding:6px 12px;text-align:left}th{background:#f5f5f5}h2{margin-top:1.5em;border-bottom:1px solid #ddd;padding-bottom:4px}.warn{color:#b45309}.info{color:#1d4ed8}</style>");
         sb.AppendLine("</head><body>");
         sb.AppendLine("<h1>Kronikol — Diagnostic Report</h1>");
