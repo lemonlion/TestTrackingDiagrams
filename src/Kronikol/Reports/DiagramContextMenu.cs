@@ -643,7 +643,7 @@ public static class DiagramContextMenu
                                 var noteDir = /\bright\b/.test(noteHeader) ? 'right' : 'left';
                                 for (var ra = result.length - 1; ra >= 0; ra--) {
                                     if (isArrowLine(result[ra].trim())) {
-                                        var am = result[ra].match(/^\s*(\S+)\s+.*?>\s+(\S+)/);
+                                        var am = result[ra].match(/^\s*(\S+)\s+.*?>\s*([^\s:]+)/);
                                         if (am) {
                                             // 'note right' anchors to target; 'note left' anchors to source
                                             anchorParticipant = noteDir === 'right' ? am[2] : am[1];

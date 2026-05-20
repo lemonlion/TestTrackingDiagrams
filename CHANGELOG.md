@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.11] - 2026-05-20
+
+### Fixed
+- **Syntax error in chunked note fragments when arrow uses colon-adjacent format** — Fixed a bug where expanding a large note (>15,000 characters) produced `Syntax Error? (Assumed diagram type: class)` in continuation fragments when the preceding arrow used colon-adjacent message format (e.g., `db -> svc: OK` with no space before the colon). The anchor participant regex `(\S+)` in `chunkLargeNotes` captured the trailing colon as part of the participant name, producing `note right of breakfastProvider:` which PlantUML interprets as single-line note syntax rather than a multi-line note block. Changed the regex to `([^\s:]+)` to exclude colons from the participant capture.
+
 ## [3.0.10] - 2026-05-19
 
 ### Fixed

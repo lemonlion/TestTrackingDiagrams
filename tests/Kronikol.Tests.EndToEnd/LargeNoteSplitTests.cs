@@ -194,4 +194,72 @@ public class LargeNoteSplitTests : DiagramNotePlaywrightBase
 
         Assert.StartsWith("OK:", result);
     }
+
+    /// <summary>
+    /// Regression test: when the arrow before a large note uses colon-adjacent format
+    /// (e.g. "db -[#E74C3C]-> svc: OK" with NO space before the colon), the anchor
+    /// participant regex must not capture the trailing colon. A captured colon produces
+    /// "note right of svc:" which PlantUML interprets as single-line note syntax,
+    /// breaking the multi-line note structure and causing a syntax error.
+    /// </summary>
+    [Fact]
+    public async Task Anchor_participant_does_not_include_trailing_colon()
+    {
+        await Page.GotoAsync(GenerateLargeNoteReport("LargeNoteColonAnchor.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var result = await Page.EvaluateAsync<string>("""
+            () => {
+                // Build source with colon-adjacent arrow format (no space before colon)
+                var prefix = '@startuml\n!pragma teoz true\n<style>\n .eventNote {\n     BackgroundColor #cfecf7\n     FontSize 11\n     RoundCorner 10\n }\n</style>\n<style>\n .assertionNote {\n     FontSize 11\n     RoundCorner 5\n }\n</style>\nskinparam wrapWidth 800\nautonumber 1\n\nactor "Caller" as caller\nentity "Breakfast Provider" as breakfastProvider\ndatabase "CosmosDB" as cosmosDB\n\n';
+
+                var body = '';
+                for (var i = 1; i <= 20; i++) {
+                    body += 'caller -[#438DD5]> breakfastProvider: GET /api/item/' + i + '\n';
+                    body += 'note left\n<color:gray>[traceparent=00-abc-' + i + '-00]\nend note\n';
+                    body += 'breakfastProvider -[#438DD5]-> caller: OK\n';
+                    body += 'note right\n{"id":' + i + '}\nend note\n';
+                }
+
+                // Arrow with colon directly adjacent to participant name (NO space before colon)
+                body += 'breakfastProvider -[#E74C3C]> cosmosDB: Query /orders\n';
+                body += 'note left\nSELECT * FROM orders\nend note\n';
+                body += 'cosmosDB -[#E74C3C]-> breakfastProvider: OK\n';
+                body += 'note right\n{\n';
+                for (var j = 0; j < 750; j++) {
+                    body += '  "item_' + ('000' + j).slice(-4) + '": "value_' + ('000' + j).slice(-4) + '_xxxxxxxxxxxxxxxxxxxx",\n';
+                }
+                body += '}\nend note\n';
+                body += 'breakfastProvider -[#438DD5]-> caller: Done\n';
+
+                var source = prefix + body + '@enduml';
+
+                if (!window._splitWithChunkedNotes) return 'NO_FUNCTION';
+                var frags = window._splitWithChunkedNotes(source);
+                if (frags.length < 3) return 'NOT_ENOUGH_FRAGS:' + frags.length;
+
+                // Check that NO fragment contains 'note ... of participant:' (colon in participant)
+                var errors = [];
+                for (var i = 0; i < frags.length; i++) {
+                    var lines = frags[i].split('\n');
+                    for (var li = 0; li < lines.length; li++) {
+                        var t = lines[li].trim();
+                        var m = t.match(/^note\s+(?:left|right)\s+of\s+(\S+)/);
+                        if (m && m[1].indexOf(':') >= 0) {
+                            errors.push('frag ' + i + ' line ' + li + ': anchor has colon: "' + t + '"');
+                        }
+                    }
+                    // Also verify fragment has participant declarations
+                    if (frags[i].indexOf('actor ') < 0 && frags[i].indexOf('participant ') < 0
+                        && frags[i].indexOf('entity ') < 0) {
+                        errors.push('frag ' + i + ': missing participant declarations');
+                    }
+                }
+
+                return errors.length > 0 ? 'ERRORS: ' + errors.join('; ') : 'OK:' + frags.length;
+            }
+        """);
+
+        Assert.StartsWith("OK:", result);
+    }
 }
