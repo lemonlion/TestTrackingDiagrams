@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.13] - 2026-05-20
+
+### Fixed
+- **Expand arrow showing on fully-visible notes when headers are hidden** — When toggling "Headers: Hidden", the ▼ expand arrow (and truncated-state buttons) appeared on notes whose visible body content fit entirely within the truncation limit. The `isLongNote` function counted ALL lines including `<color:gray>` header lines, while the rendering logic excluded them. Added a `headersHidden` parameter to `isLongNote` that, when true, counts only non-gray effective lines (mirroring `buildSourceWithNoteStates` logic). Updated all 7 call sites to pass the appropriate headers-hidden state. Notes that become "short" after hiding headers now auto-transition from truncated (step 1) to expanded (step 2).
+
 ## [3.0.12] - 2026-05-20
 
 ### Fixed

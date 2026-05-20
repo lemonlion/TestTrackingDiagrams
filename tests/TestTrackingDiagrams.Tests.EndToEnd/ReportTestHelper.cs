@@ -1260,13 +1260,13 @@ public static class ReportTestHelper
         participant "OrderService" as svc
         participant "Database" as db
 
-        hnote across <<stepDelimiter>> #black:<color:white>Given the system is running
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Given the system is running
         caller -> svc : POST /api/orders
         note left
         Content-Type: application/json
         {"item":"Widget","qty":2}
         end note
-        hnote across <<stepDelimiter>> #black:<color:white>When I create an order
+        hnote across <<stepDelimiter>> #black:<color:white>Step: When I create an order
         svc -> db : INSERT INTO Orders
         note left
         INSERT INTO Orders (Item, Qty)
@@ -1749,10 +1749,10 @@ public static class ReportTestHelper
         database "Spanner" as spanner
         
         
-        hnote across <<stepDelimiter>> #black:<color:white>Given a valid customer preference request
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Given a valid customer preference request
         
         
-        hnote across <<stepDelimiter>> #black:<color:white>When the customer preferences are saved
+        hnote across <<stepDelimiter>> #black:<color:white>Step: When the customer preferences are saved
         
         caller -[#438DD5]> breakfastProvider: [[#iflow-67a2a680-5cb1-4b1e-a145-e5046cd095af PUT: /customer-preferences/d37d5aba2a244807b7fe008d01f6ba0f]]
         note left
@@ -1783,7 +1783,7 @@ public static class ReportTestHelper
         }
         end note
         
-        hnote across <<stepDelimiter>> #black:<color:white>Then the preference response should contain the saved preferences
+        hnote across <<stepDelimiter>> #black:<color:white>Step: Then the preference response should contain the saved preferences
         
         
         hnote across <<assertionNote>> #d4edda
@@ -1872,252 +1872,6 @@ public static class ReportTestHelper
         var diagrams = new[]
         {
             new DiagramAsCode("t1", "", source)
-        };
-
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, Path.Combine(tempDir, fileName), "Test Report", true,
-            diagramFormat: DiagramFormat.PlantUml,
-            plantUmlRendering: PlantUmlRendering.BrowserJs);
-
-        File.Copy(path, Path.Combine(outputDir, fileName), true);
-        return new Uri(path).AbsoluteUri;
-    }
-
-    /// <summary>
-    /// PlantUML source modelled on the user-reported bug: database participant with
-    /// step delimiters, assertion notes, and a database response note (n=1) that gets
-    /// stripped when databases are hidden — causing note-index mismatch.
-    /// Original notes: 0=request (left), 1=db-response (right "n=1"), 2=api-response (right JSON).
-    /// After hiding databases: 0=request, 1=api-response → index shift.
-    /// </summary>
-    private const string DatabaseStepNoteCollapseSource = """
-        @startuml
-        !pragma teoz true
-        <style>
-         .assertionNote {
-             FontSize 11
-             RoundCorner 5
-         }
-        </style>
-        skinparam wrapWidth 800
-        autonumber 1
-
-        actor "Caller" as caller
-        entity "Breakfast Provider" as breakfastProvider
-        database "MongoDB" as mongoDB
-
-        hnote across <<stepDelimiter>> #black:<color:white>GIVEN A valid chef note request
-
-        hnote across <<stepDelimiter>> #black:<color:white>WHEN The note is submitted
-
-        caller -[#438DD5]> breakfastProvider: POST /chef-notes
-        note left
-        {
-          "recipeName": "Recipe-abc",
-          "chefName": "Chef-xyz",
-          "noteText": "Remember to fold the batter gently.",
-          "category": "Technique",
-          "requestPriority": "urgent"
-        }
-        end note
-        breakfastProvider -[#E74C3C]> mongoDB: Insert chef_notes
-        mongoDB -[#E74C3C]-> breakfastProvider: OK
-        note right
-        n=1
-        end note
-        breakfastProvider -[#438DD5]-> caller: Created
-        note right
-        {
-          "noteId": "abc-123",
-          "recipeName": "Recipe-abc",
-          "chefName": "Chef-xyz",
-          "noteText": "Remember to fold the batter gently.",
-          "category": "Technique",
-          "createdAt": "2026-05-17T16:00:50Z"
-        }
-        end note
-
-        hnote across <<stepDelimiter>> #black:<color:white>THEN The response should contain the created note
-
-        hnote across <<assertionNote>> #d4edda
-        ✓ Status code should be Created
-        end note
-
-        hnote across <<assertionNote>> #d4edda
-        ✓ Response recipe name should be correct
-        end note
-
-        @enduml
-        """;
-
-    public static string GenerateReportWithDatabaseStepNoteCollapse(string tempDir, string outputDir, string fileName)
-    {
-        var (features, _) = CreateTestData();
-        var diagrams = new[]
-        {
-            new DiagramAsCode("t1", "", DatabaseStepNoteCollapseSource)
-        };
-
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, Path.Combine(tempDir, fileName), "Test Report", true,
-            diagramFormat: DiagramFormat.PlantUml,
-            plantUmlRendering: PlantUmlRendering.BrowserJs);
-
-        File.Copy(path, Path.Combine(outputDir, fileName), true);
-        return new Uri(path).AbsoluteUri;
-    }
-
-    /// <summary>
-    /// PlantUML source using colored arrow syntax (-[#color]> and -[#color]->) with
-    /// step delimiters and assertion notes, modelled on real-world ReqNRoll test output.
-    /// Generates enough interactions to exceed _maxDiagramHeight (12000px) and trigger
-    /// client-side fragment splitting via splitDiagramSource.
-    /// </summary>
-    private static string ColoredArrowPlantUmlSource
-    {
-        get
-        {
-            // Build 100 colored request-response pairs (200 arrows ≈ 9000px)
-            // plus step delimiters and assertion notes to push past 12000px
-            var interactions = new System.Text.StringBuilder();
-            for (int i = 1; i <= 100; i++)
-            {
-                interactions.AppendLine(
-                    $"\nhnote across <<stepDelimiter>> #black:<color:white>Step {i}\n" +
-                    $"\ncaller -[#438DD5]> svc : [[#iflow-{i} GET: /api/item/{i}]]\n" +
-                    $"note left\n<color:gray>[traceparent=00-abc-{i.ToString("D3")}-00]\nend note\n" +
-                    $"svc -[#438DD5]-> caller : OK\n" +
-                    "note right\n" +
-                    "{\n" +
-                    $"  \"id\": {i},\n" +
-                    $"  \"name\": \"Item {i}\"\n" +
-                    "}\nend note\n" +
-                    "\nhnote across <<assertionNote>> #d4edda\n" +
-                    $"✓ Response status should be OK for item {i}\nend note\n");
-            }
-
-            return """
-                @startuml
-                !pragma teoz true
-                <style>
-                 .eventNote {
-                     BackgroundColor #cfecf7
-                     FontSize 11
-                     RoundCorner 10
-                 }
-                </style>
-                <style>
-                 .assertionNote {
-                     FontSize 11
-                     RoundCorner 5
-                 }
-                </style>
-                skinparam wrapWidth 800
-                autonumber 1
-
-                actor "Caller" as caller
-                entity "Service" as svc
-                database "Database" as db
-
-                """ + interactions + "\n@enduml\n";
-        }
-    }
-
-    public static string GenerateReportWithColoredArrows(string tempDir, string outputDir, string fileName)
-    {
-        var (features, _) = CreateTestData();
-        var diagrams = new[]
-        {
-            new DiagramAsCode("t1", "", ColoredArrowPlantUmlSource)
-        };
-
-        var path = ReportGenerator.GenerateHtmlReport(
-            diagrams, features,
-            DateTime.UtcNow, DateTime.UtcNow,
-            null, Path.Combine(tempDir, fileName), "Test Report", true,
-            diagramFormat: DiagramFormat.PlantUml,
-            plantUmlRendering: PlantUmlRendering.BrowserJs);
-
-        File.Copy(path, Path.Combine(outputDir, fileName), true);
-        return new Uri(path).AbsoluteUri;
-    }
-
-    private static string LargeNotePlantUmlSource
-    {
-        get
-        {
-            // Build 50 colored request-response pairs with small notes (~7650px estimated height)
-            // then one pair with a very large note (>15000 chars) that triggers chunkLargeNotes.
-            // Combined, Part 0 of the chunked split exceeds 12000px and gets height-split.
-            // This reproduces the bug where Part 0 (no @enduml) has its last 'end note'
-            // excluded by parseDiagramStructure, leaving an unclosed note in the fragment.
-            var interactions = new System.Text.StringBuilder();
-            for (int i = 1; i <= 50; i++)
-            {
-                interactions.AppendLine(
-                    $"caller -[#438DD5]> svc : [[#iflow-{i} GET: /api/item/{i}]]\n" +
-                    "note left\n" +
-                    $"<color:gray>[traceparent=00-abc-{i:D3}-00]\n" +
-                    "end note\n" +
-                    "svc -[#438DD5]-> caller : OK\n" +
-                    "note right\n" +
-                    $"{{\"id\":{i},\"name\":\"Item {i}\"}}\n" +
-                    "end note");
-            }
-
-            // Add an arrow pair with a very large note (>15000 chars)
-            interactions.AppendLine("svc -[#E74C3C]> db : Query /data");
-            interactions.AppendLine("note left\nSELECT * FROM items\nend note");
-            interactions.AppendLine("db -[#E74C3C]-> svc : OK");
-            interactions.AppendLine("note right");
-            interactions.AppendLine("{");
-            for (int j = 0; j < 500; j++)
-            {
-                interactions.AppendLine($"  \"item_{j:D4}\": \"value_{j:D4}_xxxxxxxxxxxx\",");
-            }
-            interactions.AppendLine("}");
-            interactions.AppendLine("end note");
-
-            // One more arrow after the large note
-            interactions.AppendLine("svc -[#438DD5]-> caller : OK");
-
-            return """
-                @startuml
-                !pragma teoz true
-                <style>
-                 .eventNote {
-                     BackgroundColor #cfecf7
-                     FontSize 11
-                     RoundCorner 10
-                 }
-                </style>
-                <style>
-                 .assertionNote {
-                     FontSize 11
-                     RoundCorner 5
-                 }
-                </style>
-                skinparam wrapWidth 800
-                autonumber 1
-
-                actor "Caller" as caller
-                entity "Service" as svc
-                database "Database" as db
-
-                """ + interactions + "\n@enduml\n";
-        }
-    }
-
-    public static string GenerateReportWithLargeNote(string tempDir, string outputDir, string fileName)
-    {
-        var (features, _) = CreateTestData();
-        var diagrams = new[]
-        {
-            new DiagramAsCode("t1", "", LargeNotePlantUmlSource)
         };
 
         var path = ReportGenerator.GenerateHtmlReport(

@@ -2438,9 +2438,20 @@ public static class DiagramContextMenu
                 return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
             }
 
-            function isLongNote(contentLines, truncateLines) {
+            function isLongNote(contentLines, truncateLines, headersHidden) {
                 var limit = truncateLines || window._truncateLines;
-                return contentLines && contentLines.length > limit;
+                if (!contentLines) return false;
+                if (!headersHidden) return contentLines.length > limit;
+                var count = 0;
+                var afterGray = false;
+                for (var i = 0; i < contentLines.length; i++) {
+                    var trimmed = contentLines[i].trim();
+                    if (/^<color:gray>/.test(trimmed)) { afterGray = true; continue; }
+                    if (afterGray && trimmed === '') continue;
+                    afterGray = false;
+                    count++;
+                }
+                return count > limit;
             }
 
             // noteStep: 0=collapsed, 1=truncated, 2=expanded (3=truncated on way back down)
@@ -2455,7 +2466,8 @@ public static class DiagramContextMenu
                 var topSize = 14;
                 var pad = 3;
                 var state = noteStepState(noteStep);
-                var longNote = isLongNote(contentLines, container._truncateLines);
+                var hdrHidden = container._headersHidden !== undefined ? container._headersHidden : (container.parentElement && container.parentElement._headersHidden) || window._headersHidden;
+                var longNote = isLongNote(contentLines, container._truncateLines, hdrHidden);
                 var buttons = [];
 
                 // Top-right area: contract buttons — shown when expanded or truncated
@@ -2853,10 +2865,10 @@ public static class DiagramContextMenu
                         // Use original content lines for long-note detection (current source may be collapsed/truncated)
                         var origContentLines = ownerNoteBlocks[globalIdx] ? ownerNoteBlocks[globalIdx].contentLines : noteBlocks[srcIdx].contentLines;
                         // Short notes only have steps 0 (collapsed) and 2 (expanded)
-                        if (!isLongNote(origContentLines, container._truncateLines) && step === 1) step = 2;
+                        if (!isLongNote(origContentLines, container._truncateLines, owner._headersHidden) && step === 1) step = 2;
                         createNoteButtons(svg, bbox, step,
                             function() {
-                                var long = isLongNote(origContentLines, container._truncateLines);
+                                var long = isLongNote(origContentLines, container._truncateLines, owner._headersHidden);
                                 var curStep = owner._noteSteps[globalIdx] || 0;
                                 setNoteState(owner, globalIdx, (long && curStep === 0) ? 1 : 2);
                             },
@@ -2864,7 +2876,7 @@ public static class DiagramContextMenu
                             function() { setNoteState(owner, globalIdx, 1); },
                             function() {
                                 var curStep = owner._noteSteps[globalIdx] || 0;
-                                var long = isLongNote(origContentLines, container._truncateLines);
+                                var long = isLongNote(origContentLines, container._truncateLines, owner._headersHidden);
                                 var nextStep;
                                 if (curStep === 2) nextStep = long ? 1 : 0;
                                 else if (curStep === 1) nextStep = 0;
@@ -3387,7 +3399,7 @@ public static class DiagramContextMenu
                 for (var i = 0; i < origNoteBlocks.length; i++) {
                     var targetStep;
                     if (state === 'expanded') { targetStep = 2; }
-                    else if (state === 'truncated') { targetStep = isLongNote(origNoteBlocks[i].contentLines, el._truncateLines) ? 1 : 2; }
+                    else if (state === 'truncated') { targetStep = isLongNote(origNoteBlocks[i].contentLines, el._truncateLines, window._headersHidden) ? 1 : 2; }
                     else { targetStep = 0; }
                     el._noteSteps[i] = targetStep;
                 }
@@ -3564,13 +3576,14 @@ public static class DiagramContextMenu
                     if (container._headersHidden === undefined) container._headersHidden = window._headersHidden;
                     if (container._truncateLines === undefined) container._truncateLines = window._truncateLines;
                     var containerLines = container._truncateLines;
+                    var hh = container._headersHidden !== undefined ? container._headersHidden : window._headersHidden;
                     var needsUpdate = false;
                     for (var i = 0; i < noteBlocks.length; i++) {
                         var targetStep;
                         if (targetState === 'expanded') {
                             targetStep = 2;
                         } else if (targetState === 'truncated') {
-                            targetStep = isLongNote(noteBlocks[i].contentLines, containerLines) ? 1 : 2;
+                            targetStep = isLongNote(noteBlocks[i].contentLines, containerLines, hh) ? 1 : 2;
                         } else {
                             targetStep = 0;
                         }
@@ -3598,13 +3611,22 @@ public static class DiagramContextMenu
                         var containerLines = container._truncateLines;
                         for (var i = 0; i < noteBlocks.length; i++) {
                             if (state === 'expanded') { container._noteSteps[i] = 2; }
-                            else if (state === 'truncated') { container._noteSteps[i] = isLongNote(noteBlocks[i].contentLines, containerLines) ? 1 : 2; }
+                            else if (state === 'truncated') { container._noteSteps[i] = isLongNote(noteBlocks[i].contentLines, containerLines, hiding) ? 1 : 2; }
                             else { container._noteSteps[i] = 0; }
                         }
                     }
                     var wasHidden = !!container._headersHidden;
                     if (wasHidden === hiding) return;
                     container._headersHidden = hiding;
+                    // Adjust note steps: notes in truncated state (step 1) that are no longer
+                    // "long" under the new header visibility should auto-expand to step 2
+                    var containerLines = container._truncateLines;
+                    for (var i = 0; i < noteBlocks.length; i++) {
+                        var curStep = container._noteSteps[i] || 0;
+                        if (curStep === 1 && !isLongNote(noteBlocks[i].contentLines, containerLines, hiding)) {
+                            container._noteSteps[i] = 2;
+                        }
+                    }
                     queue.push({ container: container, noteBlocks: noteBlocks });
                 });
                 return queue;

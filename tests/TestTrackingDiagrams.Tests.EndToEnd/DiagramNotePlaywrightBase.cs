@@ -1,10 +1,10 @@
 using Microsoft.Playwright;
 
-namespace Kronikol.Tests.EndToEnd;
+namespace TestTrackingDiagrams.Tests.EndToEnd;
 
 /// <summary>
 /// Base class for diagram note tests, providing Playwright equivalents
-/// of the Selenium DiagramNoteTestBase helpers.
+/// of the Playwright DiagramNoteTestBase helpers.
 /// </summary>
 public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
 {
@@ -48,15 +48,6 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
 
     protected string GenerateFragmentedDiagramReport(string fileName) =>
         ReportTestHelper.GenerateReportWithFragmentedDiagram(TempDir, OutputDir, fileName);
-
-    protected string GenerateDatabaseStepNoteCollapseReport(string fileName) =>
-        ReportTestHelper.GenerateReportWithDatabaseStepNoteCollapse(TempDir, OutputDir, fileName);
-
-    protected string GenerateColoredArrowReport(string fileName) =>
-        ReportTestHelper.GenerateReportWithColoredArrows(TempDir, OutputDir, fileName);
-
-    protected string GenerateLargeNoteReport(string fileName) =>
-        ReportTestHelper.GenerateReportWithLargeNote(TempDir, OutputDir, fileName);
 
     protected async Task ExpandAndRenderLongNoteDiagram(string fileName)
     {

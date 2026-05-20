@@ -74,7 +74,7 @@ public class ScenarioTruncateAndCollapsibleNotesTests
     {
         var fnBody = ExtractFunctionBody(_script, "buildDetailsQueue");
         Assert.Contains("container._truncateLines", fnBody);
-        Assert.Contains("isLongNote(noteBlocks[i].contentLines, containerLines)", fnBody);
+        Assert.Matches(@"isLongNote\(noteBlocks\[i\]\.contentLines,\s*containerLines", fnBody);
     }
 
     [Fact]
@@ -96,6 +96,7 @@ public class ScenarioTruncateAndCollapsibleNotesTests
     {
         var fnBody = ExtractFunctionBody(_script, "isLongNote");
         Assert.Contains("truncateLines", fnBody);
+        Assert.Contains("headersHidden", fnBody);
     }
 
     [Fact]
@@ -105,6 +106,82 @@ public class ScenarioTruncateAndCollapsibleNotesTests
         // When switching to truncated, should read the scenario's dropdown value
         Assert.Contains(".truncate-lines-select", fnBody);
         Assert.Contains("c._truncateLines = scenarioLines", fnBody);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Fix: isLongNote excludes gray header lines when
+    //       headersHidden is true
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public void IsLongNote_accepts_headersHidden_parameter()
+    {
+        var fnBody = ExtractFunctionBody(_script, "isLongNote");
+        // Should accept 3 parameters: contentLines, truncateLines, headersHidden
+        Assert.Matches(@"function isLongNote\(contentLines,\s*truncateLines,\s*headersHidden\)", _script);
+    }
+
+    [Fact]
+    public void IsLongNote_with_headersHidden_excludes_gray_lines()
+    {
+        var fnBody = ExtractFunctionBody(_script, "isLongNote");
+        // When headersHidden is true, should count only non-gray lines
+        Assert.Contains("<color:gray>", fnBody);
+        Assert.Contains("headersHidden", fnBody);
+    }
+
+    [Fact]
+    public void IsLongNote_with_headersHidden_skips_blank_after_gray()
+    {
+        var fnBody = ExtractFunctionBody(_script, "isLongNote");
+        // Should skip blank lines that follow gray lines (same as buildSourceWithNoteStates)
+        Assert.Matches(@"afterGray.*===\s*''", fnBody);
+    }
+
+    [Fact]
+    public void IsLongNote_without_headersHidden_returns_early_with_length_check()
+    {
+        var fnBody = ExtractFunctionBody(_script, "isLongNote");
+        // When headersHidden is false/undefined, should use simple length check
+        Assert.Contains("contentLines.length > limit", fnBody);
+    }
+
+    [Fact]
+    public void CreateNoteButtons_passes_headersHidden_to_isLongNote()
+    {
+        var fnBody = ExtractFunctionBody(_script, "createNoteButtons");
+        // Should pass headers-hidden state to isLongNote
+        Assert.Matches(@"isLongNote\(contentLines,\s*container\._truncateLines,\s*\w+", fnBody);
+    }
+
+    [Fact]
+    public void MakeNotesCollapsible_passes_headersHidden_to_isLongNote()
+    {
+        // All isLongNote calls within the note-collapsible loop should pass owner._headersHidden
+        var fnBody = ExtractFunctionBody(_script, "makeNotesCollapsible");
+        Assert.Matches(@"isLongNote\(origContentLines,\s*container\._truncateLines,\s*owner\._headersHidden\)", fnBody);
+    }
+
+    [Fact]
+    public void BuildDetailsQueue_passes_headersHidden_to_isLongNote()
+    {
+        var fnBody = ExtractFunctionBody(_script, "buildDetailsQueue");
+        Assert.Matches(@"isLongNote\(noteBlocks\[i\]\.contentLines,\s*containerLines,\s*\w+", fnBody);
+    }
+
+    [Fact]
+    public void BuildHeadersQueue_passes_hiding_to_isLongNote()
+    {
+        var fnBody = ExtractFunctionBody(_script, "buildHeadersQueue");
+        // Should pass the `hiding` parameter (the target state) to isLongNote
+        Assert.Matches(@"isLongNote\(noteBlocks\[i\]\.contentLines,\s*containerLines,\s*hiding\)", fnBody);
+    }
+
+    [Fact]
+    public void ProcessRenderQueue_passes_headersHidden_to_isLongNote()
+    {
+        var fnBody = ExtractFunctionBody(_script, "_preProcessSource");
+        Assert.Matches(@"isLongNote\(origNoteBlocks\[i\]\.contentLines,\s*el\._truncateLines,\s*window\._headersHidden\)", fnBody);
     }
 
     // ═══════════════════════════════════════════════════════════
