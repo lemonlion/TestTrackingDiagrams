@@ -7,7 +7,8 @@ namespace Kronikol.Tracking;
 /// An <see cref="IHttpMessageHandlerBuilderFilter"/> that adds <see cref="TestTrackingMessageHandler"/>
 /// to every HttpClient pipeline. Unlike the legacy <see cref="TestTrackingHttpClientFactory"/> approach,
 /// this filter coexists with other registered filters (Polly, logging, user filters) and passes
-/// the <c>builder.Name</c> as the <c>clientName</c> for <c>ClientNamesToServiceNames</c> resolution.
+/// the <c>builder.Name</c> as the <c>clientName</c> for <c>ClientNamesToServiceNames</c> resolution
+/// (exact match first, then ends-with fallback for Refit-style generated names).
 /// </summary>
 internal class TrackingHttpMessageHandlerBuilderFilter(
     TestTrackingMessageHandlerOptions options,

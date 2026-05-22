@@ -304,10 +304,10 @@ public class TestTrackingMessageHandlerTests : IDisposable
         Assert.Equal("Fixed Service", requestLog.ServiceName);
     }
 
-    // ─── Contains matching for client names (#65) ─────────────
+    // ─── Ends-with matching for client names (#65) ────────────
 
     [Fact]
-    public async Task Contains_matching_resolves_client_name_when_exact_match_fails()
+    public async Task EndsWith_matching_resolves_client_name_when_exact_match_fails()
     {
         var options = new TestTrackingMessageHandlerOptions
         {
@@ -324,13 +324,13 @@ public class TestTrackingMessageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Exact_match_takes_priority_over_contains_match()
+    public async Task Exact_match_takes_priority_over_endswith_match()
     {
         var options = new TestTrackingMessageHandlerOptions
         {
             ClientNamesToServiceNames = new Dictionary<string, string>
             {
-                { "IIntelligenceAiApiClient", "Contains Match" },
+                { "IIntelligenceAiApiClient", "EndsWith Match" },
                 { "Refit.Implementation.Generated+SomeModule+IIntelligenceAiApiClient", "Exact Match" },
             },
             CallerName = "Caller",
@@ -345,7 +345,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Contains_matching_does_not_record_unmatched_client_name()
+    public async Task EndsWith_matching_does_not_record_unmatched_client_name()
     {
         UnmatchedClientNameRegistry.Clear();
         var options = new TestTrackingMessageHandlerOptions

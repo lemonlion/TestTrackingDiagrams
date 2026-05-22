@@ -70,12 +70,12 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (_clientName is not null && _clientNamesToServiceNames.TryGetValue(_clientName, out var mapped))
             return mapped;
 
-        // 3. Client name mapping — contains match (for Refit/generated client names)
+        // 3. Client name mapping — ends-with match (for Refit/generated client names)
         if (_clientName is not null && _clientNamesToServiceNames.Count > 0)
         {
             foreach (var kvp in _clientNamesToServiceNames)
             {
-                if (_clientName.Contains(kvp.Key, StringComparison.Ordinal))
+                if (_clientName.EndsWith(kvp.Key, StringComparison.Ordinal))
                     return kvp.Value;
             }
 
