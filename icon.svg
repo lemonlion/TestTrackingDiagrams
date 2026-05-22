@@ -26,10 +26,10 @@
   <rect x="0" y="102" width="128" height="20" rx="10" fill="url(#rollBot)"/>
 
   <!-- Arrow 1: right -->
-  <line x1="24" y1="50" x2="84" y2="50" stroke="white" stroke-width="9" stroke-linecap="round"/>
-  <polygon points="81,37 104,50 81,63" fill="white"/>
+  <line x1="24" y1="50" x2="84" y2="50" stroke="#101E3C" stroke-width="9" stroke-linecap="round"/>
+  <polygon points="81,37 104,50 81,63" fill="#101E3C"/>
 
   <!-- Arrow 2: left -->
-  <line x1="104" y1="80" x2="44" y2="80" stroke="white" stroke-width="9" stroke-linecap="round"/>
-  <polygon points="47,93 24,80 47,67" fill="white"/>
+  <line x1="104" y1="80" x2="44" y2="80" stroke="#101E3C" stroke-width="9" stroke-linecap="round"/>
+  <polygon points="47,93 24,80 47,67" fill="#101E3C"/>
 </svg>

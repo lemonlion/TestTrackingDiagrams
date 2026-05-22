@@ -27,10 +27,10 @@ internal static class DefaultFavicon
         + "cm9sbFRvcCkiLz4NCg0KICA8IS0tIFNjcm9sbCBib3R0b20gcm9sbCAtLT4NCiAgPHJlY3QgeD0i"
         + "MCIgeT0iMTAyIiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9InVybCgjcm9s"
         + "bEJvdCkiLz4NCg0KICA8IS0tIEFycm93IDE6IHJpZ2h0IC0tPg0KICA8bGluZSB4MT0iMjQiIHkx"
-        + "PSI1MCIgeDI9Ijg0IiB5Mj0iNTAiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iOSIgc3Ry"
-        + "b2tlLWxpbmVjYXA9InJvdW5kIi8+DQogIDxwb2x5Z29uIHBvaW50cz0iODEsMzcgMTA0LDUwIDgx"
-        + "LDYzIiBmaWxsPSJ3aGl0ZSIvPg0KDQogIDwhLS0gQXJyb3cgMjogbGVmdCAtLT4NCiAgPGxpbmUg"
-        + "eDE9IjEwNCIgeTE9IjgwIiB4Mj0iNDQiIHkyPSI4MCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdp"
-        + "ZHRoPSI5IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgPHBvbHlnb24gcG9pbnRzPSI0Nyw5"
-        + "MyAyNCw4MCA0Nyw2NyIgZmlsbD0id2hpdGUiLz4NCjwvc3ZnPg0K";
+        + "PSI1MCIgeDI9Ijg0IiB5Mj0iNTAiIHN0cm9rZT0iIzEwMUUzQyIgc3Ryb2tlLXdpZHRoPSI5IiBz"
+        + "dHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgPHBvbHlnb24gcG9pbnRzPSI4MSwzNyAxMDQsNTAg"
+        + "ODEsNjMiIGZpbGw9IiMxMDFFM0MiLz4NCg0KICA8IS0tIEFycm93IDI6IGxlZnQgLS0+DQogIDxs"
+        + "aW5lIHgxPSIxMDQiIHkxPSI4MCIgeDI9IjQ0IiB5Mj0iODAiIHN0cm9rZT0iIzEwMUUzQyIgc3Ry"
+        + "b2tlLXdpZHRoPSI5IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgPHBvbHlnb24gcG9pbnRz"
+        + "PSI0Nyw5MyAyNCw4MCA0Nyw2NyIgZmlsbD0iIzEwMUUzQyIvPg0KPC9zdmc+DQo=";
 }

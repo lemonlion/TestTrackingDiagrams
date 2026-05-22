@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.26] - 2026-05-22
+
+### Changed
+- **Icon arrow color changed from white to `#101E3C`** — Updated the arrow color in the SVG icon, PNG icon, and embedded favicon to dark navy (`#101E3C`) for better contrast.
+
 ## [3.0.25] - 2026-05-22
 
 ### Fixed
