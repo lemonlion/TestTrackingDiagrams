@@ -304,6 +304,64 @@ public class TestTrackingMessageHandlerTests : IDisposable
         Assert.Equal("Fixed Service", requestLog.ServiceName);
     }
 
+    // ─── Contains matching for client names (#65) ─────────────
+
+    [Fact]
+    public async Task Contains_matching_resolves_client_name_when_exact_match_fails()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "IIntelligenceAiApiClient", "Intelligence AI" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "Refit.Implementation.Generated+SomeModule+IIntelligenceAiApiClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Intelligence AI", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Exact_match_takes_priority_over_contains_match()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string>
+            {
+                { "IIntelligenceAiApiClient", "Contains Match" },
+                { "Refit.Implementation.Generated+SomeModule+IIntelligenceAiApiClient", "Exact Match" },
+            },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "Refit.Implementation.Generated+SomeModule+IIntelligenceAiApiClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Exact Match", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Contains_matching_does_not_record_unmatched_client_name()
+    {
+        UnmatchedClientNameRegistry.Clear();
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "IIntelligenceAiApiClient", "Intelligence AI" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, clientName: "Refit.Implementation.Generated+SomeModule+IIntelligenceAiApiClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        Assert.Empty(UnmatchedClientNameRegistry.GetRecordedNames());
+        UnmatchedClientNameRegistry.Clear();
+    }
+
     // ─── Unmatched client name tracking (#10) ───────────────────
 
     [Fact]

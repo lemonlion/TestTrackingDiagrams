@@ -66,15 +66,24 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (_fixedServiceName is not null)
             return _fixedServiceName;
 
-        // 2. Client name mapping (set via constructor clientName parameter)
+        // 2. Client name mapping — exact match (set via constructor clientName parameter)
         if (_clientName is not null && _clientNamesToServiceNames.TryGetValue(_clientName, out var mapped))
             return mapped;
 
-        // Record unmatched client name for diagnostic reporting
+        // 3. Client name mapping — contains match (for Refit/generated client names)
         if (_clientName is not null && _clientNamesToServiceNames.Count > 0)
-            UnmatchedClientNameRegistry.Record(_clientName);
+        {
+            foreach (var kvp in _clientNamesToServiceNames)
+            {
+                if (_clientName.Contains(kvp.Key, StringComparison.Ordinal))
+                    return kvp.Value;
+            }
 
-        // 3. Port-based mapping or fallback to localhost:port
+            // Record unmatched client name for diagnostic reporting
+            UnmatchedClientNameRegistry.Record(_clientName);
+        }
+
+        // 4. Port-based mapping or fallback to localhost:port
         return _getServiceNameFromPortTranslator(port);
     }
 

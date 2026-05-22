@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 
 namespace Kronikol.Tracking;
 
@@ -15,7 +16,7 @@ public static class ServiceCollectionHelper
     {
         services.AddSingleton(options);
         services.AddHttpContextAccessor();
-        services.AddSingleton<IHttpClientFactory, TestTrackingHttpClientFactory>();
+        services.AddSingleton<IHttpMessageHandlerBuilderFilter, TrackingHttpMessageHandlerBuilderFilter>();
 
         return services;
     }
