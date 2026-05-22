@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.22] - 2026-05-22
+
+### Fixed
+- **`ClientNamesToServiceNames` ends-with matching now requires a non-alphanumeric boundary** — The suffix fallback no longer matches when the preceding character is a letter or digit, preventing false positives (e.g. key `"Client"` incorrectly matching `"MyBetterClient"`). Only true separator characters (`+`, `.`, `-`, `/`, etc.) qualify as a valid boundary. ([#65](https://github.com/lemonlion/Kronikol/issues/65))
+
 ## [3.0.21] - 2026-05-22
 
 ### Fixed

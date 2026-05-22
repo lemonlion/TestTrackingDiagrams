@@ -71,11 +71,15 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             return mapped;
 
         // 3. Client name mapping — ends-with match (for Refit/generated client names)
+        //    Only matches if the key is preceded by a non-alphanumeric character (e.g. '+', '.', '-')
+        //    to prevent false positives like key "Client" matching "MyBetterClient".
         if (_clientName is not null && _clientNamesToServiceNames.Count > 0)
         {
             foreach (var kvp in _clientNamesToServiceNames)
             {
-                if (_clientName.EndsWith(kvp.Key, StringComparison.Ordinal))
+                if (_clientName.Length > kvp.Key.Length
+                    && _clientName.EndsWith(kvp.Key, StringComparison.Ordinal)
+                    && !char.IsLetterOrDigit(_clientName[_clientName.Length - kvp.Key.Length - 1]))
                     return kvp.Value;
             }
 

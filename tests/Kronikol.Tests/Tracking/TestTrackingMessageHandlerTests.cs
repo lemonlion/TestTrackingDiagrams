@@ -362,6 +362,25 @@ public class TestTrackingMessageHandlerTests : IDisposable
         UnmatchedClientNameRegistry.Clear();
     }
 
+    [Fact]
+    public async Task EndsWith_matching_requires_non_alphanumeric_boundary()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "Client", "Should Not Match" } },
+            PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port Fallback" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        // "MyBetterClient" ends with "Client" but the preceding char 'r' is a letter — should NOT match
+        using var invoker = CreateInvoker(options, clientName: "MyBetterClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Port Fallback", requestLog.ServiceName);
+    }
+
     // ─── Unmatched client name tracking (#10) ───────────────────
 
     [Fact]
