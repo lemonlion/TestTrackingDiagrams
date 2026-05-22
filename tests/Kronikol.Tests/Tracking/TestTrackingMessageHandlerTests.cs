@@ -25,6 +25,12 @@ public class TestTrackingMessageHandlerTests : IDisposable
             CapturedRequest = request;
             return Task.FromResult(ResponseToReturn);
         }
+
+        protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            CapturedRequest = request;
+            return ResponseToReturn;
+        }
     }
 
     private readonly StubInnerHandler _innerHandler = new();
@@ -1069,7 +1075,7 @@ public class TestTrackingMessageHandlerTests : IDisposable
     // ─── Synchronous Send() method ──────────────────────────────
 
     [Fact]
-    public void Sync_send_logs_request_and_response()
+    public void Sync_send_forwards_without_tracking()
     {
         var handler = new TestTrackingMessageHandler(DefaultOptions())
         {
@@ -1077,13 +1083,12 @@ public class TestTrackingMessageHandlerTests : IDisposable
         };
         using var client = new HttpClient(handler);
 
-        // HttpClient.Send uses the synchronous Send() override, which delegates to SendAsync
+        // Synchronous Send() forwards without tracking to avoid deadlocks (issue #69).
+        // Infrastructure callers (Docker, TestContainers) use the sync path and don't need tracking.
         var response = client.Send(MakeGetRequest(), CancellationToken.None);
 
         var logs = GetLogsFromThisTest();
-        Assert.Equal(2, logs.Length);
-        Assert.Equal(RequestResponseType.Request, logs[0].Type);
-        Assert.Equal(RequestResponseType.Response, logs[1].Type);
+        Assert.Empty(logs);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -1916,6 +1921,48 @@ public class TestTrackingMessageHandlerTests : IDisposable
         // Request should still be forwarded to InnerHandler
         Assert.NotNull(_innerHandler.CapturedRequest);
         // But no tracking logs should be generated
+        var logs = GetLogsFromThisTest();
+        Assert.Empty(logs);
+    }
+
+    // ─── Synchronous Send path (issue #69 deadlock fix) ───────
+
+    [Fact]
+    public void Sync_Send_completes_without_deadlock()
+    {
+        // The synchronous Send() override must not call .GetAwaiter().GetResult()
+        // on SendAsync(), which causes deadlocks when infrastructure HTTP clients
+        // (e.g. TestContainers, Docker) use the sync path.
+        var options = DefaultOptions();
+        var handler = new TestTrackingMessageHandler(options)
+        {
+            InnerHandler = _innerHandler
+        };
+        using var invoker = new HttpMessageInvoker(handler);
+        var request = MakeGetRequest();
+
+        // Must complete without hanging. If the old .GetAwaiter().GetResult()
+        // pattern is still in place, this could deadlock in certain contexts.
+        var response = invoker.Send(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public void Sync_Send_does_not_produce_tracking_logs()
+    {
+        // Synchronous calls are infrastructure (Docker, TestContainers, config fetches).
+        // They should forward without tracking to avoid deadlocks.
+        var options = DefaultOptions();
+        var handler = new TestTrackingMessageHandler(options)
+        {
+            InnerHandler = _innerHandler
+        };
+        using var invoker = new HttpMessageInvoker(handler);
+        var request = MakeGetRequest();
+
+        invoker.Send(request, CancellationToken.None);
+
         var logs = GetLogsFromThisTest();
         Assert.Empty(logs);
     }

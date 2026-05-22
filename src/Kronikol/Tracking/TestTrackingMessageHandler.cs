@@ -106,7 +106,11 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        return SendAsync(request, cancellationToken).GetAwaiter().GetResult();
+        // Forward without tracking. Synchronous callers are typically infrastructure
+        // (TestContainers, Docker, config fetches) — not test-initiated requests.
+        // The previous .GetAwaiter().GetResult() pattern caused deadlocks (issue #69).
+        InnerHandler ??= new HttpClientHandler();
+        return base.Send(request, cancellationToken);
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

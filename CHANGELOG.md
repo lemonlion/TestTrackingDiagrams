@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.24] - 2026-05-22
+
+### Fixed
+- **`TrackDependenciesForDiagrams` no longer hangs when `PortsToServiceNames` includes port 80** — The synchronous `Send()` override previously called `.GetAwaiter().GetResult()` on `SendAsync()`, creating a classic sync-over-async deadlock when infrastructure HTTP clients (TestContainers, Docker, configuration fetches) used the synchronous code path. The handler now forwards synchronous requests directly without tracking, since sync callers are infrastructure-level and not test-initiated requests. ([#69](https://github.com/lemonlion/Kronikol/issues/69))
+
 ## [3.0.23] - 2026-05-22
 
 ### Fixed
