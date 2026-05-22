@@ -381,6 +381,43 @@ public class TestTrackingMessageHandlerTests : IDisposable
         Assert.Equal("Port Fallback", requestLog.ServiceName);
     }
 
+    [Fact]
+    public async Task Contains_matching_resolves_assembly_qualified_refit_v9_names()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "IIntelligenceAiApiClient", "Intelligence AI" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        // Refit v9 assembly-qualified name: type portion concatenates without separators before the interface
+        using var invoker = CreateInvoker(options, clientName: "Refit.Implementation.Generated+DataInsightsApiHttpClientsIntelligenceAiIIntelligenceAiApiClient, Data.Insights.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Intelligence AI", requestLog.ServiceName);
+    }
+
+    [Fact]
+    public async Task Contains_matching_does_not_apply_to_non_assembly_qualified_names()
+    {
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            ClientNamesToServiceNames = new Dictionary<string, string> { { "Client", "Should Not Match" } },
+            PortsToServiceNames = new Dictionary<int, string> { { 5000, "Port Fallback" } },
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Test", _testId),
+        };
+        // Simple name without assembly qualification — Contains fallback should NOT activate
+        using var invoker = CreateInvoker(options, clientName: "MyBetterClient");
+
+        await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5000/api"), CancellationToken.None);
+
+        var requestLog = GetLogsFromThisTest().First(l => l.Type == RequestResponseType.Request);
+        Assert.Equal("Port Fallback", requestLog.ServiceName);
+    }
+
     // ─── Unmatched client name tracking (#10) ───────────────────
 
     [Fact]

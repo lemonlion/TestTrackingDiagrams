@@ -70,16 +70,29 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         if (_clientName is not null && _clientNamesToServiceNames.TryGetValue(_clientName, out var mapped))
             return mapped;
 
-        // 3. Client name mapping — ends-with match (for Refit/generated client names)
-        //    Only matches if the key is preceded by a non-alphanumeric character (e.g. '+', '.', '-')
-        //    to prevent false positives like key "Client" matching "MyBetterClient".
+        // 3. Client name mapping — suffix/contains match (for Refit/generated client names)
+        //    Steps: strip assembly qualification, try EndsWith with boundary, then Contains fallback
+        //    (Contains only when assembly-qualified, to avoid false positives on simple names).
         if (_clientName is not null && _clientNamesToServiceNames.Count > 0)
         {
+            // Strip assembly qualification (e.g. ", Data.Insights.Api, Version=...")
+            var commaIndex = _clientName.IndexOf(", ", StringComparison.Ordinal);
+            var isAssemblyQualified = commaIndex >= 0;
+            var effectiveName = isAssemblyQualified ? _clientName.AsSpan(0, commaIndex) : _clientName.AsSpan();
+
             foreach (var kvp in _clientNamesToServiceNames)
             {
-                if (_clientName.Length > kvp.Key.Length
-                    && _clientName.EndsWith(kvp.Key, StringComparison.Ordinal)
-                    && !char.IsLetterOrDigit(_clientName[_clientName.Length - kvp.Key.Length - 1]))
+                // 3a. EndsWith with non-alphanumeric boundary (e.g. Namespace+IClient)
+                if (effectiveName.Length > kvp.Key.Length
+                    && effectiveName.EndsWith(kvp.Key.AsSpan(), StringComparison.Ordinal)
+                    && !char.IsLetterOrDigit(effectiveName[effectiveName.Length - kvp.Key.Length - 1]))
+                    return kvp.Value;
+
+                // 3b. Contains fallback — only for assembly-qualified names (Refit v9)
+                //     to avoid false positives on simple names like "Client" matching "MyBetterClient"
+                if (isAssemblyQualified
+                    && effectiveName.Length > kvp.Key.Length
+                    && effectiveName.Contains(kvp.Key.AsSpan(), StringComparison.Ordinal))
                     return kvp.Value;
             }
 

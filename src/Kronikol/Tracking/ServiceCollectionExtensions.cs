@@ -63,7 +63,7 @@ public static class ServiceCollectionHelper
     /// </summary>
     public static IServiceCollection AddTestTrackingContextPropagation(this IServiceCollection services)
     {
-        services.TryAddSingleton<IStartupFilter, TestTrackingContextStartupFilter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStartupFilter, TestTrackingContextStartupFilter>());
         return services;
     }
 }

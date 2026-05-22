@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.23] - 2026-05-22
+
+### Fixed
+- **`AddTestTrackingContextPropagation` no longer silently fails when other `IStartupFilter` registrations exist** — Previously used `TryAddSingleton<IStartupFilter>` which is a no-op when any other `IStartupFilter` is already registered (ASP.NET Core always has several). Now uses `TryAddEnumerable` which correctly checks by both service type and implementation type. ([#66](https://github.com/lemonlion/Kronikol/issues/66))
+- **`ClientNamesToServiceNames` now matches Refit v9 assembly-qualified client names** — Refit v9 registers clients with assembly-qualified names (e.g. `...IntelligenceAiIIntelligenceAiApiClient, Data.Insights.Api, Version=1.0.0.0, ...`) that end with `PublicKeyToken=null`, not the interface name. The resolver now strips assembly qualification before matching, and uses a `Contains` fallback for assembly-qualified names when `EndsWith` with boundary fails. ([#67](https://github.com/lemonlion/Kronikol/issues/67))
+
 ## [3.0.22] - 2026-05-22
 
 ### Fixed

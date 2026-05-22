@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -74,6 +75,21 @@ public class ServiceCollectionTrackingExtensionsTests
     }
 
     [Fact]
+    public void AddTestTrackingContextPropagation_registers_when_other_startup_filters_exist()
+    {
+        var services = new ServiceCollection();
+        // Simulate ASP.NET Core registering other startup filters first
+        services.AddSingleton<IStartupFilter, DummyStartupFilter>();
+
+        services.AddTestTrackingContextPropagation();
+
+        var count = services.Count(s =>
+            s.ServiceType == typeof(IStartupFilter) &&
+            s.ImplementationType == typeof(TestTrackingContextStartupFilter));
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
     public void TrackDependenciesForDiagrams_registers_IHttpMessageHandlerBuilderFilter()
     {
         var services = new ServiceCollection();
@@ -133,5 +149,10 @@ public class ServiceCollectionTrackingExtensionsTests
     private class FakeService : IFakeService
     {
         public string DoWork() => "done";
+    }
+
+    private class DummyStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => next;
     }
 }
