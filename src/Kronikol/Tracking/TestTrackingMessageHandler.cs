@@ -46,7 +46,6 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         _trackDuringSetup = options.TrackDuringSetup;
         _trackDuringAction = options.TrackDuringAction;
         _excludedHosts = options.ExcludedHosts;
-        InnerHandler ??= new HttpClientHandler();
 
         TrackingComponentRegistry.Register(this);
     }
@@ -86,6 +85,11 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        // Lazy-initialize InnerHandler for standalone usage (new HttpClient(handler)).
+        // When used with HttpClientFactory / IHttpMessageHandlerBuilderFilter, the pipeline
+        // builder sets InnerHandler before first use — so this only fires for direct construction.
+        InnerHandler ??= new HttpClientHandler();
+
         Interlocked.Increment(ref _invocationCount);
 
         // Deferred start — registering an ActivityListener during DI resolution
@@ -160,17 +164,29 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
 
         var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First()!, currentTestIdHeaders.First()!) : _currentTestInfoFetcher;
 
-        // Resolve test info once — if the fetcher throws, skip all tracking and just forward the request.
+        // Resolve test info once — if the fetcher throws, fall back to TestIdentityScope,
+        // then skip all tracking and just forward the request.
         (string Name, string Id) currentTestInfo;
         try
         {
             if (currentTestInfoFetcher is null)
-                return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            currentTestInfo = currentTestInfoFetcher();
+            {
+                var scopeIdentity = TestIdentityScope.Current ?? TestIdentityScope.GlobalFallback;
+                if (scopeIdentity is null)
+                    return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                currentTestInfo = scopeIdentity.Value;
+            }
+            else
+            {
+                currentTestInfo = currentTestInfoFetcher();
+            }
         }
         catch
         {
-            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            var scopeIdentity = TestIdentityScope.Current ?? TestIdentityScope.GlobalFallback;
+            if (scopeIdentity is null)
+                return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            currentTestInfo = scopeIdentity.Value;
         }
 
         var traceId = hasTraceIdHeader ? Guid.Parse(traceIdHeaders.First()!) : Guid.NewGuid();

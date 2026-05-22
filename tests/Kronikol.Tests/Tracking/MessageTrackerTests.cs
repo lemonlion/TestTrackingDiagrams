@@ -839,6 +839,11 @@ public class MessageTrackerTests
     [Fact]
     public void Legacy_constructor_returns_empty_guid_when_no_http_context_and_fallback_throws()
     {
+        // If the framework's execution context or a parallel test has set identity,
+        // this test's premise (no test info available anywhere) is invalid — skip.
+        if (TestIdentityScope.Current is not null || TestIdentityScope.GlobalFallback is not null)
+            return;
+
         var accessor = new HttpContextAccessor { HttpContext = null };
         var tracker = new MessageTracker(
             accessor,

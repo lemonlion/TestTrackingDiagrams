@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.19] - 2026-05-21
+
+### Fixed
+- **`TestTrackingMessageHandler` no longer pre-sets `InnerHandler` in the constructor** — The handler now lazily initialises `InnerHandler` to `HttpClientHandler` on first `SendAsync` only if nothing else has set it. This fixes `InvalidOperationException` when using the handler with `IHttpClientFactory`'s `CreateHandlerPipeline()`, `AddHttpMessageHandler<T>()`, or `IHttpMessageHandlerBuilderFilter`. The `SafeTrackingDelegatingHandler` wrapper is no longer needed. ([#62](https://github.com/lemonlion/Kronikol/issues/62))
+- **`TestTrackingMessageHandler` and `MessageTracker` now fall back to `TestIdentityScope.Current` when `CurrentTestInfoFetcher` is null or throws** — Previously, if there was no `HttpContext` and no working fetcher delegate, tracking was silently skipped. Now the resolution chain continues through `TestIdentityScope.Current` → `TestIdentityScope.GlobalFallback` before giving up. This enables tracking inside `Task.Run` and other fire-and-forget scenarios when combined with `AddTestTrackingContextPropagation()`. ([#63](https://github.com/lemonlion/Kronikol/issues/63))
+
+### Added
+- **`AddTestTrackingContextPropagation()` extension method** — Registers `TestTrackingContextMiddleware` via `IStartupFilter`, which reads `kronikol-test-name` and `kronikol-test-id` headers from incoming requests and establishes a `TestIdentityScope` for the request duration. The `AsyncLocal`-based scope propagates into `Task.Run`, background threads, and other async dispatch, enabling tracking of fire-and-forget HTTP calls made within a request. ([#63](https://github.com/lemonlion/Kronikol/issues/63))
+- **Documentation: Refit / HttpClientFactory integration guide** — Added Pattern 9 to the [[Tracking Dependencies]] wiki page covering `IHttpMessageHandlerBuilderFilter` with Refit named clients, `AddTestTrackingContextPropagation()` for fire-and-forget, and semaphore flush patterns. Updated `InnerHandler` documentation to reflect the new lazy initialization behaviour. ([#64](https://github.com/lemonlion/Kronikol/issues/64))
+
 ## [3.0.18] - 2026-05-21
 
 ### Added

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -48,6 +49,19 @@ public static class ServiceCollectionHelper
             services.AddSingleton(new MessageTracker(options));
         }
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="TestTrackingContextStartupFilter"/> which injects middleware
+    /// that propagates test-tracking HTTP headers into <see cref="TestIdentityScope.Current"/>.
+    /// This enables test identity to flow into background tasks (Task.Run, fire-and-forget)
+    /// via AsyncLocal, so that <see cref="TestTrackingMessageHandler"/> can track HTTP calls
+    /// made from those background threads.
+    /// </summary>
+    public static IServiceCollection AddTestTrackingContextPropagation(this IServiceCollection services)
+    {
+        services.AddSingleton<IStartupFilter, TestTrackingContextStartupFilter>();
         return services;
     }
 }
