@@ -1056,12 +1056,12 @@ public class TestTrackingMessageHandlerTests : IDisposable
     // ─── Partial context headers (only name, no ID) ─────────────
 
     [Fact]
-    public async Task Context_with_test_name_but_no_test_id_skips_tracking_instead_of_crashing()
+    public async Task Context_with_test_name_but_no_test_id_falls_back_to_fetcher()
     {
-        // When hasCurrentTestNameHeader is true, the handler replaces the test info fetcher
-        // with one that reads both name and ID from context headers. If only the name header
-        // is present, the ID StringValues is empty and .First() throws — but the safety
-        // catch ensures the request is still forwarded without tracking.
+        // When only the name header is present (no ID header), the handler must NOT build
+        // a partial lambda — both headers must be present for the context-header path to
+        // activate. With only the name header, the handler falls back to _currentTestInfoFetcher
+        // and tracking proceeds normally.
         var accessor = CreateHttpContextAccessor(
             (TestTrackingHttpHeaders.CurrentTestNameHeader, "Context Name Only"));
         var options = new TestTrackingMessageHandlerOptions
@@ -1075,7 +1075,9 @@ public class TestTrackingMessageHandlerTests : IDisposable
         var response = await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Empty(GetLogsFromThisTest());
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal("Fetcher Name", logs[0].TestName);
     }
 
     // ─── Fixed service name ignores port completely ─────────────
@@ -1802,5 +1804,33 @@ public class TestTrackingMessageHandlerTests : IDisposable
         // But no tracking logs should be generated
         var logs = GetLogsFromThisTest();
         Assert.Empty(logs);
+    }
+
+    [Fact]
+    public async Task Fetcher_is_used_when_only_test_name_header_present_without_id_header()
+    {
+        // When the incoming HttpContext has the name header but NOT the ID header,
+        // the handler must NOT build a lambda that only references the name header —
+        // instead it should fall through to _currentTestInfoFetcher so tracking
+        // still works (rather than throwing and skipping all tracking).
+        TestIdentityScope.Reset();
+
+        var accessor = CreateHttpContextAccessor(
+            (TestTrackingHttpHeaders.CurrentTestNameHeader, "Context Name"));
+
+        var options = new TestTrackingMessageHandlerOptions
+        {
+            FixedNameForReceivingService = "Svc",
+            CallerName = "Caller",
+            CurrentTestInfoFetcher = () => ("Fetcher Test", _testId),
+        };
+        using var invoker = CreateInvoker(options, accessor);
+
+        await invoker.SendAsync(MakeGetRequest(), CancellationToken.None);
+
+        var logs = GetLogsFromThisTest();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal("Fetcher Test", logs[0].TestName);
+        Assert.Equal(_testId, logs[0].TestId);
     }
 }

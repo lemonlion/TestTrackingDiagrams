@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.20] - 2026-05-22
+
+### Fixed
+- **`TestTrackingMessageHandler` uses `_currentTestInfoFetcher` when only the test-name header is present (no ID header)** — Previously, if only the `kronikol-test-name` header was in the incoming request (but not `kronikol-test-id`), the handler built a partial lambda that called `StringValues.First()` on an empty sequence, throwing `InvalidOperationException`. The catch block then skipped tracking entirely, silently dropping logs even though a valid `CurrentTestInfoFetcher` was configured. Now both headers must be present for the context-header path to activate; with only a partial header the handler falls back to `_currentTestInfoFetcher` and tracking proceeds normally.
+- **`AddTestTrackingContextPropagation()` is idempotent** — Calling the extension method more than once (e.g. from a base `WebApplicationFactory` and a derived one) previously registered `TestTrackingContextStartupFilter` twice, causing `TestIdentityScope.Begin` to be called twice per request. Changed to `TryAddSingleton` so the second call is a no-op.
+- **`_listenerStarted` field uses `Volatile.Read`/`Volatile.Write`** — The bare `bool` read/write was a data race under concurrent first requests on a shared `TestTrackingMessageHandler` instance. `Volatile.Read` and `Volatile.Write` establish the required memory ordering without a lock.
+
 ## [3.0.19] - 2026-05-21
 
 ### Fixed

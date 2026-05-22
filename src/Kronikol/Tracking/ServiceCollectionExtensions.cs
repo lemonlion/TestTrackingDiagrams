@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Kronikol.Tracking;
 
@@ -61,7 +62,7 @@ public static class ServiceCollectionHelper
     /// </summary>
     public static IServiceCollection AddTestTrackingContextPropagation(this IServiceCollection services)
     {
-        services.AddSingleton<IStartupFilter, TestTrackingContextStartupFilter>();
+        services.TryAddSingleton<IStartupFilter, TestTrackingContextStartupFilter>();
         return services;
     }
 }

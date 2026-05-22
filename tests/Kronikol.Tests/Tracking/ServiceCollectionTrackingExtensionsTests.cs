@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Kronikol.Extensions.DispatchProxy;
 using Kronikol.InternalFlow;
@@ -55,6 +56,20 @@ public class ServiceCollectionTrackingExtensionsTests
         var logs = GetLogsForTest();
         Assert.Equal(2, logs.Length);
         Assert.All(logs, l => Assert.Null(l.DependencyCategory));
+    }
+
+    [Fact]
+    public void AddTestTrackingContextPropagation_called_twice_registers_only_one_startup_filter()
+    {
+        var services = new ServiceCollection();
+
+        services.AddTestTrackingContextPropagation();
+        services.AddTestTrackingContextPropagation();
+
+        var count = services.Count(s =>
+            s.ServiceType == typeof(IStartupFilter) &&
+            s.ImplementationType == typeof(TestTrackingContextStartupFilter));
+        Assert.Equal(1, count);
     }
 
     public interface IFakeService

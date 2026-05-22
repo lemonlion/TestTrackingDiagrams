@@ -97,10 +97,10 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
         // Application Insights' DependencyTrackingTelemetryModule have fully
         // initialised, breaking HTTP dependency telemetry. Starting on first
         // use guarantees all other services are ready.
-        if (!_listenerStarted)
+        if (!Volatile.Read(ref _listenerStarted))
         {
             InternalFlow.InternalFlowActivityListener.EnsureStarted(_internalFlowActivitySources);
-            _listenerStarted = true;
+            Volatile.Write(ref _listenerStarted, true);
         }
 
         // Skip tracking entirely for excluded hosts (e.g. ASP.NET Core TestServer's internal "override.com")
@@ -162,7 +162,7 @@ public class TestTrackingMessageHandler : DelegatingHandler, ITrackingComponent
             hasCallerNameHeader = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue(TestTrackingHttpHeaders.CallerNameHeader, out callerNameHeaders);
         }
 
-        var currentTestInfoFetcher = hasCurrentTestNameHeader ? () => (currentTestNameHeaders.First()!, currentTestIdHeaders.First()!) : _currentTestInfoFetcher;
+        var currentTestInfoFetcher = (hasCurrentTestNameHeader && hasCurrentTestIdHeader) ? () => (currentTestNameHeaders.First()!, currentTestIdHeaders.First()!) : _currentTestInfoFetcher;
 
         // Resolve test info once — if the fetcher throws, fall back to TestIdentityScope,
         // then skip all tracking and just forward the request.
