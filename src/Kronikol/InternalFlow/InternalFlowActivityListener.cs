@@ -36,7 +36,8 @@ public sealed class InternalFlowActivityListener : IDisposable
     ];
 
     private static readonly object Lock = new();
-    private static InternalFlowActivityListener? _autoStarted;
+    private static volatile InternalFlowActivityListener? _autoStarted;
+    private static int _starting;
 
     private readonly ActivityListener _listener;
 
@@ -57,14 +58,14 @@ public sealed class InternalFlowActivityListener : IDisposable
     /// Ensures a single process-wide listener is started with the given additional sources.
     /// Called automatically by <see cref="Tracking.TestTrackingMessageHandler"/>.
     /// Subsequent calls are no-ops (first caller's sources win).
+    /// Uses lock-free initialization to avoid thread-pool starvation on constrained
+    /// runners where multiple handlers race on first use (issue #70).
     /// </summary>
     internal static void EnsureStarted(string[]? additionalActivitySources = null)
     {
         if (_autoStarted != null) return;
-        lock (Lock)
-        {
-            _autoStarted ??= new InternalFlowActivityListener(additionalActivitySources ?? []);
-        }
+        if (Interlocked.CompareExchange(ref _starting, 1, 0) != 0) return;
+        _autoStarted = new InternalFlowActivityListener(additionalActivitySources ?? []);
     }
 
     /// <summary>
@@ -76,6 +77,7 @@ public sealed class InternalFlowActivityListener : IDisposable
         {
             _autoStarted?.Dispose();
             _autoStarted = null;
+            Interlocked.Exchange(ref _starting, 0);
         }
     }
 

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.25] - 2026-05-22
+
+### Fixed
+- **`EnsureStarted` no longer blocks concurrent callers on constrained thread pools** — The `InternalFlowActivityListener.EnsureStarted()` method previously used a `lock` that caused thread-pool starvation on Linux CI runners with limited worker threads. When multiple handler instances raced on first use, all threads blocked waiting for the single lock, leaving no threads available for async continuations. Now uses lock-free `Interlocked.CompareExchange` so only one thread performs initialization and all others skip immediately without blocking. ([#70](https://github.com/lemonlion/Kronikol/issues/70))
+
 ## [3.0.24] - 2026-05-22
 
 ### Fixed
