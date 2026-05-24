@@ -3205,7 +3205,7 @@ public static class DiagramContextMenu
             function stripDatabaseCalls(source) {
                 // Find all database participant aliases
                 var dbAliases = [];
-                var dbDeclRe = /^database\s+"[^"]*"\s+as\s+(\S+)/gm;
+                var dbDeclRe = /^(?:database|collections)\s+"[^"]*"\s+as\s+(\S+)/gm;
                 var m;
                 while ((m = dbDeclRe.exec(source)) !== null) {
                     dbAliases.push(m[1].replace(/\s.*$/, ''));
@@ -3226,7 +3226,7 @@ public static class DiagramContextMenu
                 }
 
                 function isDbDecl(line) {
-                    return /^database\s+"[^"]*"\s+as\s+\S+/.test(line);
+                    return /^(?:database|collections)\s+"[^"]*"\s+as\s+\S+/.test(line);
                 }
 
                 function isDbExplicitNote(line) {

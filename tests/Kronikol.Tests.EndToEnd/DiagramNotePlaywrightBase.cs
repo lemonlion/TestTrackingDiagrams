@@ -46,6 +46,12 @@ public abstract class DiagramNotePlaywrightBase : PlaywrightTestBase
     protected string GenerateWideDatabaseParticipantReport(string fileName) =>
         ReportTestHelper.GenerateReportWithWideDatabaseParticipant(TempDir, OutputDir, fileName);
 
+    protected string GenerateCollectionsParticipantReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithCollectionsParticipant(TempDir, OutputDir, fileName);
+
+    protected string GenerateMixedDatabaseCollectionsReport(string fileName) =>
+        ReportTestHelper.GenerateReportWithMixedDatabaseCollections(TempDir, OutputDir, fileName);
+
     protected string GenerateFragmentedDiagramReport(string fileName) =>
         ReportTestHelper.GenerateReportWithFragmentedDiagram(TempDir, OutputDir, fileName);
 

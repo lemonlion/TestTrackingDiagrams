@@ -1870,6 +1870,82 @@ public static class ReportTestHelper
         return new Uri(path).AbsoluteUri;
     }
 
+    private const string CollectionsParticipantPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        collections "Redis" as redis #F39C12
+
+        caller -> svc : POST /api/orders
+        note left
+        Content-Type: application/json
+        {"item":"Widget","qty":2}
+        end note
+        svc -[#F39C12]> redis: GET cache:orders
+        note left
+        key=orders:widget
+        end note
+        redis -[#F39C12]-> svc: (nil)
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    public static string GenerateReportWithCollectionsParticipant(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", CollectionsParticipantPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
+    private const string MixedDatabaseCollectionsPlantUmlSource = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        database "CosmosDB" as cosmosdb #E74C3C
+        collections "Redis" as redis #F39C12
+
+        caller -> svc : POST /api/orders
+        svc -[#F39C12]> redis: GET cache:orders
+        redis -[#F39C12]-> svc: (nil)
+        svc -[#E74C3C]> cosmosdb: CreateItemAsync
+        cosmosdb -[#E74C3C]-> svc: 201 Created
+        svc -[#F39C12]> redis: SET cache:orders
+        redis -[#F39C12]-> svc: OK
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    public static string GenerateReportWithMixedDatabaseCollections(string tempDir, string outputDir, string fileName)
+    {
+        var (features, _) = CreateTestData();
+        var diagrams = new[]
+        {
+            new DiagramAsCode("t1", "", MixedDatabaseCollectionsPlantUmlSource)
+        };
+
+        var path = ReportGenerator.GenerateHtmlReport(
+            diagrams, features,
+            DateTime.UtcNow, DateTime.UtcNow,
+            null, Path.Combine(tempDir, fileName), "Test Report", true,
+            diagramFormat: DiagramFormat.PlantUml,
+            plantUmlRendering: PlantUmlRendering.BrowserJs);
+
+        File.Copy(path, Path.Combine(outputDir, fileName), true);
+        return new Uri(path).AbsoluteUri;
+    }
+
     /// <summary>
     /// Generates a report with a single diagram that exceeds the height threshold (12000px estimated)
     /// by having many arrow pairs, triggering client-side fragment splitting via splitDiagramSource.

@@ -270,6 +270,82 @@ public class DatabaseToggleTests : DiagramNotePlaywrightBase
         Assert.Contains("customerId", sourceAfter);
     }
 
+    [Fact]
+    public async Task Databases_toggle_button_is_rendered_when_collections_participant_exists()
+    {
+        await Page.GotoAsync(GenerateCollectionsParticipantReport("DbToggleCollectionsBtn.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+
+        var btn = Page.Locator("button[data-toggle='databases']").First;
+        await btn.WaitForAsync(new() { Timeout = 5000 });
+        var text = await btn.TextContentAsync();
+        Assert.Contains("Shown", text);
+    }
+
+    [Fact]
+    public async Task Databases_toggle_hides_collections_participant_and_arrows()
+    {
+        await Page.GotoAsync(GenerateCollectionsParticipantReport("DbToggleCollectionsHide.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        var sourceBefore = await GetDataPlantuml();
+        Assert.Contains("collections", sourceBefore);
+        Assert.Contains("redis", sourceBefore);
+
+        await Page.Locator("button[data-toggle='databases']").First.ClickAsync();
+
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                if (!container || container._noteRendering || window._plantumlRendering) return false;
+                var source = container.getAttribute('data-plantuml');
+                return source && !source.includes('redis');
+            }
+        """, null, new() { Timeout = 15000, PollingInterval = 200 });
+
+        var sourceAfter = await GetDataPlantuml();
+        Assert.DoesNotContain("collections", sourceAfter);
+        Assert.DoesNotContain("redis", sourceAfter);
+        Assert.Contains("caller", sourceAfter);
+        Assert.Contains("svc", sourceAfter);
+    }
+
+    [Fact]
+    public async Task Databases_toggle_hides_both_database_and_collections_participants()
+    {
+        await Page.GotoAsync(GenerateMixedDatabaseCollectionsReport("DbToggleMixedHide.html"));
+        await Page.Locator("details.feature").First.WaitForAsync();
+        await ExpandFirstScenarioWithDiagram();
+        await WaitForDiagramSvg();
+
+        var sourceBefore = await GetDataPlantuml();
+        Assert.Contains("database", sourceBefore);
+        Assert.Contains("cosmosdb", sourceBefore);
+        Assert.Contains("collections", sourceBefore);
+        Assert.Contains("redis", sourceBefore);
+
+        await Page.Locator("button[data-toggle='databases']").First.ClickAsync();
+
+        await Page.WaitForFunctionAsync("""
+            () => {
+                var container = document.querySelector('[data-diagram-type="plantuml"]');
+                if (!container || container._noteRendering || window._plantumlRendering) return false;
+                var source = container.getAttribute('data-plantuml');
+                return source && !source.includes('redis') && !source.includes('cosmosdb');
+            }
+        """, null, new() { Timeout = 15000, PollingInterval = 200 });
+
+        var sourceAfter = await GetDataPlantuml();
+        Assert.DoesNotContain("database", sourceAfter);
+        Assert.DoesNotContain("cosmosdb", sourceAfter);
+        Assert.DoesNotContain("collections", sourceAfter);
+        Assert.DoesNotContain("redis", sourceAfter);
+        Assert.Contains("caller", sourceAfter);
+        Assert.Contains("svc", sourceAfter);
+    }
+
     private async Task<string> GetDataPlantuml()
     {
         return await Page.EvaluateAsync<string>("""

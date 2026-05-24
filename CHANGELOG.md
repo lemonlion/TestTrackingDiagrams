@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [3.0.27] - 2026-05-24
+
+### Changed
+- **"Databases" toggle now also hides/shows `collections` participants (Redis, distributed caches)** — The "Databases Shown/Hidden" toggle in HTML reports previously only stripped `database` PlantUML participants. It now also strips `collections` participants, which are used for Redis and other distributed caches. The toggle button still appears automatically when either `database` or `collections` participants are present in the diagram source.
+
 ## [3.0.26] - 2026-05-22
 
 ### Changed

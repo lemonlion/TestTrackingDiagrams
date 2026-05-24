@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageType>Template</PackageType>
-    <PackageVersion>2.37.1</PackageVersion>
+    <PackageVersion>2.37.2</PackageVersion>
     <PackageId>Kronikol.Templates</PackageId>
     <Title>Kronikol Project Templates</Title>
     <Authors>Aryeh Citron</Authors>

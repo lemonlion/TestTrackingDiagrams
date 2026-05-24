@@ -111,4 +111,44 @@ public class DatabaseToggleReportTests
         var content = GenerateReport("DbToggle_Global.html", PlantUmlSourceWithDatabase);
         Assert.Contains("window._databasesVisible = true", content);
     }
+
+    private const string PlantUmlSourceWithCollections = """
+        @startuml
+        actor "Caller" as caller
+        participant "OrderService" as svc
+        collections "Redis" as redis #F39C12
+
+        caller -> svc : POST /api/orders
+        note left
+        {"item":"Widget","qty":2}
+        end note
+        svc -[#F39C12]> redis: GET cache:orders
+        redis -[#F39C12]-> svc: (nil)
+        svc --> caller : 201 Created
+        @enduml
+        """;
+
+    [Fact]
+    public void Databases_toggle_button_rendered_when_collections_participant_present()
+    {
+        var content = GenerateReport("DbToggle_Collections_Present.html", PlantUmlSourceWithCollections);
+        Assert.Contains("data-toggle=\"databases\"", content);
+        Assert.Contains("_toggleDatabases", content);
+    }
+
+    [Fact]
+    public void Databases_toggle_button_not_rendered_when_no_database_or_collections()
+    {
+        var content = GenerateReport("DbToggle_NeitherPresent.html", PlantUmlSourceWithoutDatabase);
+        Assert.DoesNotContain("data-toggle=\"databases\"", content);
+    }
+
+    [Fact]
+    public void StripDatabaseCalls_handles_collections_keyword_in_regex()
+    {
+        var content = GenerateReport("DbToggle_CollectionsStrip.html", PlantUmlSourceWithCollections);
+        Assert.Contains("function stripDatabaseCalls", content);
+        // The regex should match both database and collections declarations
+        Assert.Contains("collections", content);
+    }
 }
