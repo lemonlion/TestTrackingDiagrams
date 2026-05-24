@@ -23,6 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet/shared/Microsoft.AspNetCore.App/6.* \
+                      /usr/share/dotnet/shared/Microsoft.AspNetCore.App/7.* \
+                      /usr/share/dotnet/shared/Microsoft.NETCore.App/6.* \
+                      /usr/share/dotnet/shared/Microsoft.NETCore.App/7.* \
+                      /usr/local/lib/android \
+                      /opt/ghc || true
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -37,10 +46,10 @@ jobs:
           languages: csharp
 
       - name: Restore
-        run: dotnet restore Kronikol.sln
+        run: dotnet restore release.slnf
 
       - name: Build
-        run: dotnet build Kronikol.sln --no-restore
+        run: dotnet build release.slnf --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
